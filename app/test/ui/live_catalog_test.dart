@@ -195,16 +195,16 @@ void main() {
       EditorScreen(services: s, subject: 'car'),
       size: const Size(800, 1600),
     );
-    expect(find.text('1 card · ready'), findsOneWidget);
+    expect(find.textContaining('1 card · ready'), findsOneWidget);
     _connect(db, stream);
     db.root = setAt(db.root, '$_car/cards/fuel-mix', {
       ...getAt(db.root, '$_car/cards/fuel-spark')! as Map<String, dynamic>,
       'order': 2,
     });
     await _bump(t, db, stream);
-    expect(find.text('2 cards · ready'), findsOneWidget);
+    expect(find.textContaining('2 cards · ready'), findsOneWidget);
     db.offline = true;
     await _bump(t, db, stream); // a failed refresh keeps the list
-    expect(find.text('2 cards · ready'), findsOneWidget);
+    expect(find.textContaining('2 cards · ready'), findsOneWidget);
   });
 }

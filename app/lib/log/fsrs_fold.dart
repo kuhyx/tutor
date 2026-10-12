@@ -17,6 +17,10 @@ final Fsrs6 scheduler = Fsrs6();
 /// different device is an offline double-tap and is dropped.
 const int dedupeWindowMs = 60 * 1000;
 
+/// `good(c)` needs the latest review at least this long after `taught`
+/// (curriculum §6: real recall, not the same sitting).
+const int goodGapMs = 20 * 3600 * 1000;
+
 /// What the fold needs from a catalog card.
 class CardInfo {
   /// Creates the record.
@@ -32,13 +36,21 @@ class CardInfo {
 /// The fold's output.
 class FoldResult {
   /// Creates the result.
-  const new({required this.scheduled, required this.flagged});
+  const new({
+    required this.scheduled,
+    required this.flagged,
+    this.good = const {},
+  });
 
   /// FSRS card per taught `subject/card` key (untaught cards are absent).
   final Map<String, FsrsCard> scheduled;
 
   /// Keys with a flag on the card's current rev.
   final Set<String> flagged;
+
+  /// Keys whose card is `good` (curriculum §6): taught, and the latest
+  /// review since then rated Good or Easy 20 h or more after `taught`.
+  final Set<String> good;
 }
 
 /// One entry of the review queue.
@@ -88,6 +100,8 @@ List<LoggedEvent> mergeEvents(Iterable<LoggedEvent> events) {
 FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
   final scheduled = <String, FsrsCard>{};
   final flagged = <String>{};
+  final taughtAt = <String, int>{};
+  final latest = <String, ReviewEvent>{};
   for (final e in mergeEvents(events)) {
     final event = e.event;
     final key = event.key;
@@ -95,17 +109,31 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
       case TaughtEvent(:final at):
         // Taught (or re-taught): a new FSRS card reviewed Good at `at`.
         scheduled[key] = scheduler.first(Grade.good, _utc(at));
+        taughtAt[key] = at;
+        latest.remove(key);
       case UntaughtEvent():
         scheduled.remove(key);
+        taughtAt.remove(key);
+        latest.remove(key);
       case ReviewEvent(:final at, :final grade):
         final card = scheduled[key];
         if (card == null) continue; // a review of an untaught card
         scheduled[key] = scheduler.review(card, grade, _utc(at));
+        latest[key] = event;
       case FlagEvent(:final rev):
         if (cards[key]?.rev == rev) flagged.add(key);
     }
   }
-  return FoldResult(scheduled: scheduled, flagged: flagged);
+  return FoldResult(
+    scheduled: scheduled,
+    flagged: flagged,
+    good: {
+      for (final MapEntry(:key, value: r) in latest.entries)
+        if (r.grade.value >= Grade.good.value &&
+            r.at >= taughtAt[key]! + goodGapMs)
+          key,
+    },
+  );
 }
 
 /// Due cards from every subject: taught, `due <= now`, not flagged, not

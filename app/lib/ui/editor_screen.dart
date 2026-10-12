@@ -11,11 +11,14 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/home/catalog.dart';
+import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/model/plan.dart';
+import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/card_form.dart';
+import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/flag_dialog.dart';
 
@@ -38,6 +41,7 @@ class _EditorScreenState extends State<EditorScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
   late final StreamSubscription<int> _changes;
   Map<String, SubjectData> _subjects = const {};
+  FoldResult? _fold;
   String? _subject;
 
   @override
@@ -71,9 +75,14 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     }
     final all = await widget.services.catalog.cached();
+    final folded = await foldAll(
+      widget.services.events,
+      widget.services.catalog,
+    );
     if (!mounted) return;
     setState(() {
       _subjects = all;
+      _fold = folded;
       _subject ??= all.keys.firstOrNull;
     });
   }
@@ -113,6 +122,10 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     final s = _subjects[_subject];
+    final fold = _fold;
+    final progress = s == null || fold == null
+        ? null
+        : subjectProgress(s, fold, DateTime.now());
     return Scaffold(
       appBar: AppBar(title: const Text('Edit cards')),
       body: PageList(
@@ -131,6 +144,8 @@ class _EditorScreenState extends State<EditorScreen> {
               onChanged: (v) => setState(() => _subject = v),
             ),
           RequestStatusLine(_runner),
+          if (progress != null && progress.total.cards > 0)
+            ProgressSummary(progress.total),
           if (s == null)
             const EmptyState(
               icon: Icons.style,
@@ -142,15 +157,21 @@ class _EditorScreenState extends State<EditorScreen> {
               ExpansionTile(
                 title: Text(m.title),
                 subtitle: Text(
-                  '${_cards(s.cardsOf(m.id).length)} · ${m.status.name}',
+                  [
+                    _cards(s.cardsOf(m.id).length),
+                    m.status.name,
+                    if ((progress?.modules[m.id]?.cards ?? 0) > 0)
+                      progress!.modules[m.id]!.doneText,
+                  ].join(' · '),
                 ),
                 children: [
                   for (final c in s.cardsOf(m.id))
                     ListTile(
+                      leading: CardStateIcon(progress?.cards[c.key]),
                       title: Text(c.value.front),
                       subtitle: Text(
-                        '${c.value.back}\n${hostOf(c.value.source)}'
-                        '${c.value.suspended ? ' · suspended' : ''}',
+                        '${c.value.back}\n${hostOf(c.value.source)} · '
+                        '${_state(c.value, progress?.cards[c.key])}',
                       ),
                       isThreeLine: true,
                       onTap: () => _edit(s, m, c),
@@ -180,3 +201,6 @@ class _EditorScreenState extends State<EditorScreen> {
 }
 
 String _cards(int n) => '$n card${n == 1 ? '' : 's'}';
+
+String _state(StudyCard card, CardProgress? p) =>
+    card.suspended ? 'suspended' : p?.label ?? '';

@@ -11,15 +11,37 @@ void main() {
     final db = fixtureDb();
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
+    // Two cards taught a month ago, one of them recalled a day later.
+    final at = fixtureNow - 30 * 86400000;
+    for (final c in ['eng-strokes', 'eng-crank']) {
+      await s.events.record(TaughtEvent(subject: 'car', card: c, at: at));
+    }
+    await s.events.record(
+      ReviewEvent(
+        subject: 'car',
+        card: 'eng-strokes',
+        at: at + 86400000,
+        grade: Grade.good,
+        rev: 1,
+      ),
+    );
     await pumpScreen(
       t,
       EditorScreen(services: s, subject: 'car'),
       size: const Size(800, 1600),
     );
-    expect(find.text('3 cards · mastered'), findsOneWidget);
-    expect(find.text('1 card · ready'), findsOneWidget);
+    // The old page's deck summary: done / mastered per module and subject.
+    expect(find.text('2/4 done · 1 mastered · 2 due'), findsOneWidget);
+    expect(
+      find.text('3 cards · mastered · 2 done · 1 mastered · 2 due'),
+      findsOneWidget,
+    );
+    expect(find.text('1 card · ready · 0 done · 0 mastered'), findsOneWidget);
     await t.tap(find.text('The four-stroke engine'));
     await t.pumpAndSettle();
+    expect(find.byIcon(Icons.star), findsOneWidget); // mastered
+    expect(find.byIcon(Icons.check_circle), findsOneWidget); // done
+    expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
 
     await t.tap(find.byTooltip('Flag').first);
     await t.pumpAndSettle();

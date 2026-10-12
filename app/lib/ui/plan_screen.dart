@@ -10,9 +10,11 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
+import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/plan/plan_ops.dart';
+import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
@@ -53,15 +55,24 @@ class _PlanScreenState extends State<PlanScreen> {
   final _comment = TextEditingController();
   bool _editorDirty = false;
   String? _editorKey;
+  FoldResult? _fold;
 
   @override
   void initState() {
     super.initState();
     unawaited(_data.reload());
+    unawaited(_refold());
     // Live while visible: the worker bumps rev.catalog as modules generate.
-    _changes = widget.services.rev.catalogChanges.listen(
-      (_) => unawaited(_data.reload()),
-    );
+    _changes = widget.services.rev.catalogChanges.listen((_) {
+      unawaited(_data.reload());
+      unawaited(_refold());
+    });
+  }
+
+  Future<void> _refold() async {
+    final s = widget.services;
+    final f = await foldAll(s.events, s.catalog);
+    if (mounted) setState(() => _fold = f);
   }
 
   @override
@@ -215,6 +226,9 @@ class _PlanScreenState extends State<PlanScreen> {
           for (final m in plan.modules)
             ModuleProgressTile(
               module: m,
+              tally: _fold == null
+                  ? null
+                  : subjectProgress(data, _fold!, DateTime.now()).modules[m.id],
               onRetry: () => _send(RequestBody.planApprove(data.id, plan.rev)),
             ),
         ],

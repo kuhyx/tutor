@@ -8,7 +8,7 @@
 //                            "state","flagged","good"}},
 //           "dropped": [...], "ignored": [...]}]
 // Events are listed unsorted on purpose (the fold sorts). Tolerance 1e-6 on
-// stability/difficulty; `due` exact to the ms. `good` (§6 unlock rule) and
+// stability/difficulty; `due` exact to the ms; `good` (§6 unlock rule) too.
 // `dropped`/`ignored` are worker-side and not checked here.
 import 'dart:convert';
 import 'dart:io';
@@ -52,6 +52,11 @@ void _check(Map<String, dynamic> v) {
       result.flagged.contains(key),
       want['flagged'],
       reason: '$name: $id flagged',
+    );
+    expect(
+      result.good.contains(key),
+      want['good'] ?? false,
+      reason: '$name: $id good',
     );
     if (card == null) continue;
     expect(

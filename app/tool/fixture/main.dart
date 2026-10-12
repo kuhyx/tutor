@@ -76,6 +76,16 @@ Future<TutorServices> _open() async {
       TaughtEvent(subject: 'car', card: c, at: now - 30 * 86400000),
     );
   }
+  // One of them recalled a day later: mastered in the cards view.
+  await events.record(
+    ReviewEvent(
+      subject: 'car',
+      card: fixtureTaught.first,
+      at: now - 29 * 86400000,
+      grade: Grade.good,
+      rev: 1,
+    ),
+  );
   return TutorServices(
     config: _config,
     dev: _dev,
