@@ -49,10 +49,15 @@ class UlidGenerator {
   }
 }
 
+// 2^48 as a literal: `1 << 48` is 0 on the web, where shifts are 32-bit
+// (every ms then fell "outside the range" and the desktop app could not
+// start).
+const _timeLimit = 281474976710656;
+
 /// The 10-char time prefix for [ms]; also the smallest id at that time,
 /// usable as a `startAt` bound.
 String encodeTime(int ms) {
-  if (ms < 0 || ms >= 1 << 48) {
+  if (ms < 0 || ms >= _timeLimit) {
     throw ArgumentError.value(ms, 'ms', 'outside the 48-bit ULID range');
   }
   final chars = List.filled(10, '0');

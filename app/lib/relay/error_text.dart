@@ -5,6 +5,8 @@
 /// Tracebacks never reach the client.
 library;
 
+import 'package:tutor/model/request.dart';
+
 const _headlines = {
   'bad_request': 'The PC could not read that request.',
   'not_live': 'That session is no longer live.',
@@ -35,3 +37,12 @@ String errorText(String? code, String? error) {
   final detail = error?.trim() ?? '';
   return detail.isEmpty ? headline : '$headline $detail';
 }
+
+/// What the worker is doing, as the busy line shows it (§4 phases).
+String phaseText(Phase phase) => switch (phase) {
+  Phase.claimed => 'The PC picked it up...',
+  Phase.thinking => 'Tutor is thinking...',
+  Phase.images => 'Finding pictures...',
+  Phase.checkingImages => 'Checking the pictures...',
+  Phase.publishing => 'Publishing the reply...',
+};

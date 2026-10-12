@@ -1,0 +1,179 @@
+/// Session (curriculum §8): the chat from the RTDB projection, answer
+/// boxes, busy phase and pending bubble, Card done -> Next card / Stop
+/// here, Mark card done, Switch card, mastered list, paused/stalled pills,
+/// PC-offline banner. Wide windows get the side panel inline.
+library;
+
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:tutor/app/services.dart';
+import 'package:tutor/home/catalog.dart';
+import 'package:tutor/model/request_body.dart';
+import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/session/session_feed.dart';
+import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/session_chat.dart';
+import 'package:tutor/ui/session/session_side.dart';
+
+/// Width from which the side panel sits beside the chat.
+const kWideLayout = 900.0;
+
+/// The Session screen.
+class SessionScreen extends StatefulWidget {
+  /// Creates the screen; [now] is injectable for the stalled pill.
+  const new({required this.services, this.now, super.key});
+
+  /// Services.
+  final TutorServices services;
+
+  /// Clock for "stalled".
+  final DateTime Function()? now;
+
+  @override
+  State<SessionScreen> createState() => _SessionScreenState();
+}
+
+class _SessionScreenState extends State<SessionScreen> {
+  late final SessionFeed _feed = SessionFeed(widget.services.stream);
+  late final RequestRunner _runner = RequestRunner(widget.services.relay);
+  late final AppLifecycleListener _lifecycle;
+  final _scroll = ScrollController();
+  Map<String, SubjectData> _subjects = const {};
+
+  TutorServices get _s => widget.services;
+
+  @override
+  void initState() {
+    super.initState();
+    _feed.start();
+    _s.presence.start();
+    _lifecycle = AppLifecycleListener(
+      onShow: () {
+        _feed.start();
+        _s.presence.start();
+      },
+      onHide: () => unawaited(_feed.stop()),
+    );
+    unawaited(
+      _s.catalog.cached().then((c) {
+        if (mounted) setState(() => _subjects = c);
+      }),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    unawaited(_feed.dispose());
+    unawaited(_runner.dispose());
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Runs [body]; a result naming a session is followed at once.
+  Future<RelayStatus> _run(RequestBody body) async {
+    final status = await _runner.run(body);
+    if (status is RelayDone) {
+      final sid = status.data['session'];
+      if (sid is String && mounted) _feed.follow(sid);
+    }
+    return status;
+  }
+
+  Future<bool> _send(String sid, String text) async =>
+      await _run(RequestBody.message(sid, text)) is! RelayNotSent;
+
+  Future<void> _switch(String? subjectId) async {
+    final subject = _subjects[subjectId];
+    if (subject == null) return;
+    final card = await pickCard(context, subject);
+    if (card != null) {
+      await _run(RequestBody.sessionStart(subject: subject.id, card: card));
+    }
+  }
+
+  // Forwards a wheel over the margins/buttons to the chat (`wheel.js`):
+  // anything that scrolls itself (the chat, a text box) claims it first.
+  void _wheel(PointerSignalEvent e) {
+    if (e is! PointerScrollEvent || !_scroll.hasClients) return;
+    GestureBinding.instance.pointerSignalResolver.register(e, (event) {
+      final p = _scroll.position;
+      final d = (event as PointerScrollEvent).scrollDelta.dy;
+      _scroll.jumpTo((p.pixels + d).clamp(0, p.maxScrollExtent));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([_feed.view, _feed.loaded, _runner.status]),
+    builder: (context, _) {
+      final view = _feed.view.value;
+      final meta = view?.meta;
+      final subject = _subjects[meta?.subject];
+      final live = meta != null && !meta.stopped;
+      final side = SessionSide(
+        meta: meta,
+        subject: subject,
+        mastered: <String>{
+          ...?subject?.concepts.map((c) => c.name),
+          for (final m in view?.messages ?? const <KeyedMessage>[])
+            ...m.message.masteredNew,
+        }.toList(),
+        onSwitch: subject == null ? null : () => _switch(subject.id),
+        onMarkDone: live && meta.card != null && !meta.cardDone
+            ? () => _run(RequestBody.cardDone(meta.subject, meta.card!.id))
+            : null,
+        onEdit: () => openEditor(context, _s, subject: meta?.subject),
+        onReport: () =>
+            showReport(context, _s, route: '/session', session: view?.sid),
+        onHistory: () => openHistory(context, _s),
+      );
+      final chat = Listener(
+        onPointerSignal: _wheel,
+        child: SessionChat(
+          services: _s,
+          feed: _feed,
+          view: view,
+          runner: _runner,
+          scroll: _scroll,
+          now: widget.now ?? DateTime.now,
+          onRun: _run,
+          onSend: _send,
+        ),
+      );
+      return LayoutBuilder(
+        builder: (context, box) {
+          final wide = box.maxWidth >= kWideLayout;
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(subject?.meta.title ?? 'Session'),
+              actions: [
+                if (!wide)
+                  Builder(
+                    builder: (context) => IconButton(
+                      tooltip: 'Card and progress',
+                      onPressed: Scaffold.of(context).openEndDrawer,
+                      icon: const Icon(Icons.view_sidebar_outlined),
+                    ),
+                  ),
+              ],
+            ),
+            endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
+            body: wide
+                ? Row(
+                    children: [
+                      Expanded(child: chat),
+                      const VerticalDivider(width: 1),
+                      SizedBox(width: 320, child: side),
+                    ],
+                  )
+                : chat,
+          );
+        },
+      );
+    },
+  );
+}

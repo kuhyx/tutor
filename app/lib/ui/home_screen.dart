@@ -1,25 +1,41 @@
-/// Home (shell): PC presence, due reviews, subjects. Full screens are B3b.
+/// Home (curriculum §8): subjects with status/progress, a new subject from
+/// free text, due reviews, PC presence, credited x/60, new x/10.
 library;
 
 import 'dart:async';
 
-import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/home_loader.dart';
+import 'package:tutor/home/remote_bits.dart';
+import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/error_text.dart';
+import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/home_body.dart';
+import 'package:tutor/ui/nav.dart';
 
 /// Home screen.
 class HomeScreen extends StatefulWidget {
-  /// Creates the screen.
-  const new({required this.services, required this.onSignedOut, super.key});
+  /// Creates the screen; [initialRoute] (fixture builds, deep links) is
+  /// opened on top once Home is up.
+  const new({
+    required this.services,
+    required this.onSignedOut,
+    this.initialRoute,
+    super.key,
+  });
 
   /// Services.
   final TutorServices services;
 
   /// Called after sign-out.
   final VoidCallback onSignedOut;
+
+  /// A route such as `/plan/car` to open first.
+  final String? initialRoute;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -28,8 +44,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Future<HomeSnapshot> _snapshot = widget.services.home.load();
   late final AppLifecycleListener _lifecycle;
+  late final RequestRunner _runner = RequestRunner(widget.services.relay);
 
-  PresenceWatcher get _presence => widget.services.presence;
+  TutorServices get _s => widget.services;
+  PresenceWatcher get _presence => _s.presence;
 
   @override
   void initState() {
@@ -40,23 +58,68 @@ class _HomeScreenState extends State<HomeScreen> {
       onShow: _presence.start,
       onHide: () => unawaited(_presence.stop()),
     );
+    final route = widget.initialRoute;
+    if (route != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(openRoute(context, _s, route).then(_back));
+      });
+    }
   }
 
   @override
   void dispose() {
     _lifecycle.dispose();
     unawaited(_presence.stop());
+    unawaited(_runner.dispose());
     super.dispose();
   }
 
   void _refresh() => setState(() {
-    _snapshot = widget.services.home.load();
+    _snapshot = _s.home.load();
   });
 
+  // Back on Home from any screen: counters may have moved.
+  void _back(Object? _) {
+    if (mounted) _refresh();
+  }
+
   Future<void> _signOut() async {
-    await widget.services.auth.signOut();
+    await _s.auth.signOut();
     widget.onSignedOut();
   }
+
+  Future<void> _newSubject(String text) async {
+    final status = await _runner.run(RequestBody.subjectNew(text));
+    if (!mounted || status is! RelayDone) return;
+    final subject = status.data['subject'];
+    _refresh();
+    if (subject is String) await openPlan(context, _s, subject).then(_back);
+  }
+
+  Future<void> _finish(String subject, {required bool goDeeper}) async {
+    final status = await _runner.run(
+      RequestBody.subjectFinish(subject, goDeeper: goDeeper),
+    );
+    if (!mounted || status is! RelayDone) return;
+    _refresh();
+    if (goDeeper) await openPlan(context, _s, subject).then(_back);
+  }
+
+  Future<void> _pick(String subject) async {
+    try {
+      await setCurrentSubject(_s.client, subject);
+    } on Object catch (error) {
+      // `on Object`: shown, never swallowed; the pick is simply not saved.
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Not saved: $error')));
+      }
+      return;
+    }
+    _refresh();
+  }
+
+  Future<void> _go(Future<void> Function() open) => open().then(_back);
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -69,10 +132,22 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: _refresh,
           icon: const Icon(Icons.refresh),
         ),
-        IconButton(
-          tooltip: 'Sign out',
-          onPressed: _signOut,
-          icon: const Icon(Icons.logout),
+        PopupMenuButton<String>(
+          tooltip: 'More',
+          onSelected: (v) => switch (v) {
+            'history' => _go(() => openHistory(context, _s)),
+            'progress' => _go(() => openProgress(context, _s)),
+            'editor' => _go(() => openEditor(context, _s)),
+            'report' => showReport(context, _s, route: '/'),
+            _ => _signOut(),
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'history', child: Text('History')),
+            PopupMenuItem(value: 'progress', child: Text('Progress')),
+            PopupMenuItem(value: 'editor', child: Text('Edit cards')),
+            PopupMenuItem(value: 'report', child: Text('Report a problem')),
+            PopupMenuItem(value: 'signout', child: Text('Sign out')),
+          ],
         ),
       ],
     ),
@@ -85,57 +160,23 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snap.hasError) {
-          return _Centered('Could not load: ${snap.error}');
+          return PageList(children: [Text('Could not load: ${snap.error}')]);
         }
-        return _HomeBody(snap.requireData);
+        return HomeBody(
+          data: snap.requireData,
+          presence: _presence.state,
+          runner: _runner,
+          onReview: () => _go(() => openReview(context, _s)),
+          onSession: () => _go(() => openSession(context, _s)),
+          onPlan: (id) => _go(() => openPlan(context, _s, id)),
+          onEdit: (id) => _go(() => openEditor(context, _s, subject: id)),
+          onPick: _pick,
+          onNewSubject: _newSubject,
+          onFinish: _finish,
+        );
       },
     ),
   );
-}
-
-class _HomeBody extends StatelessWidget {
-  const new(this.data);
-
-  final HomeSnapshot data;
-
-  @override
-  Widget build(BuildContext context) {
-    final today = data.today;
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      children: [
-        if (data.offline)
-          const ListTile(
-            leading: Icon(Icons.cloud_off),
-            title: Text('Offline: showing the last synced catalog'),
-          ),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.style),
-            title: Text('${data.due} due for review'),
-            subtitle: today == null
-                ? null
-                : Text(
-                    'Today: ${today.creditedMinutes}/${today.target} min, '
-                    'new ${today.newCards}/${today.newCap}',
-                  ),
-          ),
-        ),
-        const SectionHeader('Subjects'),
-        if (data.subjects.isEmpty)
-          const EmptyState(
-            icon: Icons.lightbulb_outline,
-            title: 'No subjects yet',
-            message: 'New subjects arrive with the next app version.',
-          ),
-        for (final s in data.subjects)
-          ListTile(
-            title: Text(s.meta.title),
-            subtitle: Text(s.meta.status.wire.replaceAll('_', ' ')),
-          ),
-      ],
-    );
-  }
 }
 
 class _PresenceChip extends StatelessWidget {
@@ -154,25 +195,8 @@ class _PresenceChip extends StatelessWidget {
       };
       return Tooltip(
         message: tip,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          child: Center(child: Text(label)),
-        ),
+        child: Center(child: Pill(label, warn: value == PcPresence.offline)),
       );
     },
-  );
-}
-
-class _Centered extends StatelessWidget {
-  const new(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Text(text, textAlign: TextAlign.center),
-    ),
   );
 }

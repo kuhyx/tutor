@@ -70,7 +70,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('How a car works'), findsOneWidget);
-    expect(find.text('0 due for review'), findsOneWidget);
+    expect(find.text('Review (0 due)'), findsOneWidget);
     expect(find.text('PC: checking'), findsOneWidget);
     stream.listens[Paths.workers]!
       ..add(const RtdbConnected())
@@ -85,7 +85,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('How a car works'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Sign out'));
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Desktop sign-in'), findsOneWidget);
   });

@@ -10,6 +10,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_event.dart';
@@ -123,7 +124,10 @@ class RtdbStream {
     var target = uri;
     for (var hop = 0; hop < 5; hop++) {
       final request = http.Request('GET', target)
-        ..followRedirects = false
+        // A browser's fetch cannot hand a redirect back (http's
+        // BrowserClient raises instead) and follows it keeping Accept, so
+        // only the VM follows by hand.
+        ..followRedirects = kIsWeb
         ..headers['Accept'] = 'text/event-stream';
       final res = await client.httpClient.send(request);
       final location = res.headers['location'];

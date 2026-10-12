@@ -11,7 +11,12 @@ import 'package:tutor/ui/sign_in_screen.dart';
 /// The app.
 class TutorApp extends StatelessWidget {
   /// Creates the app; [open] builds the services once config is complete.
-  const new({required this.config, required this.open, super.key});
+  const new({
+    required this.config,
+    required this.open,
+    this.initialRoute,
+    super.key,
+  });
 
   /// Build-time identifiers.
   final FirebaseConfig config;
@@ -19,13 +24,16 @@ class TutorApp extends StatelessWidget {
   /// Opens the services.
   final Future<TutorServices> Function() open;
 
+  /// Route opened over Home once signed in (`ui/nav.dart`).
+  final String? initialRoute;
+
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Tutor',
     theme: buildLightTheme(),
     darkTheme: buildDarkTheme(),
     home: config.isComplete
-        ? _Gate(open: open)
+        ? _Gate(open: open, initialRoute: initialRoute)
         : _Message(
             'This build has no Firebase identifiers '
             '(${config.missing.join(', ')}). Run '
@@ -35,9 +43,10 @@ class TutorApp extends StatelessWidget {
 }
 
 class _Gate extends StatefulWidget {
-  const new({required this.open});
+  const new({required this.open, this.initialRoute});
 
   final Future<TutorServices> Function() open;
+  final String? initialRoute;
 
   @override
   State<_Gate> createState() => _GateState();
@@ -62,7 +71,11 @@ class _GateState extends State<_Gate> {
             _session = services.auth.hasSession();
           });
           return session.data!
-              ? HomeScreen(services: services, onSignedOut: recheck)
+              ? HomeScreen(
+                  services: services,
+                  onSignedOut: recheck,
+                  initialRoute: widget.initialRoute,
+                )
               : SignInScreen(services: services, onSignedIn: recheck);
         },
       );
