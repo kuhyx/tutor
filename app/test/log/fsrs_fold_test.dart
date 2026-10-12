@@ -87,6 +87,14 @@ void main() {
       _e(_b, _rev(t + dedupeWindowMs, Grade.good)),
     ]);
     expect(edge, hasLength(2));
+    // A review of a not-yet-taught card never counts for the dedupe: B's
+    // review 30 s later (after the card was taught) is kept (§4.3).
+    final early = mergeEvents([
+      _e(_a, _rev(t, Grade.good, 'w')),
+      _e(_a, _taught(t + 10000, 'w')),
+      _e(_b, _rev(t + 30000, Grade.good, 'w')),
+    ]);
+    expect(early.map((e) => e.dev).toList(), [_a, _a, _b]);
   });
 
   test('flags count only on the current rev', () {

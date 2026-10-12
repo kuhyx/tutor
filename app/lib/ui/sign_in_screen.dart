@@ -86,7 +86,10 @@ class _SignInScreenState extends State<SignInScreen> {
                 Text(
                   supported
                       ? 'Sign in once with the sync Google account.'
-                      : 'Desktop sign-in comes with the desktop wrapper.',
+                      : 'Desktop: this window signs in from the tutor server '
+                            'on the PC, once per server start. Restart the '
+                            'tutor (it hands the session over again), then '
+                            'reload this window.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.lg),

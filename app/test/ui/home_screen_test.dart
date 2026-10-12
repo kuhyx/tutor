@@ -80,6 +80,20 @@ void main() {
     expect(find.textContaining('failed on this turn'), findsOneWidget);
   });
 
+  testWidgets('desktop build: no Sign out', (t) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    await pumpScreen(
+      t,
+      HomeScreen(services: s, onSignedOut: () {}, allowSignOut: false),
+    );
+    await t.tap(find.byTooltip('More'));
+    await t.pumpAndSettle();
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Sign out'), findsNothing);
+  });
+
   testWidgets('menu routes and the initial route', (t) async {
     final db = fixtureDb();
     final stream = FakeStream();

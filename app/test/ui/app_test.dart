@@ -63,7 +63,10 @@ void main() {
     await tester.pumpWidget(TutorApp(config: testConfig, open: () async => s));
     await tester.pumpAndSettle();
     // Not Android in tests: the platform gate hides the button.
-    expect(find.textContaining('Desktop sign-in'), findsOneWidget);
+    expect(
+      find.textContaining('signs in from the tutor server'),
+      findsOneWidget,
+    );
     await s.auth.signInWithGoogle(tokenFetcher: () async => 'g');
     await tester.pumpWidget(
       TutorApp(config: testConfig, open: () async => s, key: UniqueKey()),
@@ -89,7 +92,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Desktop sign-in'), findsOneWidget);
+    expect(
+      find.textContaining('signs in from the tutor server'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Home shows load errors and the offline banner', (tester) async {

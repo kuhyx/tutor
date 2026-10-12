@@ -64,9 +64,14 @@ List<LoggedEvent> mergeEvents(Iterable<LoggedEvent> events) {
     });
   final kept = <LoggedEvent>[];
   final reviews = <String, List<LoggedEvent>>{};
+  // A review of an untaught card is ignored by the fold and never counts
+  // for the dedupe either (curriculum §4.3).
+  final taught = <String>{};
   for (final e in sorted) {
     final event = e.event;
-    if (event is ReviewEvent) {
+    if (event is TaughtEvent) taught.add(event.key);
+    if (event is UntaughtEvent) taught.remove(event.key);
+    if (event is ReviewEvent && taught.contains(event.key)) {
       final prior = reviews.putIfAbsent(event.key, () => []);
       final doubleTap = prior.any(
         (p) => p.dev != e.dev && event.at - p.event.at < dedupeWindowMs,

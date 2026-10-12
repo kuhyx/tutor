@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/home_loader.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends StatefulWidget {
     required this.services,
     required this.onSignedOut,
     this.initialRoute,
+    this.allowSignOut = !kIsWeb,
     super.key,
   });
 
@@ -36,6 +38,10 @@ class HomeScreen extends StatefulWidget {
 
   /// A route such as `/plan/car` to open first.
   final String? initialRoute;
+
+  /// Off on the desktop (web) build: it signs in from the PC's server once
+  /// per server start, so a sign-out there could not be undone in-app.
+  final bool allowSignOut;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -141,12 +147,16 @@ class _HomeScreenState extends State<HomeScreen> {
             'report' => showReport(context, _s, route: '/'),
             _ => _signOut(),
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'history', child: Text('History')),
-            PopupMenuItem(value: 'progress', child: Text('Progress')),
-            PopupMenuItem(value: 'editor', child: Text('Edit cards')),
-            PopupMenuItem(value: 'report', child: Text('Report a problem')),
-            PopupMenuItem(value: 'signout', child: Text('Sign out')),
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'history', child: Text('History')),
+            const PopupMenuItem(value: 'progress', child: Text('Progress')),
+            const PopupMenuItem(value: 'editor', child: Text('Edit cards')),
+            const PopupMenuItem(
+              value: 'report',
+              child: Text('Report a problem'),
+            ),
+            if (widget.allowSignOut)
+              const PopupMenuItem(value: 'signout', child: Text('Sign out')),
           ],
         ),
       ],

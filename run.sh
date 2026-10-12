@@ -53,9 +53,13 @@ browser() {
 open_ui() {
     local b
     if app_up && b="$(browser)"; then
-        mkdir -p "$PROFILE"
-        # --class: the window groups as "tutor", not as the browser.
-        setsid -f "$b" --app="$APP_URL" --user-data-dir="$PROFILE" \
+        mkdir -p "$PROFILE" "$PROFILE.xdg"
+        # --class: the window groups as "tutor", not as the browser. Own
+        # XDG_CONFIG_HOME: Arch's launcher would read chromium-flags.conf,
+        # whose claude-in-chrome extension opens a sign-in window beside the
+        # app (seen on Xvfb). The guard wrapper's extensions still load.
+        XDG_CONFIG_HOME="$PROFILE.xdg" setsid -f "$b" --app="$APP_URL" \
+            --user-data-dir="$PROFILE" \
             --class=tutor --password-store=basic --no-first-run \
             >/dev/null 2>&1
     else
