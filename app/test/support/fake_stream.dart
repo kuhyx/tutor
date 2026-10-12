@@ -12,6 +12,9 @@ class FakeStream implements RtdbStream {
   /// Open listens by path (the latest one per path).
   final Map<String, StreamController<RtdbEvent>> listens = {};
 
+  /// The query of the latest listen per path.
+  final Map<String, Map<String, String>> queries = {};
+
   @override
   RtdbClient get client => throw UnimplementedError();
 
@@ -19,5 +22,8 @@ class FakeStream implements RtdbStream {
   Stream<RtdbEvent> listen(
     String path, {
     Map<String, String> query = const {},
-  }) => (listens[path] = StreamController<RtdbEvent>()).stream;
+  }) {
+    queries[path] = query;
+    return (listens[path] = StreamController<RtdbEvent>()).stream;
+  }
 }

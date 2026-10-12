@@ -44,11 +44,16 @@ class RequestRunner {
     return _follow(relay.resend(pending));
   }
 
-  /// Re-sends the last request unchanged.
+  /// Re-sends the last request: unchanged when it never arrived; under a
+  /// new rid (same `sent_at`) when the worker answered `retry:true`, since
+  /// that rid is done on the worker (DOCS-contract §4).
   Future<RelayStatus> retry() {
-    final pending = _pending;
+    var pending = _pending;
     if (pending == null) {
       throw StateError('nothing to retry');
+    }
+    if (status.value is RelayFailed) {
+      pending = _pending = relay.renew(pending);
     }
     return _follow(relay.resend(pending));
   }
@@ -61,7 +66,12 @@ class RequestRunner {
     unawaited(_sub?.cancel());
     final done = _done = Completer<RelayStatus>();
     status.value = const RelayQueued();
-    _sub = statuses.listen((s) => status.value = s, onDone: _settle);
+    _sub = statuses.listen((s) {
+      status.value = s;
+      // A final status settles the caller at once; the stream's own end
+      // can lag behind its last event (it first cancels its RTDB listen).
+      if (s is RelayDone || s is RelayFailed || s is RelayNotSent) _settle();
+    }, onDone: _settle);
     return done.future;
   }
 

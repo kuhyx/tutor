@@ -50,7 +50,9 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
     super.dispose();
   }
 
-  void _reload() => setState(() => _data = _load());
+  void _reload() => setState(() {
+    _data = _load()..ignore(); // FutureBuilder reports errors
+  });
 
   Future<void> _toSession(RequestBody body) async {
     final status = await _runner.run(body);

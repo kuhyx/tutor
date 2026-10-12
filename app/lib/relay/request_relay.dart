@@ -140,6 +140,11 @@ class RequestRelay {
     RequestReq(kind: body.kind, dev: dev, sentAt: _now(), body: body.body),
   );
 
+  /// The same request under a NEW rid, same `sent_at`: how a result with
+  /// `retry:true` is re-sent (the old rid is done on the worker).
+  PendingRequest renew(PendingRequest pending) =>
+      PendingRequest(ulid.next(), pending.req);
+
   /// Sends [body] and follows it.
   Stream<RelayStatus> send(RequestBody body) => resend(prepare(body));
 

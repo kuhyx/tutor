@@ -45,9 +45,16 @@ class MessageTile extends StatelessWidget {
         child: Row(
           children: [
             const Expanded(child: Divider()),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              child: Text('Next card: ${m.text}', style: text.labelLarge),
+            Flexible(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Text(
+                  'Next card: ${m.text}',
+                  style: text.labelLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
             const Expanded(child: Divider()),
           ],

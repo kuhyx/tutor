@@ -113,6 +113,22 @@ void main() {
         pageUrl: 'p',
       );
       expect(img.loadable, isFalse);
+      final thumb = Img.fromJson({
+        'url': 'https://thumb.wikimedia.org/a/960px-b.jpg',
+        'title': 't',
+        'author': 'a',
+        'licence': 'l',
+        'page_url': 'p',
+      });
+      expect(thumb.loadable, isTrue);
+      final none = Img.fromJson({
+        'title': 't',
+        'author': 'a',
+        'licence': 'l',
+        'page_url': 'p',
+      });
+      expect(none.loadable, isFalse);
+      expect(none.toJson().containsKey('url'), isFalse);
       const clock = EngagementClock(
         activeSeconds: 1,
         replyTimeoutS: 600,

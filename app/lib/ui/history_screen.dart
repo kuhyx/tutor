@@ -30,7 +30,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<HistoryLists> _load() async =>
       splitHistory(await widget.services.history.load());
 
-  void _reload() => setState(() => _lists = _load());
+  void _reload() => setState(() {
+    _lists = _load()..ignore(); // FutureBuilder reports errors
+  });
 
   Future<void> _open(String sid) async {
     await openTranscript(context, widget.services, sid);

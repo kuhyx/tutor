@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _refresh() => setState(() {
-    _snapshot = _s.home.load();
+    _snapshot = _s.home.load()..ignore(); // FutureBuilder reports errors
   });
 
   // Back on Home from any screen: counters may have moved.

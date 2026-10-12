@@ -74,11 +74,28 @@ void main() {
     'stop keeps the view; start re-follows it from a fresh snapshot',
     () async {
       feed.follow(_sid);
+      expect(stream.queries['$_base/msgs'], isEmpty);
+      stream.listens['$_base/msgs']!.add(
+        const RtdbPut('/', {'m0001': tutorMessage, 'm0002': learnerMessage}),
+      );
+      await _tick();
       await feed.stop();
       expect(feed.view.value!.sid, _sid);
       stream.listens.clear();
       feed.start();
       expect(stream.listens.keys, contains('$_base/meta'));
+      expect(stream.queries['$_base/msgs']!['startAt'], '"m0003"');
+      stream.listens['$_base/msgs']!
+        ..add(const RtdbPut('/', {'m0003': learnerMessage}))
+        ..add(const RtdbPut('/', null))
+        ..add(const RtdbPut('/m0004', learnerMessage));
+      await _tick();
+      expect(feed.view.value!.messages.map((m) => m.key), [
+        'm0001',
+        'm0002',
+        'm0003',
+        'm0004',
+      ]);
       await feed.dispose();
     },
   );

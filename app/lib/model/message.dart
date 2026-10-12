@@ -20,7 +20,7 @@ class Img {
   factory fromJson(Object? v) {
     final j = asJson(v, 'image');
     return Img(
-      url: str(j, 'url'),
+      url: strOr(j, 'url') ?? '',
       title: str(j, 'title'),
       author: str(j, 'author'),
       licence: str(j, 'licence'),
@@ -30,10 +30,14 @@ class Img {
     );
   }
 
-  /// Only `https://upload.wikimedia.org/` is ever loaded.
-  static const allowedPrefix = 'https://upload.wikimedia.org/';
+  /// Only Commons' upload and thumbnail hosts are ever loaded.
+  static const allowedPrefixes = [
+    'https://upload.wikimedia.org/',
+    'https://thumb.wikimedia.org/',
+  ];
 
-  /// Thumbnail URL.
+  /// Thumbnail URL; empty when the worker could not resolve one (the
+  /// attribution is still shown).
   final String url;
 
   /// Title.
@@ -55,11 +59,11 @@ class Img {
   final String? term;
 
   /// Whether [url] is on the image host allowlist.
-  bool get loadable => url.startsWith(allowedPrefix);
+  bool get loadable => allowedPrefixes.any(url.startsWith);
 
   /// Wire form.
   Json toJson() => compact({
-    'url': url,
+    'url': url.isEmpty ? null : url,
     'title': title,
     'author': author,
     'licence': licence,

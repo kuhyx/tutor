@@ -5,6 +5,7 @@ import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/util/ulid.dart';
 
@@ -86,6 +87,24 @@ void main() {
     );
     expect(await again, isA<RelayFailed>());
     expect(runner.canRetry, isTrue);
+    final sentAt = db.log.length;
+    final third = runner.retry();
+    await Future<void>.delayed(Duration.zero);
+    final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+    expect(reqs, hasLength(2), reason: 'retry:true -> a new rid');
+    final sent = reqs.values
+        .map((r) => ((r as Map)['req'] as Map)['sent_at'])
+        .toSet();
+    expect(sent, hasLength(1), reason: 'same sent_at');
+    expect(db.log.length, greaterThan(sentAt));
+    lastListen().add(
+      const RtdbPut('/result', {
+        'ok': true,
+        'at': 3,
+        'data': <String, Object>{},
+      }),
+    );
+    expect(await third, isA<RelayDone>());
     await runner.dispose();
   });
 

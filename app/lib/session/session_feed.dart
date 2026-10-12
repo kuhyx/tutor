@@ -16,6 +16,7 @@ import 'package:tutor/model/message.dart';
 import 'package:tutor/model/root.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/sync/rtdb_client.dart' show keyRangeQuery;
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
 
@@ -124,13 +125,23 @@ class SessionFeed {
   void follow(String sid) {
     if (view.value?.sid == sid && _subs.isNotEmpty) return;
     _cancelSession();
+    _meta = null;
+    _msgs = null;
     view.value = SessionView(sid: sid);
     _subscribe(sid);
   }
 
+  /// `startAt` for a re-subscribe: the key after the last message already
+  /// held, so a resume downloads only what is new (DOCS-contract §9; RTDB
+  /// honours it on streams). Null when nothing is held.
+  String? _nextKey() {
+    final keys = parseMessages(_msgs).map((m) => m.key);
+    if (keys.isEmpty) return null;
+    return messageKey(int.parse(keys.last.substring(1)) + 1);
+  }
+
   void _subscribe(String sid) {
-    _meta = null;
-    _msgs = null;
+    final next = _nextKey();
     final base = Paths.session(sid);
     _subs
       ..add(
@@ -140,12 +151,26 @@ class SessionFeed {
         }),
       )
       ..add(
-        _stream.listen('$base/msgs').listen((e) {
-          _msgs = applyEvent(_msgs, e);
-          _publish(sid);
-        }),
+        _stream
+            .listen(
+              '$base/msgs',
+              query: next == null ? const {} : keyRangeQuery(next),
+            )
+            .listen((e) {
+              // A ranged snapshot holds only the new keys: merge it into
+              // what is held instead of replacing the node.
+              _msgs = next != null && e is RtdbPut && e.path == '/'
+                  ? _merge(_msgs, e.data)
+                  : applyEvent(_msgs, e);
+              _publish(sid);
+            }),
       );
   }
+
+  static Object? _merge(Object? held, Object? fresh) => {
+    if (held is Map<String, dynamic>) ...held,
+    if (fresh is Map<String, dynamic>) ...fresh,
+  };
 
   void _publish(String sid) {
     view.value = SessionView(
