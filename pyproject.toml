@@ -59,6 +59,10 @@ ignore = [
 "tutor/scripted.py" = ["T201"]
 "tutor/adjudicate.py" = ["T201"]
 "tutor/curriculum/migrate.py" = ["T201"]
+# ``regenerate`` prints what it suspended and generated (the repair's record).
+"tutor/curriculum/regen.py" = ["T201"]
+# Dev tool: the printed JSON is the smoke run's evidence.
+"scripts/curriculum_smoke.py" = ["T201"]
 # ``publish-all`` prints its counts: the evidence the migration ran.
 "tutor/relay/cli.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).

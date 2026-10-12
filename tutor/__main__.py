@@ -15,7 +15,7 @@ import sys
 
 import uvicorn
 
-from tutor.curriculum import migrate
+from tutor.curriculum import migrate, regen
 from tutor.engine import Engine
 from tutor.relay import cli
 from tutor.server import create_app
@@ -31,6 +31,8 @@ def _port_busy(port: int) -> bool:
 def main(argv: list[str] | None = None) -> int:
     """Serve until interrupted; refuse loudly if the port is taken."""
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["regenerate"]:
+        return regen.main(argv[1:])
     if argv[:1] == ["migrate"]:
         return migrate.main(argv[1:])
     if argv and argv[0] in cli.COMMANDS:

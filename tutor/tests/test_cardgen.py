@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor.curriculum import card_rules, cardgen, wiki
+from tutor.curriculum import card_rules, cardgen, draft_prompt, judge, wiki
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.subject_store import Change
 from tutor.tests._cur import card, make_ctx, module, subject
@@ -48,7 +48,8 @@ def gen(
 ) -> tuple[Context, Fakes, list[wiki.Source]]:
     ctx, fakes = make_ctx(tmp_path)
     found = list(SOURCES)
-    monkeypatch.setattr(wiki, "find_sources", lambda fetch, queries: found)
+    monkeypatch.setattr(cardgen, "_sources", lambda *_: found)
+    monkeypatch.setattr(judge, "gate", lambda _c, _m, _mod, cards, _t: (cards, []))
     subject(
         ctx,
         modules=[module("a", status="generating"), module("b", "a"), module("c", "b")],
@@ -88,7 +89,7 @@ def test_generate_keeps_verified_cards(
     assert found["card-5"].source == SOURCES[1].url
     assert [found[c].order for c in ("card-0", "card-4", "card-5")] == [1, 2, 3]
     system, prompt = fakes.prompts[0]
-    assert system == cardgen.SYSTEM
+    assert system == draft_prompt.SYSTEM
     assert '<source n="2" url="https://en.wikibooks.org/wiki/B">' in prompt
     assert '"old"' in prompt
 
@@ -123,22 +124,13 @@ def _reset(ctx: Context) -> None:
     ctx.subjects.commit("car", ctx.subjects.need_meta("car"), Change(plan=plan))
 
 
-def test_source_problems(
+def test_source_problem_fails_the_module(
     gen: tuple[Context, Fakes, list[wiki.Source]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    ctx, _, found = gen
-    found.pop()
-    assert "found 1 usable source(s)" in str(cardgen.generate(ctx, "car", "a")["error"])
-    _reset(ctx)
-
-    def offline(fetch: object, queries: object) -> list[wiki.Source]:
-        msg = "network down"
-        raise OSError(msg)
-
-    monkeypatch.setattr(wiki, "find_sources", offline)
-    assert "source search failed: network down" in str(
-        cardgen.generate(ctx, "car", "a")["error"]
-    )
+    ctx, _, _ = gen
+    monkeypatch.setattr(cardgen, "_sources", lambda *_: "found 1 on-topic source")
+    result = cardgen.generate(ctx, "car", "a")
+    assert (result["status"], result["error"]) == ("failed", "found 1 on-topic source")
 
 
 def test_prefixed_module_ids(gen: tuple[Context, Fakes, list[wiki.Source]]) -> None:

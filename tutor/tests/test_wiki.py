@@ -20,7 +20,11 @@ LONG = "Pistons move. " * 200
 
 
 class FakeWiki:
-    """host -> {"search": {query: [titles]}, "pages": {title: extract}}."""
+    """host -> {"search": {query: [titles]}, "pages": {title: extract}}.
+
+    A page value may also be ``{"to": title}`` (a redirect) or
+    ``{"extract": text, "disambiguation": True}``.
+    """
 
     def __init__(self) -> None:
         self.data: dict[str, dict[str, Any]] = {
@@ -39,11 +43,22 @@ class FakeWiki:
             body: Any = {
                 "query": {"search": [{"title": t} for t in titles] + [{"x": 1}]}
             }
+            return json.dumps(body).encode()
+        title = q["titles"]
+        found = site["pages"].get(title)
+        if isinstance(found, dict) and "to" in found and q.get("redirects"):
+            title = found["to"]
+            found = site["pages"].get(title)
+        page: dict[str, Any] = {"title": title}
+        if found is None:
+            page["missing"] = True
+        elif isinstance(found, str):
+            page["extract"] = found
         else:
-            text = site["pages"].get(q["titles"])
-            page = {"title": q["titles"]} if text is None else {"extract": text}
-            body = {"query": {"pages": [page]}}
-        return json.dumps(body).encode()
+            page["extract"] = found.get("extract", "")
+            if found.get("disambiguation"):
+                page["pageprops"] = {"disambiguation": ""}
+        return json.dumps({"query": {"pages": [page]}}).encode()
 
 
 @pytest.fixture
@@ -53,46 +68,76 @@ def fake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FakeWiki:
     return FakeWiki()
 
 
-def test_find_sources_prefers_wikipedia_then_wikibooks(fake: FakeWiki) -> None:
-    fake.data[wiki.WIKIPEDIA]["search"]["engine"] = [
-        "Engine",
-        "Short",
-        "Piston",
-        "Third",
-    ]
-    fake.data[wiki.WIKIPEDIA]["pages"].update(
-        {"Engine": LONG, "Short": "tiny", "Piston": LONG, "Third": LONG}
+def test_candidates_exact_titles_first_then_search(fake: FakeWiki) -> None:
+    pedia, books = fake.data[wiki.WIKIPEDIA], fake.data[wiki.WIKIBOOKS]
+    pedia["pages"].update(
+        {
+            "Automobile": {"to": "Car"},
+            "Car": LONG,
+            "Mercury": {"extract": LONG, "disambiguation": True},
+            "Engine": LONG,
+            "Short": "tiny",
+            "List of cars": LONG,
+        }
     )
-    fake.data[wiki.WIKIBOOKS]["search"]["engine"] = ["Book"]
-    fake.data[wiki.WIKIBOOKS]["pages"]["Book"] = LONG + " extra words " * 3000
-    found = wiki.find_sources(fake, ["engine", "engine"])
-    assert [s.title for s in found] == ["Engine", "Piston", "Book"]
-    assert found[0].url == "https://en.wikipedia.org/wiki/Engine"
-    assert len(found[2].text.split()) == wiki.MAX_WORDS
-    assert sources.page_text(found[0].url) == LONG  # the check sees the same text
+    pedia["search"]["car"] = ["Car", "Short", "List of cars", "Engine"]
+    books["search"]["car"] = ["Book/Chapter"]
+    books["pages"]["Book/Chapter"] = LONG + " extra words " * 3000
+    found = wiki.candidates(fake, ["Automobile", "Mercury", "Nowhere"], ["car"])
+    assert [(p.title, p.exact) for p in found] == [
+        ("Car", True),
+        ("Engine", False),
+        ("Book/Chapter", False),
+    ]
+    assert found[0].url == "https://en.wikipedia.org/wiki/Car"
+    assert found[2].url == "https://en.wikibooks.org/wiki/Book/Chapter"
+    assert not any("List_of" in c or "List+of" in c for c in fake.calls)
     calls = len(fake.calls)
-    assert wiki.find_sources(fake, ["engine"])  # all cached now
+    assert wiki.candidates(fake, ["Automobile"], ["car"])  # all cached now
     assert len(fake.calls) == calls
+
+
+def test_candidates_cap_and_seed(
+    fake: FakeWiki, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(wiki, "MAX_CANDIDATES", 2)
+    for name in ("A", "B", "C"):
+        fake.data[wiki.WIKIPEDIA]["pages"][name] = LONG + " more words " * 3000
+    found = wiki.candidates(fake, ["A", "B", "C"], [])
+    assert [p.title for p in found] == ["A", "B"]
+    chosen = wiki.seed(found[0])
+    assert len(chosen.text.split()) == wiki.MAX_WORDS
+    assert sources.page_text(chosen.url) == found[0].text  # the check sees it
 
 
 def test_seed_keeps_an_already_cached_page(fake: FakeWiki) -> None:
     url = wiki.page_url(wiki.WIKIPEDIA, "Old page")
     assert url.endswith("/wiki/Old_page")
     sources.seed_text(url, "first text")
-    fake.data[wiki.WIKIPEDIA]["search"]["q"] = ["Old page"]
     fake.data[wiki.WIKIPEDIA]["pages"]["Old page"] = LONG
-    assert wiki.find_sources(fake, ["q"])[0].text == "first text"
+    (hit,) = wiki.candidates(fake, ["Old page"], [])
+    assert wiki.seed(hit).text == "first text"
 
 
 def test_missing_pages_and_odd_answers(
     fake: FakeWiki, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     fake.data[wiki.WIKIPEDIA]["search"]["q"] = ["Gone"]
-    assert wiki.find_sources(fake, ["q"]) == []
+    assert wiki.candidates(fake, [], ["q"]) == []
     monkeypatch.setattr(wiki, "api", lambda *_: {"query": {"pages": ["x"]}})
     assert wiki.extract(fake, wiki.WIKIPEDIA, "t") == ""
+    assert wiki.page(fake, wiki.WIKIPEDIA, "t", exact=True) is None
     monkeypatch.setattr(wiki, "api", lambda *_: {"query": {"pages": [{"extract": 3}]}})
     assert wiki.extract(fake, wiki.WIKIPEDIA, "t") == ""
+    untitled = {"query": {"pages": [{"extract": LONG}]}}
+    monkeypatch.setattr(wiki, "api", lambda *_: untitled)
+    assert wiki.page(fake, wiki.WIKIPEDIA, "t", exact=True) is None
+    listy = {"query": {"pages": [{"extract": LONG, "title": "Outline of cars"}]}}
+    monkeypatch.setattr(wiki, "api", lambda *_: listy)
+    assert wiki.page(fake, wiki.WIKIPEDIA, "Cars outline", exact=True) is None
+    disamb = {"title": "X (disambiguation)", "extract": LONG, "pageprops": None}
+    monkeypatch.setattr(wiki, "api", lambda *_: {"query": {"pages": [disamb]}})
+    assert wiki.page(fake, wiki.WIKIPEDIA, "X", exact=False) is None
 
 
 def test_api_non_object_answer(fake: FakeWiki) -> None:

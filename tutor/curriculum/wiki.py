@@ -1,10 +1,12 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Find card sources without giving the model tools: the MediaWiki API.
 
-Searches en.wikipedia.org and en.wikibooks.org, takes the plain-text extract
-of the best long-enough pages and seeds the excerpt-check cache with it
-(``sources.seed_text``), so the model drafts from exactly the text that
-``sources.check_excerpt`` later verifies. API answers are cached on disk;
+Looks up exact titles (redirects followed) and searches en.wikipedia.org and
+en.wikibooks.org for candidate pages (``candidates``); ``relevance`` and the
+model then pick the on-topic ones, and ``seed`` puts a chosen page's
+plain-text extract into the excerpt-check cache (``sources.seed_text``), so
+the model drafts from exactly the text that ``sources.check_excerpt`` later
+verifies. API answers are cached on disk;
 requests carry a descriptive User-Agent (Wikimedia's API etiquette).
 """
 
@@ -32,9 +34,19 @@ USER_AGENT: Final = "tutor-curriculum/0.1 (https://github.com/kuhyx/tutor)"
 MIN_CHARS: Final = 1500
 MAX_WORDS: Final = 2500
 MAX_SOURCES: Final = 3
+MAX_CANDIDATES: Final = 8
 _TIMEOUT: Final = 20
-# Per query: how many search hits to try on each wiki, and how many to keep.
-_PLAN: Final = ((WIKIPEDIA, 4, 2), (WIKIBOOKS, 3, 1))
+# Per query: how many search hits to look at on each wiki.
+_SEARCH: Final = ((WIKIPEDIA, 4), (WIKIBOOKS, 3))
+_LISTY: Final = (
+    "list of",
+    "lists of",
+    "index of",
+    "outline of",
+    "timeline of",
+    "glossary of",
+    "bibliography of",
+)
 
 
 @dataclass(frozen=True)
@@ -44,6 +56,21 @@ class Source:
     url: str
     title: str
     text: str
+
+
+@dataclass(frozen=True)
+class Page:
+    """A candidate page: its full extract, and whether an exact-title hit."""
+
+    host: str
+    title: str
+    text: str
+    exact: bool
+
+    @property
+    def url(self) -> str:
+        """The article URL a card cites."""
+        return page_url(self.host, self.title)
 
 
 def cache_dir() -> Path:
@@ -130,22 +157,55 @@ def _clip(text: str) -> str:
     return " ".join(words[:MAX_WORDS])
 
 
-def find_sources(fetch: FetchFn, queries: list[str]) -> list[Source]:
-    """Up to 3 long-enough pages for ``queries``, Wikipedia first."""
-    found: list[Source] = []
-    seen: set[str] = set()
+def _listy(title: str) -> bool:
+    """Index-like pages (lists, outlines, disambiguation): never a source."""
+    lowered = title.lower()
+    return lowered.startswith(_LISTY) or "(disambiguation)" in lowered
+
+
+def page(fetch: FetchFn, host: str, title: str, *, exact: bool) -> Page | None:
+    """``title`` after redirects, or None: missing, disambiguation, too short."""
+    params = {
+        "action": "query",
+        "prop": "extracts|pageprops",
+        "ppprop": "disambiguation",
+        "explaintext": 1,
+        "redirects": 1,
+        "titles": title,
+    }
+    pages = api(fetch, host, params).get("query", {}).get("pages", [])
+    found = pages[0] if pages and isinstance(pages[0], dict) else {}
+    text, name = found.get("extract"), found.get("title")
+    if "disambiguation" in (found.get("pageprops") or {}):
+        return None
+    if not isinstance(text, str) or len(text) < MIN_CHARS or not isinstance(name, str):
+        return None
+    return None if _listy(name) else Page(host, name, text, exact=exact)
+
+
+def candidates(fetch: FetchFn, titles: list[str], queries: list[str]) -> list[Page]:
+    """Pages that may cover a module, canonical ones first.
+
+    ``titles`` are looked up exactly on Wikipedia (redirects followed: the
+    canonical article); then each query's search hits on Wikipedia and
+    Wikibooks, in search-ranking order. Index-like, disambiguation and short
+    pages are dropped; at most ``MAX_CANDIDATES``, one per URL.
+    """
+    wanted = [(WIKIPEDIA, t, True) for t in titles]
     for query in queries:
-        for host, tries, keep in _PLAN:
-            kept = 0
-            for title in search(fetch, host, query, tries):
-                url = page_url(host, title)
-                if kept >= keep or len(found) >= MAX_SOURCES or url in seen:
-                    continue
-                seen.add(url)
-                text = extract(fetch, host, title)
-                if len(text) < MIN_CHARS:
-                    continue
-                checked = sources.seed_text(url, text)
-                found.append(Source(url, title, _clip(checked)))
-                kept += 1
-    return found
+        for host, tries in _SEARCH:
+            wanted += [(host, t, False) for t in search(fetch, host, query, tries)]
+    found: dict[str, Page] = {}
+    for host, title, exact in wanted:
+        if len(found) >= MAX_CANDIDATES or _listy(title):
+            continue
+        hit = page(fetch, host, title, exact=exact)
+        if hit is not None and hit.url not in found:
+            found[hit.url] = hit
+    return list(found.values())
+
+
+def seed(chosen: Page) -> Source:
+    """Seed the excerpt-check cache with ``chosen``; the text the model sees."""
+    checked = sources.seed_text(chosen.url, chosen.text)
+    return Source(chosen.url, chosen.title, _clip(checked))
