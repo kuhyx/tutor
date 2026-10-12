@@ -29,11 +29,9 @@ session/subject whose RTDB `rev` < local `rev` (covers crash between the two).
 - DB `https://kuhy-syncs-default-rtdb.europe-west1.firebasedatabase.app`, REST
   only (no SDK), `?auth=<idToken>`. Google sign-in only.
 - Worker: `FirebaseTokenProvider(api_key, credential_store_for("tutor"))` ->
-  `~/.config/tutor/firebase_auth.json`; add `"tutor"` to crdt-sync
-  `tool/_seeded_apps.py DEFAULT_APPS`, seed once via `tool/link_google.py`.
-  Never `firebase_client_for` (dead password fallback). Do not use
-  `FirebaseSyncClient` for data (string leaves only): use `id_token()` + own
-  GET/PUT/PATCH/DELETE/SSE.
+  `~/.config/tutor/firebase_auth.json`, seeded by crdt-sync `tool.seed_session
+  --app tutor` (see `DOCS-relay.md`). Never `firebase_client_for` nor
+  `FirebaseSyncClient`: `id_token()` + own REST/SSE (`tutor/relay/rtdb.py`).
 - Flutter: copy todo `lib/sync/` (`firebase_client.dart`,
   `google_sign_in_backend.dart`, google_sign_in 7.2.0). Keep the `expectedUid`
   guard (wrong Google account silently signs up a 2nd user); the expected uid
@@ -100,6 +98,7 @@ Worker streams `requests` (kept small by GC). Per rid, in key order:
    `{"ok":true,"at":ms,"data":{...}}` or
    `{"ok":false,"at":ms,"code":"not_live","error":"session is not live","retry":false}`.
 6. GC: DELETE requests whose result is >24 h old; done-map keeps dedupe.
+`retry:true` (`model_error`) = resend as a NEW rid, same `sent_at`. More: `DOCS-relay.md`.
 
 Lanes: `chat` (session kinds) and `build` (subject/plan/card kinds) are
 separate serial queues; within a lane a later rid never overtakes an earlier
@@ -136,7 +135,7 @@ on the wire (worker CLI only). History "Repeat" = `session_start` with that
 card.
 
 ## 5. Presence
-- Worker every 30 s PUTs `presence/workers/{dev}`:
+- Worker every 30 s PUTs `presence/workers/{dev}` (each beat measures skew):
   `{"host","pid","version","started":ms,"beat":{".sv":"timestamp"},"lanes":{"chat":rid|null,"build":rid|null},"skew_ms":12}`;
   DELETE on clean exit.
 - Client streams `presence/workers` while foregrounded; "PC offline" when no
@@ -189,8 +188,9 @@ card.
 ## 8. Media (no Firebase Storage, nothing binary in RTDB)
 - `IMG` = `{"url":"https://upload.wikimedia.org/...800px-....jpg","title","author","licence","licence_url","page_url","term"}`.
   Worker still downloads the thumbnail for the vision check but publishes the
-  Commons `thumburl` (`iiurlwidth=800`); B1 adds `url` to `CommonsImage`.
-  `author`/`licence` plain text. Client loads only `https://upload.wikimedia.org/`,
+  `thumburl` (`iiurlwidth=800`, query stripped; Commons also serves it from
+  `thumb.wikimedia.org`, 960 px), `url` absent if unresolvable. `author`/
+  `licence` plain text. Client loads only `upload.`/`thumb.wikimedia.org`,
   shows "author · licence" linked to `page_url` under every picture, uses the
   HTTP cache; on load failure shows attribution + link only. B3 verifies
   hotlinking on device (descriptive User-Agent).
@@ -205,8 +205,8 @@ tutor message <=24 KB incl. SVG; card <=2 KB; plan <=16 KB; feedback 4000 ch.
 Client streams only while visible: `live`, `presence/workers`, `rev`,
 `sessions/{sid}/meta`, `sessions/{sid}/msgs`, `requests/{rid}`; never the
 `/tutor/v1`, `sessions`, `subjects` or `log` roots. Reconnect cost: msgs
-~30 x 2 KB = 60 KB (use `orderBy="$key"&startAt="m<last+1>"` on the stream if
-RTDB honours it, B3 verifies; else full node); meta ~1 KB; presence ~0.3 KB.
+~30 x 2 KB = 60 KB: stream `orderBy="$key"&startAt="m<last+1>"` (**verified
+2026-10-12: SSE honours it**, 1st `put` only keys >= startAt); meta ~1 KB; presence ~0.3 KB.
 Catalog: GET `subjects/{s}` only when `rev.catalog` changed (167 PLC cards
 ~90 KB once). Log: GET `log/{dev}?orderBy="$key"&startAt="<last eid>"` per
 device (shallow first), ~150 B/event. Estimate: 1 h chat/day ~2-5 MB per

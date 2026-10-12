@@ -28,6 +28,7 @@ from tutor.store import Store
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
     from tutor.clock import BlockReady
 
@@ -128,15 +129,15 @@ class Engine(CardFlow):
         self._set_today(max(self.minutes_today, paid))
 
     def resume_latest(self) -> bool:
-        """Pick today's newest session back up after a restart (see ``resume``).
-
-        Nothing is spawned here: the model process starts on the next reply,
-        primed with the transcript. ``False`` when there is nothing to resume.
-        """
+        """Pick today's newest session back up after a restart (see ``resume_path``)."""
         path = resume.latest_today(
             self.store.root / "sessions", time.strftime("%Y%m%d")
         )
-        state = resume.replay(path) if path else None
+        return self.resume_path(path) if path else False
+
+    def resume_path(self, path: Path) -> bool:
+        """Resume ``path``; the model starts primed on next reply (``False``: none)."""
+        state = resume.replay(path)
         conv = state.conversation if state else None
         src = self._resume_source(path)
         card = next((c for c in src.cards() if conv and c.id == conv.card_id), None)
@@ -162,11 +163,13 @@ class Engine(CardFlow):
         advance_s: float = 0.0,
         msg_id: str = "",
         sent_at: float | None = None,
+        received: float | None = None,
     ) -> dict[str, Any]:
         """The learner answers; returns the new state (a resent ``msg_id``: no-op).
 
         ``sent_at`` is the page's first Send press, so a send the page had to
         retry through a restart is timed from the press (``clock.reply_time``).
+        ``received`` (relay: RTDB server time) replaces the engine's own clock.
         """
         async with self._lock:
             _, conv, _ = self._live()
@@ -174,7 +177,8 @@ class Engine(CardFlow):
                 return self.state()
             if self.simulated:
                 self._offset += max(0.0, advance_s)
-            await self._turn(text, learner_text=text, msg_id=msg_id, sent_at=sent_at)
+            t = reply_time(self.time() if received is None else received, sent_at)
+            await self._turn(text, learner_text=text, msg_id=msg_id, t_learner=t)
             conv.resumed.answered_id = msg_id
         return self.state()
 
@@ -202,11 +206,11 @@ class Engine(CardFlow):
         *,
         learner_text: str | None,
         msg_id: str = "",
-        sent_at: float | None = None,
+        t_learner: float | None = None,
     ) -> None:
         session, conv, _ = self._live()
         resume.reprime(conv, session.restarts)
-        t_learner = reply_time(self.time(), sent_at)
+        t_learner = self.time() if t_learner is None else t_learner
         active = conv.clock.active_seconds
         note = engine_note(
             active,

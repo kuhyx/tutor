@@ -11,6 +11,7 @@
 # when its scope was torn down (2026-10-11, SIGTERM mid-answer). Falls back to
 # setsid where there is no user systemd (CI). TUTOR_* and PATH are
 # passed through, since a unit does not inherit the caller's environment.
+# TUTOR_RELAY=1 also serves the Flutter clients over the Firebase relay.
 # TUTOR_DECK_SRC (the repo deck/ the card editor writes) is set by
 # the callers; unset or empty, the editor is read-only.
 # ============================================================================
@@ -24,7 +25,7 @@ readonly PY="$REPO/.venv/bin/python"
 main() {
     local dir="$1" port="$2" log="$3" var
     local -a env_args=(--setenv=PATH="$PATH")
-    for var in TUTOR_DATA TUTOR_KEY TUTOR_IMAGE_CACHE \
+    for var in TUTOR_DATA TUTOR_KEY TUTOR_IMAGE_CACHE TUTOR_RELAY \
         TUTOR_DECK_SRC; do
         if [[ -n "${!var:-}" ]]; then
             env_args+=(--setenv="$var=${!var}")

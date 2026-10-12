@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import urllib.request
 
+import httpx
 import pytest
 
 from tutor import images
@@ -25,9 +26,14 @@ def _offline(*_: object, **__: object) -> object:
     raise OSError(msg)
 
 
+async def _offline_async(*_: object, **__: object) -> object:
+    msg = "network disabled in tests (httpx: use tests/_fake_rtdb.py)"
+    raise httpx.ConnectError(msg)
+
+
 @pytest.fixture(autouse=True)
 def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect HOME, the data dir, the key and the image cache; block urlopen."""
+    """Redirect HOME, the data dir, the key and the image cache; block the network."""
     home = tmp_path / "home"
     home.mkdir()
     key = tmp_path / "hmac.key"
@@ -36,7 +42,12 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("TUTOR_DATA", str(tmp_path / "data"))
     monkeypatch.setenv("TUTOR_KEY", str(key))
     monkeypatch.setenv("TUTOR_IMAGE_CACHE", str(tmp_path / "images"))
+    monkeypatch.delenv("TUTOR_RELAY", raising=False)
     monkeypatch.setattr(urllib.request, "urlopen", _offline)
+    monkeypatch.setattr(
+        httpx.AsyncHTTPTransport, "handle_async_request", _offline_async
+    )
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", _offline)
     return tmp_path
 
 

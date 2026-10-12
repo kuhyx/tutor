@@ -23,7 +23,7 @@ from typing import Final
 import urllib.request
 
 CACHE_DIR: Final = Path(
-    os.environ.get("PLC_LAB_CACHE", Path.home() / ".cache" / "plc-lab" / "sources")
+    os.environ.get("TUTOR_SOURCE_CACHE") or Path.home() / ".cache" / "tutor" / "sources"
 )
 _USER_AGENT: Final = "plc-lab-source-check/0.1 (https://github.com/kuhyx/plc-lab)"
 _TIMEOUT_SECONDS: Final = 30
