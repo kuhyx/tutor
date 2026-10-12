@@ -66,8 +66,7 @@ launch() {
     "$REPO/scripts/tutor_launch.sh" "$1" "$2" "$3"
 }
 
-# A server on the port that the unit does not own (one launched before
-# tutor.service existed): stop it gracefully, or the unit refuses to start.
+# A server on the port outside the unit (a pre-unit launch) blocks its start.
 stop_stray() {
     local pid main
     pid="$(port_pid "$PORT" || true)"
@@ -125,13 +124,14 @@ copy_release() {
 
 # The release must start, resume the same session and serve parseable JS.
 smoke_test() {
-    local release="$1" expected="$2" port got
+    local release="$1" expected="$2" port got dir
     port="$(free_port)"
     TEMP_DIR="$(mktemp -d)"
     mkdir -p "$TEMP_DIR/data"
-    if [[ -d "$DATA/sessions" ]]; then
-        cp -r "$DATA/sessions" "$TEMP_DIR/data/"
-    fi
+    # Sessions, and the subjects a curriculum session's cards resolve from.
+    for dir in sessions subjects; do
+        if [[ -d "$DATA/$dir" ]]; then cp -r "$DATA/$dir" "$TEMP_DIR/data/"; fi
+    done
     head -c 32 /dev/urandom >"$TEMP_DIR/key"
     # No deck source: the smoke server's card editor stays read-only.
     # No relay: a temp-data server must never claim real phone requests.
