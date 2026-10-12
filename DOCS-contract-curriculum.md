@@ -110,7 +110,7 @@ pass the same vectors.
   last card, told not to repeat the suspended ones). A regeneration that
   fails leaves a module with >= 3 live cards `ready` (`error` null: only
   `failed` carries one; the fold clears a stale one on `ready`/`mastered`).
-- `card_edit` validates exactly like today's `deck_edit` (fields, word limits,
+- `card_edit` validates like the old page's deck editor did (fields, word limits,
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else
   slug of `front`.
@@ -203,7 +203,7 @@ pass the same vectors.
 `minutes` from the verified ledger (`progress.ledger_minutes_by_day`). Backs
 the Progress view and the header counter.
 
-## 8. Client screens (parity with `static/*.js`) and their data
+## 8. Client screens (parity with the retired `static/*.js` page) and their data
 - **Home**: subjects with `status`/progress; "new subject" free text; due
   review count; PC presence; credited x/60; new x/10.
 - **Plan**: draft view + editing (rename, reorder, add, remove module without

@@ -23,7 +23,7 @@ Read README.md first. These are the invariants that are easy to break.
 
 ## Layout
 
-- `tutor/` -- the server (Starlette), engine, session, credit, static page.
+- `tutor/` -- the server (Starlette: `/` -> `/app/`, the scripted-run API, `/media/`), engine, session, credit.
 - `tutor/cards.py`, `tutor/sources.py` -- the card format and the excerpt check.
 - `subjects/automation/deck/<topic>.json` -- the PLC / OT security cards;
   `subjects/automation/profile.json` -- the PLC wording of the tutor's rules.
@@ -36,7 +36,7 @@ Read README.md first. These are the invariants that are easy to break.
 ## Commands
 
 - install: `./install.sh` (installs + enables `tutor.service`, the live server; never restarts a running one)
-- run: `./run.sh` (opens the tutor on 127.0.0.1:8778, starts `tutor.service` if down; `--no-open` skips the browser)
+- run: `./run.sh` (opens the desktop app at 127.0.0.1:8778/app/, starts `tutor.service` if down; `--no-open` skips the browser)
 - deploy: app build (below) first, then `scripts/tutor_deploy.sh` (refuses a missing or stale web build; smoke test, wait for idle, `systemctl --user restart tutor.service`)
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`

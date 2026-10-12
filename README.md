@@ -1,7 +1,9 @@
 # tutor
 
-A local tutor that teaches source-checked cards in conversation. It serves a
-page on `127.0.0.1`, walks one card at a time through a Claude conversation
+A local tutor that teaches source-checked cards in conversation. Its client
+is the Flutter app in `app/` (phone, and on the PC the web build at
+`127.0.0.1:8778/app/`; `/` redirects there), talking to this server over a
+Firebase relay (`DOCS-relay.md`). The server walks one card at a time through a Claude conversation
 (claude-agent-sdk over the logged-in `claude` CLI, no API key), and writes a
 signed earned-time credit row for every active study block.
 
@@ -13,7 +15,7 @@ The only subject so far is `subjects/automation/`: the PLC / OT security deck.
 ```bash
 scripts/setup_dev.sh   # .venv with tutor (editable) + test/lint tools
 ./install.sh           # once: install + enable tutor.service (starts at boot)
-./run.sh               # open the tutor on 127.0.0.1:8778 (starts it if down)
+./run.sh               # open the desktop app (127.0.0.1:8778/app/; starts it if down)
 ./run.sh --no-open     # start it if needed and print the URL only
 ```
 
@@ -50,13 +52,11 @@ a link to its source. `tutor.sources` fetches each source once into
 `~/.cache/plc-lab/sources`, reduces it to plain text (PDFs go through
 `pdftotext`) and requires the excerpt to appear in it.
 
-The **Edit cards** view (side panel, or `#edit` in the URL) edits a card's
-front, back, source, excerpt and `requires`, or adds a card to a topic. Ids
-are never editable and nothing is deleted. A save runs the card checks and the
-250-line cap, and writes nothing if one fails. It writes the repo deck
-(`TUTOR_DECK_SRC`, which `run.sh` and `scripts/tutor_deploy.sh`
-set) and the live release's own copy. Without the variable the view is
-read-only.
+Cards are edited in the app's **Edit cards** screen (`card_edit` over the
+relay, `DOCS-contract-curriculum.md`): the same card checks, and nothing is
+written if one fails. Ids are never editable and nothing is deleted. The repo
+deck JSON is edited by hand (the old page's deck editor was retired
+2026-10-12 with the page).
 
 ## Licence
 

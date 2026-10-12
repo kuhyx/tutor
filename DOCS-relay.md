@@ -10,7 +10,7 @@ conflict; this file holds the worker-only details.
   with `TUTOR_RELAY=0`, so a temp-data server never claims real phone requests.
   The unit's `ExecStartPre` (`scripts/tutor_port_free.sh`) refuses a second
   server on :8778: the relay starts before the port is bound. No session in
-  `~/.config/tutor/` -> the relay logs why and the page is served alone.
+  `~/.config/tutor/` -> the relay logs why and only the web app is served.
 - Headless: `python -m tutor worker` (same startup as the server: repair,
   backfill, resume; SIGTERM drains). One Engine either way.
 - Migration (after `python -m tutor migrate`): `python -m tutor publish-all`
@@ -51,7 +51,8 @@ seeder once to give the tutor its own refresh token.
   found there is answered again and never re-run (no second model call).
 - `rev` of a session = its transcript's event count; startup re-publishes
   every session whose `session_index/{sid}/rev` is lower.
-- Web-page turns are picked up by a 30 s refresh of the live session.
+- HTTP turns (`tutor.scripted` runs) are picked up by a 30 s refresh of the live
+  session.
 
 ## Curriculum (`tutor.curriculum.handlers`, `DOCS-contract-curriculum.md` §9)
 - Build kinds: `BUILD_HANDLERS[kind](body, engine.ctx)` in a thread
