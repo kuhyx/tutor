@@ -30,8 +30,9 @@ sign-in button that can never work. A placeholder build compiles and shows
 - analyze: `fvm flutter analyze`
 - test: `fvm flutter test` (one file: `fvm flutter test test/<path>_test.dart`)
 - coverage: `fvm flutter test --coverage` (writes `coverage/lcov.info`)
-- run (web): `fvm flutter run -d chrome`
-- build: `fvm flutter build apk --release` (takes minutes)
+- build (desktop web, served by the tutor server at `/app/`):
+  `fvm flutter build web --release --base-href /app/`
+- build (Android): `fvm flutter build apk --release` (takes minutes)
 
 ## Layout
 
@@ -42,7 +43,35 @@ sign-in button that can never work. A placeholder build compiles and shows
 - `lib/log/` offline event log and the FSRS fold (curriculum §4/§5).
 - `lib/storage/` per-install key-value store and device id.
 - `lib/home/` Home data (catalog cache by `rev.catalog`, due count).
-- `lib/app/` service wiring; `lib/ui/` sign-in and the Home shell.
+- `lib/session/` the live session feed, answer boxes, the tiny markdown.
+- `lib/plan/`, `lib/history/`, `lib/progress/`, `lib/review/`,
+  `lib/editor/`, `lib/feedback/`: each screen's logic.
+- `lib/app/` service wiring; `lib/ui/` the screens (`ui/nav.dart` routes).
+- `tool/fixture/` an in-memory build for screenshots; `tool/screenshot.sh`.
+
+## Desktop
+
+The desktop app is this web build in a Chrome `--app` window: `../run.sh`
+opens `http://127.0.0.1:8778/app/` with a fixed profile
+(`~/.local/share/tutor-desktop/profile`) once the running server serves it
+(`tutor/webapp.py`, build dir `$TUTOR_WEBAPP_DIR`, default `app/build/web`).
+It signs in without Google: on first start the page fetches the PC's seeded
+session from `/app/sync-credentials` (served once per server process,
+same-origin localhost only, uid checked) and keeps it in its own store.
+
+## Screenshots (never on the real display)
+
+```bash
+fvm flutter build web --release -t tool/fixture/main.dart -o build/web_fixture --base-href /app/
+systemd-run --user --unit=tutor-webshot -E TUTOR_WEBAPP_DIR=$PWD/build/web_fixture \
+  -p WorkingDirectory=$PWD/.. ../.venv/bin/python -m uvicorn --factory \
+  tutor.webapp:standalone_app --port 8791
+systemd-run --user --unit=tutor-xvfb /usr/bin/Xvfb :97 -screen 0 1400x1000x24
+tool/screenshot.sh /session 1366x768 build/screens/session.png
+```
+
+Routes: `-` (Home), `/plan/<subject>`, `/session`, `/history[/<sid>]`,
+`/progress`, `/editor[/<subject>]`, `/review`, `/report`.
 
 ## Coverage
 

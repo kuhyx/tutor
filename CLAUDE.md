@@ -40,3 +40,9 @@ Read README.md first. These are the invariants that are easy to break.
 - lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy tutor tests`
 - coverage: `.venv/bin/python -m pytest -q --cov-report=lcov:coverage.lcov`
 - coverage-gaps: `coverage-gaps coverage.lcov`
+- app deps: `cd app && fvm flutter pub get && dart run tool/write_firebase_config.dart`
+- app analyze: `cd app && fvm flutter analyze`
+- app test: `cd app && fvm flutter test` (one file: `fvm flutter test test/<path>_test.dart`)
+- app coverage: `cd app && fvm flutter test --coverage && dart run tool/check_coverage.dart`
+- app build (desktop, served at /app/): `cd app && fvm flutter build web --release --base-href /app/`
+- app screenshots: `cd app && fvm flutter build web --release -t tool/fixture/main.dart -o build/web_fixture --base-href /app/`, serve with `TUTOR_WEBAPP_DIR=$PWD/build/web_fixture .venv/bin/python -m uvicorn --factory tutor.webapp:standalone_app --port 8791`, then `tool/screenshot.sh /session 1366x768 build/screens/x.png` (needs an Xvfb on :97)
