@@ -24,7 +24,7 @@ from claude_agent_sdk import (
     SystemMessage,
 )
 
-from plc_lab.tutor.models import TURN_SCHEMA, TurnError, TutorTurn
+from tutor.models import TURN_SCHEMA, TurnError, TutorTurn
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

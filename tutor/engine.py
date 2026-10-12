@@ -16,21 +16,23 @@ import time
 from typing import TYPE_CHECKING, Any, Final
 import uuid
 
-from plc_lab import cards as cards_mod
-from plc_lab.tutor import backfill, credit, gating, media, repair, resume, unit_credit
-from plc_lab.tutor.cardflow import CardFlow
-from plc_lab.tutor.clock import EngagementClock, reply_time
-from plc_lab.tutor.conversation import Conversation
-from plc_lab.tutor.prompt import engine_note, system_prompt, wrap_learner
-from plc_lab.tutor.session import TutorSession, isolated_options
-from plc_lab.tutor.store import Store
+from tutor import backfill, credit, gating, media, repair, resume, unit_credit
+from tutor import cards as cards_mod
+from tutor.cardflow import CardFlow
+from tutor.clock import EngagementClock, reply_time
+from tutor.conversation import Conversation
+from tutor.prompt import engine_note, system_prompt, wrap_learner
+from tutor.session import TutorSession, isolated_options
+from tutor.store import Store
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from plc_lab.tutor.clock import BlockReady
+    from tutor.clock import BlockReady
 
-DECK_DIR: Final = Path(__file__).resolve().parents[2] / "deck"
+DECK_DIR: Final = (
+    Path(__file__).resolve().parents[1] / "subjects" / "automation" / "deck"
+)
 
 
 class Engine(CardFlow):

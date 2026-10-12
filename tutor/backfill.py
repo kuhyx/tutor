@@ -15,13 +15,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import credit, resume
+from tutor import credit, resume
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from plc_lab.tutor.clock import BlockReady
+    from tutor.clock import BlockReady
 
 
 def backfill_day(

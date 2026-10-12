@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from plc_lab import sources
+from tutor import sources
 
 if TYPE_CHECKING:
     from pathlib import Path

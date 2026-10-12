@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor import commons, images
-from plc_lab.tutor.images import NEGATIVE_TTL, CommonsImage
+from tutor import commons, images
+from tutor.images import NEGATIVE_TTL, CommonsImage
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 import earned_time
 
-from plc_lab.tutor.ledger_io import (
+from tutor.ledger_io import (
     LedgerError,
     Paths,
     default_paths,
@@ -35,7 +35,7 @@ from plc_lab.tutor.ledger_io import (
     read_rows,
     write_rows,
 )
-from plc_lab.tutor.ledger_pay import (
+from tutor.ledger_pay import (
     CREDIT,
     DAILY_CAP_MINUTES,
     LEGACY_MINUTES,
@@ -47,7 +47,7 @@ from plc_lab.tutor.ledger_pay import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.clock import BlockReady
+    from tutor.clock import BlockReady
 
 DAILY_CAP_ERROR: Final = "daily cap"
 _logger = logging.getLogger(__name__)

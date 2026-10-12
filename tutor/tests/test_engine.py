@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.session import SessionError
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor.engine import Engine
+from tutor.session import SessionError
+from tutor.store import Store
+from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -16,7 +16,7 @@ class ApiError extends Error {
     if (cause) {
       lines.push(
         `Response: none - ${location.origin} did not answer (${cause.name}: ${cause.message})`,
-        "Hint: the server process is gone. Start it: cd ~/src/plc-lab && .venv/bin/python -m plc_lab.tutor",
+        "Hint: the server process is gone. Start it: cd ~/src/tutor && .venv/bin/python -m tutor",
       );
     } else {
       lines.push(`Response: HTTP ${res.status} ${res.statusText}`);

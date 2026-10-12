@@ -19,10 +19,10 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor.clock import BlockReady, EngagementClock
-from plc_lab.tutor.conversation import Conversation
-from plc_lab.tutor.models import asked
-from plc_lab.tutor.prompt import wrap_learner
+from tutor.clock import BlockReady, EngagementClock
+from tutor.conversation import Conversation
+from tutor.models import asked
+from tutor.prompt import wrap_learner
 
 if TYPE_CHECKING:
     from pathlib import Path

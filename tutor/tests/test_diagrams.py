@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor import diagrams
-from plc_lab.tutor.diagrams import DiagramError
+from tutor import diagrams
+from tutor.diagrams import DiagramError
 
 if TYPE_CHECKING:
     from pathlib import Path

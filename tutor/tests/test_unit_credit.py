@@ -6,9 +6,9 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import credit, ledger_io, unit_credit
-from plc_lab.tutor.clock import BlockReady
-from plc_lab.tutor.credit import CreditReceipt
+from tutor import credit, ledger_io, unit_credit
+from tutor.clock import BlockReady
+from tutor.credit import CreditReceipt
 
 if TYPE_CHECKING:
     import pytest

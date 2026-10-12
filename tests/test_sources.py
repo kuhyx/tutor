@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Tests for plc_lab.sources: text extraction, normalisation, cache, check."""
+"""Tests for tutor.sources: text extraction, normalisation, cache, check."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import subprocess
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from plc_lab import sources
-from plc_lab.sources import Mismatch, check_excerpt, html_text, normalise, page_text
+from tutor import sources
+from tutor.sources import Mismatch, check_excerpt, html_text, normalise, page_text
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -56,7 +56,7 @@ class TestPageText:
     ) -> None:
         web[URL] = (b"%PDF-1.7 ...", "application/octet-stream")
         done = MagicMock(stdout=b"Function code 03 reads holding registers")
-        with patch("plc_lab.sources.subprocess.run", return_value=done) as run:
+        with patch("tutor.sources.subprocess.run", return_value=done) as run:
             assert "holding registers" in page_text(URL)
         assert run.call_args.args[0] == [sources.PDFTOTEXT, "-", "-"]
 
@@ -65,7 +65,7 @@ class TestPageText:
     ) -> None:
         web[URL] = (b"not a magic header", "application/pdf")
         with patch(
-            "plc_lab.sources.subprocess.run", return_value=MagicMock(stdout=b"text")
+            "tutor.sources.subprocess.run", return_value=MagicMock(stdout=b"text")
         ):
             assert page_text(URL) == "text"
 
@@ -95,7 +95,7 @@ class TestCheckExcerpt:
     def test_a_broken_pdf_is_reported(self, web: dict[str, tuple[bytes, str]]) -> None:
         web[URL] = (b"%PDF broken", "application/pdf")
         error = subprocess.CalledProcessError(1, ["pdftotext"])
-        with patch("plc_lab.sources.subprocess.run", side_effect=error):
+        with patch("tutor.sources.subprocess.run", side_effect=error):
             miss = check_excerpt("c1", URL, "anything")
         assert miss is not None
         assert miss.reason.startswith("cannot fetch:")
@@ -107,9 +107,7 @@ def test_download_sends_the_user_agent() -> None:
     response.headers.get_content_type.return_value = "text/html"
     opened = MagicMock()
     opened.__enter__.return_value = response
-    with patch(
-        "plc_lab.sources.urllib.request.urlopen", return_value=opened
-    ) as urlopen:
+    with patch("tutor.sources.urllib.request.urlopen", return_value=opened) as urlopen:
         assert sources._download(URL) == (b"body", "text/html")
     request = urlopen.call_args.args[0]
     assert request.get_header("User-agent").startswith("plc-lab-source-check")

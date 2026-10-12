@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from plc_lab.tutor.feedback_snapshot import snapshot
+from tutor.feedback_snapshot import snapshot
 
 
 def msgs(*texts: str) -> list[dict[str, Any]]:

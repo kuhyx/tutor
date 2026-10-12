@@ -12,7 +12,7 @@ import urllib.request
 
 import pytest
 
-from plc_lab.tutor import images
+from tutor import images
 
 if TYPE_CHECKING:
     from pathlib import Path

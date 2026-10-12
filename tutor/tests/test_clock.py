@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from plc_lab.tutor.clock import (
+from tutor.clock import (
     GENERATION_CAP,
     LOW_EFFORT,
     MAX_UNITS,
@@ -18,7 +18,7 @@ from plc_lab.tutor.clock import (
     BlockReady,
     EngagementClock,
 )
-from plc_lab.tutor.filler import is_filler, normalise
+from tutor.filler import is_filler, normalise
 
 T0 = 1_000_000.0
 ANSWER = "the coil energises and the contact closes"

@@ -2,7 +2,7 @@
 """The Wikimedia Commons side of image lookup: the guarded GET and the search.
 
 Nothing but https on a Commons host is ever fetched. The caches and the credit
-the UI shows live in :mod:`plc_lab.tutor.images`.
+the UI shows live in :mod:`tutor.images`.
 """
 
 from __future__ import annotations

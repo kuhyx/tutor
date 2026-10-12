@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Tests for plc_lab.cards: the topic-file format and its validation."""
+"""Tests for tutor.cards: the topic-file format and its validation."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.cards import TOPICS, CardError, load_deck, load_topic
+from tutor.cards import TOPICS, CardError, load_deck, load_topic
 
 if TYPE_CHECKING:
     from pathlib import Path

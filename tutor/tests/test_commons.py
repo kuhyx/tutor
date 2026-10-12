@@ -10,7 +10,7 @@ import urllib.request
 
 import pytest
 
-from plc_lab.tutor import commons
+from tutor import commons
 
 
 def page(

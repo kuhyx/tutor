@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from plc_lab.tutor.store import Store, data_dir
+from tutor.store import Store, data_dir
 
 if TYPE_CHECKING:
     from pathlib import Path

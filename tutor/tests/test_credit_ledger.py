@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from plc_lab.tutor.credit import credit_span, session_minutes
-from plc_lab.tutor.ledger_io import Paths, default_paths
-from plc_lab.tutor.tests._credit_support import (
+from tutor.credit import credit_span, session_minutes
+from tutor.ledger_io import Paths, default_paths
+from tutor.tests._credit_support import (
     NOON,
     entries,
     paid,

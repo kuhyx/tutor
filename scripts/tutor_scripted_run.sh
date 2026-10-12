@@ -30,7 +30,7 @@ head -c 32 /dev/urandom | base64 > "$RUN/test.key"
 export AUTOMATION_TUTOR_DATA="$RUN/data"
 export AUTOMATION_TUTOR_KEY="$RUN/test.key"
 
-"$PY" -m plc_lab.tutor --port "$PORT" --simulate-time 2> "$RUN/server.log" &
+"$PY" -m tutor --port "$PORT" --simulate-time 2> "$RUN/server.log" &
 SERVER_PID=$!
 for _ in {1..40}; do
     curl -sf "http://127.0.0.1:$PORT/api/state" > /dev/null && break
@@ -49,16 +49,16 @@ shot() {  # shot <name> <anchor>: headless, temp profile, never the live display
 export -f shot
 export ROOT PORT
 
-"$PY" -m plc_lab.tutor.scripted --url "http://127.0.0.1:$PORT" \
+"$PY" -m tutor.scripted --url "http://127.0.0.1:$PORT" \
     --hook-after 7 --hook-cmd 'shot session-mid m14' "$@"
 
 session="$(ls -t "$RUN"/data/sessions/*.jsonl | head -1)"
 cp "$session" "$ROOT/build/tutor-screenshots/transcript.jsonl"
-"$PY" -m plc_lab.tutor.adjudicate "$session" | tee "$ROOT/build/tutor-screenshots/adjudication.txt" || true
+"$PY" -m tutor.adjudicate "$session" | tee "$ROOT/build/tutor-screenshots/adjudication.txt" || true
 
 sid="$(basename "$session" .jsonl)"
 for name in image diagram last; do
-    anchor="$("$PY" -m plc_lab.tutor.adjudicate --anchors "$session" | jq -r ".$name")"
+    anchor="$("$PY" -m tutor.adjudicate --anchors "$session" | jq -r ".$name")"
     shot "session-$name" "$sid/$anchor"
 done
 echo "screenshots in $ROOT/build/tutor-screenshots/"

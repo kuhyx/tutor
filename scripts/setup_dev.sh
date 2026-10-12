@@ -2,7 +2,7 @@
 # ============================================================================
 # setup_dev.sh -- the dev venv the pre-commit gate and the test suite run in.
 #
-# .venv holds plc-lab (editable)
+# .venv holds tutor (editable)
 # plus the pinned test and lint tools. Idempotent.
 # ============================================================================
 
@@ -17,4 +17,4 @@ if [[ ! -x "${VENV}/bin/python" ]]; then
 fi
 "${VENV}/bin/python" -m pip install --quiet --upgrade pip
 "${VENV}/bin/python" -m pip install --quiet -e "${REPO_DIR}[dev]"
-"${VENV}/bin/python" -c "import plc_lab, genanki, pytest, mypy, pylint; print('dev venv OK')"
+"${VENV}/bin/python" -c "import tutor, pytest, mypy, pylint; print('dev venv OK')"

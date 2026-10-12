@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Pass/fail by code over a session transcript (no model grades a model).
 
-``python -m plc_lab.tutor.adjudicate sessions/<id>.jsonl`` prints one verdict
+``python -m tutor.adjudicate sessions/<id>.jsonl`` prints one verdict
 per acceptance item and exits non-zero if any failed.
 """
 
@@ -13,7 +13,7 @@ import re
 import sys
 from typing import Any, Final
 
-from plc_lab.tutor.models import REQUIRED_FIELDS
+from tutor.models import REQUIRED_FIELDS
 
 TERMS: Final = {
     "voltage": r"\bvolt(age|s)?\b",

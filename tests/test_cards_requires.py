@@ -3,15 +3,13 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.cards import TOPICS, CardError, load_deck, load_topic
-from plc_lab.cli import DECK_DIR
-from plc_lab.deck import build_model, build_note
-from plc_lab.tests.test_cards import LADDER, card, full_deck, write
+from tests.test_cards import LADDER, card, full_deck, write
+from tutor.cards import TOPICS, CardError, load_deck, load_topic
+from tutor.engine import DECK_DIR
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -99,15 +97,3 @@ def test_the_real_deck_gates_five_languages_on_the_ten_language_cards() -> None:
         "Name the five PLC programming languages defined by IEC 61131-3 up to its "
         "third edition."
     )
-
-
-def test_the_anki_note_ignores_requires() -> None:
-    gated = next(c for c in load_deck(DECK_DIR) if c.requires)
-    model = build_model()
-    with_req, without = (
-        build_note(gated, model),
-        build_note(replace(gated, requires=()), model),
-    )
-    assert with_req.guid == without.guid
-    assert with_req.fields == without.fields
-    assert with_req.tags == without.tags

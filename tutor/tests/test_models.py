@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from plc_lab.tutor.models import (
+from tutor.models import (
     REQUIRED_FIELDS,
     TURN_SCHEMA,
     TurnError,

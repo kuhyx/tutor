@@ -18,7 +18,7 @@ readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
 readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
 # The card editor writes here (the repo deck), not only into the release copy.
-readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/deck}"
+readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
 OPEN=1
 
 usage() {

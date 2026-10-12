@@ -17,15 +17,15 @@ from typing import TYPE_CHECKING, Any, Final
 
 from claude_agent_sdk import ClaudeSDKError
 
-from plc_lab.tutor import diagrams, images
-from plc_lab.tutor.picture_guard import unseen_picture_guard
-from plc_lab.tutor.prompt import image_check
+from tutor import diagrams, images
+from tutor.picture_guard import unseen_picture_guard
+from tutor.prompt import image_check
 
 if TYPE_CHECKING:
-    from plc_lab.tutor.conversation import Conversation
-    from plc_lab.tutor.models import TutorTurn
-    from plc_lab.tutor.session import TutorSession
-    from plc_lab.tutor.store import Store
+    from tutor.conversation import Conversation
+    from tutor.models import TutorTurn
+    from tutor.session import TutorSession
+    from tutor.store import Store
 
 # Seconds one term may take (search + download) before it counts as a miss.
 FETCH_DEADLINE: Final = 30.0

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from plc_lab.tutor.ledger_io import (
+from tutor.ledger_io import (
     LedgerError,
     Paths,
     default_paths,

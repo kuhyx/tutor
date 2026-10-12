@@ -10,36 +10,37 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 readonly PY=".venv/bin/python"
-full=0 touched=0 sim=0
+full=0 touched=0
 tests=()
+
+# tutor/<mod>.py -> tutor/tests/test_<mod>.py, else tests/test_<mod>.py
+# (cards and sources keep their tests at the top level).
+test_for() {
+    local base="$1" t
+    for t in "tutor/tests/test_${base#_}.py" "tests/test_${base#_}.py"; do
+        if [[ -f "$t" ]]; then printf '%s\n' "$t"; return 0; fi
+    done
+    return 1
+}
 
 while IFS= read -r f; do
     [[ -n "$f" && -e "$f" ]] || continue
     case "$f" in
-        pyproject.toml | */conftest.py | plc_lab/tests/_*.py) full=1; touched=1 ;;
-        plc_lab/tests/test_*.py) touched=1; tests+=("$f") ;;
-        sim/* | projects/sorting-line/README.md) sim=1 ;;  # README table = IoMap
-        plc_lab/*.py)
+        pyproject.toml | */conftest.py | conftest.py | tests/_*.py | tutor/tests/_*.py) full=1; touched=1 ;;
+        tests/test_*.py | tutor/tests/test_*.py) touched=1; tests+=("$f") ;;
+        subjects/*/deck/*.json) full=1; touched=1 ;;
+        tutor/*.py)
             touched=1
-            base="$(basename "$f" .py)"
-            t="plc_lab/tests/test_${base#_}.py"
-            if [[ -f "$t" ]]; then tests+=("$t"); else full=1; fi
+            if t="$(test_for "$(basename "$f" .py)")"; then tests+=("$t"); else full=1; fi
             ;;
     esac
 done < <({ git diff --name-only HEAD 2>/dev/null || git ls-files; git ls-files --others --exclude-standard; } | sort -u)
 
-if [[ $touched -eq 0 && $sim -eq 0 ]]; then
-    echo "no python or sim changes vs HEAD: nothing to test"; exit 0
+if [[ $touched -eq 0 ]]; then
+    echo "no python changes vs HEAD: nothing to test"; exit 0
 fi
 rc=0
-if [[ $sim -eq 1 ]]; then
-    echo "sim: running GUT suite"
-    scripts/sim_test.sh >/tmp/plc-lab-sim-test.log 2>&1 \
-        || { tail -40 /tmp/plc-lab-sim-test.log; rc=1; }
-fi
-if [[ $touched -eq 0 ]]; then
-    :
-elif [[ $full -eq 1 ]]; then
+if [[ $full -eq 1 ]]; then
     echo "python: running full suite"
     "$PY" -m pytest -q --tb=short || rc=1
 else

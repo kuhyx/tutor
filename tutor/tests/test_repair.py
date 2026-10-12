@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import repair
-from plc_lab.tutor.store import Store
+from tutor import repair
+from tutor.store import Store
 
 if TYPE_CHECKING:
     from pathlib import Path

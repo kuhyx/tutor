@@ -8,8 +8,8 @@ from typing import Any
 
 import pytest
 
-from plc_lab.tutor import feedback
-from plc_lab.tutor.feedback import MAX_TEXT, record, resolve, to_markdown, validate
+from tutor import feedback
+from tutor.feedback import MAX_TEXT, record, resolve, to_markdown, validate
 
 
 def body(**fields: Any) -> dict[str, Any]:

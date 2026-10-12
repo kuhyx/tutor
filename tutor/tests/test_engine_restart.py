@@ -8,14 +8,14 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import CliDiedError, FakeSession, ManualClock, turn
+from tutor.engine import Engine
+from tutor.store import Store
+from tutor.tests._fakes import CliDiedError, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.models import TutorTurn
+    from tutor.models import TutorTurn
 
 CARD = "io-24vdc-relay-coil"
 PRIMER = "[app] The tutor app restarted"

@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any
 
 from claude_agent_sdk import ClaudeAgentOptions
 
-from plc_lab.tutor.models import TutorTurn
-from plc_lab.tutor.session import Prompt, Reply, TutorSession
+from tutor.models import TutorTurn
+from tutor.session import Prompt, Reply, TutorSession
 
 if TYPE_CHECKING:
-    from plc_lab.tutor.clock import BlockReady
+    from tutor.clock import BlockReady
 
 
 def turn(message: str = "What do you know about a coil?", **fields: Any) -> TutorTurn:

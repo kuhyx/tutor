@@ -6,10 +6,10 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from plc_lab.tutor.clock import GENERATION_CAP, REPLY_TIMEOUT, SEND_GRACE
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor.clock import GENERATION_CAP, REPLY_TIMEOUT, SEND_GRACE
+from tutor.engine import Engine
+from tutor.store import Store
+from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from pathlib import Path

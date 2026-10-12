@@ -17,11 +17,11 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from plc_lab.tutor import deck_edit, diagrams, feedback, feedback_snapshot, images
-from plc_lab.tutor.engine import DECK_DIR, Engine
-from plc_lab.tutor.routes_editor import editor_routes
-from plc_lab.tutor.routes_sessions import session_routes
-from plc_lab.tutor.session import SessionError
+from tutor import deck_edit, diagrams, feedback, feedback_snapshot, images
+from tutor.engine import DECK_DIR, Engine
+from tutor.routes_editor import editor_routes
+from tutor.routes_sessions import session_routes
+from tutor.session import SessionError
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine

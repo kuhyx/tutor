@@ -18,15 +18,14 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from plc_lab import cards
-from plc_lab.tutor import deck_edit
+from tutor import cards, deck_edit
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from starlette.requests import Request
 
-    from plc_lab.tutor.engine import Engine
+    from tutor.engine import Engine
 
 ReadJson = Callable[["Request"], Awaitable[dict[str, Any]]]
 _JSON: Final = "application/json"

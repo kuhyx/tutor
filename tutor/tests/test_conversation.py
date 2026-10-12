@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from plc_lab.tutor.clock import EngagementClock
-from plc_lab.tutor.conversation import Conversation
+from tutor.clock import EngagementClock
+from tutor.conversation import Conversation
 
 T0 = 1_800_000_000.0
 

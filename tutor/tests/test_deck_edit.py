@@ -10,11 +10,10 @@ from typing import Any
 
 import pytest
 
-from plc_lab import cards, sources
-from plc_lab.tutor import deck_edit
-from plc_lab.tutor.deck_edit import Dirs, EditError
+from tutor import cards, deck_edit, sources
+from tutor.deck_edit import Dirs, EditError
 
-REPO_DECK = Path(__file__).resolve().parents[3] / "deck"
+REPO_DECK = Path(__file__).resolve().parents[2] / "subjects" / "automation" / "deck"
 CARD = "fund-plc-definition"
 
 

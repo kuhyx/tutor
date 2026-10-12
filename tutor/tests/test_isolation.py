@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING, ClassVar
 
 import pytest
 
-from plc_lab.tutor import isolation, session
-from plc_lab.tutor.session import Reply, isolated_options
-from plc_lab.tutor.tests.test_session import FakeClient, result
+from tutor import isolation, session
+from tutor.session import Reply, isolated_options
+from tutor.tests.test_session import FakeClient, result
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -179,9 +179,9 @@ def test_module_runs_as_a_script_without_spawning(
     FakeClient.instances = []
     monkeypatch.setattr(session, "ClaudeSDKClient", FakeClient)
     monkeypatch.setattr("claude_agent_sdk.ClaudeSDKClient", FakeClient)
-    monkeypatch.delitem(sys.modules, "plc_lab.tutor.isolation")
+    monkeypatch.delitem(sys.modules, "tutor.isolation")
     with pytest.raises(SystemExit) as exit_info:
-        runpy.run_module("plc_lab.tutor.isolation", run_name="__main__")
+        runpy.run_module("tutor.isolation", run_name="__main__")
     assert exit_info.value.code == 1
     assert len(FakeClient.instances) == 2
     assert not isolation.canary_file().exists()

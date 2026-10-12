@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from plc_lab.cards import Card, Topic
-from plc_lab.tutor.conversation import MAX_CHECK_ATTEMPTS
-from plc_lab.tutor.prompt import (
+from tutor.cards import Card, Topic
+from tutor.conversation import MAX_CHECK_ATTEMPTS
+from tutor.prompt import (
     CHECK_EVERY_SECONDS,
     engine_note,
     image_check,

@@ -35,9 +35,9 @@ main() {
             --unit="automation-tutor-$port-$(date +%s%N)" \
             --working-directory="$dir" "${env_args[@]}" \
             -p StandardOutput="append:$log" -p StandardError="append:$log" \
-            "$PY" -m plc_lab.tutor --port "$port"
+            "$PY" -m tutor --port "$port"
     else
-        (cd "$dir" && exec setsid -f "$PY" -m plc_lab.tutor --port "$port" \
+        (cd "$dir" && exec setsid -f "$PY" -m tutor --port "$port" \
             >>"$log" 2>&1 </dev/null)
     fi
 }

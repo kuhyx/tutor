@@ -27,12 +27,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Final
 
-from plc_lab.tutor import credit, ledger_pay
+from tutor import credit, ledger_pay
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from plc_lab.tutor.clock import BlockReady
+    from tutor.clock import BlockReady
 
 LEGACY_BLOCK_MINUTES: Final = ledger_pay.LEGACY_MINUTES
 

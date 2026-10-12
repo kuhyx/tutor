@@ -2,18 +2,18 @@
 """The tutor's system prompt and the per-turn engine note.
 
 The rules themselves (and the pedagogy they come from) are in
-:mod:`plc_lab.tutor.prompt_rules`; this adds the target card around them.
+:mod:`tutor.prompt_rules`; this adds the target card around them.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
 
-from plc_lab.tutor.conversation import MAX_CHECK_ATTEMPTS
-from plc_lab.tutor.prompt_rules import SYSTEM
+from tutor.conversation import MAX_CHECK_ATTEMPTS
+from tutor.prompt_rules import SYSTEM
 
 if TYPE_CHECKING:
-    from plc_lab.cards import Card
+    from tutor.cards import Card
 
 CHECK_EVERY_SECONDS: Final = 600.0
 

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
-    from plc_lab.tutor.clock import EngagementClock
+    from tutor.clock import EngagementClock
 
 # One check is graded at most this many times: "not yet" earns one re-teach and
 # a second try at the same question, then the check closes either way.

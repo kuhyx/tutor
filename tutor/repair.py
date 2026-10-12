@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Final
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.store import Store
+    from tutor.store import Store
 
 _logger = logging.getLogger(__name__)
 NAME: Final = "tutor-card-done-v1"

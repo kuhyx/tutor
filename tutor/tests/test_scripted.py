@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 import pytest
 
-from plc_lab.tutor import scripted
-from plc_lab.tutor.session import Prompt, Reply
+from tutor import scripted
+from tutor.session import Prompt, Reply
 
 if TYPE_CHECKING:
     from collections.abc import Callable

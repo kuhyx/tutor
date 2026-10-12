@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING
 import pytest
 from starlette.testclient import TestClient
 
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.server import create_app
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
-from plc_lab.tutor.tests.test_history import NEW, OLD, SILENT, make_session
+from tutor.engine import Engine
+from tutor.server import create_app
+from tutor.store import Store
+from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor.tests.test_history import NEW, OLD, SILENT, make_session
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

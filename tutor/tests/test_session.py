@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, SystemMessage
 import pytest
 
-from plc_lab.tutor import session
-from plc_lab.tutor.session import (
+from tutor import session
+from tutor.session import (
     Reply,
     SessionError,
     TutorSession,

@@ -4,7 +4,7 @@
 Writes a random-token rule file into ``~/.claude/rules/`` for a few seconds,
 asks a session with DEFAULT options (positive control: must report the token)
 and one with the tutor's isolated options (must report NONE), then deletes
-the file in ``finally``. Run: ``python -m plc_lab.tutor.isolation``.
+the file in ``finally``. Run: ``python -m tutor.isolation``.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import sys
 
 from claude_agent_sdk import ClaudeAgentOptions
 
-from plc_lab.tutor.session import MODEL, TutorSession, isolated_options
+from tutor.session import MODEL, TutorSession, isolated_options
 
 
 def canary_file() -> Path:

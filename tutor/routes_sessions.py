@@ -10,14 +10,14 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from plc_lab.tutor import credit, history, progress
+from tutor import credit, history, progress
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from starlette.requests import Request
 
-    from plc_lab.tutor.engine import Engine
+    from tutor.engine import Engine
 
 Guard = Callable[[Coroutine[Any, Any, dict[str, Any]]], Awaitable[Response]]
 ReadJson = Callable[["Request"], Awaitable[dict[str, Any]]]

@@ -10,10 +10,10 @@ from zoneinfo import ZoneInfo
 
 import earned_time
 
-from plc_lab.tutor.clock import BlockReady
+from tutor.clock import BlockReady
 
 if TYPE_CHECKING:
-    from plc_lab.tutor.ledger_io import Paths
+    from tutor.ledger_io import Paths
 
 ZONE = ZoneInfo("Europe/Warsaw")
 NOON = datetime(2026, 10, 9, 12, 0, tzinfo=ZONE).timestamp()

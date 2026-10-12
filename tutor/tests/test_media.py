@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import diagrams, media
-from plc_lab.tutor.session import SessionError
-from plc_lab.tutor.tests._fakes import FakeSession, turn
-from plc_lab.tutor.tests._media_support import DRAFT, live, log, picture, run
+from tutor import diagrams, media
+from tutor.session import SessionError
+from tutor.tests._fakes import FakeSession, turn
+from tutor.tests._media_support import DRAFT, live, log, picture, run
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -14,13 +14,13 @@ from datetime import date, datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor.credit import local_day
-from plc_lab.tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
-from plc_lab.tutor.ledger_pay import DAILY_CAP_MINUTES, paying
+from tutor.credit import local_day
+from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
+from tutor.ledger_pay import DAILY_CAP_MINUTES, paying
 
 if TYPE_CHECKING:
-    from plc_lab.cards import Card
-    from plc_lab.tutor.ledger_io import Paths
+    from tutor.cards import Card
+    from tutor.ledger_io import Paths
 
 _logger = logging.getLogger(__name__)
 

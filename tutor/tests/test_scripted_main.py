@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor import scripted, session
-from plc_lab.tutor.tests.test_scripted import FakeLearner, FakeResponse, state
+from tutor import scripted, session
+from tutor.tests.test_scripted import FakeLearner, FakeResponse, state
 
 if TYPE_CHECKING:
     import urllib.request
@@ -81,9 +81,9 @@ def test_module_runs_as_a_script(
     monkeypatch.setattr("urllib.request.urlopen", urlopen)
     monkeypatch.setattr(session, "TutorSession", FakeLearner)
     monkeypatch.setattr(sys, "argv", ["scripted", "--max-turns", "0"])
-    monkeypatch.delitem(sys.modules, "plc_lab.tutor.scripted")
+    monkeypatch.delitem(sys.modules, "tutor.scripted")
     with pytest.raises(SystemExit) as exit_info:
-        runpy.run_module("plc_lab.tutor.scripted", run_name="__main__")
+        runpy.run_module("tutor.scripted", run_name="__main__")
     assert exit_info.value.code == 0
     assert urls == [
         "http://127.0.0.1:8779/api/start",

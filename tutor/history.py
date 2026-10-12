@@ -13,12 +13,12 @@ from dataclasses import dataclass
 import re
 from typing import TYPE_CHECKING, Any, Final
 
-from plc_lab.tutor import resume, unit_credit
+from tutor import resume, unit_credit
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.conversation import Conversation
+    from tutor.conversation import Conversation
 
 # ASCII only: ``\d`` alone would also match other scripts' digits.
 SESSION_ID: Final = re.compile(r"\d{8}-\d{6}-[0-9a-f]{4}", re.ASCII)

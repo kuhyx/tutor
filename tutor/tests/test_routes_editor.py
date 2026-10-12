@@ -11,18 +11,17 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from starlette.testclient import TestClient
 
-from plc_lab import sources
-from plc_lab.tutor import deck_edit
-from plc_lab.tutor.deck_edit import Dirs
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.server import create_app
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor import deck_edit, sources
+from tutor.deck_edit import Dirs
+from tutor.engine import Engine
+from tutor.server import create_app
+from tutor.store import Store
+from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-REPO_DECK = Path(__file__).resolve().parents[3] / "deck"
+REPO_DECK = Path(__file__).resolve().parents[2] / "subjects" / "automation" / "deck"
 CARD = "fund-plc-definition"
 NOTE = (
     "Saved to deck/fundamentals.json (uncommitted; Anki updates on next build/import)."

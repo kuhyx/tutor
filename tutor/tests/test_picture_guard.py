@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from plc_lab.tutor.picture_guard import NO_PICTURE_NOTICE, unseen_picture_guard
-from plc_lab.tutor.tests._media_support import DRAFT
+from tutor.picture_guard import NO_PICTURE_NOTICE, unseen_picture_guard
+from tutor.tests._media_support import DRAFT
 
 
 def test_guard_leaves_text_without_picture_words_alone() -> None:

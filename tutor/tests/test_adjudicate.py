@@ -10,15 +10,15 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor import adjudicate
-from plc_lab.tutor.adjudicate import (
+from tutor import adjudicate
+from tutor.adjudicate import (
     MIN_UNCHECKED_BLOCK,
     anchors,
     load,
     message_indices,
     verdicts,
 )
-from plc_lab.tutor.models import REQUIRED_FIELDS
+from tutor.models import REQUIRED_FIELDS
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -242,8 +242,8 @@ def test_module_runs_as_a_script(
 ) -> None:
     path = write_jsonl(tmp_path / "s.jsonl", good())
     monkeypatch.setattr(sys, "argv", ["adjudicate", str(path)])
-    monkeypatch.delitem(sys.modules, "plc_lab.tutor.adjudicate")
+    monkeypatch.delitem(sys.modules, "tutor.adjudicate")
     with pytest.raises(SystemExit) as exit_info:
-        runpy.run_module("plc_lab.tutor.adjudicate", run_name="__main__")
+        runpy.run_module("tutor.adjudicate", run_name="__main__")
     assert exit_info.value.code == 0
     assert "PASS" in capsys.readouterr().out

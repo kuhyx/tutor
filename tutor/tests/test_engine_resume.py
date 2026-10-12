@@ -9,11 +9,11 @@ from typing import TYPE_CHECKING, Any
 
 import earned_time
 
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.ledger_io import default_paths
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
-from plc_lab.tutor.tests.conftest import KEY
+from tutor.engine import Engine
+from tutor.ledger_io import default_paths
+from tutor.store import Store
+from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor.tests.conftest import KEY
 
 if TYPE_CHECKING:
     from pathlib import Path

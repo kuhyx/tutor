@@ -9,14 +9,14 @@ from typing import TYPE_CHECKING, Any, Self
 from claude_agent_sdk import ClaudeAgentOptions
 import pytest
 
-from plc_lab.tutor import session
-from plc_lab.tutor.models import TURN_SCHEMA
-from plc_lab.tutor.session import (
+from tutor import session
+from tutor.models import TURN_SCHEMA
+from tutor.session import (
     TutorSession,
     isolated_options,
     sandbox_dir,
 )
-from plc_lab.tutor.tests.test_session import FakeClient, init_msg, result
+from tutor.tests.test_session import FakeClient, init_msg, result
 
 if TYPE_CHECKING:
     from pathlib import Path

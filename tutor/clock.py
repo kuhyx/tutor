@@ -34,7 +34,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from plc_lab.tutor.filler import is_filler
+from tutor.filler import is_filler
 
 # Long enough to think a design question through (kuhy, 2026-10-10: 3 min
 # cut off real thinking; 2026-10-11: 6 min cut off a long answer).

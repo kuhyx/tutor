@@ -6,16 +6,16 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import images, media
-from plc_lab.tutor.clock import EngagementClock
-from plc_lab.tutor.conversation import Conversation
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeSession
+from tutor import images, media
+from tutor.clock import EngagementClock
+from tutor.conversation import Conversation
+from tutor.store import Store
+from tutor.tests._fakes import FakeSession
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.models import TutorTurn
+    from tutor.models import TutorTurn
 
 DRAFT = "The picture shows a coil on a nail. What happens when current flows?"
 

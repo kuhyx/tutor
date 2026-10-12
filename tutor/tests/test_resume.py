@@ -7,9 +7,9 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import resume
-from plc_lab.tutor.clock import EngagementClock
-from plc_lab.tutor.conversation import Conversation
+from tutor import resume
+from tutor.clock import EngagementClock
+from tutor.conversation import Conversation
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -23,7 +23,7 @@ import shutil
 import tempfile
 from typing import Any, Final
 
-from plc_lab import cards, sources
+from tutor import cards, sources
 
 DECK_SRC_ENV: Final = "AUTOMATION_TUTOR_DECK_SRC"
 MAX_LINES: Final = 250

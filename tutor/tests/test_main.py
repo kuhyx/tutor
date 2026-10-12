@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""``python -m plc_lab.tutor``: port guard, resume, and the uvicorn call."""
+"""``python -m tutor``: port guard, resume, and the uvicorn call."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any, ClassVar
 import pytest
 import uvicorn
 
-from plc_lab.tutor import __main__ as tutor_main
+from tutor import __main__ as tutor_main
 
 APP = object()
 
@@ -153,8 +153,8 @@ def test_module_runs_as_a_script(
         listener.listen()
         port = listener.getsockname()[1]
         monkeypatch.setattr(sys, "argv", ["tutor", "--port", str(port)])
-        monkeypatch.delitem(sys.modules, "plc_lab.tutor.__main__", raising=False)
+        monkeypatch.delitem(sys.modules, "tutor.__main__", raising=False)
         with pytest.raises(SystemExit) as exit_info:
-            runpy.run_module("plc_lab.tutor.__main__", run_name="__main__")
+            runpy.run_module("tutor.__main__", run_name="__main__")
     assert exit_info.value.code == 1
     assert "already in use" in capsys.readouterr().err

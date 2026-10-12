@@ -11,14 +11,14 @@ from typing import TYPE_CHECKING
 import earned_time
 import pytest
 
-from plc_lab.tutor import credit
-from plc_lab.tutor.credit import (
+from tutor import credit
+from tutor.credit import (
     DAILY_CAP_ERROR,
     credit_span,
     session_minutes,
 )
-from plc_lab.tutor.ledger_io import Paths, default_paths
-from plc_lab.tutor.tests._credit_support import (
+from tutor.ledger_io import Paths, default_paths
+from tutor.tests._credit_support import (
     KEY,
     NOON,
     ZONE,

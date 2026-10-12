@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from plc_lab.tutor import scripted
-from plc_lab.tutor.adjudicate import verdicts
-from plc_lab.tutor.models import REQUIRED_FIELDS
+from tutor import scripted
+from tutor.adjudicate import verdicts
+from tutor.models import REQUIRED_FIELDS
 
 
 def test_page_notes_show_the_question_boxes() -> None:

@@ -30,7 +30,7 @@ import threading
 import time
 from typing import Any, Final
 
-from plc_lab.tutor import commons
+from tutor import commons
 
 # A day: Commons gains files, and the model has up to three other wordings.
 NEGATIVE_TTL: Final = 24 * 3600.0

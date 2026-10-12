@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from plc_lab.tutor.clock import (
+from tutor.clock import (
     OUTAGE_CAP,
     REPLY_TIMEOUT,
     SEND_GRACE,

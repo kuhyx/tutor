@@ -5,7 +5,7 @@ Kept in ``<data dir>/feedback.jsonl``, one report per line, apart from the
 session transcripts on purpose: ``resume`` replays ``sessions/*.jsonl`` into
 the model's primer, and a report must never reach the tutor or its clock.
 
-``python -m plc_lab.tutor.feedback [--all|--open] [--json] [--resolve ID]``
+``python -m tutor.feedback [--all|--open] [--json] [--resolve ID]``
 lists reports oldest first (newest last) or marks one resolved.
 """
 
@@ -19,7 +19,7 @@ import json
 import sys
 from typing import TYPE_CHECKING, Any, Final
 
-from plc_lab.tutor.store import data_dir
+from tutor.store import data_dir
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -184,7 +184,7 @@ def _say(text: str, *, err: bool = False) -> None:
 def main(argv: list[str] | None = None) -> int:
     """List reports (open by default) or resolve one."""
     parser = argparse.ArgumentParser(
-        prog="python -m plc_lab.tutor.feedback", description=__doc__
+        prog="python -m tutor.feedback", description=__doc__
     )
     which = parser.add_mutually_exclusive_group()
     which.add_argument("--all", action="store_true", help="include resolved reports")

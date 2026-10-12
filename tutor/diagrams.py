@@ -18,7 +18,7 @@ from typing import Any, Final
 import schemdraw
 from schemdraw import elements as elm
 
-from plc_lab.tutor.models import ELEMENT_KINDS
+from tutor.models import ELEMENT_KINDS
 
 
 def cache_dir() -> Path:

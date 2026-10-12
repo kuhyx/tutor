@@ -7,10 +7,10 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import images, media
-from plc_lab.tutor.picture_guard import NO_PICTURE_NOTICE
-from plc_lab.tutor.tests._fakes import FakeSession, turn
-from plc_lab.tutor.tests._media_support import DRAFT, live, log, picture, run
+from tutor import images, media
+from tutor.picture_guard import NO_PICTURE_NOTICE
+from tutor.tests._fakes import FakeSession, turn
+from tutor.tests._media_support import DRAFT, live, log, picture, run
 
 if TYPE_CHECKING:
     from pathlib import Path

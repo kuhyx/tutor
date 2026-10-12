@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING, Any
 from claude_agent_sdk import ClaudeAgentOptions
 import pytest
 
-from plc_lab.tutor import session
-from plc_lab.tutor.session import SessionError, TutorSession
-from plc_lab.tutor.tests.test_session import FakeClient, result
-from plc_lab.tutor.tests.test_session_task import DeadOnStart
+from tutor import session
+from tutor.session import SessionError, TutorSession
+from tutor.tests.test_session import FakeClient, result
+from tutor.tests.test_session_task import DeadOnStart
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

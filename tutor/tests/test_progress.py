@@ -8,14 +8,14 @@ from typing import TYPE_CHECKING
 
 from starlette.testclient import TestClient
 
-from plc_lab.cards import load_deck
-from plc_lab.tutor import progress
-from plc_lab.tutor.engine import DECK_DIR, Engine
-from plc_lab.tutor.ledger_io import Paths
-from plc_lab.tutor.server import create_app
-from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests import _credit_support as cs
-from plc_lab.tutor.tests._fakes import FakeSession, ManualClock
+from tutor import progress
+from tutor.cards import load_deck
+from tutor.engine import DECK_DIR, Engine
+from tutor.ledger_io import Paths
+from tutor.server import create_app
+from tutor.store import Store
+from tutor.tests import _credit_support as cs
+from tutor.tests._fakes import FakeSession, ManualClock
 
 if TYPE_CHECKING:
     from pathlib import Path

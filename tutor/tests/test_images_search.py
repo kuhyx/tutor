@@ -6,8 +6,8 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING
 
-from plc_lab.tutor import images
-from plc_lab.tutor.images import CommonsImage
+from tutor import images
+from tutor.images import CommonsImage
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -4,14 +4,14 @@
 # Put a verified tutor change live at once, without disturbing the session.
 #
 # The live server runs from a frozen release copy, never from the working
-# tree, so half-finished edits in ~/src/plc-lab are never served. A deploy:
+# tree, so half-finished edits in ~/src/tutor are never served. A deploy:
 #   1. copies a new release,
 #   2. smoke-tests it on a scratch port against a copy of today's sessions
 #      (it must start, resume the live session and serve valid page JS),
 #   3. waits until no reply is in flight (the newest session log does not
 #      end on a learner message),
 #   4. stops the old server gracefully and starts the release, which resumes
-#      the session from its transcript (plc_lab/tutor/resume.py).
+#      the session from its transcript (tutor/resume.py).
 # The page retries while the server is down, so the learner's next message
 # simply lands on the new code.
 # ============================================================================
@@ -26,8 +26,8 @@ readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
 readonly DATA="${AUTOMATION_TUTOR_DATA:-$HOME/.local/share/automation_tutor}"
 readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
 # The card editor writes the repo deck (the source of truth, which the next
-# release copies) as well as the release's own copy; see plc_lab/tutor/deck_edit.py.
-readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/deck}"
+# release copies) as well as the release's own copy; see tutor/deck_edit.py.
+readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
 SRC="$REPO"
 PORT=8778
 WAIT_LIMIT=300

@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""``python -m plc_lab.tutor [--port N]``: serve the tutor on localhost."""
+"""``python -m tutor [--port N]``: serve the tutor on localhost."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import sys
 
 import uvicorn
 
-from plc_lab.tutor.engine import Engine
-from plc_lab.tutor.server import create_app
+from tutor.engine import Engine
+from tutor.server import create_app
 
 DEFAULT_PORT = 8778
 
@@ -22,9 +22,7 @@ def _port_busy(port: int) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     """Serve until interrupted; refuse loudly if the port is taken."""
-    parser = argparse.ArgumentParser(
-        prog="python -m plc_lab.tutor", description=__doc__
-    )
+    parser = argparse.ArgumentParser(prog="python -m tutor", description=__doc__)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument(
         "--simulate-time",

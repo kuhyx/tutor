@@ -6,12 +6,12 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from plc_lab.tutor import backfill, credit, unit_credit
+from tutor import backfill, credit, unit_credit
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.clock import BlockReady
+    from tutor.clock import BlockReady
 
 T0 = 1_800_000_000.0
 ANSWER = "the coil pulls the contact closed"

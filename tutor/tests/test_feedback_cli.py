@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The ``python -m plc_lab.tutor.feedback`` command line."""
+"""The ``python -m tutor.feedback`` command line."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import sys
 
 import pytest
 
-from plc_lab.tutor import feedback
-from plc_lab.tutor.feedback import main, record
+from tutor import feedback
+from tutor.feedback import main, record
 
 
 def seed() -> None:
@@ -70,8 +70,8 @@ def test_run_as_a_module(
 ) -> None:
     seed()
     monkeypatch.setattr(sys, "argv", ["feedback", "--json"])
-    monkeypatch.delitem(sys.modules, "plc_lab.tutor.feedback")
+    monkeypatch.delitem(sys.modules, "tutor.feedback")
     with pytest.raises(SystemExit) as exit_info:
-        runpy.run_module("plc_lab.tutor.feedback", run_name="__main__")
+        runpy.run_module("tutor.feedback", run_name="__main__")
     assert exit_info.value.code == 0
     assert json.loads(capsys.readouterr().out)["id"] == 2

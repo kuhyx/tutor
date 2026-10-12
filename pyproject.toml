@@ -1,16 +1,15 @@
 [project]
-name = "plc-lab"
+name = "tutor"
 version = "0.1.0"
-description = "A PLC / OT security home-lab roadmap and a source-checked Anki deck"
+description = "A local tutor that teaches source-checked cards in conversation"
 requires-python = ">=3.14"
 license = "MIT"
-# genanki writes the .apkg; the excerpt check needs only the standard library
-# plus poppler's pdftotext for PDF sources. The tutor (plc_lab/tutor) adds:
+# The excerpt check needs only the standard library plus poppler's pdftotext
+# for PDF sources. The tutor itself needs:
 # claude-agent-sdk (drives the logged-in claude CLI, no API key), starlette +
 # uvicorn (the localhost page), schemdraw (code-drawn circuit diagrams) and
 # earned-time (the signed ledger the tutor's credit rows go in).
 dependencies = [
-    "genanki==0.13.1",
     "claude-agent-sdk==0.2.165",
     "starlette==1.7.0",
     "uvicorn==0.54.0",
@@ -20,17 +19,17 @@ dependencies = [
 
 [project.optional-dependencies]
 # httpx: Starlette's TestClient (the tutor's HTTP tests) needs it.
-dev = ["mypy==2.4.0", "pylint==4.1.2", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.17.0", "gdtoolkit==4.5.0", "httpx==0.28.1"]
+dev = ["mypy==2.4.0", "pylint==4.1.3", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.17.0", "httpx==0.28.1"]
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["plc_lab*"]
+include = ["tutor*"]
 
 [tool.setuptools.package-data]
-"plc_lab.tutor" = ["static/*"]
+"tutor" = ["static/*"]
 
 [tool.ruff]
 target-version = "py314"
@@ -48,25 +47,21 @@ ignore = [
     "ANN", "ARG", "D", "E501", "FBT", "PLC0415", "PLR0913", "PLR2004", "PTH",
     "S101", "SLF001",
 ]
-# A command line's job is to write to stdout.
-"plc_lab/cli.py" = ["T201"]
-# Run by hand; its progress lines are the evidence the import worked.
-"scripts/import_to_server.py" = ["T201"]
 # Run by hand; their stdout lines are the evidence (canary, run, verdicts).
-"plc_lab/tutor/__main__.py" = ["T201"]
-"plc_lab/tutor/isolation.py" = ["T201"]
+"tutor/__main__.py" = ["T201"]
+"tutor/isolation.py" = ["T201"]
 # Run by hand; its progress lines are the evidence the session ran.
-"plc_lab/tutor/scripted.py" = ["T201"]
-"plc_lab/tutor/adjudicate.py" = ["T201"]
+"tutor/scripted.py" = ["T201"]
+"tutor/adjudicate.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).
-"plc_lab/sources.py" = ["S310"]
+"tutor/sources.py" = ["S310"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
-known-first-party = ["plc_lab"]
+known-first-party = ["tutor", "tests"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -102,13 +97,13 @@ max-attributes = 12
 exclude_dirs = ["tests", ".venv"]
 
 [tool.pytest.ini_options]
-testpaths = ["plc_lab/tests", "plc_lab/tutor/tests"]
+testpaths = ["tests", "tutor/tests"]
 addopts = [
     "-q",
     "--strict-markers",
     "--strict-config",
     "-ra",
-    "--cov=plc_lab",
+    "--cov=tutor",
     "--cov-branch",
     "--cov-report=term-missing",
     "--cov-fail-under=100",
@@ -116,4 +111,4 @@ addopts = [
 filterwarnings = ["error::ResourceWarning"]
 
 [tool.coverage.run]
-omit = ["plc_lab/tests/*", "plc_lab/tutor/tests/*"]
+omit = ["tests/*", "tutor/tests/*"]

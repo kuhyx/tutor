@@ -18,8 +18,8 @@ from typing import Any, Final
 import urllib.parse
 import urllib.request
 
-from plc_lab.tutor.models import asked
-from plc_lab.tutor.session import TutorSession, isolated_options
+from tutor.models import asked
+from tutor.session import TutorSession, isolated_options
 
 LEARNER_MODEL: Final = "claude-haiku-5-5"
 FORCED: Final = {2: "ok", 5: "idk"}

@@ -14,18 +14,18 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Final
 
-from plc_lab.tutor import gating, unit_credit
+from tutor import gating, unit_credit
 
 if TYPE_CHECKING:
     import asyncio
     from collections.abc import Awaitable, Callable
 
-    from plc_lab import cards as cards_mod
-    from plc_lab.tutor.clock import BlockReady
-    from plc_lab.tutor.conversation import Conversation
-    from plc_lab.tutor.models import TutorTurn
-    from plc_lab.tutor.session import TutorSession
-    from plc_lab.tutor.store import Store
+    from tutor import cards as cards_mod
+    from tutor.clock import BlockReady
+    from tutor.conversation import Conversation
+    from tutor.models import TutorTurn
+    from tutor.session import TutorSession
+    from tutor.store import Store
 
 TARGET_MINUTES: Final = 60
 
