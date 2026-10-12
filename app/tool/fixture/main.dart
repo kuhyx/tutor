@@ -19,6 +19,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/util/ulid.dart';
 
@@ -72,6 +73,7 @@ Future<TutorServices> _open() async {
     stream: stream,
     relay: RequestRelay(client: client, stream: stream, dev: _dev, ulid: ulid),
     presence: PresenceWatcher(stream),
+    rev: RevWatcher(stream),
     events: events,
     home: HomeLoader(client: client, kv: kv, events: events),
     catalog: Catalog(client: client, kv: kv),

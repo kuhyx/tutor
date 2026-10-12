@@ -17,6 +17,7 @@ import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
+import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/util/ulid.dart';
 
 import 'fake_rtdb.dart';
@@ -73,6 +74,7 @@ TutorServices services(
       ulid: ulid,
     ),
     presence: PresenceWatcher(stream),
+    rev: RevWatcher(stream),
     events: events,
     home: HomeLoader(client: client, kv: store, events: events),
     catalog: Catalog(client: client, kv: store),

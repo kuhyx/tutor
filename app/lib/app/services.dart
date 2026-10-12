@@ -15,6 +15,7 @@ import 'package:tutor/storage/device_id.dart';
 import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
+import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
 import 'package:tutor/sync/wrapper_credentials.dart';
@@ -32,6 +33,7 @@ class TutorServices {
     required this.stream,
     required this.relay,
     required this.presence,
+    required this.rev,
     required this.events,
     required this.home,
     required this.catalog,
@@ -84,6 +86,7 @@ class TutorServices {
       stream: stream,
       relay: RequestRelay(client: client, stream: stream, dev: dev, ulid: ulid),
       presence: PresenceWatcher(stream),
+      rev: RevWatcher(stream),
       events: events,
       home: HomeLoader(client: client, kv: kvStore, events: events),
       catalog: Catalog(client: client, kv: kvStore),
@@ -115,6 +118,9 @@ class TutorServices {
 
   /// PC presence.
   final PresenceWatcher presence;
+
+  /// `rev.catalog` moves (one shared listen).
+  final RevWatcher rev;
 
   /// Offline event log.
   final EventLog events;
