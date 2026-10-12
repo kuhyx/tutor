@@ -1,10 +1,15 @@
-// Golden vectors shared with the Python worker (curriculum §5): B2 writes
-// contract/fsrs_vectors.json at the repo root; until it exists this test is
-// skipped, not passed.
+// Golden vectors shared with the Python worker (curriculum §5):
+// contract/fsrs_vectors.json at the repo root, written by
+// `python -m tutor.curriculum.fsrs_vectors`.
 //
-// Format: [{"events":[["taught",at],["review",at,3],...],
-//           "expect":{"due":ms,"stability":x,"difficulty":y,"state":"review"}}]
-// Tolerance 1e-6 on stability/difficulty; `due` exact to the second.
+// Format: [{"name", "events": [{"dev","eid","k","s","c","at","r"?,"rev"?,...}],
+//           "cards": {"x": {"rev": 1}},
+//           "expect": {"x": {"taught","due","stability","difficulty",
+//                            "state","flagged","good"}},
+//           "dropped": [...], "ignored": [...]}]
+// Events are listed unsorted on purpose (the fold sorts). Tolerance 1e-6 on
+// stability/difficulty; `due` exact to the ms. `good` (§6 unlock rule) and
+// `dropped`/`ignored` are worker-side and not checked here.
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,20 +24,53 @@ File _vectors() {
   return File('$root/contract/fsrs_vectors.json');
 }
 
-LogEvent _event(List<dynamic> row) {
-  final at = (row[1] as num).toInt();
-  return switch (row[0]) {
-    'taught' => TaughtEvent(subject: 'v', card: 'c', at: at),
-    'untaught' => UntaughtEvent(subject: 'v', card: 'c', at: at),
-    'review' => ReviewEvent(
-      subject: 'v',
-      card: 'c',
-      at: at,
-      grade: Grade.parse((row[2] as num).toInt()),
-      rev: 1,
+void _check(Map<String, dynamic> v) {
+  final name = v['name'] as String;
+  final rows = (v['events'] as List<dynamic>).cast<Map<String, dynamic>>();
+  final events = [
+    for (final raw in rows)
+      LoggedEvent(
+        dev: raw['dev'] as String,
+        eid: raw['eid'] as String,
+        event: LogEvent.fromJson(raw),
+      ),
+  ];
+  final cards = (v['cards'] as Map<String, dynamic>).map(
+    (id, info) => MapEntry(
+      'car/$id',
+      CardInfo(rev: ((info as Map<String, dynamic>)['rev'] as num).toInt()),
     ),
-    final k => throw FormatException('unknown vector event $k'),
-  };
+  );
+  final result = fold(events, cards);
+  final expect_ = v['expect'] as Map<String, dynamic>;
+  for (final MapEntry(key: id, value: rawWant) in expect_.entries) {
+    final want = rawWant as Map<String, dynamic>;
+    final key = 'car/$id';
+    final card = result.scheduled[key];
+    expect(card != null, want['taught'], reason: '$name: $id taught');
+    expect(
+      result.flagged.contains(key),
+      want['flagged'],
+      reason: '$name: $id flagged',
+    );
+    if (card == null) continue;
+    expect(
+      card.due.millisecondsSinceEpoch,
+      (want['due'] as num).toInt(),
+      reason: '$name: $id due',
+    );
+    expect(
+      card.stability,
+      closeTo(want['stability'] as num, 1e-6),
+      reason: '$name: $id stability',
+    );
+    expect(
+      card.difficulty,
+      closeTo(want['difficulty'] as num, 1e-6),
+      reason: '$name: $id difficulty',
+    );
+    expect(card.state, want['state'], reason: '$name: $id state');
+  }
 }
 
 void main() {
@@ -42,30 +80,8 @@ void main() {
     () {
       final vectors = jsonDecode(file.readAsStringSync()) as List<dynamic>;
       expect(vectors, isNotEmpty);
-      for (final (i, raw) in vectors.indexed) {
-        final v = raw as Map<String, dynamic>;
-        final rows = (v['events'] as List<dynamic>).cast<List<dynamic>>();
-        final events = [
-          for (final (n, row) in rows.indexed)
-            LoggedEvent(
-              dev: 'd',
-              eid: n.toString().padLeft(8, '0'),
-              event: _event(row),
-            ),
-        ];
-        final want = v['expect'] as Map<String, dynamic>;
-        final card = fold(events, const {
-          'v/c': CardInfo(rev: 1),
-        }).scheduled['v/c'];
-        expect(card, isNotNull, reason: 'vector $i');
-        expect(
-          card!.due.millisecondsSinceEpoch ~/ 1000,
-          (want['due'] as num).toInt() ~/ 1000,
-          reason: 'vector $i due',
-        );
-        expect(card.stability, closeTo(want['stability'] as num, 1e-6));
-        expect(card.difficulty, closeTo(want['difficulty'] as num, 1e-6));
-        expect(card.state, want['state'], reason: 'vector $i state');
+      for (final raw in vectors) {
+        _check(raw as Map<String, dynamic>);
       }
     },
     skip: file.existsSync()

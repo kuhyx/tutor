@@ -142,6 +142,7 @@ def _events(name: str, spec: Spec) -> list[dict[str, Any]]:
                 "s": "car",
                 "c": card,
                 "at": at,
+                **({"rev": 1} if kind == "review" else {}),
                 **extra,
             }
         )
