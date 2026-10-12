@@ -109,7 +109,7 @@ repos:
         language: system
         pass_filenames: true
         files: >-
-          (pyproject\.toml|requirements.*\.txt
+          (pyproject\.toml|requirements.*\.txt|pubspec\.(yaml|lock)|\.fvmrc
           |\.github/workflows/.*\.ya?ml)$
       - id: repo-contract
         name: repo contract (CLAUDE.md Commands + test_changed)
@@ -117,3 +117,11 @@ repos:
         language: system
         pass_filenames: false
         files: ^(CLAUDE\.md|AGENTS\.md|scripts/test_changed\.sh)$
+      # The Flutter client (app/). fvm runs the SDK pinned in app/.fvmrc; the
+      # Python CI job skips this one, the flutter job runs the same analyze.
+      - id: flutter-analyze
+        name: flutter analyze (app/)
+        entry: bash -c 'cd app && fvm flutter analyze --no-pub'
+        language: system
+        pass_filenames: false
+        files: ^app/.*\.(dart|yaml)$

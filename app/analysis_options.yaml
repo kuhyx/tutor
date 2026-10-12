@@ -1,0 +1,26 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    missing_required_param: error
+    unnecessary_null_comparison: error
+    dead_code: error
+  exclude:
+    - build/**
+    - android/**
+    - web/**
+    - lib/config/firebase_local.dart
+
+linter:
+  rules:
+    always_use_package_imports: true
+    avoid_print: true
+    cancel_subscriptions: true
+    close_sinks: true
+    directives_ordering: true
+    lines_longer_than_80_chars: true
+    unawaited_futures: true
