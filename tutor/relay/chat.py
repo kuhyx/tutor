@@ -51,10 +51,14 @@ async def session_start(ctx: RequestContext) -> dict[str, Any]:
     """Start a session on ``card`` (or the next open card) of ``subject``.
 
     No ``subject``: Home's pick, else the live one (curriculum contract §6).
+    ``resume`` without a card: the subject's open session first (Continue).
     """
-    engine = ctx.engine
-    subject = ctx.body["subject"] or await _home_pick(ctx)
-    await engine.start(ctx.body["card"], subject=subject)
+    engine, body = ctx.engine, ctx.body
+    subject = body["subject"] or await _home_pick(ctx)
+    wants_open = body["resume"] and body["card"] is None
+    if wants_open and await engine.continue_subject(subject):
+        return {"session": engine.session_id}
+    await engine.start(body["card"], subject=subject)
     return {"session": engine.session_id}
 
 

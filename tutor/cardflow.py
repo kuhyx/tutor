@@ -15,7 +15,7 @@ from dataclasses import asdict
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import credit, gating, unit_credit
+from tutor import continuing, credit, gating, unit_credit
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.source import source_for, transcript_subject
@@ -138,6 +138,21 @@ class CardFlow:
             if old is not None:
                 await old.close()
         return self.state()
+
+    async def continue_subject(self, subject: str | None) -> bool:
+        """Make ``subject``'s open session live (``continuing``); ``False``: none.
+
+        No subject: the live one. Raises ``RequestError`` for an unknown subject.
+        """
+        src = self._source_for(subject)
+        if self._conv is not None and src.subject == self.source.subject:
+            return True
+        found = continuing.open_session(
+            self.store.root / "sessions", src.subject, src.done()
+        )
+        if found is not None:
+            await self.resume_session(found)
+        return found is not None
 
     async def stop(self) -> dict[str, Any]:
         """End the live session for good (nothing live: a no-op)."""

@@ -60,3 +60,42 @@ def test_an_explicit_subject_beats_home_pick(tmp_path: Path) -> None:
         assert eng.source.subject == "automation"
 
     run(eng, script)
+
+
+def test_resume_continues_the_picked_subjects_session(tmp_path: Path) -> None:
+    # kuhy, 2026-10-12: live was a car session; Continue in automation must
+    # not open it. The automation session is resumed instead.
+    eng, _ = engine(tmp_path, turn("Q1?"), turn("Q2?"), turn("Q3?"))
+    _car(tmp_path / "data")
+
+    async def script(rig: Rig) -> None:
+        first = await rig.send("session_start", {"subject": "automation"})
+        assert first["ok"], first
+        auto = first["data"]["session"]
+        car = await rig.send("session_start", {"subject": "car", "card": None})
+        assert car["ok"], car
+        assert eng.source.subject == "car"
+        rig.fake.set(PICK, "automation")
+        back = await rig.send("session_start", {"subject": None, "resume": True})
+        assert back["data"] == {"session": auto}
+        assert eng.source.subject == "automation"
+        again = await rig.send(
+            "session_start", {"subject": "automation", "resume": True}
+        )
+        assert again["data"] == {"session": auto}  # already live: unchanged
+
+    run(eng, script)
+
+
+def test_resume_with_nothing_open_starts_the_next_card(tmp_path: Path) -> None:
+    eng, _ = engine(tmp_path, turn("Q1?"))
+    _car(tmp_path / "data")
+
+    async def script(rig: Rig) -> None:
+        got = await rig.send("session_start", {"subject": "car", "resume": True})
+        assert got["ok"], got
+        assert (eng.source.subject, eng.card and eng.card.id) == ("car", "c0")
+        bad = await rig.send("session_start", {"subject": "car", "resume": "yes"})
+        assert bad["code"] == "bad_request"
+
+    run(eng, script)

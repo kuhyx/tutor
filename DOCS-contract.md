@@ -121,7 +121,7 @@ to kuhy; tracebacks stay in the worker log only.
 | `plan_approve` | `{"subject","plan_rev":4}` | `{}` | build |
 | `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
 | `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}` | `{"card":"ld-x","rev":2}` | build |
-| `session_start` | `{"subject":"car"\|null,"card":"..."\|null}` (null card = next open) | `{"session":sid}` | chat |
+| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?}` (null card = next open) | `{"session":sid}` | chat |
 | `session_resume` | `{"session":sid}` | `{"session":sid}` | chat |
 | `message` | `{"session":sid,"text":"..."}` <=8000 ch | `{"msg":"m0012"}` | chat |
 | `next` | `{"session":sid}` (next_card+stop, starts new) | `{"session":newsid}` | chat |
@@ -132,7 +132,7 @@ One live session at a time; message for a non-`live` session -> `not_live`,
 client offers Continue (`session_resume`, replaces `resume_latest`, re-primes
 from transcript; previously live session is not stopped). `advance_s` never
 on the wire (worker CLI only). History "Repeat" = `session_start` with that
-card.
+card. Home Continue = `resume:true`: the subject's live session, else its newest unstopped one whose card is untaught (or taught there), else next open card.
 
 ## 5. Presence
 - Worker every 30 s PUTs `presence/workers/{dev}` (each beat measures skew):

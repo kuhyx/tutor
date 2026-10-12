@@ -73,6 +73,10 @@ def _bool(value: object) -> bool:
     raise ValueError
 
 
+def _opt_bool(value: object) -> bool:
+    return False if value is None else _bool(value)
+
+
 def _choice(value: object) -> str:
     if value in {"go_deeper", "review_only"}:
         return str(value)
@@ -115,7 +119,10 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "requires": _slugs,
         },
     ),
-    "session_start": (CHAT, {"subject": _opt_slug, "card": _opt_slug}),
+    "session_start": (
+        CHAT,
+        {"subject": _opt_slug, "card": _opt_slug, "resume": _opt_bool},
+    ),
     "session_resume": (CHAT, {"session": _session}),
     "message": (CHAT, {"session": _session, "text": _text(MAX_MESSAGE)}),
     "next": (CHAT, {"session": _session}),
