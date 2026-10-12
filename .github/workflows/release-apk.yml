@@ -151,9 +151,11 @@ jobs:
             echo "::error::an empty Firebase identifier (webClientId?)"; exit 1
           fi
 
+      # arm64 only: the APK is for kuhy's Pixel 6a. One AOT snapshot instead
+      # of three, and no fat APK (scripts/build_apk.sh builds the same).
       - name: Build signed APK
         run: |
-          flutter build apk --release \
+          flutter build apk --release --target-platform android-arm64 \
             --build-name="${{ steps.ver.outputs.semver }}" \
             --build-number="${{ steps.vc.outputs.code }}"
 

@@ -11,6 +11,10 @@ copy of `~/.android/release/key.properties`), focus whitelist source
 (phone-focus-mode `cee67fe`), `.github/workflows/release-apk.yml`,
 `scripts/register_oauth_client.sh`, `scripts/set_release_secrets.sh`.
 
+Status 2026-10-12: steps 3-6 done (focus-owner versionCode 214 with the
+tutor whitelist; tutor 81 installed, `hidden=false`, sign-in screen shows).
+Left: step 2 (OAuth client), step 7, Q19.
+
 ## done
 - `adb -s 23181JEGR08034 shell dumpsys package com.kuhy.tutor | grep -oE 'hidden=[a-z]+'` prints `hidden=false`
 - `scripts/register_oauth_client.sh --verify-only` exits 0
@@ -37,11 +41,12 @@ copy of `~/.android/release/key.properties`), focus whitelist source
 
 3. **Focus whitelist on the phone, BEFORE installing.** The Pixel's policy is
    bundled in the focus-owner APK (Device Owner; `pm unhide` is denied), so the
-   source change needs a focus-owner rebuild + reinstall. In a `LONG:` turn:
+   source change needs a focus-owner rebuild + reinstall, split the same way
+   (one line per action, each via capped.sh as in step 4), then
+   `adb -s 23181JEGR08034 install -r build/app/outputs/flutter-apk/app-release.apk`:
    ```bash
    cd ~/src/phone-focus-mode/focus-owner
-   JAVA_HOME=/usr/lib/jvm/java-21-openjdk \
-     bash ~/.claude/scripts/phone_deploy.sh . --release --shot /tmp/focus-screen.png
+   scripts/build_apk.sh prep --phone 23181JEGR08034   # then dart, jvm, r8, apk
    ```
    Enforcement runs on the 15-min alarm, not on install
    (`adb shell dumpsys alarm | grep -A4 EnforcementAlarmReceiver`). The
@@ -50,17 +55,23 @@ copy of `~/.android/release/key.properties`), focus whitelist source
    (Rooted BL9000 only: push `config.sh` + `focus_ctl.sh restart`, see memory
    `project-new-android-app-needs-focus-whitelist`.)
 
-4. **Build the release APK** -- over the 60 s cap, so a `LONG:` turn:
+4. **Build the release APK** -- five steps, each < 30 s under the 60 s cap
+   (`scripts/build_apk.sh`; arm64 only, lintVital skipped, R8 kept):
    ```bash
-   cd ~/src/tutor/app && JAVA_HOME=/usr/lib/jvm/java-21-openjdk \
-     fvm flutter build apk --release --build-number="$(git rev-list --count HEAD)"
+   cd ~/src/tutor    # one line per action; prefix each with
+                     # CAP_MEM=4G CAP_CPU_PCT=20 ~/.claude/scripts/capped.sh
+   scripts/build_apk.sh prep --phone 23181JEGR08034
+   scripts/build_apk.sh dart
+   scripts/build_apk.sh jvm
+   scripts/build_apk.sh r8
+   scripts/build_apk.sh apk
    ```
-   The build number is the commit count, the same scheme as the CI workflow
-   and `phone_deploy.sh`, so later CI/local builds install over it.
-   Check the signer before installing (must say `CN=kuhy`, not Android Debug):
+   versionCode = commit count (CI's scheme), raised to installed+1 by
+   `--phone` through phone_deploy's ceiling rule. The `apk` step already
+   fails unless the signer is the kuhy key; to re-check by hand:
    ```bash
    "$(find ~/sdk/Android/Sdk/build-tools -name apksigner -type f | sort -V | tail -1)" \
-     verify --print-certs build/app/outputs/flutter-apk/app-release.apk | grep -E 'DN|SHA-256'
+     verify --print-certs app/build/app/outputs/flutter-apk/app-release.apk | grep -E 'DN|SHA-256'
    ```
    SHA-256 must be `9dcc2e6c...b98f846`.
 
@@ -68,10 +79,8 @@ copy of `~/.android/release/key.properties`), focus whitelist source
    `pm clear`):**
    ```bash
    adb devices                       # 23181JEGR08034 must be listed
-   adb -s 23181JEGR08034 install -r build/app/outputs/flutter-apk/app-release.apk
+   adb -s 23181JEGR08034 install -r app/build/app/outputs/flutter-apk/app-release.apk
    ```
-   One-shot alternative for steps 4+5 (also launches + screenshots):
-   `JAVA_HOME=/usr/lib/jvm/java-21-openjdk bash ~/.claude/scripts/phone_deploy.sh ~/src/tutor/app --release --shot /tmp/tutor.png`.
 
 6. **Not hidden by focus-owner:**
    `adb -s 23181JEGR08034 shell dumpsys package com.kuhy.tutor | grep -oE 'hidden=[a-z]+'`
