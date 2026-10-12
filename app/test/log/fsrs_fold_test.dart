@@ -80,6 +80,13 @@ void main() {
       _e(_b, _rev(t + 10, Grade.good, 'y')),
     ]);
     expect(other, hasLength(2));
+    // The boundary: exactly 60 000 ms apart is NOT "within 60 s" (kept).
+    // B2's Python must read it the same way; the vectors would catch it.
+    final edge = mergeEvents([
+      _e(_a, _rev(t, Grade.good)),
+      _e(_b, _rev(t + dedupeWindowMs, Grade.good)),
+    ]);
+    expect(edge, hasLength(2));
   });
 
   test('flags count only on the current rev', () {

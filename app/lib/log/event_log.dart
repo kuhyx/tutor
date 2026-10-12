@@ -91,7 +91,7 @@ class EventLog {
       final cursor = await kv.get(_cursorKey(d));
       final fetched = await client.get(
         Paths.logOf(d),
-        query: keyRangeQuery(cursor ?? ''),
+        query: cursor == null ? const {} : keyRangeQuery(cursor),
       );
       if (fetched is! Map<String, dynamic>) continue;
       final store = await _readMap(_eventsKey(d))
