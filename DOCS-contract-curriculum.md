@@ -93,7 +93,11 @@ pass the same vectors.
      the plan module it fits best (`module`, enum of the plan's ids); code
      keeps it only for `on_topic:true` AND `module` = this module (fail
      closed: no verdict -> refused; an earlier module -> "duplicates", a
-     later one -> "belongs to later module"). < 3 kept -> `failed`;
+     later one -> "belongs to later module"); the gate also sees the deck
+     so far (live cards of this and earlier modules, id + front) and names
+     in `repeats` a card there or EARLIER in the batch that asks the same
+     fact -> refused (a later or self reference is ignored, so of a pair the
+     first stays). < 3 kept -> `failed`;
      else `ready` with `cards` = live (not suspended) count. A chosen
      page's extract is seeded into the excerpt-check cache for the article
      URL (unless cached already), so the model drafts from exactly the text

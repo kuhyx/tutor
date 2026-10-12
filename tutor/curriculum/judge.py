@@ -15,7 +15,7 @@ Every call sees the other modules' titles and summaries (``plan_context``).
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from tutor.curriculum import plan_context
 from tutor.curriculum.modelcall import STRING, array_of, strict_object
@@ -61,14 +61,30 @@ model, game, hobby or competition instead of the real thing), and for \
 history, dates, people or trivia the module description does not ask for. \
 `module`: the id of the plan module the card fits best -- this module's id \
 only if it fits here better than in any other module. \
-{plan_context.SCOPE_RULE} `reason`: a few words. One verdict per card id. {_DATA}
+{plan_context.SCOPE_RULE} `repeats`: the id of a card already in the deck, \
+or of an EARLIER card in this list, that asks for the same fact; "" if none. \
+`reason`: a few words. One verdict per card id. {_DATA}
 """
 
 
-def gate_schema(ids: list[str]) -> dict[str, object]:
-    """The gate's answer; ``module`` must be one of the plan's ``ids``."""
-    best = {"type": "string", "enum": ids}
-    verdict = {"id": STRING, "on_topic": _BOOL, "module": best, "reason": STRING}
+class Verdict(NamedTuple):
+    """The gate's answer on one card."""
+
+    ok: bool
+    best: str
+    repeats: str
+    why: str
+
+
+def gate_schema(ids: list[str], cards: list[str]) -> dict[str, object]:
+    """The gate's answer: ``module`` one of the plan's ``ids``, ``repeats`` a card."""
+    verdict = {
+        "id": STRING,
+        "on_topic": _BOOL,
+        "module": {"type": "string", "enum": ids},
+        "repeats": {"type": "string", "enum": ["", *cards]},
+        "reason": STRING,
+    }
     return strict_object({"verdicts": array_of(strict_object(verdict))})
 
 
@@ -109,20 +125,26 @@ def pick_sources(
     return chosen[:most]
 
 
-def _verdicts(raw: dict[str, object]) -> dict[str, tuple[bool, str, str]]:
-    """``id -> (on topic, best module, reason)`` from the gate; junk skipped."""
+def _verdicts(raw: dict[str, object]) -> dict[str, Verdict]:
+    """``id -> Verdict`` from the gate's answer; junk skipped."""
     verdicts = raw.get("verdicts")
-    said: dict[str, tuple[bool, str, str]] = {}
+    said: dict[str, Verdict] = {}
     for item in verdicts if isinstance(verdicts, list) else []:
         if isinstance(item, dict) and isinstance(item.get("id"), str):
-            reason = str(item.get("reason", ""))
-            best = str(item.get("module", ""))
-            said[item["id"]] = (item.get("on_topic") is True, best, reason)
+            said[item["id"]] = Verdict(
+                item.get("on_topic") is True,
+                str(item.get("module", "")),
+                str(item.get("repeats", "")),
+                str(item.get("reason", "")),
+            )
     return said
 
 
 def _gate_prompt(
-    scope: Scope, drafted: dict[str, CardRec], titles: dict[str, str]
+    scope: Scope,
+    drafted: dict[str, CardRec],
+    titles: dict[str, str],
+    known: dict[str, CardRec],
 ) -> str:
     shown = [
         {
@@ -133,35 +155,62 @@ def _gate_prompt(
         }
         for cid, rec in drafted.items()
     ]
-    return f"{scope.about()}\n\nCards:\n{json.dumps(shown, ensure_ascii=False)}"
+    deck = {cid: c.front for cid, c in known.items()}
+    return (
+        f"{scope.about()}\n\nAlready in the deck (id: front): "
+        f"{json.dumps(deck, ensure_ascii=False) if deck else '(none)'}\n\n"
+        f"Cards:\n{json.dumps(shown, ensure_ascii=False)}"
+    )
 
 
-def _refusal(scope: Scope, verdict: tuple[bool, str, str]) -> str:
-    """Why a card with ``verdict`` is refused; "" when it stays."""
-    ok, best, why = verdict
+def _refusal(scope: Scope, verdict: Verdict, prior: set[str]) -> str:
+    """Why a card is refused ("" when it stays); ``prior``: cards it may repeat."""
+    ok, best, repeats, why = verdict
     # A card placed in another module says which, even when also off topic.
     if where := plan_context.misplaced(scope.plan, scope.module, best):
         return f"{where} ({why})"
     if not ok:
         return f"off topic ({why})"
-    return "" if best == scope.module.id else f"no module named ({why})"
+    if best != scope.module.id:
+        return f"no module named ({why})"
+    # Only an EARLIER card counts: a pair naming each other keeps the first.
+    return f"repeats {repeats} ({why})" if repeats in prior else ""
 
 
-def gate(
-    ctx: Context, scope: Scope, drafted: dict[str, CardRec], titles: dict[str, str]
+def _sort(
+    scope: Scope, drafted: dict[str, CardRec], said: dict[str, Verdict], prior: set[str]
 ) -> tuple[dict[str, CardRec], list[str]]:
-    """Cards on topic AND best placed in this module; why the others were not."""
-    if not drafted:
-        return {}, []
-    schema = gate_schema(plan_context.module_ids(scope.plan, scope.module))
-    prompt = _gate_prompt(scope, drafted, titles)
-    said = _verdicts(ctx.model(GATE_SYSTEM, prompt, schema))
+    """Kept cards and refusals, in order; ``prior`` grows by each card seen."""
     kept: dict[str, CardRec] = {}
     problems: list[str] = []
     for cid, rec in drafted.items():
-        verdict = said.get(cid, (False, scope.module.id, "no verdict"))
-        if refused := _refusal(scope, verdict):
+        verdict = said.get(
+            cid, Verdict(ok=False, best="", repeats="", why="no verdict")
+        )
+        if refused := _refusal(scope, verdict, prior):
             problems.append(f"{cid}: {refused}")
         else:
             kept[cid] = rec
+        prior.add(cid)
     return kept, problems
+
+
+def gate(
+    ctx: Context,
+    scope: Scope,
+    drafted: dict[str, CardRec],
+    titles: dict[str, str],
+    known: dict[str, CardRec],
+) -> tuple[dict[str, CardRec], list[str]]:
+    """Cards on topic, in this module, new; why the others were refused.
+
+    New: not repeating a card of ``known`` (the deck so far) or one earlier
+    in ``drafted``.
+    """
+    if not drafted:
+        return {}, []
+    ids = plan_context.module_ids(scope.plan, scope.module)
+    schema = gate_schema(ids, [*known, *drafted])
+    prompt = _gate_prompt(scope, drafted, titles, known)
+    said = _verdicts(ctx.model(GATE_SYSTEM, prompt, schema))
+    return _sort(scope, drafted, said, set(known))

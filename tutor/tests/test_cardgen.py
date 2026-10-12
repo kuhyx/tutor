@@ -49,7 +49,7 @@ def gen(
     ctx, fakes = make_ctx(tmp_path)
     found = list(SOURCES)
     monkeypatch.setattr(cardgen, "_sources", lambda *_: found)
-    monkeypatch.setattr(judge, "gate", lambda _c, _s, cards, _t: (cards, []))
+    monkeypatch.setattr(judge, "gate", lambda _c, _s, cards, _t, _k: (cards, []))
     subject(
         ctx,
         modules=[module("a", status="generating"), module("b", "a"), module("c", "b")],

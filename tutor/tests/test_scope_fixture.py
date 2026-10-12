@@ -83,9 +83,32 @@ def test_every_call_sees_the_later_modules(
     engine = "How burning fuel and air in a cylinder pushes a piston"
     assert len(fakes.prompts) == len(data["model"])
     assert all(engine in prompt for _, prompt in fakes.prompts)
-    gate = fakes.prompts[0][1]
+    deck, gate = fakes.prompts[0][1].split("Cards:", 1)
     assert '"what-is-car"' not in gate  # taught: never gated
     assert '"piston-force-path"' in gate
+    assert '"what-is-car"' in deck.split("Already in the deck", 1)[1]
     draft = next(p for s, p in fakes.prompts if s.startswith("You write flashcards"))
     assert "piston-force-path" not in draft.split("Existing cards", 1)[1]
     assert SCOPE_RULE in next(s for s, _ in fakes.prompts if s.startswith("You write"))
+
+
+def test_a_card_repeating_an_earlier_one_is_suspended(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The live module after the first repair asked the same fact twice."""
+    fixture = FIXTURE.with_name("car_overview_repeat.json")
+    ctx, fakes, data = load(fixture, tmp_path, monkeypatch)
+    subject, module = data["subject"], data["module"]
+    before = ctx.subjects.cards(subject)
+    assert regen.main([subject, module, "--now"], lambda _root: ctx) == 0
+    assert not fakes.replies
+    out = json.loads(capsys.readouterr().out)
+    assert out["suspended"] == ["fuel-combustion-power"]
+    assert out["why"][0].startswith("fuel-combustion-power: repeats ice-propulsion")
+    cards = ctx.subjects.cards(subject)
+    assert cards["what-is-car"] == before["what-is-car"]
+    assert not cards["ice-propulsion"].suspended
+    live = [c for c, r in cards.items() if r.module == module and not r.suspended]
+    assert len(live) >= 6

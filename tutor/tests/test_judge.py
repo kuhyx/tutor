@@ -59,7 +59,7 @@ def test_pick_sources(tmp_path: Path) -> None:
 
 def test_gate_fails_closed(tmp_path: Path) -> None:
     ctx, fakes = make_ctx(tmp_path)
-    assert judge.gate(ctx, SCOPE, {}, {}) == ({}, [])
+    assert judge.gate(ctx, SCOPE, {}, {}, {}) == ({}, [])
     drafted = {"a": card("m", 1), "b": card("m", 2), "c": card("m", 3)}
     fakes.replies.append(
         {
@@ -72,12 +72,12 @@ def test_gate_fails_closed(tmp_path: Path) -> None:
         }
     )
     titles = {"https://en.wikipedia.org/wiki/Thing": "Thing"}
-    kept, problems = judge.gate(ctx, SCOPE, drafted, titles)
+    kept, problems = judge.gate(ctx, SCOPE, drafted, titles, {})
     assert list(kept) == ["a"]
     assert problems == ["b: off topic (toy)", "c: off topic (no verdict)"]
     assert '"source": "Thing"' in fakes.prompts[0][1]
     fakes.replies.append({"verdicts": {}})
-    assert judge.gate(ctx, SCOPE, {"a": card("m", 1)}, {})[0] == {}
+    assert judge.gate(ctx, SCOPE, {"a": card("m", 1)}, {}, {})[0] == {}
 
 
 def test_gate_keeps_only_cards_best_placed_here(tmp_path: Path) -> None:
@@ -95,7 +95,7 @@ def test_gate_keeps_only_cards_best_placed_here(tmp_path: Path) -> None:
             ]
         }
     )
-    kept, problems = judge.gate(ctx, SCOPE, drafted, {})
+    kept, problems = judge.gate(ctx, SCOPE, drafted, {}, {})
     assert list(kept) == ["a"]
     assert problems == [
         "b: belongs to later module engine (pistons)",
@@ -119,9 +119,14 @@ def test_gate_schema_names_every_module_this_one_first(tmp_path: Path) -> None:
 
     ctx.model = model
     fakes.replies.append({"verdicts": []})
-    judge.gate(ctx, SCOPE, {"a": card("m", 1)}, {})
+    judge.gate(ctx, SCOPE, {"a": card("m", 1)}, {}, {"k": card("m", 2)})
     verdict = schemas[0]["properties"]["verdicts"]["items"]
-    assert verdict["required"] == ["id", "on_topic", "module", "reason"]
+    assert verdict["required"] == ["id", "on_topic", "module", "repeats", "reason"]
+    assert verdict["properties"]["repeats"]["enum"] == ["", "k", "a"]
+    assert (
+        'Already in the deck (id: front): {"k": "What is thing 2 of m?"}'
+        in (fakes.prompts[0][1])
+    )
     assert verdict["properties"]["module"]["enum"] == [
         "car-overview",
         "basics",
@@ -131,3 +136,37 @@ def test_gate_schema_names_every_module_this_one_first(tmp_path: Path) -> None:
     assert "Earlier modules (already taught" in alone.about()
     assert alone.about().count("(none)") == 2
     assert plan_context.module_ids(None, MODULE) == ["car-overview"]
+
+
+def test_gate_refuses_a_repeat_of_the_deck_or_an_earlier_card(tmp_path: Path) -> None:
+    ctx, fakes = make_ctx(tmp_path)
+    drafted = {k: card("m", i) for i, k in enumerate("abcd")}
+    here = {"on_topic": True, "module": MODULE.id, "reason": "same"}
+    fakes.replies.append(
+        {
+            "verdicts": [
+                {"id": "a", **here, "repeats": "b"},  # a later card: a stays
+                {"id": "b", **here, "repeats": "a"},
+                {"id": "c", **here, "repeats": "old"},
+                {"id": "d", **here, "repeats": "d"},  # itself: ignored
+            ]
+        }
+    )
+    kept, problems = judge.gate(ctx, SCOPE, drafted, {}, {"old": card("m", 9)})
+    assert list(kept) == ["a", "d"]
+    assert problems == ["b: repeats a (same)", "c: repeats old (same)"]
+    fakes.replies.append({"verdicts": []})
+    judge.gate(ctx, SCOPE, {"a": card("m", 1)}, {}, {})
+    assert "Already in the deck (id: front): (none)" in fakes.prompts[1][1]
+
+
+def test_in_deck_is_this_and_earlier_modules_live_cards() -> None:
+    cards = {
+        "basic": card("basics", 1),
+        "mine": card(MODULE.id, 1),
+        "judged": card(MODULE.id, 2),
+        "gone": card(MODULE.id, 3, suspended=True),
+        "later": card("engine", 1),
+    }
+    deck = plan_context.in_deck(PLAN, MODULE, cards, {"judged"})
+    assert list(deck) == ["basic", "mine"]

@@ -75,7 +75,9 @@ def test_taught_cards_are_never_gated_or_suspended(car: tuple[Context, Fakes]) -
     fakes.replies.append(_verdicts(good=False))
     out = regen.regenerate(ctx, "car", "a")
     assert (out["suspended"], out["taught"]) == (["good"], ["toy"])
-    assert '"toy"' not in fakes.prompts[0][1]  # the gate never saw it
+    deck, judged = fakes.prompts[0][1].split("Cards:", 1)
+    assert '"toy"' not in judged  # never gated, only a card not to repeat
+    assert '"toy"' in deck.split("Already in the deck", 1)[1]
     cards = ctx.subjects.cards("car")
     assert not cards["toy"].suspended
     assert cards["good"].suspended

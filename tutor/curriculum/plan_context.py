@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
-    from tutor.curriculum.records import Meta, Module, Plan
+    from tutor.curriculum.records import CardRec, Meta, Module, Plan
 
 SCOPE_RULE: Final = """\
 Every card belongs to the ONE module of the plan whose description fits it \
@@ -82,3 +82,19 @@ def misplaced(plan: Plan | None, module: Module, best: str) -> str:
     if best in {m.id for m in later}:
         return f"belongs to later module {best}"
     return ""
+
+
+def in_deck(
+    plan: Plan | None, module: Module, cards: dict[str, CardRec], skip: set[str]
+) -> dict[str, CardRec]:
+    """What a new card of ``module`` must not repeat.
+
+    The live cards of this module and the earlier ones, minus ``skip``.
+    """
+    earlier, _ = neighbours(plan, module)
+    mine = {module.id, *(m.id for m in earlier)}
+    return {
+        cid: c
+        for cid, c in cards.items()
+        if c.module in mine and not c.suspended and cid not in skip
+    }

@@ -19,7 +19,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor.curriculum import cardgen, judge, wiki
+from tutor.curriculum import cardgen, judge, plan_context, wiki
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import BAD_REQUEST, RequestError
 from tutor.curriculum.plan_context import Scope
@@ -59,9 +59,8 @@ def _suspend(ctx: Context, subject: str, module_id: str, gone: list[str]) -> Non
         ctx.subjects.commit(subject, meta, Change(plan=plan, cards=cards))
 
 
-def regenerate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
-    """Gate the module's untaught live cards, suspend the refused, reopen it."""
-    meta = ctx.subjects.need_meta(subject)
+def _scope(ctx: Context, subject: str, module_id: str) -> Scope:
+    """The module to repair, refused unless its plan is approved and it is done."""
     plan = ctx.subjects.plan(subject)
     module = plan.module(module_id) if plan else None
     if plan is None or plan.status != "approved" or module is None:
@@ -70,15 +69,22 @@ def regenerate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
     if module.status not in _DONE:
         msg = f"{subject}/{module_id} is {module.status}, not {'/'.join(_DONE)}"
         raise RequestError(BAD_REQUEST, msg)
+    return Scope(ctx.subjects.need_meta(subject), module, plan)
+
+
+def regenerate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
+    """Gate the module's untaught live cards, suspend the refused, reopen it."""
+    scope = _scope(ctx, subject, module_id)
     taught = ctx.fold().taught_ids(subject)
+    cards = ctx.subjects.cards(subject)
     live: dict[str, CardRec] = {
-        cid: c
-        for cid, c in ctx.subjects.cards(subject).items()
-        if c.module == module_id and not c.suspended
+        cid: c for cid, c in cards.items() if c.module == module_id and not c.suspended
     }
     judged = {cid: c for cid, c in live.items() if cid not in taught}
     titles = {c.source: _title(c.source) for c in judged.values()}
-    kept, refused = judge.gate(ctx, Scope(meta, module, plan), judged, titles)
+    # Taught cards (and earlier modules') are what the judged ones must not repeat.
+    known = plan_context.in_deck(scope.plan, scope.module, cards, set(judged))
+    kept, refused = judge.gate(ctx, scope, judged, titles, known)
     gone = [cid for cid in judged if cid not in kept]
     _suspend(ctx, subject, module_id, gone)
     stay = [cid for cid in live if cid in taught]

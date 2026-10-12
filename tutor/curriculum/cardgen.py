@@ -19,7 +19,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor.cards import CardError
-from tutor.curriculum import card_rules, judge, relevance, wiki
+from tutor.curriculum import card_rules, judge, plan_context, relevance, wiki
 from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import slug
@@ -142,7 +142,8 @@ def _outcome(
         raw = ctx.model(SYSTEM, prompt(scope, existing, found), CARDS_SCHEMA)
         checked, problems = _drafts(ctx, module, existing, found, raw)
         named = {s.url: s.title for s in found}
-        kept, refused = judge.gate(ctx, scope, checked, named)
+        known = plan_context.in_deck(scope.plan, module, existing, set())
+        kept, refused = judge.gate(ctx, scope, checked, named, known)
         problems += refused
     except RequestError as err:
         _logger.warning("card drafting failed: %s", err.message)
