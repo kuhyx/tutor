@@ -174,7 +174,10 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
         cards = {**ctx.subjects.cards(subject), **kept}
         count = _live(cards, module_id)
         current.status = "failed" if error and count < MIN_CARDS else "ready"
-        current.error, current.cards = error, count
+        # Only a failed module carries its error; a ready one served by its
+        # existing cards reports the reason in the returned result only.
+        current.error = error if current.status == "failed" else None
+        current.cards = count
         ctx.subjects.commit(subject, meta, Change(plan=plan, cards=cards))
     return {
         "module": module_id,

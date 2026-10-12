@@ -86,10 +86,13 @@ def advance_statuses(view: View, fold: Fold) -> list[str]:
 
     ``ready`` -> ``mastered`` at recall >= 0.8 (sticky); ``locked`` ->
     ``generating`` once unlocked. Earlier modules are updated first, so a
-    mastery unlocks its dependents in the same pass.
+    mastery unlocks its dependents in the same pass. An open module never
+    carries an ``error`` (only ``failed`` does); a stale one is cleared.
     """
     unlocked_now = []
     for module in view.plan.modules:
+        if module.status in OPEN:
+            module.error = None
         module.recall = round(recall(view, module.id, fold), 4)
         if module.status == "ready" and module.recall >= MASTERY:
             module.status = "mastered"

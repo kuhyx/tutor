@@ -137,6 +137,22 @@ def test_source_problem_fails_the_module(
     assert (result["status"], result["error"]) == ("failed", "found 1 on-topic source")
 
 
+def test_ready_on_existing_cards_clears_the_error(
+    gen: tuple[Context, Fakes, list[wiki.Source]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx, _, _ = gen
+    plan = ctx.subjects.plan("car")
+    assert plan is not None
+    plan.modules[0].error = "an earlier failure"
+    have = {f"a{i}": card("a", i) for i in range(1, 4)}
+    meta = ctx.subjects.need_meta("car")
+    ctx.subjects.commit("car", meta, Change(plan=plan, cards=have))
+    monkeypatch.setattr(cardgen, "_sources", lambda *_: "found 1 on-topic source")
+    result = cardgen.generate(ctx, "car", "a")
+    assert (result["status"], result["error"]) == ("ready", "found 1 on-topic source")
+    assert (_module(ctx).status, _module(ctx).error) == ("ready", None)
+
+
 def test_prefixed_module_ids(gen: tuple[Context, Fakes, list[wiki.Source]]) -> None:
     ctx, fakes, _ = gen
     plan = ctx.subjects.plan("car")

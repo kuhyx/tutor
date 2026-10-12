@@ -108,7 +108,8 @@ pass the same vectors.
   untouched), refused ones `suspended:true`, module back to
   `generating`; the worker drafts replacements (numbered after the module's
   last card, told not to repeat the suspended ones). A regeneration that
-  fails leaves a module with >= 3 live cards `ready` (with `error`).
+  fails leaves a module with >= 3 live cards `ready` (`error` null: only
+  `failed` carries one; the fold clears a stale one on `ready`/`mastered`).
 - `card_edit` validates exactly like today's `deck_edit` (fields, word limits,
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else

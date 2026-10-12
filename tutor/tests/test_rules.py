@@ -82,6 +82,19 @@ def test_advance_masters_and_unlocks_in_one_pass(tmp_path: Path) -> None:
     assert rules.completed(view.plan)
 
 
+def test_advance_clears_a_stale_error_on_open_modules(tmp_path: Path) -> None:
+    ctx, _ = make_ctx(tmp_path)
+    mods = [
+        module("a", status="ready", error="x"),
+        module("b", status="mastered", error="y"),
+        module("c", status="failed", error="z"),
+    ]
+    subject(ctx, modules=mods)
+    view = _view(ctx)
+    rules.advance_statuses(view, ctx.fold())
+    assert [m.error for m in view.plan.modules] == [None, None, "z"]
+
+
 def test_nothing_unlocks_before_approval(tmp_path: Path) -> None:
     ctx, _ = make_ctx(tmp_path)
     subject(ctx, plan_status="draft", modules=[module("a"), module("b"), module("c")])
