@@ -26,6 +26,8 @@ readonly APP_URL="${URL}app/"
 readonly PROFILE="${TUTOR_DESKTOP_PROFILE:-$HOME/.local/share/tutor-desktop/profile}"
 # The card editor writes here (the repo deck), not only into the release copy.
 readonly DECK_SRC="${TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
+# The live server also serves the Flutter clients over the Firebase relay.
+readonly RELAY="${TUTOR_RELAY:-1}"
 OPEN=1
 
 usage() {
@@ -83,7 +85,7 @@ start_server() {
         return
     fi
     mkdir -p "$LOG_DIR"
-    TUTOR_DECK_SRC="$DECK_SRC" "$REPO/scripts/tutor_launch.sh" \
+    TUTOR_DECK_SRC="$DECK_SRC" TUTOR_RELAY="$RELAY" "$REPO/scripts/tutor_launch.sh" \
         "$LIVE_ROOT/current" "$PORT" "$LOG_DIR/server.log"
 }
 

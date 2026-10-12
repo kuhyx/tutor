@@ -28,6 +28,8 @@ readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/tutor}"
 # The card editor writes the repo deck (the source of truth, which the next
 # release copies) as well as the release's own copy; see tutor/deck_edit.py.
 readonly DECK_SRC="${TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
+# The live server also serves the Flutter clients over the Firebase relay.
+readonly RELAY="${TUTOR_RELAY:-1}"
 SRC="$REPO"
 PORT=8778
 WAIT_LIMIT=300
@@ -107,7 +109,8 @@ smoke_test() {
     fi
     head -c 32 /dev/urandom >"$TEMP_DIR/key"
     # No deck source: the smoke server's card editor stays read-only.
-    TUTOR_DATA="$TEMP_DIR/data" TUTOR_KEY="$TEMP_DIR/key" \
+    # No relay: a temp-data server must never claim real phone requests.
+    TUTOR_DATA="$TEMP_DIR/data" TUTOR_KEY="$TEMP_DIR/key" TUTOR_RELAY=0 \
         TUTOR_DECK_SRC="" launch "$release" "$port" "$TEMP_DIR/smoke.log"
     if ! wait_listening "$port"; then
         echo "Smoke test: release did not start:" >&2
@@ -180,6 +183,9 @@ main() {
     local release before pid after
     command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
     command -v node >/dev/null || { echo "node is required" >&2; exit 1; }
+    # Releases run on the repo venv; the relay needs crdt-sync and httpx in it.
+    "$REPO/.venv/bin/python" -c 'import crdt_sync, httpx' 2>/dev/null ||
+        { echo "The venv lacks the relay deps; run scripts/setup_dev.sh" >&2; exit 1; }
     mkdir -p "$LOG_DIR"
     release="$LIVE_ROOT/releases/$(date +%Y%m%d-%H%M%S)"
     copy_release "$release"
@@ -196,7 +202,8 @@ main() {
         while kill -0 "$pid" 2>/dev/null; do sleep 0.1; done
     fi
     ln -sfn "$release" "$LIVE_ROOT/current"
-    TUTOR_DECK_SRC="$DECK_SRC" launch "$release" "$PORT" "$LOG_DIR/server.log"
+    TUTOR_DECK_SRC="$DECK_SRC" TUTOR_RELAY="$RELAY" \
+        launch "$release" "$PORT" "$LOG_DIR/server.log"
     wait_listening "$PORT" || { echo "Live server did not start" >&2; exit 1; }
     after="$(session_of "$PORT")"
     echo "Live on :$PORT from $release (pid $(port_pid "$PORT"))"

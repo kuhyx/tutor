@@ -65,6 +65,7 @@ class CardFlow:
 
         time: Callable[[], float]
         start: Callable[..., Awaitable[dict[str, Any]]]
+        resume_path: Callable[[Path], bool]
         _live: Callable[[], tuple[TutorSession, Conversation, cards_mod.Card]]
         _turn: Callable[..., Awaitable[None]]
 
@@ -128,6 +129,20 @@ class CardFlow:
             self.store.log(conv.session_id, {"type": "next_card", "card": nxt.id})
             self.store.log(conv.session_id, {"type": "stop"})
         return await self.start(nxt.id)
+
+    async def resume_session(self, path: Path) -> dict[str, Any]:
+        """Continue the session in ``path``; the live one is left, not stopped.
+
+        Raises ``ValueError`` when it cannot be resumed (stopped, card gone).
+        """
+        async with self._lock:
+            old = self._session
+            if not self.resume_path(path):
+                msg = "this session cannot be continued (stopped, or its card is gone)"
+                raise ValueError(msg)
+            if old is not None:
+                await old.close()
+        return self.state()
 
     async def stop(self) -> dict[str, Any]:
         """End the live session for good (nothing live: a no-op)."""

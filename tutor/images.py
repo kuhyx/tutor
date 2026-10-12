@@ -20,7 +20,7 @@ still read by any older running process) is read as a hit, never rewritten.
 from __future__ import annotations
 
 import base64
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 import hashlib
 import json
 import logging
@@ -56,10 +56,18 @@ class CommonsImage:
     licence: str
     licence_url: str
     page_url: str
+    # The Commons thumbnail (800 px) the relay clients load; "" in old caches.
+    url: str = ""
 
     def to_json(self) -> dict[str, str]:
         """JSON for the UI (``file`` is served under ``/media/``)."""
         return asdict(self)
+
+    @classmethod
+    def from_json(cls, raw: dict[str, str]) -> CommonsImage:
+        """From a cache record; unknown keys (a newer writer's) are ignored."""
+        names = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in raw.items() if k in names})
 
 
 def _key(text: str) -> str:
@@ -81,12 +89,12 @@ def _cached(term: str, cache: Path, now: float) -> tuple[bool, CommonsImage | No
         entry = json.loads(record.read_text(encoding="utf-8"))
         if entry["image"] is None:
             return now - float(entry["at"]) < NEGATIVE_TTL, None
-        image = CommonsImage(**entry["image"])
+        image = CommonsImage.from_json(entry["image"])
         if (cache / image.file).is_file():
             return True, image
     legacy = cache / f"{_key(term.lower())}.json"
     if legacy.is_file():
-        image = CommonsImage(**json.loads(legacy.read_text(encoding="utf-8")))
+        image = CommonsImage.from_json(json.loads(legacy.read_text(encoding="utf-8")))
         if (cache / image.file).is_file():
             return True, image
     return False, None
@@ -130,6 +138,7 @@ def fetch(
         licence=commons.meta(info, "LicenseShortName") or "see file page",
         licence_url=commons.meta(info, "LicenseUrl"),
         page_url=info.get("descriptionurl", ""),
+        url=info["thumburl"],
     )
     _remember(term, image, cache, now)
     return image

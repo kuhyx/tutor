@@ -9,7 +9,9 @@ license = "MIT"
 # claude-agent-sdk (drives the logged-in claude CLI, no API key), starlette +
 # uvicorn (the localhost page), schemdraw (code-drawn circuit diagrams), fsrs
 # (spaced review, pinned: the Flutter client ports the same scheduler) and
-# earned-time (the signed ledger the tutor's credit rows go in).
+# earned-time (the signed ledger the tutor's credit rows go in); the relay
+# needs crdt-sync (the Firebase session) and httpx (RTDB REST + SSE; also
+# what Starlette's TestClient needs).
 dependencies = [
     "claude-agent-sdk==0.2.165",
     "fsrs==6.3.2",
@@ -17,11 +19,12 @@ dependencies = [
     "uvicorn==0.54.0",
     "schemdraw==0.23",
     "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.9.0#subdirectory=earned_time",
+    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
+    "httpx==0.28.1",
 ]
 
 [project.optional-dependencies]
-# httpx: Starlette's TestClient (the tutor's HTTP tests) needs it.
-dev = ["mypy==2.4.0", "pylint==4.1.3", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.17.0", "httpx==0.28.1"]
+dev = ["mypy==2.4.0", "pylint==4.1.3", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.17.0"]
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -56,6 +59,8 @@ ignore = [
 "tutor/scripted.py" = ["T201"]
 "tutor/adjudicate.py" = ["T201"]
 "tutor/curriculum/migrate.py" = ["T201"]
+# ``publish-all`` prints its counts: the evidence the migration ran.
+"tutor/relay/cli.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).
 "tutor/sources.py" = ["S310"]
 # The MediaWiki API on two fixed https hosts (wiki.http_get refuses others).
