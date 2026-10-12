@@ -94,9 +94,8 @@ class RtdbClient {
   Future<Uri> uri(String path, {Map<String, String> query = const {}}) async {
     final segments = path.split('/').where((s) => s.isNotEmpty);
     final encoded = segments.map(Uri.encodeComponent).join('/');
-    return Uri.parse(
-      '$_base/$encoded.json',
-    ).replace(queryParameters: {'auth': await idToken(), ...query});
+    return Uri.parse('$_base/$encoded.json')
+        .replace(queryParameters: {'auth': await idToken(), ...query});
   }
 
   /// Reads [path]; null when absent.
@@ -117,11 +116,7 @@ class RtdbClient {
 
   /// Reads [path] with its ETag, for a following conditional write.
   Future<Tagged> getTagged(String path) async {
-    final res = await _send(
-      'GET',
-      path,
-      headers: {'X-Firebase-ETag': 'true'},
-    );
+    final res = await _send('GET', path, headers: {'X-Firebase-ETag': 'true'});
     return Tagged(_decode(res), res.headers['etag'] ?? '');
   }
 

@@ -18,8 +18,7 @@ import 'package:tutor/sync/rtdb_event.dart';
 typedef Sleep = Future<void> Function(Duration d);
 
 /// Backoff before reconnect attempt [n] (0-based): 1, 2, 4 .. 30 s.
-Duration reconnectDelay(int n) =>
-    Duration(seconds: n >= 5 ? 30 : 1 << n);
+Duration reconnectDelay(int n) => Duration(seconds: n >= 5 ? 30 : 1 << n);
 
 enum _End { reconnectNow, backoff, stop }
 

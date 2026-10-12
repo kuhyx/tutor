@@ -74,9 +74,8 @@ FirebaseLocal parse(
     return value;
   }
 
-  final match = RegExp(
-    r"kServerClientId =\s*'([^']+)'",
-  ).firstMatch(todoSource ?? '');
+  final match = RegExp(r"kServerClientId =\s*'([^']+)'")
+      .firstMatch(todoSource ?? '');
   final clientId = [
     envClientId,
     json['webClientId'] as String?,

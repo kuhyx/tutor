@@ -20,7 +20,10 @@ void main() {
     expect(uri.queryParameters['auth'], 'tok');
     expect(uri.queryParameters['orderBy'], r'"$key"');
     expect(uri.queryParameters['startAt'], '"m0003"');
-    final noSlash = RtdbClient(databaseUrl: 'https://x', idToken: () async => 't');
+    final noSlash = RtdbClient(
+      databaseUrl: 'https://x',
+      idToken: () async => 't',
+    );
     expect((await noSlash.uri('a')).toString(), startsWith('https://x/a.json'));
     noSlash.close();
   });
@@ -101,8 +104,9 @@ void main() {
   test('HTTP errors classify auth vs transient', () async {
     var status = 401;
     final c = _client((_) async => http.Response('{"error":"x"}', status));
-    final e401 = await c.get('a').then<RtdbError?>((_) => null,
-        onError: (Object e) => e as RtdbError);
+    final e401 = await c
+        .get('a')
+        .then<RtdbError?>((_) => null, onError: (Object e) => e as RtdbError);
     expect(e401!.isAuth, isTrue);
     expect(e401.isTransient, isFalse);
     expect(e401.toString(), contains('401'));

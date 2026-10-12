@@ -47,35 +47,40 @@ String _frame(String event, String data) => 'event: $event\ndata: $data\n\n';
 
 void main() {
   test('reconnectDelay doubles to a 30 s cap', () {
-    expect([for (var i = 0; i < 7; i++) reconnectDelay(i).inSeconds], [
-      1, 2, 4, 8, 16, 30, 30, //
-    ]);
+    expect(
+      [for (var i = 0; i < 7; i++) reconnectDelay(i).inSeconds],
+      [
+        1, 2, 4, 8, 16, 30, 30, //
+      ],
+    );
   });
 
-  test('snapshot, keep-alive, auth_revoked reconnects now, cancel ends',
-      () async {
-    final s = _Server()
-      ..script.add(
-        (_) => _sse([
-          _frame('put', '{"path":"/","data":{"a":1}}'),
-          _frame('keep-alive', 'null'),
-          _frame('auth_revoked', 'credential is no longer valid'),
-          _frame('put', '{"path":"/late","data":1}'),
-        ], close: false),
-      )
-      ..script.add((_) => _sse([_frame('cancel', 'permission denied')]));
-    final events = await s.stream().listen('tutor/v1/presence').toList();
-    expect(events.map((e) => e.runtimeType).toList(), [
-      RtdbConnected,
-      RtdbPut,
-      RtdbKeepAlive,
-      RtdbAuthRevoked,
-      RtdbConnected,
-      RtdbCancel,
-    ]);
-    expect(s.slept, isEmpty);
-    expect(s.requests.first.headers['Accept'], 'text/event-stream');
-  });
+  test(
+    'snapshot, keep-alive, auth_revoked reconnects now, cancel ends',
+    () async {
+      final s = _Server()
+        ..script.add(
+          (_) => _sse([
+            _frame('put', '{"path":"/","data":{"a":1}}'),
+            _frame('keep-alive', 'null'),
+            _frame('auth_revoked', 'credential is no longer valid'),
+            _frame('put', '{"path":"/late","data":1}'),
+          ], close: false),
+        )
+        ..script.add((_) => _sse([_frame('cancel', 'permission denied')]));
+      final events = await s.stream().listen('tutor/v1/presence').toList();
+      expect(events.map((e) => e.runtimeType).toList(), [
+        RtdbConnected,
+        RtdbPut,
+        RtdbKeepAlive,
+        RtdbAuthRevoked,
+        RtdbConnected,
+        RtdbCancel,
+      ]);
+      expect(s.slept, isEmpty);
+      expect(s.requests.first.headers['Accept'], 'text/event-stream');
+    },
+  );
 
   test('follows a 307 keeping Accept; HTTP error backs off', () async {
     final s = _Server()

@@ -18,14 +18,18 @@ void main() {
 
   group('RtdbEvent.fromFrame', () {
     test('put and patch', () {
-      final put = RtdbEvent.fromFrame(
-        const SseFrame('put', '{"path":"/a","data":{"x":1}}'),
-      )! as RtdbPut;
+      final put =
+          RtdbEvent.fromFrame(
+                const SseFrame('put', '{"path":"/a","data":{"x":1}}'),
+              )!
+              as RtdbPut;
       expect(put.path, '/a');
       expect(put.data, {'x': 1});
-      final patch = RtdbEvent.fromFrame(
-        const SseFrame('patch', '{"path":"/","data":{"b":2}}'),
-      )! as RtdbPatch;
+      final patch =
+          RtdbEvent.fromFrame(
+                const SseFrame('patch', '{"path":"/","data":{"b":2}}'),
+              )!
+              as RtdbPatch;
       expect(patch.data, {'b': 2});
     });
 
@@ -64,10 +68,7 @@ void main() {
       final before = {
         'w': {'x': 1, 'y': 2},
       };
-      final after = applyEvent(
-        before,
-        const RtdbPatch('/w', {'x': 9, 'z': 3}),
-      );
+      final after = applyEvent(before, const RtdbPatch('/w', {'x': 9, 'z': 3}));
       expect(after, {
         'w': {'x': 9, 'y': 2, 'z': 3},
       });

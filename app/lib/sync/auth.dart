@@ -75,8 +75,9 @@ class TutorAuth {
   Future<SignInOutcome> signInWithGoogle({
     Future<String?> Function()? tokenFetcher,
   }) async {
-    final token = await (tokenFetcher ??
-        () => googleIdToken(serverClientId: config.serverClientId))();
+    final token =
+        await (tokenFetcher ??
+            () => googleIdToken(serverClientId: config.serverClientId))();
     if (token == null) return SignInOutcome.cancelled;
     await provider.signInWithGoogle(
       idToken: token,
