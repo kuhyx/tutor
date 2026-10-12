@@ -132,7 +132,7 @@ One live session at a time; message for a non-`live` session -> `not_live`,
 client offers Continue (`session_resume`, replaces `resume_latest`, re-primes
 from transcript; previously live session is not stopped). `advance_s` never
 on the wire (worker CLI only). History "Repeat" = `session_start` with that
-card. Home Continue = `resume:true`: the subject's live session, else its newest unstopped one whose card is untaught (or taught there), else next open card.
+card. Home Continue = `resume:true`: the subject's live session, else its newest session if unstopped with its card untaught (or taught there), else next open card.
 
 ## 5. Presence
 - Worker every 30 s PUTs `presence/workers/{dev}` (each beat measures skew):

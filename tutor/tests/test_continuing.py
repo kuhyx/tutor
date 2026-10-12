@@ -42,7 +42,7 @@ def _pick(root: Path, subj: str, done: dict[str, dict[str, Any]] | None = None) 
     return found.stem if found else ""
 
 
-def test_the_newest_open_session_of_the_subject_wins(tmp_path: Path) -> None:
+def test_only_the_subjects_newest_session_is_continued(tmp_path: Path) -> None:
     assert _pick(tmp_path, "car") == ""  # no sessions dir yet
     _write(tmp_path, "20261012-100000-aaaa", "automation", "a1")
     _write(tmp_path, "20261012-110000-bbbb", "car", "c1")
@@ -52,7 +52,11 @@ def test_the_newest_open_session_of_the_subject_wins(tmp_path: Path) -> None:
         json.dumps({"type": "start", "card": "x", "subject": "car", "t": T0}) + "\n",
         encoding="utf-8",
     )  # nothing said yet: not resumable
-    assert _pick(tmp_path, "automation") == "20261012-100000-aaaa"
+    # The newest automation session was stopped: Continue = the next card,
+    # never the older abandoned one.
+    assert _pick(tmp_path, "automation") == ""
+    _write(tmp_path, "20261012-140000-eeee", "automation", "a3")
+    assert _pick(tmp_path, "automation") == "20261012-140000-eeee"
     assert _pick(tmp_path, "car") == "20261012-110000-bbbb"
     assert _pick(tmp_path, "garden") == ""
 

@@ -22,12 +22,14 @@ if TYPE_CHECKING:
 def open_session(
     sessions_dir: Path, subject: str, done: dict[str, dict[str, Any]]
 ) -> Path | None:
-    """The newest unstopped session of ``subject`` whose card is still open.
+    """``subject``'s newest session, if it is still open; else ``None``.
 
-    Open: its card is untaught, or was taught in that very session (it then
-    offers Next card / Stop here). A session whose card was taught elsewhere
-    since is stale and skipped. Transcripts from before subjects existed
-    belong to ``automation``.
+    Open: not stopped, and its card untaught or taught in that very session
+    (it then offers Next card / Stop here). Only the newest counts: once
+    the learner stopped (or moved past) it, Continue means the next card,
+    not an older abandoned session (live data held unstopped automation
+    sessions from days before). Transcripts with nothing said yet are
+    skipped; those from before subjects existed belong to ``automation``.
     """
     for path in sorted(sessions_dir.glob("*.jsonl"), reverse=True):
         if not history.SESSION_ID.fullmatch(path.stem):
@@ -35,9 +37,9 @@ def open_session(
         if (transcript_subject(path) or DEFAULT_SUBJECT) != subject:
             continue
         state = resume.replay(path)
-        if state is None or state.conversation.stopped:
+        if state is None:
             continue
         taught = done.get(state.conversation.card_id)
-        if taught is None or taught.get("session") == path.stem:
-            return path
+        is_open = taught is None or taught.get("session") == path.stem
+        return None if state.conversation.stopped or not is_open else path
     return None
