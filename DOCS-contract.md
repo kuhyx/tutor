@@ -1,0 +1,250 @@
+# Tutor contract: RTDB relay, sessions, media (v1)
+
+Binding for B1 (relay worker, Python), B2 (curriculum engine, Python), B3
+(Flutter client). Curriculum/cards/FSRS/unlock: `DOCS-contract-curriculum.md`.
+Change this file first, then code. All times unix **ms** unless named `_s`.
+
+## 1. Actors, where truth lives
+- **worker**: the PC Python process (`python -m tutor worker`); headless; owns
+  claude-agent-sdk, clock, ledger. One per PC.
+- **client**: Flutter (Android; desktop = web build in Chrome `--app`). Never
+  computes credit, never calls the model.
+- **device id**: uuid4 persisted per install, never `pc`/`phone`. Worker:
+  crdt_sync `load_device_identity(~/.local/share/tutor/device_id)`; Flutter:
+  shared_preferences (Android) / IndexedDB (web).
+
+| Record | Canonical | RTDB | Writer |
+|---|---|---|---|
+| transcripts, clock, credit | PC `sessions/<sid>.jsonl`, `ledger.json` | projection `sessions/`, `session_index/`, `stats/` | worker |
+| subjects, plans, cards | PC `subjects/<subj>/` | projection `subjects/` | worker |
+| reviews, flags, taught | RTDB `log/` (append-only) | canonical; worker mirrors to `log.jsonl` | each device, own subtree |
+| requests | RTDB `requests/` (transient) | queue | client `req`; worker `claim`,`result` |
+| prefs, archived, feedback | RTDB | canonical (feedback drained) | client |
+
+Local jsonl write is the commit point; every RTDB projection write after it is
+an idempotent re-publish. On startup the worker re-publishes any
+session/subject whose RTDB `rev` < local `rev` (covers crash between the two).
+
+## 2. Auth and transport
+- DB `https://kuhy-syncs-default-rtdb.europe-west1.firebasedatabase.app`, REST
+  only (no SDK), `?auth=<idToken>`. Google sign-in only.
+- Worker: `FirebaseTokenProvider(api_key, credential_store_for("tutor"))` ->
+  `~/.config/tutor/firebase_auth.json`; add `"tutor"` to crdt-sync
+  `tool/_seeded_apps.py DEFAULT_APPS`, seed once via `tool/link_google.py`.
+  Never `firebase_client_for` (dead password fallback). Do not use
+  `FirebaseSyncClient` for data (string leaves only): use `id_token()` + own
+  GET/PUT/PATCH/DELETE/SSE.
+- Flutter: copy todo `lib/sync/` (`firebase_client.dart`,
+  `google_sign_in_backend.dart`, google_sign_in 7.2.0). Keep the `expectedUid`
+  guard (wrong Google account silently signs up a 2nd user); the expected uid
+  comes from local config (`~/.config/crdt-sync/firebase.json`), never
+  committed (public repo). `on Object` around sync (ArgumentError from
+  `Uri.base`). "Connected" = stored session, not the account marker.
+- Rules unchanged (shared DB; whole tree r/w for sync uid). No `.indexOn`
+  added => only `orderBy="$key"` queries. Writer ownership below is a
+  convention enforced by worker input validation.
+- Conditional write: GET with header `X-Firebase-ETag: true` -> `ETag` header;
+  PUT/DELETE with `if-match: <etag>`; **412** = lost race (body = current
+  value, new ETag). Not available for PATCH.
+- Streaming: `Accept: text/event-stream`; events `put`/`patch`
+  `{"path","data"}`, `keep-alive`, `cancel`, `auth_revoked` (reconnect, fresh
+  token). Every (re)connect resends the full snapshot of the path => listen
+  narrowly (§9).
+- Server time: `{".sv":"timestamp"}`; PUT response body has it resolved.
+
+## 3. Layout (root `/tutor/v1`)
+```
+meta                    {"schema":1,"min_client":1}                    worker
+rev                     {"catalog":42,"stats":7}  bumped on change     worker
+presence/workers/{dev}  heartbeat (§5)                                 worker
+presence/clients/{dev}  {"platform":"android","app":"1.0.0","seen":sv} client
+live                    {"session":sid,"subject":"automation","card":"ld-x","since":ms} | null
+requests/{rid}/req|claim|result                                        §4
+sessions/{sid}/meta|msgs/{m0001}|receipts/{r0001}|user                 §6
+session_index/{sid}     history row (§6)                               worker
+subjects/{subj}/meta|plan|cards/{cid}|concepts                         curriculum doc
+log/{dev}/{eid}         append-only events                             curriculum doc
+prefs                   {"current_subject":"car"}                      client (LWW)
+stats                   {"today":{...},"days":{"2026-10-12":{...}}}    worker
+feedback/{fid}          developer report (§6)                          client; worker drains
+```
+IDs: `rid`,`eid`,`fid` = ULID (26 ch Crockford, device clock, sortable,
+offline). `sid` = `YYYYMMDD-HHMMSS-xxxx` (unchanged, PC local). subject /
+module / card ids `[a-z0-9]+(-[a-z0-9]+)*` <=48 ch. Message/receipt keys
+`m%04d`/`r%04d`, never bare numbers (RTDB turns them into arrays). Free text
+(concept names) never a key: arrays only. Client refuses to run if
+`meta.schema` unknown or `min_client` > own version.
+
+## 4. Requests (relay protocol)
+Client PUTs **only** `requests/{rid}/req` (a retry never clobbers claim/result):
+```json
+{"kind":"message","dev":"<uuid>","created":{".sv":"timestamp"},
+ "sent_at":1791731346000,"body":{"session":"20261012-170448-5b71","text":"..."}}
+```
+`sent_at` = client time of the **first** Send press; retries keep it.
+
+Worker streams `requests` (kept small by GC). Per rid, in key order:
+1. Local done-map (`requests_done.jsonl`, 30 d) has rid -> re-PUT its result,
+   stop. No model call.
+2. Claim: GET `claim` w/ ETag; claimable if null, or `lease_until` < now and no
+   `result`. PUT with `if-match`:
+   `{"by":"<worker dev>","lease_until":ms,"attempt":1,"phase":"claimed","at":ms}`;
+   412 -> skip.
+3. Lease 300 s (model turn <=240 s + image check); renew every 60 s via
+   if-match PUT; `attempt` > 3 -> result `gave_up`.
+4. Phases (in `claim`, mirrored to `sessions/{sid}/meta.busy`):
+   `claimed -> thinking -> images -> checking_images -> publishing`. **No token
+   streaming**: image check + picture guard rewrite the draft, streaming would
+   show sentences later withdrawn.
+5. Commit locally (jsonl + done-map), publish projection, then PUT `result`:
+   `{"ok":true,"at":ms,"data":{...}}` or
+   `{"ok":false,"at":ms,"code":"not_live","error":"session is not live","retry":false}`.
+6. GC: DELETE requests whose result is >24 h old; done-map keeps dedupe.
+
+Lanes: `chat` (session kinds) and `build` (subject/plan/card kinds) are
+separate serial queues; within a lane a later rid never overtakes an earlier
+one. For `message`, `rid` is the engine's `msg_id`.
+
+Client: after PUT, stream `requests/{rid}` until `result`, show phase. On
+network error re-PUT the same `req` (same rid, same `sent_at`), never a new
+rid. Requests may queue while the PC is offline; served when it is back.
+
+Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`,
+`locked`, `daily_new_cap`, `no_card_left`, `unknown_card`, `plan_conflict`,
+`edit_refused`, `model_error`, `gave_up`, `worker_error`. `error` text is shown
+to kuhy; tracebacks stay in the worker log only.
+
+| kind | body | result `data` | lane |
+|---|---|---|---|
+| `subject_new` | `{"text":"I want to learn how a car works"}` <=2000 ch | `{"subject":"car"}` (plan drafted) | build |
+| `plan_revise` | `{"subject","plan_rev":3,"comment":"less history"}` | `{"plan_rev":4}` | build |
+| `plan_edit` | `{"subject","plan_rev":3,"modules":[module...]}` | `{"plan_rev":4}` | build |
+| `plan_approve` | `{"subject","plan_rev":4}` | `{}` | build |
+| `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
+| `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}` | `{"card":"ld-x","rev":2}` | build |
+| `session_start` | `{"subject":"car"\|null,"card":"..."\|null}` (null card = next open) | `{"session":sid}` | chat |
+| `session_resume` | `{"session":sid}` | `{"session":sid}` | chat |
+| `message` | `{"session":sid,"text":"..."}` <=8000 ch | `{"msg":"m0012"}` | chat |
+| `next` | `{"session":sid}` (next_card+stop, starts new) | `{"session":newsid}` | chat |
+| `stop` | `{"session":sid}` | `{}` | chat |
+| `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
+
+One live session at a time; message for a non-`live` session -> `not_live`,
+client offers Continue (`session_resume`, replaces `resume_latest`, re-primes
+from transcript; previously live session is not stopped). `advance_s` never
+on the wire (worker CLI only). History "Repeat" = `session_start` with that
+card.
+
+## 5. Presence
+- Worker every 30 s PUTs `presence/workers/{dev}`:
+  `{"host","pid","version","started":ms,"beat":{".sv":"timestamp"},"lanes":{"chat":rid|null,"build":rid|null},"skew_ms":12}`;
+  DELETE on clean exit.
+- Client streams `presence/workers` while foregrounded; "PC offline" when no
+  put/patch for **75 s** on the client's **monotonic** clock (never compare
+  `beat` with device wall clock). Connect snapshot = "checking" until next beat.
+- Offline: chat/plan/subject actions show "PC offline: replies wait; reviews
+  still work". Reviews and flags keep working.
+
+## 6. Session projection (worker-written except `user`)
+```json
+"meta": {"subject":"automation","card":{"id":"ld-x","front":"..."},"started":ms,
+  "stopped":false,"card_done":false,"check_open":true,"n":14,"rev":31,
+  "clock":{"active_seconds":412.5,"paused_reason":null,"awaiting_since":ms,"reply_timeout_s":600},
+  "credited_minutes":6,
+  "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
+"msgs/m0007": {"role":"tutor","text":"markdown","questions":["..."],"low_effort":false,
+  "check":{"question":"...","concept":"..."},"check_result":{"passed":true,"feedback":"..."},
+  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"card_done":false,"at":ms}
+"msgs/m0008": {"role":"learner","text":"...","at":ms,"rid":"...","dev":"..."}
+"msgs/m0009": {"role":"card","text":"<front>","card_id":"ld-y"}
+"receipts/r0003": {"entry_id":"<sid>-m6","recorded":true,"minutes":1,"minutes_today":23,"error":null,"at":ms}
+"user": {"archived":true}
+```
+- `busy` null when idle; `check`/`check_result` may be null. `user` is
+  client-written; the live session can't be archived.
+- Learner bubble appears only after the turn succeeds (as today); until then
+  all devices show `busy.text` as a pending bubble. "Stalled" =
+  `awaiting_since + 600 s < now` (client display only).
+- `session_index/{sid}`: `{"started":"2026-10-12 17:04","subject":"automation","cards":[{"id","front","done","done_here"}],"active_minutes":12,"credited_minutes":12,"stopped":true,"auto_archived":false,"rev":31}`.
+- `feedback/{fid}`: `{"category":"ui|response|experience|other","text":"<=4000","session":sid|null,"msg":"m0007"|null,"dev","at":ms,"route":"/session"}`;
+  worker attaches its message snapshot, appends `feedback.jsonl`, DELETEs the
+  node. Feedback never reaches the model.
+
+## 7. Credit honesty (worker only)
+- Clock = existing `EngagementClock`, replayed only from local jsonl.
+- Learner time `t_l = reply_time(received=req.created/1000, sent_at=req.sent_at/1000)`:
+  `created` is RTDB server time, never the phone clock; `sent_at` can only move
+  it up to `SEND_GRACE` = 300 s earlier; a value later than `created` ignored.
+- Tutor time `t_t` = worker `time.time()` at final message commit.
+- Worker measures skew (`.sv` write vs local) at startup + hourly; |skew| > 5 s
+  warns and shows `skew_ms` in presence.
+- Learner events logged with `t`,`rid`,`dev`. Ledger rows signed exactly as
+  today (credit.py, earner `TUTOR`, `entry_id <sid>-m<n>`, cap 60/day,
+  `confirmed_on` unset). RTDB `receipts`/`stats` are display only; earned_time
+  never reads RTDB.
+- An answer delayed by an offline phone earns only what `REPLY_TIMEOUT`
+  (600 s) allows from server receipt. A device cannot claim minutes.
+- FSRS reviews earn no credit in v1.
+
+## 8. Media (no Firebase Storage, nothing binary in RTDB)
+- `IMG` = `{"url":"https://upload.wikimedia.org/...800px-....jpg","title","author","licence","licence_url","page_url","term"}`.
+  Worker still downloads the thumbnail for the vision check but publishes the
+  Commons `thumburl` (`iiurlwidth=800`); B1 adds `url` to `CommonsImage`.
+  `author`/`licence` plain text. Client loads only `https://upload.wikimedia.org/`,
+  shows "author · licence" linked to `page_url` under every picture, uses the
+  HTTP cache; on load failure shows attribution + link only. B3 verifies
+  hotlinking on device (descriptive User-Agent).
+- `DGM` = `{"title","svg":"<svg ...>"}` inline, <=8 KB, <=2 per message;
+  schemdraw output from the closed element set only, never model markup.
+  Worker asserts no `<script>`, `<foreignObject>`, external `href`. Client
+  renders with flutter_svg.
+
+## 9. Budgets (Spark: 10 GB/mo download, 1 GB stored, 100 conns, shared)
+Tutor target <=1 GB/month download, <=50 MB stored. Caps: message 8000 ch;
+tutor message <=24 KB incl. SVG; card <=2 KB; plan <=16 KB; feedback 4000 ch.
+Client streams only while visible: `live`, `presence/workers`, `rev`,
+`sessions/{sid}/meta`, `sessions/{sid}/msgs`, `requests/{rid}`; never the
+`/tutor/v1`, `sessions`, `subjects` or `log` roots. Reconnect cost: msgs
+~30 x 2 KB = 60 KB (use `orderBy="$key"&startAt="m<last+1>"` on the stream if
+RTDB honours it, B3 verifies; else full node); meta ~1 KB; presence ~0.3 KB.
+Catalog: GET `subjects/{s}` only when `rev.catalog` changed (167 PLC cards
+~90 KB once). Log: GET `log/{dev}?orderBy="$key"&startAt="<last eid>"` per
+device (shallow first), ~150 B/event. Estimate: 1 h chat/day ~2-5 MB per
+device per day, <0.2 GB/month.
+
+## 10. Security
+- Public repo: no uid, email, API key or tokens in source/docs; config from
+  `~/.config`. Scan history before the first push.
+- All RTDB content is untrusted: worker validates kind, id regexes, types,
+  sizes; ignores unknown fields; never builds a path/filename from an
+  unvalidated id.
+- Model isolation unchanged (`isolated_options`: no tools, MCP, settings);
+  learner text wrapped (`wrap_learner`); fetched pages and RTDB text change
+  only text, never actions.
+- Client: markdown with raw HTML off; https links only; image host allowlist;
+  SVG only from worker.
+- Credit unforgeable via RTDB: root-owned HMAC key stays on the PC; time
+  inputs server-stamped.
+- Tokens: Android keystore; `~/.config/tutor/` on PC. Transcripts/reviews in
+  Google RTDB are personal, not secret.
+
+## 11. Migration (A2/B; one-off `python -m tutor migrate`, idempotent)
+- Data dir `~/.local/share/automation_tutor` -> `~/.local/share/tutor`; old
+  kept read-only.
+- `deck/*.json` (7 topics, 167 cards) -> `subjects/automation/` seed: subject
+  `automation`, plan rev 1 `approved`; modules = `cards.TOPICS` in order,
+  keeping `prefixes`; module `requires` = topics named by cross-topic card
+  `requires` (`fundamentals` root); card `requires` kept; cards
+  `origin:"seed"`, rev 1; modules `ready`. Card-level gating (`gating.py`)
+  kept.
+- `progress.json`: `cards_done` (14) -> `taught` events in the worker log (`at`
+  = recorded time, session); `mastered` (46) -> `subjects/automation/concepts`;
+  `archived` -> `sessions/{sid}/user`; `repairs` stays local. Modules with any
+  taught card are unlocked regardless of recall (grandfather).
+- `sessions/*.jsonl` (18) keep sids; projection published via replay
+  (`history.session_view`). Old images: resolve `url` from `page_url` via
+  Commons `imageinfo`, else attribution only. Old diagrams: inline SVG from the
+  tutor-diagrams cache by filename, else dropped.
+- No FSRS/Anki history imported; taught cards start FSRS at taught time.
+- Cutover only via the deploy script with the worker drained (no new claims,
+  leases finished).
