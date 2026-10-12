@@ -119,6 +119,11 @@ def page_text(url: str) -> str:
     return text
 
 
+def is_cached(url: str) -> bool:
+    """Whether ``url``'s text is in the cache already."""
+    return _cache_path(url).is_file()
+
+
 def seed_text(url: str, text: str) -> str:
     """Cache ``text`` as ``url``'s plain text unless one is cached already.
 

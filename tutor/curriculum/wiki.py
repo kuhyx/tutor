@@ -16,7 +16,7 @@ import json
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode, urlsplit
 import urllib.request
 
 from tutor import sources
@@ -100,6 +100,29 @@ def extract(fetch: FetchFn, host: str, title: str) -> str:
 def page_url(host: str, title: str) -> str:
     """The article URL a card cites."""
     return f"https://{host}/wiki/{quote(title.replace(' ', '_'))}"
+
+
+def article(url: str) -> tuple[str, str] | None:
+    """``(host, title)`` of a Wikipedia / Wikibooks article URL, else None."""
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    if host not in {WIKIPEDIA, WIKIBOOKS} or not parts.path.startswith("/wiki/"):
+        return None
+    return host, unquote(parts.path.removeprefix("/wiki/")).replace("_", " ")
+
+
+def reseed(fetch: FetchFn, url: str) -> None:
+    """Re-seed an uncached wiki article's extract (cache wiped or moved).
+
+    A generated card's excerpt was checked against the extract; without
+    this a later re-check would compare it with the HTML page instead.
+    """
+    found = article(url)
+    if found is None or sources.is_cached(url):
+        return
+    text = extract(fetch, *found)
+    if text:
+        sources.seed_text(url, text)
 
 
 def _clip(text: str) -> str:

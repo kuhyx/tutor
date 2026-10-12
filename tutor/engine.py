@@ -96,9 +96,9 @@ class Engine(CardFlow):
         before the live session is touched.
         """
         async with self._lock:
-            if subject and subject != self.source.subject:
-                self.source = source_for(self.store, self.ctx, subject)
-            card = self.source.pick(card_id)
+            src = self._source_for(subject)
+            card = src.pick(card_id)  # raises before anything changes
+            self.source = src
             if self._session is not None:
                 await self._session.close()
             self.card = card
@@ -138,10 +138,11 @@ class Engine(CardFlow):
         )
         state = resume.replay(path) if path else None
         conv = state.conversation if state else None
-        card = next((c for c in self.deck if conv and c.id == conv.card_id), None)
+        src = self._resume_source(path)
+        card = next((c for c in src.cards() if conv and c.id == conv.card_id), None)
         if state is None or conv is None or card is None or conv.stopped:
             return False
-        self.card, self._conv = card, conv
+        self.source, self.card, self._conv = src, card, conv
         # max: backfill_today may already have paid more than these receipts saw.
         self._set_today(
             max(self.minutes_today, unit_credit.minutes_today(conv.receipts))

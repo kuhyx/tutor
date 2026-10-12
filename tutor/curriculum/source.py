@@ -12,6 +12,7 @@ step, so the history and progress views read the same done-set.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, Protocol
 
@@ -192,3 +193,14 @@ def source_for(store: Store, ctx: Context, subject: str | None = None) -> CardSo
         return DeckSource(store)
     msg = f"unknown subject {name!r}"
     raise RequestError(BAD_REQUEST, msg)
+
+
+def transcript_subject(path: Path) -> str | None:
+    """The ``subject`` of a transcript's ``start`` event (None: pre-curriculum)."""
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            event = json.loads(line) if line.strip() else {}
+            if isinstance(event, dict) and event.get("type") == "start":
+                found = event.get("subject")
+                return found if isinstance(found, str) else None
+    return None

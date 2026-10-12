@@ -12,15 +12,18 @@ attributes it needs are declared below for the type checker.
 from __future__ import annotations
 
 from dataclasses import asdict
+import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import credit, gating, unit_credit
 from tutor.curriculum.context import Context
-from tutor.curriculum.source import DeckSource
+from tutor.curriculum.errors import RequestError
+from tutor.curriculum.source import DeckSource, source_for, transcript_subject
 
 if TYPE_CHECKING:
     import asyncio
     from collections.abc import Awaitable, Callable
+    from pathlib import Path
 
     from tutor import cards as cards_mod
     from tutor.clock import BlockReady
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
     from tutor.store import Store
 
 TARGET_MINUTES: Final = 60
+_logger = logging.getLogger(__name__)
 
 
 class CardFlow:
@@ -93,6 +97,20 @@ class CardFlow:
         """The card editor reloaded the repo deck (unmigrated data only)."""
         self.source = DeckSource(self.store, found)
 
+    def _source_for(self, subject: str | None) -> CardSource:
+        """``subject``'s cards: the live source when it is that subject."""
+        if not subject or subject == self.source.subject:
+            return self.source
+        return source_for(self.store, self.ctx, subject)
+
+    def _resume_source(self, path: Path | None) -> CardSource:
+        """The source of a transcript's subject (the live one if unknown)."""
+        try:
+            return self._source_for(transcript_subject(path) if path else None)
+        except RequestError as err:
+            _logger.warning("resume: %s; staying on %s", err, self.source.subject)
+            return self.source
+
     async def next_card(self) -> dict[str, Any]:
         """End this session and start a NEW one on the next unfinished card.
 
@@ -121,7 +139,9 @@ class CardFlow:
             self._session, self._conv, self.card = None, None, None
         return self.state()
 
-    async def set_card_done(self, card_id: str, *, done: bool) -> dict[str, Any]:
+    async def set_card_done(
+        self, card_id: str, *, done: bool, subject: str | None = None
+    ) -> dict[str, Any]:
         """Manual override: mark ``card_id`` done (or not); never touches credit.
 
         Raises ``ValueError`` for a card not in the deck, and for marking a
@@ -130,17 +150,18 @@ class CardFlow:
         ``card_done``. Logged in the live transcript when the card belongs to it.
         """
         async with self._lock:
-            card = next((c for c in self.deck if c.id == card_id), None)
+            src = self._source_for(subject)
+            card = next((c for c in src.cards() if c.id == card_id), None)
             if card is None:
                 msg = f"unknown card {card_id!r}"
                 raise ValueError(msg)
-            progress = self.source.done()
-            conv, sid = self._conv, ""
+            progress = src.done()
+            conv, sid = (self._conv if src is self.source else None), ""
             if done:
                 gating.refuse_locked(card, progress, "mark done")
                 was = progress.get(card_id) or {}
                 sid = conv.session_id if conv else str(was.get("session", "manual"))
-            self.source.mark(card_id, sid, done=done)
+            src.mark(card_id, sid, done=done)
             if conv is not None and card_id in conv.cards:
                 conv.set_done(card_id, done=done)
                 event = {"type": "card_done_manual", "card": card_id, "done": done}

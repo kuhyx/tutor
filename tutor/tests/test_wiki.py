@@ -130,3 +130,20 @@ def test_cache_dir_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> N
     monkeypatch.delenv("TUTOR_WIKI_CACHE", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))
     assert wiki.cache_dir() == tmp_path / ".cache/tutor/wiki"
+
+
+def test_article_and_reseed(fake: FakeWiki) -> None:
+    assert wiki.article("https://example.org/wiki/X") is None
+    assert wiki.article("https://en.wikipedia.org/w/index.php") is None
+    url = "https://en.wikipedia.org/wiki/Disc_brake"
+    assert wiki.article(url) == (wiki.WIKIPEDIA, "Disc brake")
+    wiki.reseed(fake, "https://example.org/x")
+    empty = "https://en.wikipedia.org/wiki/Empty"
+    wiki.reseed(fake, empty)  # no extract: nothing cached
+    assert not sources.is_cached(empty)
+    fake.data[wiki.WIKIPEDIA]["pages"]["Disc brake"] = LONG
+    wiki.reseed(fake, url)
+    assert sources.page_text(url) == LONG
+    calls = len(fake.calls)
+    wiki.reseed(fake, url)  # cached: no fetch
+    assert len(fake.calls) == calls

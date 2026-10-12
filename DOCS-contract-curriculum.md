@@ -78,7 +78,8 @@ pass the same vectors.
   >= 1500 chars, <= 3, model sees <= 2500 words each. The extract is seeded
   into the excerpt-check cache for the article URL (unless that URL is cached
   already), so the model drafts from exactly the text the check verifies.
-  The model gets no tools.
+  The model gets no tools. A re-check of a wiki card whose cache entry is
+  gone re-seeds the extract first.
 - `card_edit` validates exactly like today's `deck_edit` (fields, word limits,
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else
@@ -206,5 +207,7 @@ the Progress view and the header counter.
   `log/{dev}/{eid}`. `stats(ctx)` builds the `stats` node.
 - Engine: `Engine.start(card_id, subject=None)` (subject switch; raises
   `RequestError` `daily_new_cap`/`locked`/`unknown_card`/`no_card_left`);
-  `engine.source.subject` is the live subject. Until `python -m tutor migrate`
+  `engine.source.subject` is the live subject (a refused start keeps the
+  old one); `set_card_done(card, done=, subject=)` marks any subject's card;
+  `resume_latest()` resumes in the transcript's subject. Until `python -m tutor migrate`
   ran on the data dir the engine keeps the old deck + `progress.json`.

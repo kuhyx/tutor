@@ -9,9 +9,13 @@ work on generated cards unchanged.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from tutor import cards
+from tutor.curriculum import wiki
+
+_logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from tutor.curriculum.context import Context
@@ -47,5 +51,9 @@ def check_set(found: dict[str, CardRec], modules: dict[str, Module]) -> None:
 
 def source_problem(ctx: Context, cid: str, rec: CardRec) -> str | None:
     """Why ``rec``'s excerpt is not in its source (fetched, cached), or None."""
+    try:
+        wiki.reseed(ctx.fetch, rec.source)
+    except (OSError, ValueError) as err:
+        _logger.warning("could not re-seed %s: %r", rec.source, err)
     mismatch = ctx.check(cid, rec.source, rec.excerpt)
     return None if mismatch is None else mismatch.reason
