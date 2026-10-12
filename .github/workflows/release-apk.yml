@@ -1,0 +1,209 @@
+name: release-apk
+
+# Mirrors home-guard's release-apk.yml (same app/ layout), with one
+# deliberate difference: it publishes on a version TAG, not on every push to
+# main. Most commits here are the Python server; a per-commit APK would be
+# noise, and until the secrets below exist every push would go red.
+#
+#   git tag v1.0.0 && git push origin v1.0.0   # one tag, never --tags
+#
+# The tag must equal `v` + pubspec's X.Y.Z. workflow_dispatch builds the
+# current main as a prerelease `v<X.Y.Z>-build.<versionCode>` instead.
+#
+# Secrets (by name; scripts/set_release_secrets.sh sets them from the local
+# sources of truth): ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, TUTOR_FIREBASE_JSON.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# gh release create needs write access to the repo's contents.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+# versionCode is the commit count (`git rev-list --count HEAD`) plus
+# `.versioncode-offset` when present -- the same number
+# ~/.claude/scripts/lib/phone_deploy_version.sh computes, so CI and local
+# builds never strand each other. Needs fetch-depth: 0.
+jobs:
+  app-tests:
+    name: flutter analyze + test (app/)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run tool/write_firebase_config.dart --placeholder
+      - run: flutter analyze
+      - run: flutter test
+
+  release:
+    name: release (APK)
+    needs: app-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The offset file lives at the REPO ROOT; reading it from app/ would
+      # silently yield 0 (home-guard shipped 108 instead of 209 that way).
+      - name: Derive versionCode from the commit count plus the offset
+        id: vc
+        working-directory: ${{ github.workspace }}
+        run: |
+          offset=0
+          if [[ -r .versioncode-offset ]]; then
+            read -r offset < .versioncode-offset
+          fi
+          [[ "$offset" =~ ^[0-9]+$ ]] || offset=0
+          if [[ -r .versioncode-offset && "$offset" == 0 ]]; then
+            echo "::error::.versioncode-offset exists but parsed as 0" >&2
+            exit 1
+          fi
+          echo "code=$(( $(git rev-list --count HEAD) + offset ))" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+
+      - name: Read version from pubspec
+        id: ver
+        run: |
+          set -euo pipefail
+          raw=$(grep -m1 -E '^version:' pubspec.yaml | sed -E 's/^version:[[:space:]]*//')
+          semver=${raw%%+*}
+          if ! echo "$semver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::pubspec version '$raw' is not X.Y.Z"; exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$semver" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME != v$semver (pubspec)"; exit 1
+          fi
+          echo "semver=$semver" >> "$GITHUB_OUTPUT"
+
+      # One step, no echoes: the key must never reach the log. storeFile is
+      # ABSOLUTE because key.properties is read from android/ while file()
+      # resolves against android/app/.
+      - name: Materialise the release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set; refusing to publish."
+            exit 1
+          fi
+          umask 077
+          ks="$GITHUB_WORKSPACE/app/android/app/kuhy-release.jks"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$ks"
+          {
+            printf 'storeFile=%s\n' "$ks"
+            printf 'storePassword=%s\n' "$STORE_PASS"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASS"
+          } > "$GITHUB_WORKSPACE/app/android/key.properties"
+
+      - run: flutter pub get
+
+      # The Firebase identifiers are gitignored (public repo, DOCS-contract
+      # §10). A placeholder build compiles into a sign-in button that can
+      # never work, so an empty value fails the release closed.
+      - name: Write the Firebase identifiers
+        env:
+          FIREBASE_JSON: ${{ secrets.TUTOR_FIREBASE_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -z "$FIREBASE_JSON" ]; then
+            echo "::error::TUTOR_FIREBASE_JSON is not set; refusing to publish."
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$HOME/.config/crdt-sync"
+          printf '%s' "$FIREBASE_JSON" > "$HOME/.config/crdt-sync/firebase.json"
+          dart run tool/write_firebase_config.dart
+          if grep -q "''" lib/config/firebase_local.dart; then
+            echo "::error::an empty Firebase identifier (webClientId?)"; exit 1
+          fi
+
+      - name: Build signed APK
+        run: |
+          flutter build apk --release \
+            --build-name="${{ steps.ver.outputs.semver }}" \
+            --build-number="${{ steps.vc.outputs.code }}"
+
+      # Fail closed: `findByName("release") ?: debug` silently falls back to
+      # the debug key if key.properties is misplaced.
+      - name: Verify the APK is release-signed
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          signer=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$signer" verify --print-certs "$apk" | tee /tmp/certs.txt
+          if grep -qi 'CN=Android Debug' /tmp/certs.txt; then
+            echo "::error::APK is debug-signed; not publishing."; exit 1
+          fi
+          if ! grep -q 'CN=kuhy' /tmp/certs.txt; then
+            echo "::error::APK is not signed with the kuhy release key."; exit 1
+          fi
+
+      - name: Shred the signing material
+        if: always()
+        run: |
+          rm -f "$GITHUB_WORKSPACE/app/android/key.properties" \
+                "$GITHUB_WORKSPACE/app/android/app/kuhy-release.jks" \
+                "$HOME/.config/crdt-sync/firebase.json"
+
+      - name: Name the asset
+        id: art
+        run: |
+          set -euo pipefail
+          out="tutor-${{ steps.ver.outputs.semver }}-build.${{ steps.vc.outputs.code }}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$out"
+          echo "path=$PWD/$out" >> "$GITHUB_OUTPUT"
+
+      # A tag run publishes that tag's release (never clobbering one); a
+      # manual run publishes a prerelease for the current commit.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code="${{ steps.vc.outputs.code }}"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            tag="$GITHUB_REF_NAME"; extra=()
+          else
+            tag="v${{ steps.ver.outputs.semver }}-build.$code"; extra=(--prerelease)
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already exists; leaving it as-is."; exit 0
+          fi
+          gh release create "$tag" "${{ steps.art.outputs.path }}" "${extra[@]}" \
+            --target "${{ github.sha }}" \
+            --title "$tag" \
+            --notes "Build of ${{ github.sha }} (versionCode $code)."
