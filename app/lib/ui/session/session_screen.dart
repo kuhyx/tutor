@@ -102,7 +102,8 @@ class _SessionScreenState extends State<SessionScreen> {
     GestureBinding.instance.pointerSignalResolver.register(e, (event) {
       final p = _scroll.position;
       final d = (event as PointerScrollEvent).scrollDelta.dy;
-      _scroll.jumpTo((p.pixels + d).clamp(0, p.maxScrollExtent));
+      // The chat list is reversed: wheel down = toward offset 0.
+      _scroll.jumpTo((p.pixels - d).clamp(0, p.maxScrollExtent));
     });
   }
 

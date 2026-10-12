@@ -65,13 +65,14 @@ class SessionChat extends StatefulWidget {
 class _SessionChatState extends State<SessionChat> {
   int _count = -1;
 
-  // New messages scroll to the bottom (as renderLog does).
+  // New messages scroll to the bottom (as renderLog does); the list is
+  // reversed, so the bottom is offset 0.
   void _follow(int count) {
     if (count == _count) return;
     _count = count;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final s = widget.scroll;
-      if (s.hasClients) s.jumpTo(s.position.maxScrollExtent);
+      if (s.hasClients) s.jumpTo(0);
     });
   }
 
@@ -133,8 +134,11 @@ class _SessionChatState extends State<SessionChat> {
                             'already know, then teaches what is missing.',
                       )
                     : const Center(child: CircularProgressIndicator()))
+              // Reversed: offset 0 is the newest message, so pictures that
+              // finish loading above never push the bottom out of view.
               : ListView(
                   controller: widget.scroll,
+                  reverse: true,
                   padding: const EdgeInsets.all(AppSpacing.md),
                   children: [
                     for (final (i, m) in messages.indexed)
@@ -159,7 +163,7 @@ class _SessionChatState extends State<SessionChat> {
                       ),
                     if (busy != null)
                       Text(phaseText(busy.phase), style: text.bodyMedium),
-                  ],
+                  ].reversed.toList(),
                 ),
         ),
         const Divider(height: 1),
