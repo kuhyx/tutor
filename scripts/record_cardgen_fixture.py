@@ -22,6 +22,7 @@ import sys
 import tempfile
 from typing import Any
 
+from tutor import sources
 from tutor.curriculum import modelcall, regen, wiki
 from tutor.curriculum.context import Context
 
@@ -75,6 +76,8 @@ def main() -> int:
     }
     with tempfile.TemporaryDirectory() as cache:
         os.environ["TUTOR_WIKI_CACHE"] = cache  # every API call reaches fetch
+        # The clipped extracts must never reach the real excerpt-check cache.
+        vars(sources)["CACHE_DIR"] = Path(cache) / "sources"
 
         def make(root: Path) -> Context:
             return Context(root, model=rec.model, fetch=rec.fetch)
