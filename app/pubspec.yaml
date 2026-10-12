@@ -1,0 +1,57 @@
+name: tutor
+description: "Tutor: learn any subject with a PC tutor and offline spaced review."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.5
+
+# Exact pins everywhere (newest stable, checked by
+# scripts/check_dependency_freshness.sh); carets only for the SDK-coupled
+# carve-outs the freshness rules allow.
+dependencies:
+  # FirebaseTokenProvider (Google sign-in -> refresh token -> idToken) and the
+  # keystore-backed credential store. Data goes through lib/sync/rtdb_client
+  # instead: crdt_sync's client only stores string leaves (DOCS-contract §2).
+  crdt_sync:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: crdt_sync_dart-v0.11.1
+      path: crdt_sync_dart
+  # The shared palette, spacing and type scale. No local theme to drift from.
+  design_system:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: design_system-v0.2.1
+      path: design_system
+  flutter:
+    sdk: flutter
+  # Refresh token in the Android keystore (DOCS-contract §10).
+  flutter_secure_storage: 11.2.0
+  google_sign_in: 7.2.0
+  http: 1.6.0
+  # Device id and the offline event queue on web live in IndexedDB.
+  idb_shim: 2.9.11
+  shared_preferences: 2.5.6
+  uuid: 4.6.0
+
+dev_dependencies:
+  fake_async: 1.3.3
+  # Android launcher icons from assets/icon/ (shared family generator in
+  # testsAndMisc/python_pkg/app_icons).
+  flutter_launcher_icons: 0.14.4
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#211D1B"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  adaptive_icon_monochrome: "assets/icon/icon_monochrome.png"
+  min_sdk_android: 21

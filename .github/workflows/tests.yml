@@ -55,4 +55,23 @@ jobs:
         name: pre-commit (Python hooks)
         run: |
           .venv/bin/python -m pip install --quiet pre-commit
-          SKIP=dependency-freshness .venv/bin/pre-commit run --all-files
+          SKIP=dependency-freshness,flutter-analyze .venv/bin/pre-commit run --all-files
+
+  # The Flutter client: analyze + unit/widget tests. The Firebase identifiers
+  # are gitignored (public repo), so CI compiles against empty placeholders.
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run tool/write_firebase_config.dart --placeholder
+      - run: flutter analyze
+      - run: flutter test
