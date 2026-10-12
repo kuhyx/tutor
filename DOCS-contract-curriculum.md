@@ -70,16 +70,32 @@ pass the same vectors.
   same-subject card ids, acyclic.
 - Ids never renamed, cards never deleted (`suspended:true`). `origin`:
   `seed | generated | edited`.
-- Just-in-time generation when a module unlocks (`generating`): worker finds
-  and fetches >=2 sources (cached like `sources.py`), model drafts 6-12 cards
-  from them; only excerpt-verified cards kept; <3 kept -> `failed`; else
-  `ready` with `cards` = count. Sources: MediaWiki API search + plain-text
-  extract on en.wikipedia.org (2 per query) and en.wikibooks.org (1), pages
-  >= 1500 chars, <= 3, model sees <= 2500 words each. The extract is seeded
-  into the excerpt-check cache for the article URL (unless that URL is cached
-  already), so the model drafts from exactly the text the check verifies.
-  The model gets no tools. A re-check of a wiki card whose cache entry is
-  gone re-seeds the extract first.
+- Just-in-time generation when a module unlocks (`generating`), model with
+  no tools (it only sees text) and code alternating:
+  1. model names <= 5 canonical Wikipedia titles for the module (goal, title,
+     summary); 2. code looks those and the module title up exactly
+     (`redirects=1`), then searches en.wikipedia.org (4 hits) and
+     en.wikibooks.org (3) for the title and the title + 3 new summary words;
+     drops disambiguation (`pageprops`), list/outline/index pages and pages
+     < 1500 chars; <= 10 candidates; 3. code drops search hits whose title is
+     mostly words the module never uses (`relevance.title_fit` < 0.6) and
+     ranks the rest by summary-word coverage, exact-title hits first;
+  4. model keeps the on-topic candidates (title + first 150 words), <= 3;
+     < 2 -> `failed`; 5. model drafts 6-12 cards from them (<= 2500 words
+     each; other module titles named so it leaves their details alone);
+  6. code keeps the cards that pass the rules and the verbatim excerpt
+     check; 7. model gates each card against the module summary (fail
+     closed: no `on_topic:true` verdict -> refused). < 3 kept -> `failed`;
+     else `ready` with `cards` = live (not suspended) count. A chosen
+     page's extract is seeded into the excerpt-check cache for the article
+     URL (unless cached already), so the model drafts from exactly the text
+     the check verifies; a re-check of a wiki card whose cache entry is gone
+     re-seeds the extract first.
+- Repair (`python -m tutor regenerate SUBJ MODULE`): step 7 over the
+  module's live cards, refused ones `suspended:true`, module back to
+  `generating`; the worker drafts replacements (numbered after the module's
+  last card, told not to repeat the suspended ones). A regeneration that
+  fails leaves a module with >= 3 live cards `ready` (with `error`).
 - `card_edit` validates exactly like today's `deck_edit` (fields, word limits,
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else
