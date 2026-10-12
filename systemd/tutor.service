@@ -1,0 +1,29 @@
+[Unit]
+Description=tutor: web page + Firebase relay worker (loopback :8778)
+Documentation=file://%h/src/tutor/DOCS-relay.md
+
+[Service]
+Type=simple
+# The frozen release scripts/tutor_deploy.sh points `current` at, resolved
+# at every start, so a restart picks up a new release. The cwd is also what
+# makes `-m tutor` import the release copy, not the editable working tree.
+WorkingDirectory=%h/.local/lib/tutor-live/current
+# Serve the phone over the relay; TUTOR_RELAY=0 in a drop-in
+# (`systemctl --user edit tutor.service`) serves the page alone.
+Environment=TUTOR_RELAY=1
+# The card editor writes the repo deck (the source of the next release).
+Environment=TUTOR_DECK_SRC=%h/src/tutor/subjects/automation/deck
+ExecStartPre=%h/src/tutor/scripts/tutor_port_free.sh 8778
+ExecStart=%h/src/tutor/.venv/bin/python -m tutor --port 8778
+# The log the deploy, the control panel and the README point at; install.sh
+# creates its directory.
+StandardOutput=append:%h/.local/state/tutor/server.log
+StandardError=append:%h/.local/state/tutor/server.log
+# SIGTERM drains: uvicorn finishes in-flight requests, the relay its lanes.
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+# Linger is on, so this starts at boot: the phone sees the PC online after
+# a reboot or the curfew shutdown without anyone opening the desktop app.
+WantedBy=default.target

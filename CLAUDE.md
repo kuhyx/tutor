@@ -6,7 +6,9 @@ Read README.md first. These are the invariants that are easy to break.
 
 - **The live server runs from a frozen release**, never the working tree.
   Put a change live only with `scripts/tutor_deploy.sh`; it refuses to swap
-  while a reply is in flight. Never kill the live unit by hand mid-session.
+  while a reply is in flight. The live server is `tutor.service`; never
+  stop or restart it by hand mid-session, and never start a second server
+  on :8778 (same relay device id: it would steal the live worker's claims).
 - **Tests never touch real data.** `tutor/tests/conftest.py` moves HOME, the
   data dir, the ledger key and the image cache into `tmp_path` and blocks
   the network. Keep it that way; the real ledger mints gaming time.
@@ -33,8 +35,9 @@ Read README.md first. These are the invariants that are easy to break.
 
 ## Commands
 
-- run: `./run.sh` (opens the tutor on 127.0.0.1:8778, starts it from the live release if down; `--no-open` skips the browser)
-- deploy: app build (below) first, then `scripts/tutor_deploy.sh` (refuses a missing or stale web build; smoke test, wait for idle, swap the live server)
+- install: `./install.sh` (installs + enables `tutor.service`, the live server; never restarts a running one)
+- run: `./run.sh` (opens the tutor on 127.0.0.1:8778, starts `tutor.service` if down; `--no-open` skips the browser)
+- deploy: app build (below) first, then `scripts/tutor_deploy.sh` (refuses a missing or stale web build; smoke test, wait for idle, `systemctl --user restart tutor.service`)
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`
 - lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy tutor tests`

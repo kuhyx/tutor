@@ -12,6 +12,7 @@ The only subject so far is `subjects/automation/`: the PLC / OT security deck.
 
 ```bash
 scripts/setup_dev.sh   # .venv with tutor (editable) + test/lint tools
+./install.sh           # once: install + enable tutor.service (starts at boot)
 ./run.sh               # open the tutor on 127.0.0.1:8778 (starts it if down)
 ./run.sh --no-open     # start it if needed and print the URL only
 ```
@@ -19,9 +20,13 @@ scripts/setup_dev.sh   # .venv with tutor (editable) + test/lint tools
 The live server never runs from the working tree. `scripts/tutor_deploy.sh`
 copies a release into `~/.local/lib/tutor-live/releases/`,
 smoke-tests it on a scratch port against a copy of today's sessions, waits
-until no reply is in flight, then swaps it in. The session resumes from its
-transcript. `scripts/tutor_launch.sh` starts a release in its own
-`systemd-run --user` unit, so the server outlives whatever started it.
+until no reply is in flight, then points `current` at it and restarts
+`tutor.service`. The session resumes from its transcript. The unit
+(`systemd/tutor.service`, installed by `install.sh`) runs
+`~/.local/lib/tutor-live/current` with the relay on, is enabled under
+`default.target` and restarts on failure, so the phone finds the PC online
+after a reboot. `scripts/tutor_launch.sh` starts only the deploy's scratch
+smoke-test server, in its own `systemd-run --user` unit.
 
 | What | Where |
 | --- | --- |

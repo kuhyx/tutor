@@ -10,8 +10,9 @@
 #      (it must start, resume the live session and serve valid page JS),
 #   3. waits until no reply is in flight (the newest session log does not
 #      end on a learner message),
-#   4. stops the old server gracefully and starts the release, which resumes
-#      the session from its transcript (tutor/resume.py).
+#   4. points `current` at it and restarts tutor.service (install.sh), whose
+#      graceful stop drains the old server; the release resumes the session
+#      from its transcript (tutor/resume.py).
 # The page retries while the server is down, so the learner's next message
 # simply lands on the new code.
 # ============================================================================
@@ -24,15 +25,11 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 readonly REPO
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/tutor-live}"
 readonly DATA="${TUTOR_DATA:-$HOME/.local/share/tutor}"
-readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/tutor}"
-# The card editor writes the repo deck (the source of truth, which the next
-# release copies) as well as the release's own copy; see tutor/deck_edit.py.
-readonly DECK_SRC="${TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
-# The live server also serves the Flutter clients over the Firebase relay.
-readonly RELAY="${TUTOR_RELAY:-1}"
+# The live server; it owns the port, the relay and deck-source env, the log.
+readonly UNIT="${TUTOR_UNIT:-tutor.service}"
+readonly PORT=8778
 readonly WEB_BUILD="fvm flutter build web --release --base-href /app/"
 SRC="$REPO"
-PORT=8778
 WAIT_LIMIT=300
 KEEP_RELEASES=5
 TEMP_DIR=""
@@ -50,9 +47,8 @@ cleanup() {
 trap cleanup EXIT
 
 usage() {
-    echo "Usage: $SCRIPT_NAME [--src DIR] [--port N] [--wait SECONDS]"
+    echo "Usage: $SCRIPT_NAME [--src DIR] [--wait SECONDS]"
     echo "  --src DIR   copy the release from DIR instead of this repo"
-    echo "  --port N    live port (default 8778)"
     echo "  --wait S    longest wait for an in-flight reply to finish (default 300)"
     exit 0
 }
@@ -65,9 +61,23 @@ session_of() {
     curl -s -m 5 "http://127.0.0.1:$1/api/state" | jq -r '.session_id // empty' || true
 }
 
-# Start a server from $1 on port $2 in its own systemd unit; log to $3.
+# Start a scratch server from $1 on port $2 in its own systemd unit; log to $3.
 launch() {
     "$REPO/scripts/tutor_launch.sh" "$1" "$2" "$3"
+}
+
+# A server on the port that the unit does not own (one launched before
+# tutor.service existed): stop it gracefully, or the unit refuses to start.
+stop_stray() {
+    local pid main
+    pid="$(port_pid "$PORT" || true)"
+    main="$(systemctl --user show -p MainPID --value "$UNIT")"
+    if [[ -n "$pid" && "$pid" != "$main" ]]; then
+        echo "Stopping pid $pid (on :$PORT outside $UNIT)"
+        kill -TERM "$pid"
+        # uvicorn finishes in-flight requests before it exits.
+        while kill -0 "$pid" 2>/dev/null; do sleep 0.1; done
+    fi
 }
 
 # A port nothing listens on, so the smoke test can only ever talk to the release.
@@ -197,31 +207,27 @@ prune_releases() {
 }
 
 main() {
-    local release before pid after
+    local release before after
+    systemctl --user cat "$UNIT" >/dev/null 2>&1 ||
+        { echo "$UNIT is not installed; run $REPO/install.sh" >&2; exit 1; }
     command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
     command -v node >/dev/null || { echo "node is required" >&2; exit 1; }
     # Releases run on the repo venv; the relay needs crdt-sync and httpx in it.
     "$REPO/.venv/bin/python" -c 'import crdt_sync, httpx' 2>/dev/null ||
         { echo "The venv lacks the relay deps; run scripts/setup_dev.sh" >&2; exit 1; }
-    mkdir -p "$LOG_DIR"
     release="$LIVE_ROOT/releases/$(date +%Y%m%d-%H%M%S)"
     copy_release "$release"
     echo "Release copied: $release"
 
-    pid="$(port_pid "$PORT" || true)"
     before="$(session_of "$PORT")"
     smoke_test "$release" "$before"
 
-    if [[ -n "$pid" ]]; then
-        wait_idle
-        kill -TERM "$pid"
-        # uvicorn finishes in-flight requests before it exits.
-        while kill -0 "$pid" 2>/dev/null; do sleep 0.1; done
-    fi
+    wait_idle
+    stop_stray
     ln -sfn "$release" "$LIVE_ROOT/current"
-    TUTOR_DECK_SRC="$DECK_SRC" TUTOR_RELAY="$RELAY" \
-        launch "$release" "$PORT" "$LOG_DIR/server.log"
-    wait_listening "$PORT" || { echo "Live server did not start" >&2; exit 1; }
+    systemctl --user restart "$UNIT"
+    wait_listening "$PORT" ||
+        { echo "Live server did not start; journalctl --user -u $UNIT" >&2; exit 1; }
     after="$(session_of "$PORT")"
     echo "Live on :$PORT from $release (pid $(port_pid "$PORT"))"
     if [[ -n "$before" && "$before" != "$after" ]]; then
@@ -235,7 +241,6 @@ main() {
 while [[ $# -gt 0 ]]; do
     case $1 in
         --src) SRC="$(cd "$2" && pwd)"; shift 2 ;;
-        --port) PORT="$2"; shift 2 ;;
         --wait) WAIT_LIMIT="$2"; shift 2 ;;
         -h | --help) usage ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;

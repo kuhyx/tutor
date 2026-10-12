@@ -4,10 +4,12 @@ How the PC side of `DOCS-contract.md` is built. The contract wins on any
 conflict; this file holds the worker-only details.
 
 ## Running it
-- In the web server (transition): `TUTOR_RELAY=1` or `--relay`. `run.sh` and
-  `scripts/tutor_deploy.sh` set it for the live server (`TUTOR_RELAY=0` turns
-  it off); the deploy smoke test always runs with `TUTOR_RELAY=0`, so a
-  temp-data server never claims real phone requests. No session in
+- In the web server (transition): `TUTOR_RELAY=1` or `--relay`. The live
+  server, `tutor.service` (`systemd/tutor.service`), sets it (a drop-in with
+  `Environment=TUTOR_RELAY=0` turns it off); the deploy smoke test always runs
+  with `TUTOR_RELAY=0`, so a temp-data server never claims real phone requests.
+  The unit's `ExecStartPre` (`scripts/tutor_port_free.sh`) refuses a second
+  server on :8778: the relay starts before the port is bound. No session in
   `~/.config/tutor/` -> the relay logs why and the page is served alone.
 - Headless: `python -m tutor worker` (same startup as the server: repair,
   backfill, resume; SIGTERM drains). One Engine either way.

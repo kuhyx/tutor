@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # ============================================================================
-# Start a tutor server from a release dir, detached from the caller.
+# Start a tutor server from a release dir, detached from the caller. The
+# deploy's scratch smoke-test server only: the live one is tutor.service.
 #
 # Usage: tutor_launch.sh <release-dir> <port> <log-file>
 #

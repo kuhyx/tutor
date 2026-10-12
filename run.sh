@@ -5,29 +5,27 @@
 #
 # Opens the desktop app (the Flutter web build in a Chrome --app window) when
 # the server serves /app/, else the old page. If the live server answers,
-# just open it. Otherwise start it from the frozen
-# live release (never the working tree), deploying one first if none exists.
-# The server is detached, so closing this terminal never kills a session
-# mid-block. Clicked from the i3 bar and the control panel too.
+# just open it. Otherwise start tutor.service (the frozen live release, never
+# the working tree), installing the unit or deploying a first release when
+# missing. The server is the unit, so closing this terminal never kills a
+# session mid-block. Clicked from the i3 bar and the control panel too.
 # ============================================================================
 
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO
-readonly PORT="${TUTOR_PORT:-8778}"
+# tutor.service's port (fixed in systemd/tutor.service).
+readonly PORT=8778
+readonly UNIT="tutor.service"
 readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/tutor-live}"
-readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/tutor}"
+readonly LOG="$HOME/.local/state/tutor/server.log"
 readonly APP_URL="${URL}app/"
 # Fixed port (above) and fixed profile: the desktop app's sign-in and its
 # offline review queue live in this profile's storage, keyed by origin.
 # Changing either silently signs the window out and hides queued reviews.
 readonly PROFILE="${TUTOR_DESKTOP_PROFILE:-$HOME/.local/share/tutor-desktop/profile}"
-# The card editor writes here (the repo deck), not only into the release copy.
-readonly DECK_SRC="${TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
-# The live server also serves the Flutter clients over the Firebase relay.
-readonly RELAY="${TUTOR_RELAY:-1}"
 OPEN=1
 
 usage() {
@@ -81,16 +79,16 @@ wait_up() {
     return 1
 }
 
-# Same detached launch as scripts/tutor_deploy.sh, from the current release.
+# The live unit; install.sh installs it (and deploys a first release).
 start_server() {
-    if [[ ! -d "$LIVE_ROOT/current" ]]; then
+    if ! systemctl --user cat "$UNIT" >/dev/null 2>&1; then
+        "$REPO/install.sh"
+    elif [[ ! -d "$LIVE_ROOT/current" ]]; then
         echo "No live release yet; deploying one."
-        "$REPO/scripts/tutor_deploy.sh" --port "$PORT"
-        return
+        "$REPO/scripts/tutor_deploy.sh"
+    else
+        systemctl --user start "$UNIT"
     fi
-    mkdir -p "$LOG_DIR"
-    TUTOR_DECK_SRC="$DECK_SRC" TUTOR_RELAY="$RELAY" "$REPO/scripts/tutor_launch.sh" \
-        "$LIVE_ROOT/current" "$PORT" "$LOG_DIR/server.log"
 }
 
 main() {
@@ -99,7 +97,7 @@ main() {
     else
         echo "Starting tutor from $(readlink -f "$LIVE_ROOT/current" || echo 'a new release')..."
         start_server
-        wait_up || { echo "Tutor did not start; see $LOG_DIR/server.log" >&2; exit 1; }
+        wait_up || { echo "Tutor did not start; see $LOG" >&2; exit 1; }
     fi
     echo "Tutor: $URL"
     if [[ $OPEN -eq 1 ]]; then
