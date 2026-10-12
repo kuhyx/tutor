@@ -41,9 +41,20 @@ sign-in button that can never work. A placeholder build compiles and shows
 - `lib/relay/` request relay (§4); `lib/presence/` PC presence (§5).
 - `lib/log/` offline event log and the FSRS fold (curriculum §4/§5).
 - `lib/storage/` per-install key-value store and device id.
-- `lib/ui/` sign-in and Home.
+- `lib/home/` Home data (catalog cache by `rev.catalog`, due count).
+- `lib/app/` service wiring; `lib/ui/` sign-in and the Home shell.
 
-## FSRS golden vectors
+## Coverage
 
-`test/log/fsrs_vectors_test.dart` loads `../contract/fsrs_vectors.json` (the
-Python side writes it) and skips while the file does not exist.
+Logic files (everything in `lib/` except `lib/ui/` and `main.dart`) are held
+to 100%: `fvm flutter test --coverage && dart run tool/check_coverage.dart`.
+The checker honours `// coverage:ignore-*` markers, which `flutter test`
+itself ignores; only platform-channel code carries them.
+
+## FSRS
+
+`lib/log/fsrs6.dart` is a port of py-fsrs 6.3.2's Scheduler, not the Dart
+`fsrs` package: fsrs 2.0.1 has older default weights and clamps the Easy
+initial difficulty in mean reversion, so it diverged from Python on the first
+review. `test/log/fsrs_vectors_test.dart` loads `../contract/fsrs_vectors.json`
+(the Python side writes it) and skips while the file does not exist.

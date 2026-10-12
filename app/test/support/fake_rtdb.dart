@@ -21,8 +21,11 @@ class FakeRtdb {
   /// Requests seen, as `METHOD path`.
   final List<String> log = [];
 
-  /// When set, every request throws this network error.
+  /// When set, every request throws a network error.
   bool offline = false;
+
+  /// Requests whose path starts with this throw a network error.
+  String? failPrefix;
 
   /// A client wired to this fake.
   RtdbClient client() => RtdbClient(
@@ -42,6 +45,9 @@ class FakeRtdb {
   Future<http.Response> _handle(http.Request req) async {
     if (offline) throw http.ClientException('offline');
     final path = req.url.path.replaceFirst(RegExp(r'\.json$'), '');
+    if (failPrefix != null && path.startsWith(failPrefix!)) {
+      throw http.ClientException('unreachable');
+    }
     log.add('${req.method} $path');
     final q = req.url.queryParameters;
     switch (req.method) {
