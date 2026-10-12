@@ -1,0 +1,167 @@
+# Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
+"""Unlock, mastery, recall, the daily new-card cap and the next-card pick.
+
+``DOCS-contract-curriculum.md`` §6, read from the folded log (never from FSRS
+state): a card is *good* when its latest review since it was taught is Good
+or Easy and came at least 20 h after the teaching; a module's recall is its
+good share of the cards that are neither flagged nor suspended; a ``ready``
+module with recall >= 0.8 becomes ``mastered`` (and stays so); a module
+unlocks when the plan is approved and every module it requires is mastered.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final
+
+from tutor.credit import local_day
+from tutor.curriculum.errors import (
+    DAILY_NEW_CAP,
+    LOCKED,
+    NO_CARD_LEFT,
+    UNKNOWN_CARD,
+    RequestError,
+)
+
+if TYPE_CHECKING:
+    from tutor.curriculum.fold import CardFold, Fold
+    from tutor.curriculum.records import CardRec, Module, Plan
+
+GOOD_GAP_MS: Final = 20 * 3600 * 1000
+GOOD_RATING: Final = 3
+MASTERY: Final = 0.8
+NEW_CAP: Final = 10
+OPEN: Final = frozenset({"ready", "mastered"})
+
+
+@dataclass(frozen=True)
+class View:
+    """One subject's plan and cards, as read for a decision."""
+
+    subject: str
+    plan: Plan
+    cards: dict[str, CardRec]
+
+    def module_cards(self, module_id: str) -> list[tuple[str, CardRec]]:
+        """The module's cards in ``order``."""
+        found = [(cid, c) for cid, c in self.cards.items() if c.module == module_id]
+        return sorted(found, key=lambda item: item[1].order)
+
+
+def good(state: CardFold) -> bool:
+    """Taught, and the latest review since then is >= Good, 20 h or later."""
+    if state.taught_at is None or not state.reviews:
+        return False
+    at, rating = state.reviews[-1]
+    return rating >= GOOD_RATING and at >= state.taught_at + GOOD_GAP_MS
+
+
+def recall(view: View, module_id: str, fold: Fold) -> float:
+    """Good cards / cards neither flagged nor suspended (0 when none)."""
+    counted = [
+        fold.card(view.subject, cid)
+        for cid, card in view.module_cards(module_id)
+        if not card.suspended and not fold.card(view.subject, cid).flagged(card.rev)
+    ]
+    return sum(good(s) for s in counted) / len(counted) if counted else 0.0
+
+
+def unlocked(view: View, module: Module, fold: Fold) -> bool:
+    """Plan approved and every required module mastered.
+
+    A module with a taught card stays unlocked whatever happens to its
+    prerequisites (the contract's grandfather rule for migrated modules).
+    """
+    if view.plan.status != "approved":
+        return False
+    taught = fold.taught_ids(view.subject)
+    if any(cid in taught for cid, _ in view.module_cards(module.id)):
+        return True
+    status = {m.id: m.status for m in view.plan.modules}
+    return all(status.get(need) == "mastered" for need in module.requires)
+
+
+def advance_statuses(view: View, fold: Fold) -> list[str]:
+    """Update recall and status in place (plan order); returns new unlocks.
+
+    ``ready`` -> ``mastered`` at recall >= 0.8 (sticky); ``locked`` ->
+    ``generating`` once unlocked. Earlier modules are updated first, so a
+    mastery unlocks its dependents in the same pass.
+    """
+    unlocked_now = []
+    for module in view.plan.modules:
+        module.recall = round(recall(view, module.id, fold), 4)
+        if module.status == "ready" and module.recall >= MASTERY:
+            module.status = "mastered"
+        elif module.status == "locked" and unlocked(view, module, fold):
+            module.status = "generating"
+            unlocked_now.append(module.id)
+    return unlocked_now
+
+
+def completed(plan: Plan) -> bool:
+    """Approved and every module mastered."""
+    return plan.status == "approved" and all(
+        m.status == "mastered" for m in plan.modules
+    )
+
+
+def new_today(fold: Fold, now_ms: int) -> int:
+    """Cards newly taught on today's PC-local date, all subjects."""
+    today = local_day(now_ms / 1000)[0]
+    return sum(
+        local_day(at / 1000)[0] == today
+        for state in fold.cards.values()
+        for at in state.new_at
+    )
+
+
+def _open(view: View, card: CardRec, fold: Fold) -> bool:
+    """Not suspended and every required card taught."""
+    taught = fold.taught_ids(view.subject)
+    return not card.suspended and all(need in taught for need in card.requires)
+
+
+def _first(view: View, fold: Fold) -> str | None:
+    taught = fold.taught_ids(view.subject)
+    for module in view.plan.modules:
+        if module.status not in OPEN or not unlocked(view, module, fold):
+            continue
+        for cid, card in view.module_cards(module.id):
+            flagged = fold.card(view.subject, cid).flagged(card.rev)
+            if cid not in taught and not flagged and _open(view, card, fold):
+                return cid
+    return None
+
+
+def pick(view: View, fold: Fold, card_id: str | None, now_ms: int) -> str:
+    """The card a session teaches: ``card_id`` if open, else the next one.
+
+    Raises ``unknown_card``, ``locked``, ``no_card_left`` or, when it would
+    teach an untaught card with 10 new cards already taught today,
+    ``daily_new_cap``. Re-teaching a taught card is free.
+    """
+    if card_id:
+        card = view.cards.get(card_id)
+        if card is None:
+            msg = f"unknown card {card_id!r} in {view.subject}"
+            raise RequestError(UNKNOWN_CARD, msg)
+        module = view.plan.module(card.module)
+        ready = module is not None and module.status in OPEN
+        if not (ready and module and unlocked(view, module, fold)) or not _open(
+            view, card, fold
+        ):
+            msg = f"{card_id} is locked: its module or required cards are not done"
+            raise RequestError(LOCKED, msg)
+        chosen = card_id
+    else:
+        found = _first(view, fold)
+        if found is None:
+            msg = f"no open card left in {view.subject}"
+            raise RequestError(NO_CARD_LEFT, msg)
+        chosen = found
+    is_new = not fold.card(view.subject, chosen).taught
+    if is_new and new_today(fold, now_ms) >= NEW_CAP:
+        msg = f"{NEW_CAP} new cards today already; reviews still work"
+        raise RequestError(DAILY_NEW_CAP, msg)
+    return chosen

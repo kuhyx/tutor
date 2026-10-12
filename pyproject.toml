@@ -7,10 +7,12 @@ license = "MIT"
 # The excerpt check needs only the standard library plus poppler's pdftotext
 # for PDF sources. The tutor itself needs:
 # claude-agent-sdk (drives the logged-in claude CLI, no API key), starlette +
-# uvicorn (the localhost page), schemdraw (code-drawn circuit diagrams) and
+# uvicorn (the localhost page), schemdraw (code-drawn circuit diagrams), fsrs
+# (spaced review, pinned: the Flutter client ports the same scheduler) and
 # earned-time (the signed ledger the tutor's credit rows go in).
 dependencies = [
     "claude-agent-sdk==0.2.165",
+    "fsrs==6.3.2",
     "starlette==1.7.0",
     "uvicorn==0.54.0",
     "schemdraw==0.23",
@@ -53,8 +55,11 @@ ignore = [
 # Run by hand; its progress lines are the evidence the session ran.
 "tutor/scripted.py" = ["T201"]
 "tutor/adjudicate.py" = ["T201"]
+"tutor/curriculum/migrate.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).
 "tutor/sources.py" = ["S310"]
+# The MediaWiki API on two fixed https hosts (wiki.http_get refuses others).
+"tutor/curriculum/wiki.py" = ["S310"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

@@ -18,7 +18,8 @@ from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 from tutor import deck_edit, diagrams, feedback, feedback_snapshot, images, webapp
-from tutor.engine import DECK_DIR, Engine
+from tutor.curriculum.source import DECK_DIR
+from tutor.engine import Engine
 from tutor.routes_editor import editor_routes
 from tutor.routes_sessions import session_routes
 from tutor.session import SessionError

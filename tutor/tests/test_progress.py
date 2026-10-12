@@ -10,7 +10,8 @@ from starlette.testclient import TestClient
 
 from tutor import progress
 from tutor.cards import load_deck
-from tutor.engine import DECK_DIR, Engine
+from tutor.curriculum.source import DECK_DIR
+from tutor.engine import Engine
 from tutor.ledger_io import Paths
 from tutor.server import create_app
 from tutor.store import Store

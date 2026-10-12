@@ -1,0 +1,762 @@
+[
+ {
+  "name": "taught only",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0JP4Q85YFGVG3HKS5",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "good after 3 days",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4ZGTMG0T64HBYKFHC2P13XR",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792059200000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0PTJ05DBW3X5RS54K",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1793268800000,
+    "stability": 13.826903694354568,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": true
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "again after 1 day",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G0ZSP9A87YJ618TA40",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG080QX0PSYG32PDEJT",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 0.5712991793450282,
+    "difficulty": 7.394502741279718,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "hard after 2 days",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4WYDXG0Q6M321HZ792CQ6HQ",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791972800000,
+    "rev": 1,
+    "r": 2
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0NFEM835C4QG83M32",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792664000000,
+    "stability": 7.513320366762569,
+    "difficulty": 4.752858488532557,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "easy after 5 days",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M54NM2G0WP2P7CHMZ1S0HM8E",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792232000000,
+    "rev": 1,
+    "r": 4
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0HN0K1X9VP7B460WA",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1794996800000,
+    "stability": 32.01322285526435,
+    "difficulty": 1.0,
+    "state": "review",
+    "flagged": false,
+    "good": true
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "chain good good again good",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M751J1G0BSTEB6Q01N3JHC8M",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1794392000000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M72F5AG0AJBX6Z0W15QBW1RM",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1794305600000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-b",
+    "eid": "01M5EZ6YG0RJFRGTTHMBJHW3KG",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792577600000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4WYDXG0244DSFE206XD6ZKP",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791972800000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG03KV3HWWDRCC684AG",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1794824000000,
+    "stability": 4.535379758033039,
+    "difficulty": 7.377814181523433,
+    "state": "review",
+    "flagged": false,
+    "good": true
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "cross-device within 60 s: second dropped",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4TC23SGKKBFBA6EWW1YZAX7",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886430000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G0J7TCX2QZ1P914J4F",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0P3VJHEZZ7J5CKBK6",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792491200000,
+    "stability": 7.31530074407728,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": true
+   }
+  },
+  "dropped": [
+   "01M4TC23SGKKBFBA6EWW1YZAX7"
+  ],
+  "ignored": []
+ },
+ {
+  "name": "cross-device exactly 60 s apart: both kept",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4TC3130R87MTPK4C6F9X9VD",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886460000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G068HE24XEP5KA70M6",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG048H2MV672JPD9CH7",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792059260000,
+    "stability": 2.278470177305396,
+    "difficulty": 7.392238132342694,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "same device within 60 s: both kept",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC1G8GSYZSTHQTTK97R3P5",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886410000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G0HXXP0JYG5YA07G7Q",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG08XNB608CWX0KRJZP",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972810000,
+    "stability": 0.6228007531723337,
+    "difficulty": 7.382336607835277,
+    "state": "review",
+    "flagged": false,
+    "good": true
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "untaught clears, later review ignored",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4ZGTMG0F19B25X3SBPWX9SG",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792059200000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4WYDXG07GB8F8PM8HF30AYE",
+    "k": "untaught",
+    "s": "car",
+    "c": "x",
+    "at": 1791972800000
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G063M1379665AP2GK6",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0S6M23WAZSJP6JN34",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": false,
+    "due": null,
+    "stability": null,
+    "difficulty": null,
+    "state": null,
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": [
+   "01M4ZGTMG0F19B25X3SBPWX9SG"
+  ]
+ },
+ {
+  "name": "review of a never-taught card ignored",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G05WRTR8C55MFGGZYX",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 3
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": false,
+    "due": null,
+    "stability": null,
+    "difficulty": null,
+    "state": null,
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": [
+   "01M4TC16G05WRTR8C55MFGGZYX"
+  ]
+ },
+ {
+  "name": "flag on the current rev",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4QX2B40HFV0D1H5WYMEQ2JT",
+    "k": "flag",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "reason": "wrong"
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0VWGPWC5KZ2BD02RN",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": true,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "flag cleared by an edit (rev bump)",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4QX2B406W48ARMWN4Z0HXE6",
+    "k": "flag",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "reason": "wrong"
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG02JPS0VMB707FE19P",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 2
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "second taught resets FSRS",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M5HHKNG0WP6K0934TXT6KP56",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1792664000000
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4ZGTMG0DGDJWBMFA8MWHRZR",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792059200000,
+    "rev": 1,
+    "r": 4
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0YC0JY6RHKT4HPPMF",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792836800000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "good needs 20 h: 19 h is not",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4STVWC0E8Z5FBHYNX0100QW",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791868400000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0M0WY3MQZ9G99AQ75",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792041200000,
+    "stability": 2.3065,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "good at exactly 20 h; two cards",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4V0MC80V9T8Y3F8TYP8Y7E5",
+    "k": "review",
+    "s": "car",
+    "c": "y",
+    "at": 1791908000000,
+    "rev": 1,
+    "r": 2
+   },
+   {
+    "dev": "dev-b",
+    "eid": "01M4QX2B40CA1ZG2JCFXRECGTH",
+    "k": "taught",
+    "s": "car",
+    "c": "y",
+    "at": 1791803600000
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4SY9R00BH6Q65NYDVEN1SV4",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791872000000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0ERXG72915RHGTNVY",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   },
+   "y": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792044800000,
+    "stability": 2.3065,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": true
+   },
+   "y": {
+    "taught": true,
+    "due": 1792340000000,
+    "stability": 5.318792767488077,
+    "difficulty": 4.752858488532557,
+    "state": "review",
+    "flagged": false,
+    "good": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ }
+]
