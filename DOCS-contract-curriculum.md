@@ -197,11 +197,13 @@ pass the same vectors.
 
 ## 7. Stats: `stats` (worker)
 ```json
-{"today":{"day":"2026-10-12","credited_minutes":23,"target":60,"new":4,"new_cap":10},
+{"today":{"day":"2026-10-12","credited_minutes":23,"active_minutes":31,"target":60,"new":4,"new_cap":10},
  "days":{"2026-10-12":{"minutes":23,"taught":4,"reviews":31}}}
 ```
 `minutes` from the verified ledger (`progress.ledger_minutes_by_day`). Backs
-the Progress view and the header counter.
+the Progress view and the header counter. `active_minutes` = engaged time of
+the sessions started today: the Session header shows the DAY (a new card is
+a new session); that session's own minutes are secondary.
 
 ## 8. Client screens (parity with the retired `static/*.js` page) and their data
 - **Home**: subjects with `status`/progress; "new subject" free text; due

@@ -1,11 +1,13 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """The ``stats`` node (``DOCS-contract-curriculum.md`` §7).
 
-``{"today": {"day","credited_minutes","target","new","new_cap"},
+``{"today": {"day","credited_minutes","active_minutes","target","new","new_cap"},
 "days": {day: {"minutes","taught","reviews"}}}``. Minutes are the verified
 ledger's (``progress.ledger_minutes_by_day``, the rows the earner pays);
 ``taught`` counts cards newly taught that day and ``reviews`` the reviews the
-fold kept, both on the PC-local date.
+fold kept, both on the PC-local date. ``active_minutes`` sums the engaged
+time of the sessions started today (the Session header's day total: a new
+card is a new session, so its own clock starts at 0).
 """
 
 from __future__ import annotations
@@ -13,17 +15,28 @@ from __future__ import annotations
 from collections import Counter
 from typing import TYPE_CHECKING, Any
 
-from tutor import progress
+from tutor import history, progress, resume
 from tutor.cardflow import TARGET_MINUTES
 from tutor.credit import local_day
 from tutor.curriculum.rules import NEW_CAP, new_today
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tutor.curriculum.context import Context
 
 
 def _day(ms: int) -> str:
     return local_day(ms / 1000)[0]
+
+
+def active_minutes(sessions_dir: Path, day: str) -> int:
+    """Whole minutes of engaged time in the sessions started on ``day``."""
+    seconds = 0.0
+    for path in sessions_dir.glob(f"{day.replace('-', '')}-*.jsonl"):
+        state = resume.replay(path) if history.SESSION_ID.fullmatch(path.stem) else None
+        seconds += state.conversation.clock.active_seconds if state else 0.0
+    return int(seconds // 60)
 
 
 def stats(ctx: Context, minutes: dict[str, int] | None = None) -> dict[str, Any]:
@@ -46,6 +59,7 @@ def stats(ctx: Context, minutes: dict[str, int] | None = None) -> dict[str, Any]
         "today": {
             "day": today,
             "credited_minutes": min(per_day.get(today, 0), TARGET_MINUTES),
+            "active_minutes": active_minutes(ctx.data_dir / "sessions", today),
             "target": TARGET_MINUTES,
             "new": new_today(folded, now),
             "new_cap": NEW_CAP,
