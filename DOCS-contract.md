@@ -207,10 +207,10 @@ Client streams only while visible: `live`, `presence/workers`, `rev`,
 `/tutor/v1`, `sessions`, `subjects` or `log` roots. Reconnect cost: msgs
 ~30 x 2 KB = 60 KB: stream `orderBy="$key"&startAt="m<last+1>"` (**verified
 2026-10-12: SSE honours it**, 1st `put` only keys >= startAt); meta ~1 KB; presence ~0.3 KB.
-Catalog: GET `subjects/{s}` only when `rev.catalog` changed (167 PLC cards
-~90 KB once). Log: GET `log/{dev}?orderBy="$key"&startAt="<last eid>"` per
-device (shallow first), ~150 B/event. Estimate: 1 h chat/day ~2-5 MB per
-device per day, <0.2 GB/month.
+Catalog: GET `subjects/{s}` only on a `rev.catalog` move (167 PLC cards ~90 KB
+once); `rev` = ONE shared listen, closed while hidden; Plan/Editor refetch per
+move, Home only on top. Log: GET `log/{dev}?orderBy="$key"&startAt="<last eid>"`
+per device (shallow first), ~150 B/event. 1 h chat/day ~2-5 MB/device/day, <0.2 GB/month.
 
 ## 10. Security
 - Public repo: no uid, email, API key or tokens in source/docs; config from

@@ -193,7 +193,8 @@ the Progress view and the header counter.
 - **Home**: subjects with `status`/progress; "new subject" free text; due
   review count; PC presence; credited x/60; new x/10.
 - **Plan**: draft view + editing (rename, reorder, add, remove module without
-  cards, edit requires); comment -> `plan_revise`; Approve.
+  cards, edit requires); comment -> `plan_revise`; Approve. Live on
+  `rev.catalog`; unsaved draft edits are kept behind a "Plan changed" banner.
 - **Session**: chat from projection; per-question answer boxes (joined into
   one `message` text as `questions.js` does); check banner; images with
   attribution; diagrams; busy phase; Card done -> Next card / Stop here; Mark
