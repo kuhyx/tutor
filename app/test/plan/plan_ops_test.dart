@@ -4,7 +4,7 @@ import 'package:tutor/plan/plan_ops.dart';
 
 const _a = Module(id: 'a', title: 'A', summary: 's');
 const _b = Module(id: 'b', title: 'B', requires: ['a'], cards: 4);
-const _c = Module(id: 'c', title: 'C', requires: ['a', 'b'], depth: 2);
+const _c = Module(id: 'c', title: 'C', requires: ['a', 'b']);
 
 void main() {
   const plan = [_a, _b, _c];
@@ -37,7 +37,11 @@ void main() {
   test('add: unique slug, depth of the last module', () {
     final out = addModule(plan, 'A');
     expect(out.last.id, 'a-2');
-    expect(out.last.depth, 2);
+    expect(out.last.depth, 1);
+    expect(
+      addModule(const [Module(id: 'd', title: 'D', depth: 2)], 'e').last.depth,
+      2,
+    );
     expect(addModule(const [], '!!!').single.id, 'module');
     expect(addModule(const [], 'x').single.depth, 1);
     expect(
@@ -58,6 +62,20 @@ void main() {
         contains('not valid'),
       ]),
     );
-    expect(planProblems(const [_a]).single, contains('3-12 modules'));
+    expect(planProblems(const [_a]).single, contains('3-12 new modules'));
+    // Only the newest depth counts: three depth-2 modules after one.
+    expect(
+      planProblems(const [
+        _a,
+        Module(id: 'x', title: 'X', depth: 2),
+        Module(id: 'y', title: 'Y', depth: 2),
+        Module(id: 'z', title: 'Z', depth: 2),
+      ]),
+      isEmpty,
+    );
+    expect(
+      editable(const Module(id: 'r', title: 'R', status: ModuleStatus.ready)),
+      isFalse,
+    );
   });
 }

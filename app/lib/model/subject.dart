@@ -18,7 +18,11 @@ enum SubjectStatus {
   completed,
 
   /// Nothing new; reviews only.
-  reviewOnly('review_only');
+  reviewOnly('review_only'),
+
+  /// Drafting the plan failed (`error` says why); a new `subject_new`
+  /// with the same text retries under the same id.
+  failed;
 
   new([this._wire]);
 
@@ -42,6 +46,7 @@ class SubjectMeta {
     required this.planRev,
     required this.rev,
     required this.origin,
+    this.error,
   });
 
   /// Parses `meta`.
@@ -53,6 +58,7 @@ class SubjectMeta {
     planRev: intOr(j, 'plan_rev') ?? 0,
     rev: integer(j, 'rev'),
     origin: str(j, 'origin'),
+    error: strOr(j, 'error'),
   );
 
   /// Display title.
@@ -76,6 +82,9 @@ class SubjectMeta {
   /// `seed` (migrated) or `generated`.
   final String origin;
 
+  /// Why drafting failed (status `failed`).
+  final String? error;
+
   /// Wire form.
   Json toJson() => compact({
     'title': title,
@@ -85,5 +94,6 @@ class SubjectMeta {
     'plan_rev': planRev,
     'rev': rev,
     'origin': origin,
+    'error': error,
   });
 }

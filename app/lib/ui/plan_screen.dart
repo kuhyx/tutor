@@ -100,7 +100,13 @@ class _PlanScreenState extends State<PlanScreen> {
         const SizedBox(height: AppSpacing.sm),
         Pill(data.meta.status.wire.replaceAll('_', ' ')),
         RequestStatusLine(_runner),
-        if (plan == null || data.meta.status == SubjectStatus.drafting)
+        if (data.meta.status == SubjectStatus.failed)
+          EmptyState(
+            icon: Icons.error_outline,
+            title: 'Drafting the plan failed',
+            message: data.meta.error ?? 'Try again from Home.',
+          )
+        else if (plan == null || data.meta.status == SubjectStatus.drafting)
           const EmptyState(
             icon: Icons.hourglass_empty,
             title: 'The tutor is drafting the plan',

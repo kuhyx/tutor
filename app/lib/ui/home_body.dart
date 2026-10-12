@@ -133,6 +133,7 @@ class HomeBody extends StatelessWidget {
             onEdit: () => onEdit(s.id),
             onPick: () => onPick(s.id),
             onFinish: (goDeeper) => onFinish(s.id, goDeeper: goDeeper),
+            onRetry: () => onNewSubject(s.meta.goal),
           ),
         const SectionHeader('New subject'),
         NewSubjectField(runner: runner, onSubmit: onNewSubject),
@@ -149,6 +150,7 @@ class _SubjectTile extends StatelessWidget {
     required this.onEdit,
     required this.onPick,
     required this.onFinish,
+    required this.onRetry,
   });
 
   final SubjectEntry entry;
@@ -157,6 +159,7 @@ class _SubjectTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onPick;
   final ValueChanged<bool> onFinish;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -179,6 +182,7 @@ class _SubjectTile extends StatelessWidget {
                 status.wire.replaceAll('_', ' '),
                 if (total > 0) '$mastered/$total modules mastered',
                 if (current) 'new material from here',
+                ?entry.meta.error,
               ].join(' · '),
             ),
             onTap: teaching && !current ? onPick : onPlan,
@@ -200,6 +204,12 @@ class _SubjectTile extends StatelessWidget {
                   TextButton(
                     onPressed: onPick,
                     child: const Text('Learn this next'),
+                  ),
+                if (status == SubjectStatus.failed &&
+                    entry.meta.goal.isNotEmpty)
+                  TextButton(
+                    onPressed: onRetry,
+                    child: const Text('Try again'),
                   ),
                 if (status == SubjectStatus.completed) ...[
                   TextButton(

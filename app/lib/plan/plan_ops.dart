@@ -53,9 +53,10 @@ List<Module> moveModule(List<Module> modules, int from, int to) {
   return out;
 }
 
-/// Whether module [m] may be removed or have its id changed: only while it
-/// has no cards (curriculum §2).
-bool editable(Module m) => m.cards == 0;
+/// Whether module [m] may be removed: only while it has no cards and is
+/// still `locked` (curriculum §2: the worker restores any other module
+/// verbatim).
+bool editable(Module m) => m.cards == 0 && m.status == ModuleStatus.locked;
 
 /// Removes module [i] (only [editable] ones) and drops it from every
 /// `requires`.
@@ -115,10 +116,13 @@ List<Module> setRequires(List<Module> modules, int i, List<String> requires) =>
 /// Why [modules] cannot be sent; empty when it can.
 List<String> planProblems(List<Module> modules) {
   final problems = <String>[];
-  if (modules.length < kMinModules || modules.length > kMaxModules) {
+  // A go-deeper draft appends: only the newest depth is counted.
+  final depth = modules.fold(1, (d, m) => m.depth > d ? m.depth : d);
+  final count = modules.where((m) => m.depth == depth).length;
+  if (count < kMinModules || count > kMaxModules) {
     problems.add(
-      'A plan has $kMinModules-$kMaxModules modules '
-      '(this one has ${modules.length}).',
+      'A plan has $kMinModules-$kMaxModules new modules '
+      '(this one has $count).',
     );
   }
   final earlier = <String>{};
