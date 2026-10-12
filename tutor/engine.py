@@ -11,16 +11,17 @@ recorded. Card end, Next card, Stop and ``state`` live in ``cardflow``.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
+from dataclasses import replace
 import time
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 import uuid
 
-from tutor import backfill, credit, gating, media, repair, resume, unit_credit
+from tutor import backfill, gating, media, repair, resume, unit_credit
 from tutor import cards as cards_mod
 from tutor.cardflow import CardFlow
 from tutor.clock import EngagementClock, reply_time
 from tutor.conversation import Conversation
+from tutor.curriculum.source import CardSource, source_for
 from tutor.prompt import engine_note, system_prompt, wrap_learner
 from tutor.session import TutorSession, isolated_options
 from tutor.store import Store
@@ -29,10 +30,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from tutor.clock import BlockReady
-
-DECK_DIR: Final = (
-    Path(__file__).resolve().parents[1] / "subjects" / "automation" / "deck"
-)
 
 
 class Engine(CardFlow):
@@ -60,7 +57,7 @@ class Engine(CardFlow):
         self.simulated = simulated_time
         self._offset = 0.0
         self._lock = asyncio.Lock()
-        self.deck = cards_mod.load_deck(DECK_DIR)
+        self.source: CardSource = source_for(self.store, self.ctx)
         self.card: cards_mod.Card | None = None
         self._minutes = ("", 0)  # (local day, ledger total that day)
         self._session: TutorSession | None = None
@@ -85,32 +82,23 @@ class Engine(CardFlow):
         """The engine's clock (wall time plus any simulated skip)."""
         return self._now() + self._offset
 
-    @property
-    def minutes_today(self) -> int:
-        """Today's ledger total; 0 once the local day it was read on is over.
-
-        The server outlives midnight, so a bare counter that only ever grows
-        (``max``) would show yesterday's credit as today's.
-        """
-        day, minutes = self._minutes
-        return minutes if day == credit.local_day(self.time())[0] else 0
-
-    def _set_today(self, minutes: int) -> None:
-        """Record ``minutes`` as today's ledger total, stamped with today."""
-        self._minutes = (credit.local_day(self.time())[0], minutes)
-
     def cards(self) -> list[dict[str, Any]]:
         """Every card, done or not, and what still locks it (``gating``)."""
-        return gating.listing(self.deck, self.store.progress()["cards_done"])
+        return gating.listing(self.deck, self.source.done())
 
-    async def start(self, card_id: str | None = None) -> dict[str, Any]:
-        """Begin a session on ``card_id`` (default: first open card not yet done).
+    async def start(
+        self, card_id: str | None = None, subject: str | None = None
+    ) -> dict[str, Any]:
+        """Begin a session on ``card_id`` (default: the subject's next card).
 
-        An unknown or locked card raises ``ValueError`` before the live
-        session is touched.
+        ``subject`` switches the subject first. An unknown or locked card, or
+        the daily new-card cap, raises ``ValueError`` (``RequestError``)
+        before the live session is touched.
         """
         async with self._lock:
-            card = gating.pick(self.deck, self.store.progress()["cards_done"], card_id)
+            if subject and subject != self.source.subject:
+                self.source = source_for(self.store, self.ctx, subject)
+            card = self.source.pick(card_id)
             if self._session is not None:
                 await self._session.close()
             self.card = card
@@ -119,8 +107,9 @@ class Engine(CardFlow):
                 card_id=card.id,
                 clock=EngagementClock(self.time()),
             )
-            self._session = self._factory(system_prompt(card, self.store.mastered()))
-            self.store.log(self.session_id, {"type": "start", "card": card.id})
+            self._session = self._factory(self._prompt(card))
+            start = {"type": "start", "card": card.id, "subject": self.source.subject}
+            self.store.log(self.session_id, start)
             await self._turn("Begin the session.", learner_text=None)
         return self.state()
 
@@ -157,7 +146,7 @@ class Engine(CardFlow):
         self._set_today(
             max(self.minutes_today, unit_credit.minutes_today(conv.receipts))
         )
-        self._session = self._factory(system_prompt(card, self.store.mastered()))
+        self._session = self._factory(self._prompt(card))
         conv.resumed.note = resume.primer(conv.messages)
         conv.clock.server_restarted(self.time())
         self.store.log(self.session_id, {"type": "resume", "t": self.time()})
@@ -193,6 +182,11 @@ class Engine(CardFlow):
         if self._session is not None:
             await self._session.close()
             self._session = None
+
+    def _prompt(self, card: cards_mod.Card) -> str:
+        """The subject's system prompt for ``card``."""
+        src = self.source
+        return system_prompt(card, src.mastered(), src.profile)
 
     def _live(self) -> tuple[TutorSession, Conversation, cards_mod.Card]:
         """The running session, or RuntimeError before any start."""
@@ -231,6 +225,8 @@ class Engine(CardFlow):
             event = {"type": "learner", "text": learner_text, "note": note}
             self.store.log(self.session_id, {**event, "t": t_learner, "msg_id": msg_id})
         turn, _ = await session.ask(f"{note}\n{body}")
+        if not self.source.profile.diagrams:  # schemdraw draws circuits only
+            turn = replace(turn, diagram=None)
         # Only now: a failed ask leaves no learner bubble (the page keeps the
         # text for a retry) and keeps the notes and primer for that retry.
         conv.notes, conv.resumed.note = [], ""

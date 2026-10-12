@@ -1,5 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""``python -m tutor [--port N]``: serve the tutor on localhost."""
+"""``python -m tutor [--port N]``: serve the tutor on localhost.
+
+``python -m tutor migrate [--data DIR]``: the one-off curriculum migration.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +12,7 @@ import sys
 
 import uvicorn
 
+from tutor.curriculum import migrate
 from tutor.engine import Engine
 from tutor.server import create_app
 
@@ -22,6 +26,9 @@ def _port_busy(port: int) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     """Serve until interrupted; refuse loudly if the port is taken."""
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["migrate"]:
+        return migrate.main(argv[1:])
     parser = argparse.ArgumentParser(prog="python -m tutor", description=__doc__)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument(

@@ -119,6 +119,21 @@ def page_text(url: str) -> str:
     return text
 
 
+def seed_text(url: str, text: str) -> str:
+    """Cache ``text`` as ``url``'s plain text unless one is cached already.
+
+    For pages whose plain text came from the site's own API (the MediaWiki
+    extract of the very same page): the model drafts from, and the excerpt
+    check verifies against, one text. Returns the text that is now cached.
+    """
+    cached = _cache_path(url)
+    if cached.is_file():
+        return cached.read_text(encoding="utf-8")
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    cached.write_text(text, encoding="utf-8")
+    return text
+
+
 @dataclass(frozen=True)
 class Mismatch:
     """A card whose excerpt is not in its source."""

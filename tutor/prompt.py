@@ -10,19 +10,27 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Final
 
 from tutor.conversation import MAX_CHECK_ATTEMPTS
-from tutor.prompt_rules import SYSTEM
+from tutor.curriculum import profiles
+from tutor.prompt_rules import render_system
 
 if TYPE_CHECKING:
     from tutor.cards import Card
+    from tutor.curriculum.profiles import Profile
 
 CHECK_EVERY_SECONDS: Final = 600.0
 
 
-def system_prompt(card: Card, mastered: list[str]) -> str:
-    """The full system prompt for a session aimed at one card."""
+def system_prompt(
+    card: Card, mastered: list[str], profile: Profile | None = None
+) -> str:
+    """The full system prompt for a session aimed at one card.
+
+    ``profile`` is the subject's (default: automation, the PLC wording).
+    """
     done = ", ".join(mastered) if mastered else "(none yet)"
+    rules = render_system(profile or profiles.automation())
     return (
-        f"{SYSTEM}\n# Target card\n"
+        f"{rules}\n# Target card\n"
         f"topic: {card.topic.title}\nid: {card.id}\n"
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
         f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n\n"

@@ -23,7 +23,11 @@ Read README.md first. These are the invariants that are easy to break.
 
 - `tutor/` -- the server (Starlette), engine, session, credit, static page.
 - `tutor/cards.py`, `tutor/sources.py` -- the card format and the excerpt check.
-- `subjects/automation/deck/<topic>.json` -- the PLC / OT security cards.
+- `subjects/automation/deck/<topic>.json` -- the PLC / OT security cards;
+  `subjects/automation/profile.json` -- the PLC wording of the tutor's rules.
+- `tutor/curriculum/` -- generic subjects: plans, just-in-time cards, the
+  event-log fold + FSRS, unlock rules, `migrate`; contract in
+  `DOCS-contract-curriculum.md`, golden vectors in `contract/`.
 - `tests/` -- cards/sources tests; `tutor/tests/` -- everything else.
 - `scripts/tutor_deploy.sh`, `tutor_launch.sh`, `tutor_scripted_run.sh`.
 

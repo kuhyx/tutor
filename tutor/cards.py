@@ -138,6 +138,16 @@ def _check_requires(cards: list[Card]) -> None:
         visit(card, [])
 
 
+def validate_card(raw: object, topic: Topic, where: str) -> Card:
+    """One card from its JSON object, by the deck's rules (``CardError``)."""
+    return _validate(raw, topic, where)
+
+
+def check_requires(cards: list[Card]) -> None:
+    """Every ``requires`` id is a card of ``cards`` and no chain loops back."""
+    _check_requires(cards)
+
+
 def load_topic(path: Path, topic: Topic) -> list[Card]:
     """Every card in one topic file."""
     raw = json.loads(path.read_text(encoding="utf-8"))

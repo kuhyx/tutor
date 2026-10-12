@@ -14,7 +14,9 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import gating, unit_credit
+from tutor import credit, gating, unit_credit
+from tutor.curriculum.context import Context
+from tutor.curriculum.source import DeckSource
 
 if TYPE_CHECKING:
     import asyncio
@@ -23,6 +25,7 @@ if TYPE_CHECKING:
     from tutor import cards as cards_mod
     from tutor.clock import BlockReady
     from tutor.conversation import Conversation
+    from tutor.curriculum.source import CardSource
     from tutor.models import TutorTurn
     from tutor.session import TutorSession
     from tutor.store import Store
@@ -35,8 +38,9 @@ class CardFlow:
 
     if TYPE_CHECKING:
         store: Store
-        deck: list[cards_mod.Card]
         card: cards_mod.Card | None
+        source: CardSource
+        _minutes: tuple[str, int]
         _session: TutorSession | None
         _conv: Conversation | None
         _lock: asyncio.Lock
@@ -46,13 +50,6 @@ class CardFlow:
         @property
         def session_id(self) -> str:
             """The live session's id (``Engine``)."""
-
-        @property
-        def minutes_today(self) -> int:
-            """Today's ledger total (``Engine``)."""
-
-        def _set_today(self, minutes: int) -> None:
-            """Stamp today's ledger total (``Engine``)."""
 
         @property
         def messages(self) -> list[dict[str, Any]]:
@@ -67,6 +64,35 @@ class CardFlow:
         _live: Callable[[], tuple[TutorSession, Conversation, cards_mod.Card]]
         _turn: Callable[..., Awaitable[None]]
 
+    @property
+    def minutes_today(self) -> int:
+        """Today's ledger total; 0 once the local day it was read on is over.
+
+        The server outlives midnight, so a bare counter that only ever grows
+        (``max``) would show yesterday's credit as today's.
+        """
+        day, minutes = self._minutes
+        return minutes if day == credit.local_day(self.time())[0] else 0
+
+    def _set_today(self, minutes: int) -> None:
+        """Record ``minutes`` as today's ledger total, stamped with today."""
+        self._minutes = (credit.local_day(self.time())[0], minutes)
+
+    @property
+    def ctx(self) -> Context:
+        """The curriculum context on the engine's data dir and clock (ms)."""
+        return Context(self.store.root, clock=lambda: int(self.time() * 1000))
+
+    @property
+    def deck(self) -> list[cards_mod.Card]:
+        """The current subject's cards."""
+        return self.source.cards()
+
+    @deck.setter
+    def deck(self, found: list[cards_mod.Card]) -> None:
+        """The card editor reloaded the repo deck (unmigrated data only)."""
+        self.source = DeckSource(self.store, found)
+
     async def next_card(self) -> dict[str, Any]:
         """End this session and start a NEW one on the next unfinished card.
 
@@ -79,11 +105,8 @@ class CardFlow:
         """
         async with self._lock:
             _, conv, card = self._live()
-            done = self.store.progress()["cards_done"]
-            nxt = gating.first_open(self.deck, done, skip=card.id)
-            if nxt is None:  # before anything changes: the session stays intact
-                msg = "no unfinished card left"
-                raise ValueError(msg)
+            # Raises (no card left, daily cap) before the session changes.
+            nxt = self.source.pick(None, skip=card.id)
             self.store.log(conv.session_id, {"type": "next_card", "card": nxt.id})
             self.store.log(conv.session_id, {"type": "stop"})
         return await self.start(nxt.id)
@@ -111,15 +134,13 @@ class CardFlow:
             if card is None:
                 msg = f"unknown card {card_id!r}"
                 raise ValueError(msg)
-            progress = self.store.progress()["cards_done"]
-            conv = self._conv
+            progress = self.source.done()
+            conv, sid = self._conv, ""
             if done:
                 gating.refuse_locked(card, progress, "mark done")
                 was = progress.get(card_id) or {}
                 sid = conv.session_id if conv else str(was.get("session", "manual"))
-                self.store.finish_card(card_id, sid)
-            else:
-                self.store.unfinish_card(card_id)
+            self.source.mark(card_id, sid, done=done)
             if conv is not None and card_id in conv.cards:
                 conv.set_done(card_id, done=done)
                 event = {"type": "card_done_manual", "card": card_id, "done": done}
@@ -139,7 +160,7 @@ class CardFlow:
             "session_credited_minutes": unit_credit.paid_minutes(self.receipts),
             "target_minutes": TARGET_MINUTES,
             "receipts": self.receipts,
-            "mastered": self.store.mastered(),
+            "mastered": self.source.mastered(),
             "check_open": bool(conv and conv.check.open),
             "card_done": bool(conv and conv.card_done),
         }
@@ -151,19 +172,17 @@ class CardFlow:
             message["check"] = None  # a refused third attempt is never shown
         if not turn.low_effort and turn.concepts_mastered:
             names = [c.strip().lower() for c in turn.concepts_mastered if c.strip()]
-            message["mastered_new"] = self.store.master(names, card.id, self.session_id)
+            message["mastered_new"] = self.source.master(
+                names, card.id, self.session_id
+            )
         # Only a card_done reads progress.json: most turns end nothing.
-        need = (
-            gating.missing(card, self.store.progress()["cards_done"])
-            if turn.card_done
-            else []
-        )
+        need = gating.missing(card, self.source.done()) if turn.card_done else []
         if need:  # locked: logged as refused, so replay and repair skip it
             logged["card_done"], logged["card_done_refused"] = False, need
             conv.notes.append(gating.refused_note(card, need))
         elif turn.card_done:  # the tutor's word is enough (b193: a gate dropped it)
             if conv.mark_card_done():
-                self.store.finish_card(card.id, self.session_id)
+                self.source.mark(card.id, self.session_id, done=True)
             message["card_done"] = True
         conv.messages.append(message)
         self.store.log(
