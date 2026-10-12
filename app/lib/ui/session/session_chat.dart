@@ -17,6 +17,7 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/composer.dart';
 import 'package:tutor/ui/session/message_tile.dart';
+import 'package:tutor/ui/session/session_bits.dart';
 
 /// The chat column.
 class SessionChat extends StatefulWidget {
@@ -162,86 +163,48 @@ class _SessionChatState extends State<SessionChat> {
                 ),
         ),
         const Divider(height: 1),
-        Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _NotLive(runner: widget.runner, view: view, onRun: widget.onRun),
-              if (live && meta.cardDone)
-                _CardEnd(
-                  onNext: () => widget.onRun(RequestBody.next(view!.sid)),
-                  onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
-                )
-              else if (live)
-                Composer(
-                  sid: view!.sid,
-                  latest: last,
-                  kv: widget.services.kv,
-                  enabled: busy == null && !widget.runner.busy,
-                  onSend: (t) => widget.onSend(view.sid, t),
-                )
-              else
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton(
-                    onPressed: () => widget.onRun(RequestBody.sessionStart()),
-                    child: const Text('Start session'),
-                  ),
+        // The composer never takes more than ~40% of the height: the chat
+        // stays the main scroller, the boxes scroll inside this panel.
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                NotLiveStatus(
+                  runner: widget.runner,
+                  view: view,
+                  onRun: widget.onRun,
                 ),
-            ],
+                if (live && meta.cardDone)
+                  CardEnd(
+                    onNext: () => widget.onRun(RequestBody.next(view!.sid)),
+                    onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
+                  )
+                else if (live)
+                  Composer(
+                    sid: view!.sid,
+                    latest: last,
+                    kv: widget.services.kv,
+                    enabled: busy == null && !widget.runner.busy,
+                    onSend: (t) => widget.onSend(view.sid, t),
+                  )
+                else
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      onPressed: () => widget.onRun(RequestBody.sessionStart()),
+                      child: const Text('Start session'),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
-}
-
-class _CardEnd extends StatelessWidget {
-  const new({required this.onNext, required this.onStop});
-
-  final VoidCallback onNext;
-  final VoidCallback onStop;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const Expanded(child: Text('Card done ✓')),
-      OutlinedButton(onPressed: onStop, child: const Text('Stop here')),
-      const SizedBox(width: AppSpacing.sm),
-      FilledButton(
-        autofocus: true,
-        onPressed: onNext,
-        child: const Text('Next card'),
-      ),
-    ],
-  );
-}
-
-/// The request status, plus Continue when the session is no longer live.
-class _NotLive extends StatelessWidget {
-  const new({required this.runner, required this.view, required this.onRun});
-
-  final RequestRunner runner;
-  final SessionView? view;
-  final Future<RelayStatus> Function(RequestBody body) onRun;
-
-  @override
-  Widget build(BuildContext context) => ValueListenableBuilder<RelayStatus?>(
-    valueListenable: runner.status,
-    builder: (context, s, _) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        RequestStatusLine(runner),
-        if (s is RelayFailed && s.code == 'not_live' && view != null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton(
-              onPressed: () => onRun(RequestBody.sessionResume(view!.sid)),
-              child: const Text('Continue this session'),
-            ),
-          ),
-      ],
-    ),
-  );
 }

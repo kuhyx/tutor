@@ -126,7 +126,7 @@ class _EditorScreenState extends State<EditorScreen> {
               ExpansionTile(
                 title: Text(m.title),
                 subtitle: Text(
-                  '${s.cardsOf(m.id).length} cards · ${m.status.name}',
+                  '${_cards(s.cardsOf(m.id).length)} · ${m.status.name}',
                 ),
                 children: [
                   for (final c in s.cardsOf(m.id))
@@ -162,3 +162,5 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 }
+
+String _cards(int n) => '$n card${n == 1 ? '' : 's'}';

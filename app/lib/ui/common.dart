@@ -52,20 +52,26 @@ class Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: warn ? AppPalette.warning : scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: AppTextSize.caption,
-          color: warn ? AppPalette.onFill : scheme.onSurface,
+    // Sized to its text even where a list stretches its children.
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      widthFactor: 1,
+      heightFactor: 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: warn ? AppPalette.warning : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: AppTextSize.caption,
+            color: warn ? AppPalette.onFill : scheme.onSurface,
+          ),
         ),
       ),
     );

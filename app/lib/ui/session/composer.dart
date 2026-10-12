@@ -140,7 +140,7 @@ class _ComposerState extends State<Composer> {
     child: TextField(
       controller: _boxes[i],
       readOnly: !widget.enabled,
-      minLines: _asked.isEmpty ? 4 : 2,
+      minLines: _asked.isEmpty ? 3 : 1,
       maxLines: 12,
       decoration: InputDecoration(
         labelText: label,

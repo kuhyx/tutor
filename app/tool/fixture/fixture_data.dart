@@ -35,6 +35,8 @@ Map<String, Object?> _module(
   'cards': cards,
 };
 
+String _day(DateTime d) => d.toIso8601String().substring(0, 10);
+
 /// The fixture tree under `tutor/v1`, relative to [now] (ms).
 Map<String, Object?> fixtureTree(int now) {
   const day = 86400000;
@@ -68,7 +70,7 @@ Map<String, Object?> fixtureTree(int now) {
       },
       'days': {
         for (var i = 13; i >= 0; i--)
-          '2026-10-${(12 - i).toString().padLeft(2, '0')}': {
+          _day(DateTime.utc(2026, 10, 12 - i)): {
             'minutes': (i * 7) % 61,
             'taught': i % 3,
             'reviews': (i * 5) % 17,
