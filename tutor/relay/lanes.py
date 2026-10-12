@@ -144,11 +144,8 @@ class Server:
             return await hooks.build(ctx)
 
     async def sync(self) -> None:
-        """The curriculum sync; a failure is logged, the request goes on."""
-        try:
-            await self.curriculum.sync()
-        except RtdbError as err:
-            _logger.warning("curriculum sync failed: %s", err)
+        """The curriculum sync (it logs its own failures; the request goes on)."""
+        await self.curriculum.sync()
 
     async def _put_result(self, rid: str, result: dict[str, Any]) -> None:
         await self.w.rtdb.put(f"requests/{rid}/result", {**result, "at": SERVER_TIME})

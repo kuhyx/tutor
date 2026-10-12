@@ -13,7 +13,9 @@ from tutor.relay import cli
 from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.tests._cur import subject
 from tutor.tests._fake_rtdb import FakeRtdb
+from tutor.tests._fakes import turn
 from tutor.tests._relay_support import PHONE, WORKER, engine, wiring
+from tutor.tests.test_relay_lanes import Rig, run
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -158,3 +160,25 @@ def test_publish_subjects_for_the_migration(tmp_path: Path) -> None:
 
     assert asyncio.run(go()) == 1
     assert fake.get(f"tutor/v1/log/{WORKER}/{own['eid']}/k") == "taught"
+
+
+def test_a_broken_fold_never_fails_chat_requests(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    eng, _ = engine(tmp_path, turn("Q1?"), turn("Q2?"))
+
+    def broken(_ctx: Context) -> dict[str, Any]:
+        msg = "bad subject file"
+        raise ValueError(msg)
+
+    monkeypatch.setattr(cur, "fold_and_advance", broken)
+
+    async def script(rig: Rig) -> None:
+        got = await rig.send("session_start", {"subject": None, "card": None})
+        sid = got["data"]["session"]
+        got = await rig.send("message", {"session": sid, "text": "an answer"})
+        assert got["ok"]
+
+    with caplog.at_level(logging.WARNING):
+        run(eng, script)
+    assert "curriculum sync failed: bad subject file" in caplog.text

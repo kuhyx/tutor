@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor.curriculum import handlers as cur
 from tutor.curriculum.subject_store import read_json
+from tutor.relay import hooks
 from tutor.relay.protocol import DEV
 
 if TYPE_CHECKING:
@@ -115,9 +116,15 @@ class CurriculumSync:
         return True
 
     async def sync(self) -> None:
-        """Pull, fold, publish moved subjects, push own events, queue generation."""
+        """Pull, fold, publish moved subjects, push own events, queue generation.
+
+        A failure is logged and the caller goes on (the next sync retries).
+        """
         async with self._syncing:
-            await self._sync()
+            try:
+                await self._sync()
+            except hooks.BASE_ERRORS as err:  # never kills a lane or the timer
+                _logger.warning("curriculum sync failed: %s", err)
 
     async def _sync(self) -> None:
         await self.pull()
@@ -142,7 +149,7 @@ class CurriculumSync:
             async with self.lock:
                 try:
                     await asyncio.to_thread(cur.generate, self.ctx, subject, module)
-                except (cur.RequestError, OSError, RuntimeError) as err:
+                except hooks.BASE_ERRORS as err:
                     _logger.warning("generating %s/%s failed: %s", subject, module, err)
                     self._failed.add((subject, module))
                 finally:
