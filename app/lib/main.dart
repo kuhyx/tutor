@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
@@ -11,7 +12,11 @@ void main() {
   runApp(
     TutorApp(
       config: FirebaseConfig.compiled,
-      open: () => TutorServices.open(FirebaseConfig.compiled),
+      open: () => TutorServices.open(
+        FirebaseConfig.compiled,
+        // The desktop (web) build adopts the PC's session from its server.
+        wrapperBase: kIsWeb ? Uri.base : null,
+      ),
     ),
   );
 }

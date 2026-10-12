@@ -8,6 +8,7 @@ library;
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:tutor/home/catalog.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/card.dart';
@@ -28,13 +29,16 @@ const kClientVersion = 1;
 /// One subject on Home.
 class SubjectEntry {
   /// Creates the entry.
-  const new(this.id, this.meta);
+  const new(this.id, this.meta, [this.data]);
 
   /// Subject id.
   final String id;
 
   /// Its meta.
   final SubjectMeta meta;
+
+  /// Plan, cards and concepts (null only when they failed to parse).
+  final SubjectData? data;
 }
 
 /// Home's data.
@@ -45,6 +49,8 @@ class HomeSnapshot {
     required this.due,
     required this.offline,
     this.today,
+    this.currentSubject,
+    this.live,
   });
 
   /// Subjects, by title.
@@ -58,6 +64,12 @@ class HomeSnapshot {
 
   /// `stats.today`, when reachable.
   final Today? today;
+
+  /// `prefs.current_subject`, when reachable.
+  final String? currentSubject;
+
+  /// The live session, when reachable and one is live.
+  final Live? live;
 }
 
 /// Thrown when the database's schema is newer than this client.
@@ -74,7 +86,7 @@ class UnsupportedSchema implements Exception {
       'needs client ${meta.minClient}). Update the app.';
 }
 
-const _cacheKey = 'catalog.cache';
+const String _cacheKey = kCatalogCacheKey;
 
 /// Loads [HomeSnapshot]s.
 class HomeLoader {
@@ -101,6 +113,8 @@ class HomeLoader {
   Future<HomeSnapshot> load() async {
     Json catalog;
     Today? today;
+    String? current;
+    Live? live;
     var offline = false;
     try {
       final meta = await client.get(Paths.meta);
@@ -113,6 +127,10 @@ class HomeLoader {
       catalog = await _catalog();
       final t = await client.get('${Paths.stats}/today');
       today = t == null ? null : Today.fromJson(asJson(t, 'today'));
+      final p = await client.get(Paths.prefs);
+      current = p == null ? null : Prefs.fromJson(asJson(p)).currentSubject;
+      final l = await client.get(Paths.live);
+      live = l == null ? null : Live.fromJson(asJson(l, 'live'));
     } on RtdbError catch (error) {
       final cached = await kv.get(_cacheKey);
       if (cached == null) rethrow;
@@ -121,10 +139,18 @@ class HomeLoader {
       offline = true;
     }
     await _syncLog(offline: offline);
-    return await _build(
+    final snap = await _build(
       asJson(catalog['subjects'] ?? <String, dynamic>{}),
       today,
       offline,
+    );
+    return HomeSnapshot(
+      subjects: snap.subjects,
+      due: snap.due,
+      offline: offline,
+      today: today,
+      currentSubject: current,
+      live: live,
     );
   }
 
@@ -168,7 +194,9 @@ class HomeLoader {
       final s = asJson(raw, id);
       final meta = objOr(s, 'meta');
       if (meta == null) continue; // being created
-      entries.add(SubjectEntry(id, SubjectMeta.fromJson(meta)));
+      entries.add(
+        SubjectEntry(id, SubjectMeta.fromJson(meta), parseSubject(id, s)),
+      );
       for (final MapEntry(key: cid, value: c) in mapOf(
         s,
         'cards',

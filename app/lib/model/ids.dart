@@ -66,6 +66,9 @@ abstract final class Paths {
   /// `log` (list with `shallow` only; never stream it).
   static const log = '$root/log';
 
+  /// `session_index` (history rows, §6).
+  static const sessionIndex = '$root/session_index';
+
   /// `presence/clients/{dev}`.
   static String client(String dev) =>
       '$root/presence/clients/${_check(dev, isDeviceId, 'device id')}';

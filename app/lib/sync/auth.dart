@@ -36,12 +36,17 @@ class TutorAuth {
     required FirebaseCredentialStore store,
     http.Client? httpClient,
     DateTime Function()? clock,
+    this.adopt,
   }) : provider = FirebaseTokenProvider(
          apiKey: config.apiKey,
          store: store,
          httpClient: httpClient,
          clock: clock,
        );
+
+  /// Desktop only: adopts the PC's seeded session from the wrapper when
+  /// no session is stored (see `wrapper_credentials.dart`). True if adopted.
+  final Future<bool> Function()? adopt;
 
   /// The build's Firebase identifiers.
   final FirebaseConfig config;
@@ -53,7 +58,9 @@ class TutorAuth {
   /// as "not signed in", and the sign-in screen repairs it.
   Future<bool> hasSession() async {
     try {
-      return await provider.hasSession();
+      if (await provider.hasSession()) return true;
+      final adopt = this.adopt;
+      return adopt != null && await adopt() && await provider.hasSession();
     } on Object catch (error, stackTrace) {
       // `on Object`: an ArgumentError (Uri.base on Android) is an Error, not
       // an Exception, and escaped `on Exception` in todo.

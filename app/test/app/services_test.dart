@@ -50,4 +50,18 @@ void main() {
     // as "signed out" rather than crashing.
     expect(await s.auth.hasSession(), isFalse);
   });
+
+  test('a default HTTP client when none is injected', () async {
+    final s = await TutorServices.open(
+      const FirebaseConfig(
+        apiKey: 'k',
+        databaseUrl: 'https://db',
+        syncUid: 'u',
+        serverClientId: '',
+      ),
+      store: InMemoryCredentialStore(),
+      kv: MemoryKv(),
+    );
+    expect(s.client.httpClient, isA<http.Client>());
+  });
 }

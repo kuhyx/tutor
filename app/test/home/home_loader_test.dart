@@ -43,6 +43,8 @@ void main() {
       ..root = setAt(null, 'tutor/v1', {
         'meta': {'schema': 1, 'min_client': 1},
         'rev': {'catalog': 3, 'stats': 1},
+        'prefs': {'current_subject': 'car'},
+        'live': {'session': '20261012-170448-5b71', 'subject': 'car'},
         'stats': {
           'today': {
             'day': '2026-10-12',
@@ -93,6 +95,9 @@ void main() {
     expect(snap.due, 2);
     expect(snap.offline, isFalse);
     expect(snap.today!.creditedMinutes, 5);
+    expect(snap.currentSubject, 'car');
+    expect(snap.live!.session, '20261012-170448-5b71');
+    expect(snap.subjects.last.data!.id, 'car');
     expect(await events.pending(), 0);
 
     db.log.clear();
