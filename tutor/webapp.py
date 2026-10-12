@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 WEB_DIR_ENV: Final = "TUTOR_WEBAPP_DIR"
 CREDENTIALS_ENV: Final = "TUTOR_FIREBASE_AUTH"
-# The repo's build output; a frozen release sets TUTOR_WEBAPP_DIR instead.
+# The build output: the repo's, or the copy tutor_deploy.sh puts in each release.
 DEFAULT_WEB_DIR: Final = Path(__file__).resolve().parents[1] / "app" / "build" / "web"
 _FIELDS: Final = ("id_token", "refresh_token", "expires_at")
 _LOCAL_HOSTS: Final = frozenset({"127.0.0.1", "localhost", "[::1]"})
