@@ -77,10 +77,14 @@ SessionMeta? parseMeta(Object? node) {
 
 /// Follows the live session.
 class SessionFeed {
-  /// Creates the feed over [_stream].
-  new(this._stream);
+  /// Creates the feed over [_stream]; with [subject] it follows `live` only
+  /// while `live` is a session of that subject.
+  new(this._stream, {this.subject});
 
   final RtdbStream _stream;
+
+  /// The subject whose live session is followed (null: any).
+  final String? subject;
 
   /// What `live` says (null: no live session, or not loaded yet).
   final ValueNotifier<Live?> live = ValueNotifier(null);
@@ -115,11 +119,15 @@ class SessionFeed {
       }
       live.value = next;
       loaded.value = true;
-      if (next != null && isSessionId(next.session)) follow(next.session);
+      if (next != null && isSessionId(next.session) && _mine(next)) {
+        follow(next.session);
+      }
     });
     final shown = view.value?.sid;
     if (shown != null && _subs.isEmpty) _subscribe(shown);
   }
+
+  bool _mine(Live live) => subject == null || live.subject == subject;
 
   /// Streams session [sid] (no-op when already on it).
   void follow(String sid) {

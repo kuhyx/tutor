@@ -9,6 +9,7 @@ import 'package:tutor/model/subject.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/progress/progress.dart';
 import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/new_subject_field.dart';
 
@@ -41,8 +42,8 @@ class HomeBody extends StatelessWidget {
   /// Opens Review.
   final VoidCallback onReview;
 
-  /// Opens the Session.
-  final VoidCallback onSession;
+  /// Opens the Session for Home's button.
+  final ValueChanged<SessionEntry> onSession;
 
   /// Opens a subject's plan.
   final ValueChanged<String> onPlan;
@@ -62,6 +63,7 @@ class HomeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = data.today;
+    final entry = sessionEntry(data.live, data.currentSubject);
     final text = Theme.of(context).textTheme;
     return PageList(
       children: [
@@ -101,11 +103,9 @@ class HomeBody extends StatelessWidget {
                   runSpacing: AppSpacing.sm,
                   children: [
                     FilledButton.icon(
-                      onPressed: onSession,
+                      onPressed: () => onSession(entry),
                       icon: const Icon(Icons.chat_bubble_outline),
-                      label: Text(
-                        data.live == null ? 'Learn' : 'Continue session',
-                      ),
+                      label: Text(entry.label),
                     ),
                     OutlinedButton.icon(
                       onPressed: onReview,

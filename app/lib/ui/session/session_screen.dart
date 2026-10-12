@@ -24,10 +24,22 @@ const kWideLayout = 900.0;
 /// The Session screen.
 class SessionScreen extends StatefulWidget {
   /// Creates the screen; [now] is injectable for the stalled pill.
-  const new({required this.services, this.now, super.key});
+  const new({
+    required this.services,
+    this.subject,
+    this.resume = false,
+    this.now,
+    super.key,
+  });
 
   /// Services.
   final TutorServices services;
+
+  /// Only this subject's live session is followed (null: any).
+  final String? subject;
+
+  /// On opening, ask for [subject]'s open session (Home's Continue).
+  final bool resume;
 
   /// Clock for "stalled".
   final DateTime Function()? now;
@@ -37,7 +49,10 @@ class SessionScreen extends StatefulWidget {
 }
 
 class _SessionScreenState extends State<SessionScreen> {
-  late final SessionFeed _feed = SessionFeed(widget.services.stream);
+  late final SessionFeed _feed = SessionFeed(
+    widget.services.stream,
+    subject: widget.subject,
+  );
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
   late final AppLifecycleListener _lifecycle;
   final _scroll = ScrollController();
@@ -57,6 +72,7 @@ class _SessionScreenState extends State<SessionScreen> {
       },
       onHide: () => unawaited(_feed.stop()),
     );
+    if (widget.resume) unawaited(_run(_continue()));
     unawaited(
       _s.catalog.cached().then((c) {
         if (mounted) setState(() => _subjects = c);
@@ -82,6 +98,10 @@ class _SessionScreenState extends State<SessionScreen> {
     }
     return status;
   }
+
+  /// Continue (or start) the screen's subject (DOCS-contract §4 `resume`).
+  RequestBody _continue() =>
+      RequestBody.sessionStart(subject: widget.subject, resume: true);
 
   Future<bool> _send(String sid, String text) async =>
       await _run(RequestBody.message(sid, text)) is! RelayNotSent;
@@ -146,6 +166,7 @@ class _SessionScreenState extends State<SessionScreen> {
           scroll: _scroll,
           now: widget.now ?? DateTime.now,
           onRun: _run,
+          onStart: () => _run(_continue()),
           onSend: _send,
         ),
       );

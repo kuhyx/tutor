@@ -30,6 +30,7 @@ class SessionChat extends StatefulWidget {
     required this.scroll,
     required this.now,
     required this.onRun,
+    required this.onStart,
     required this.onSend,
     super.key,
   });
@@ -54,6 +55,9 @@ class SessionChat extends StatefulWidget {
 
   /// Runs a request.
   final Future<RelayStatus> Function(RequestBody body) onRun;
+
+  /// Start session (or continue the subject's open one).
+  final VoidCallback onStart;
 
   /// Sends a learner message.
   final Future<bool> Function(String sid, String text) onSend;
@@ -200,7 +204,7 @@ class _SessionChatState extends State<SessionChat> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton(
-                      onPressed: () => widget.onRun(RequestBody.sessionStart()),
+                      onPressed: widget.onStart,
                       child: const Text('Start session'),
                     ),
                   ),

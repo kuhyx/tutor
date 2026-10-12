@@ -105,4 +105,18 @@ void main() {
     expect(parseMeta('x'), isNull);
     expect(parseMeta(<String, dynamic>{'subject': 1}), isNull);
   });
+
+  test('a subject feed follows only its own subject', () async {
+    // kuhy, 2026-10-12: Continue in automation showed the live car session.
+    final mine = SessionFeed(stream, subject: 'automation')..start();
+    final live = stream.listens['tutor/v1/live']!
+      ..add(const RtdbPut('/', {'session': _sid, 'subject': 'car'}));
+    await _tick();
+    expect(mine.live.value!.subject, 'car');
+    expect(mine.view.value, isNull);
+    live.add(const RtdbPut('/', {'session': _sid2, 'subject': 'automation'}));
+    await _tick();
+    expect(mine.view.value!.sid, _sid2);
+    await mine.dispose();
+  });
 }

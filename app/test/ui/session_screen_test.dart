@@ -155,6 +155,9 @@ void main() {
     expect(find.text('No session yet'), findsOneWidget);
     await t.tap(find.text('Start session'));
     await sent(t);
-    expect((await answer(t, db, stream))['kind'], 'session_start');
+    final start = await answer(t, db, stream);
+    expect(start['kind'], 'session_start');
+    // Start continues the subject's open session before a fresh card.
+    expect(start['body'], {'subject': null, 'card': null, 'resume': true});
   });
 }

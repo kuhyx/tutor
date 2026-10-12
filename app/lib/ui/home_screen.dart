@@ -187,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
           presence: _presence.state,
           runner: _runner,
           onReview: () => _go(() => openReview(context, _s)),
-          onSession: () => _go(() => openSession(context, _s)),
+          onSession: (e) => _go(() => openSession(context, _s, entry: e)),
           onPlan: (id) => _go(() => openPlan(context, _s, id)),
           onEdit: (id) => _go(() => openEditor(context, _s, subject: id)),
           onPick: _pick,

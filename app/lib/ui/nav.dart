@@ -5,6 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
+import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
 import 'package:tutor/ui/plan_screen.dart';
@@ -24,12 +25,22 @@ Future<void> _push(
   return replace ? nav.pushReplacement(route) : nav.push(route);
 }
 
-/// Opens the Session (the live one, or Start).
+/// Opens the Session (the live one, or Start); [entry] (Home) keeps it on
+/// one subject and may first ask for that subject's open session.
 Future<void> openSession(
   BuildContext context,
   TutorServices s, {
+  SessionEntry? entry,
   bool replace = false,
-}) => _push(context, SessionScreen(services: s), replace: replace);
+}) => _push(
+  context,
+  SessionScreen(
+    services: s,
+    subject: entry?.subject,
+    resume: entry?.resume ?? false,
+  ),
+  replace: replace,
+);
 
 /// Opens [subject]'s plan.
 Future<void> openPlan(BuildContext context, TutorServices s, String subject) =>

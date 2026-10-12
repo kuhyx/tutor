@@ -66,11 +66,14 @@ class RequestBody {
     'requires': requires,
   });
 
-  /// `session_start`: null [card] = next open card.
-  factory sessionStart({String? subject, String? card}) => RequestBody._(
-    RequestKind.sessionStart,
-    {'subject': subject, 'card': card},
-  );
+  /// `session_start`: null [card] = next open card; [resume] (Continue)
+  /// first makes the subject's open session live (DOCS-contract §4).
+  factory sessionStart({String? subject, String? card, bool resume = false}) =>
+      RequestBody._(RequestKind.sessionStart, {
+        'subject': subject,
+        'card': card,
+        if (resume) 'resume': true,
+      });
 
   /// `session_resume`.
   factory sessionResume(String session) =>
