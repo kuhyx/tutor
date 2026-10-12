@@ -1,5 +1,5 @@
 /// The Session's side panel (`index.html` aside): target card, Switch card,
-/// Mark card done, Edit cards, Report a problem, mastered concepts.
+/// Mark card done, Stop here, Edit cards, Report a problem, mastered concepts.
 library;
 
 import 'package:design_system/design_system.dart';
@@ -17,6 +17,7 @@ class SessionSide extends StatelessWidget {
     required this.mastered,
     required this.onSwitch,
     required this.onMarkDone,
+    required this.onStop,
     required this.onEdit,
     required this.onReport,
     required this.onHistory,
@@ -37,6 +38,9 @@ class SessionSide extends StatelessWidget {
 
   /// Count the live card as done.
   final VoidCallback? onMarkDone;
+
+  /// End the live session before its card is done (old page's Stop here).
+  final VoidCallback? onStop;
 
   /// Open the card editor.
   final VoidCallback onEdit;
@@ -74,6 +78,7 @@ class SessionSide extends StatelessWidget {
               onPressed: onMarkDone,
               child: const Text('Mark card done'),
             ),
+            OutlinedButton(onPressed: onStop, child: const Text('Stop here')),
             OutlinedButton(onPressed: onEdit, child: const Text('Edit cards')),
             OutlinedButton(onPressed: onHistory, child: const Text('History')),
             TextButton(

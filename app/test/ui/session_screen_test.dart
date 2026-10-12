@@ -131,6 +131,20 @@ void main() {
     expect(start['body'], {'subject': 'car', 'card': 'eng-valves'});
   });
 
+  testWidgets('live session: Stop here before the card is done', (t) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    await pumpScreen(t, SessionScreen(services: s), settle: false);
+    await _feed(t, db, stream);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Stop here'));
+    await sent(t);
+    final stop = await answer(t, db, stream);
+    expect(stop['kind'], 'stop');
+    expect(stop['body'], {'session': fixtureLiveSid});
+  });
+
   testWidgets('no live session: Start', (t) async {
     final db = fixtureDb();
     final stream = FakeStream();

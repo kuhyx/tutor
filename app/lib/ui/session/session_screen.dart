@@ -127,6 +127,10 @@ class _SessionScreenState extends State<SessionScreen> {
         onMarkDone: live && meta.card != null && !meta.cardDone
             ? () => _run(RequestBody.cardDone(meta.subject, meta.card!.id))
             : null,
+        // Card done: CardEnd below offers Stop here instead.
+        onStop: live && !meta.cardDone
+            ? () => _run(RequestBody.stop(view!.sid))
+            : null,
         onEdit: () => openEditor(context, _s, subject: meta?.subject),
         onReport: () =>
             showReport(context, _s, route: '/session', session: view?.sid),
