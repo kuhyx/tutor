@@ -125,6 +125,41 @@ void main() {
     expect(find.text('Undo edits'), findsOneWidget);
   });
 
+  testWidgets('own Save: the bump before its result raises no banner', (
+    t,
+  ) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    await pumpScreen(
+      t,
+      PlanScreen(services: s, subject: 'garden'),
+      size: const Size(1000, 2400),
+    );
+    _connect(db, stream);
+    await t.tap(find.byTooltip('Move down').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Save edits'));
+    await sent(t);
+    // The worker applied the edit and bumped rev before the result came.
+    final saved = getAt(db.root, '$_garden/plan/modules')! as List<Object?>;
+    db.root = setAt(db.root, '$_garden/plan/modules', [
+      saved[1],
+      saved[0],
+      ...saved.skip(2),
+    ]);
+    db.root = setAt(db.root, '$_garden/plan/rev', 2);
+    final next = (getAt(db.root, '$_rev/catalog')! as int) + 1;
+    db.root = setAt(db.root, '$_rev/catalog', next);
+    stream.listens[_rev]!.add(RtdbPut('/catalog', next));
+    await sent(t);
+    expect(find.text('Plan changed — reload'), findsNothing);
+    await answer(t, db, stream, data: {'plan_rev': 2});
+    expect(find.text('Plan changed — reload'), findsNothing);
+    expect(find.text('1. Soil and containers'), findsOneWidget);
+    expect(find.text('Undo edits'), findsNothing);
+  });
+
   testWidgets('Home refreshes in place, but not while under Plan', (t) async {
     final db = fixtureDb();
     final stream = FakeStream();

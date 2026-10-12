@@ -10,13 +10,13 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
-import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/plan/plan_ops.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/module_tile.dart';
 import 'package:tutor/ui/plan_editor.dart';
 import 'package:tutor/util/refresher.dart';
 
@@ -38,11 +38,16 @@ class PlanScreen extends StatefulWidget {
 class _PlanScreenState extends State<PlanScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
   // The plan on screen stays put while a refetch runs; a change that would
-  // replace a draft with unsaved edits waits behind a banner instead.
+  // replace a draft with unsaved edits waits behind a banner instead. Not
+  // while our own request runs: the bump it causes can land before its
+  // result, and the plan arriving then is the one just sent.
   late final _data = Refresher<SubjectData?>(
     () => widget.services.catalog.fetch(widget.subject),
     hold: (now, next) =>
-        _editorDirty && _editing(now) && !samePlan(now?.plan, next?.plan),
+        _editorDirty &&
+        !_busy &&
+        _editing(now) &&
+        !samePlan(now?.plan, next?.plan),
   );
   late final StreamSubscription<int> _changes;
   final _comment = TextEditingController();
@@ -67,6 +72,11 @@ class _PlanScreenState extends State<PlanScreen> {
     _comment.dispose();
     super.dispose();
   }
+
+  bool get _busy => switch (_runner.status.value) {
+    RelayQueued() || RelayWorking() => true,
+    _ => false,
+  };
 
   static bool _editing(SubjectData? d) =>
       d != null &&
@@ -203,7 +213,7 @@ class _PlanScreenState extends State<PlanScreen> {
         ] else ...[
           const SectionHeader('Modules'),
           for (final m in plan.modules)
-            _ModuleProgressTile(
+            ModuleProgressTile(
               module: m,
               onRetry: () => _send(RequestBody.planApprove(data.id, plan.rev)),
             ),
@@ -213,35 +223,6 @@ class _PlanScreenState extends State<PlanScreen> {
           for (final h in plan.history) Text('rev ${h.rev}: ${h.comment}'),
         ],
       ],
-    );
-  }
-}
-
-class _ModuleProgressTile extends StatelessWidget {
-  const new({required this.module, required this.onRetry});
-
-  final Module module;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final m = module;
-    final failed = m.status == ModuleStatus.failed;
-    return Card(
-      child: ListTile(
-        title: Text(m.title),
-        subtitle: Text(
-          [
-            m.status.name,
-            if (m.cards > 0) '${m.cards} cards',
-            'recall ${(m.recall * 100).round()}%',
-            if (failed && m.error != null) m.error!,
-          ].join(' · '),
-        ),
-        trailing: failed
-            ? TextButton(onPressed: onRetry, child: const Text('Retry'))
-            : null,
-      ),
     );
   }
 }
