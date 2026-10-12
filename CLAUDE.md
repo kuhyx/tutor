@@ -34,7 +34,7 @@ Read README.md first. These are the invariants that are easy to break.
 ## Commands
 
 - run: `./run.sh` (opens the tutor on 127.0.0.1:8778, starts it from the live release if down; `--no-open` skips the browser)
-- deploy: `scripts/tutor_deploy.sh` (smoke test, wait for idle, swap the live server)
+- deploy: app build (below) first, then `scripts/tutor_deploy.sh` (refuses a missing or stale web build; smoke test, wait for idle, swap the live server)
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`
 - lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy tutor tests`

@@ -30,6 +30,7 @@ readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/tutor}"
 readonly DECK_SRC="${TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
 # The live server also serves the Flutter clients over the Firebase relay.
 readonly RELAY="${TUTOR_RELAY:-1}"
+readonly WEB_BUILD="fvm flutter build web --release --base-href /app/"
 SRC="$REPO"
 PORT=8778
 WAIT_LIMIT=300
@@ -96,6 +97,20 @@ copy_release() {
     mkdir -p "$1"
     rsync -a --exclude .venv --exclude .git --exclude __pycache__ \
         --exclude node_modules --exclude build "$SRC/" "$1/"
+    # The Flutter web build (/app/) is built as its own step, not here: it is
+    # slow, and a release must never ship a build older than the app source.
+    local web="$SRC/app/build/web"
+    if [[ ! -f "$web/main.dart.js" ]]; then
+        echo "No web build; first run: (cd app && $WEB_BUILD)" >&2
+        exit 1
+    fi
+    if [[ -n "$(find "$SRC/app/lib" "$SRC/app/web" "$SRC/app/pubspec.lock" \
+        -newer "$web/main.dart.js" -print -quit)" ]]; then
+        echo "The web build is older than app/; rebuild: (cd app && $WEB_BUILD)" >&2
+        exit 1
+    fi
+    mkdir -p "$1/app/build"
+    rsync -a "$web/" "$1/app/build/web/"
 }
 
 # The release must start, resume the same session and serve parseable JS.
@@ -140,6 +155,8 @@ smoke_test() {
     done
     echo "Smoke test: node --check ok for ${scripts[*]}"
     curl -sf -m 5 "http://127.0.0.1:$port/api/cards" | jq -e 'length > 0' >/dev/null
+    curl -sf -m 5 -o /dev/null "http://127.0.0.1:$port/app/" ||
+        { echo "Smoke test: /app/ does not serve the web build" >&2; exit 1; }
     kill "$SMOKE_PID"
     SMOKE_PID=""
     echo "Smoke test passed (session '${got:-none}')."
