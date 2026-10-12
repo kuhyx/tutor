@@ -201,7 +201,9 @@ pass the same vectors.
  "days":{"2026-10-12":{"minutes":23,"taught":4,"reviews":31}}}
 ```
 `minutes` from the verified ledger (`progress.ledger_minutes_by_day`). Backs
-the Progress view and the header counter. `active_minutes` = engaged time of
+the Progress view and the header counter. `target` = earned_time's weekday
+quota (`tutor_quota_for`: 15 Tue-Thu, 30 Mon/Fri, 50 weekend; 60 before
+2026-10-12), the minutes the full reward takes. `active_minutes` = engaged time of
 the sessions started today: the Session header shows the DAY (a new card is
 a new session); that session's own minutes are secondary.
 

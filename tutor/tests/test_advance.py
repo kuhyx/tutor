@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from tutor.credit import target_minutes
 from tutor.curriculum import handlers
 from tutor.curriculum.advance import fold_and_advance, pending
 from tutor.curriculum.context import Context, wall_ms
@@ -61,7 +62,8 @@ def test_stats_counts_days(tmp_path: Path) -> None:
     fakes.now[0] = T0 + D
     out = stats(ctx, minutes={"2000-01-01": 5})
     today = out["today"]
-    assert (today["new"], today["new_cap"], today["target"]) == (0, 10, 60)
+    want = target_minutes((T0 + D) / 1000)  # the day's weekday quota
+    assert (today["new"], today["new_cap"], today["target"]) == (0, 10, want)
     assert today["credited_minutes"] == 0
     assert out["days"]["2000-01-01"] == {"minutes": 5, "taught": 0, "reviews": 0}
     assert sum(d["taught"] for d in out["days"].values()) == 1

@@ -204,7 +204,7 @@ class CardFlow:
             "clock": conv.clock.snapshot(self.time()) if conv else {},
             "credited_minutes": min(self.minutes_today, TARGET_MINUTES),
             "session_credited_minutes": unit_credit.paid_minutes(self.receipts),
-            "target_minutes": TARGET_MINUTES,
+            "target_minutes": credit.target_minutes(self.time()),
             "receipts": self.receipts,
             "mastered": self.source.mastered(),
             "check_open": bool(conv and conv.check.open),

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from tutor import history, progress, resume
 from tutor.cardflow import TARGET_MINUTES
-from tutor.credit import local_day
+from tutor.credit import local_day, target_minutes
 from tutor.curriculum.rules import NEW_CAP, new_today
 
 if TYPE_CHECKING:
@@ -60,7 +60,7 @@ def stats(ctx: Context, minutes: dict[str, int] | None = None) -> dict[str, Any]
             "day": today,
             "credited_minutes": min(per_day.get(today, 0), TARGET_MINUTES),
             "active_minutes": active_minutes(ctx.data_dir / "sessions", today),
-            "target": TARGET_MINUTES,
+            "target": target_minutes(now / 1000),
             "new": new_today(folded, now),
             "new_cap": NEW_CAP,
         },

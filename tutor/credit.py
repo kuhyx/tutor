@@ -50,6 +50,8 @@ if TYPE_CHECKING:
     from tutor.clock import BlockReady
 
 DAILY_CAP_ERROR: Final = "daily cap"
+# The daily target before earned_time's weekday quota (one unit per minute).
+DAILY_TARGET_MINUTES: Final = 60
 _logger = logging.getLogger(__name__)
 
 
@@ -75,6 +77,16 @@ def local_day(ts: float) -> tuple[str, float, float]:
     # Re-localise the next midnight so a DST change in between is honoured.
     following = (midnight + timedelta(days=1)).replace(tzinfo=None).astimezone()
     return moment.date().isoformat(), midnight.timestamp(), following.timestamp()
+
+
+def target_minutes(ts: float) -> int:
+    """Minutes the full daily reward takes on ``ts``'s local day.
+
+    earned_time's weekday quota (15 Tue-Thu, 30 Mon/Fri, 50 weekend from
+    2026-10-12); 60, one unit per minute, on days before it.
+    """
+    day = datetime.fromisoformat(local_day(ts)[0]).date()
+    return earned_time.tutor_quota_for(day) or DAILY_TARGET_MINUTES
 
 
 def entry_id_for(session_id: str, last_minute: int) -> str:

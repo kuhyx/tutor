@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from tutor import credit
 from tutor.engine import Engine
 from tutor.session import SessionError
 from tutor.store import Store
@@ -221,7 +222,7 @@ def test_the_daily_total_shown_never_exceeds_the_target(tmp_path: Path) -> None:
     clock.advance(70)
     state = asyncio.run(engine.reply(ANSWER))
     assert state["credited_minutes"] == 60
-    assert state["target_minutes"] == 60
+    assert state["target_minutes"] == credit.target_minutes(clock())
     assert state["session_credited_minutes"] == 1
 
 

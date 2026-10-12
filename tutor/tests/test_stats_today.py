@@ -7,9 +7,11 @@ A new card is a new session, so the Session header shows the day's totals
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import json
 from typing import TYPE_CHECKING, Any
 
+from tutor.credit import target_minutes
 from tutor.curriculum.stats import active_minutes, stats
 from tutor.tests._cur import make_ctx
 
@@ -53,3 +55,13 @@ def test_stats_today_carries_active_minutes(tmp_path: Path) -> None:
     ctx, _ = make_ctx(tmp_path)
     today = stats(ctx, minutes={})["today"]
     assert today["active_minutes"] == 0
+
+
+def test_the_target_follows_the_weekday_quota() -> None:
+    # earned_time from 2026-10-12: 15 Tue-Thu, 30 Mon/Fri, 50 at the weekend.
+    def on(day: int) -> int:
+        noon = datetime(2026, 10, day, 12, tzinfo=UTC).astimezone()
+        return target_minutes(noon.replace(hour=12).timestamp())
+
+    assert [on(d) for d in (12, 13, 14, 15, 16, 17, 18)] == [30, 15, 15, 15, 30, 50, 50]
+    assert on(11) == 60  # before the quota: one unit per minute

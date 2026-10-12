@@ -1,5 +1,5 @@
 /// Home (curriculum §8): subjects with status/progress, a new subject from
-/// free text, due reviews, PC presence, credited x/60, new x/10.
+/// free text, due reviews, PC presence, credited x/today's target, new x/10.
 library;
 
 import 'dart:async';
