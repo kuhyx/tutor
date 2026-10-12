@@ -20,6 +20,10 @@ ExecStart=%h/src/tutor/.venv/bin/python -m tutor --port 8778
 StandardOutput=append:%h/.local/state/tutor/server.log
 StandardError=append:%h/.local/state/tutor/server.log
 # SIGTERM drains: uvicorn finishes in-flight requests, the relay its lanes.
+# Only the server gets it (as the old `kill -TERM <pid>` deploy did): the
+# default control-group kill also hit the model's claude CLI child, whose
+# reader then logged a fatal exit 143 on every restart.
+KillMode=mixed
 Restart=on-failure
 RestartSec=5s
 
