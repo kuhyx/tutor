@@ -24,6 +24,7 @@ import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/ui/app.dart';
+import 'package:tutor/ui/ui_zoom.dart';
 import 'package:tutor/util/ulid.dart';
 
 import '../../test/support/fake_rtdb.dart';
@@ -111,6 +112,10 @@ void main() {
       config: _config,
       open: _open,
       initialRoute: Uri.base.queryParameters['screen'],
+      // `&zoom=1.5` for screenshots of the Display size setting.
+      zoom: UiZoom(
+        initial: double.tryParse(Uri.base.queryParameters['zoom'] ?? '') ?? 1,
+      ),
     ),
   );
 }

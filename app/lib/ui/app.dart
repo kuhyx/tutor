@@ -8,6 +8,7 @@ import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/sign_in_screen.dart';
 import 'package:tutor/ui/ui_scale.dart';
+import 'package:tutor/ui/ui_zoom.dart';
 
 /// The app.
 class TutorApp extends StatelessWidget {
@@ -16,6 +17,7 @@ class TutorApp extends StatelessWidget {
     required this.config,
     required this.open,
     this.initialRoute,
+    this.zoom,
     super.key,
   });
 
@@ -28,12 +30,19 @@ class TutorApp extends StatelessWidget {
   /// Route opened over Home once signed in (`ui/nav.dart`).
   final String? initialRoute;
 
+  /// The "Display size" zoom (`main` loads it from this install's store);
+  /// null = 100%, unsaved.
+  final UiZoom? zoom;
+
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Tutor',
     theme: buildLightTheme(),
     darkTheme: buildDarkTheme(),
-    builder: (context, child) => UiScale(child: child!),
+    builder: (context, child) => UiZoomHost(
+      zoom: zoom,
+      child: UiScale(child: child!),
+    ),
     home: config.isComplete
         ? _Gate(open: open, initialRoute: initialRoute)
         : _Message(

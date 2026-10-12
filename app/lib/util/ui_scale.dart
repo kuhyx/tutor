@@ -31,3 +31,18 @@ double uiScaleFor(Size logical) {
   );
   return (s.clamp(1.0, kMaxUiScale) * 100).round() / 100;
 }
+
+/// The smallest "Display size" zoom on top of [uiScaleFor] (50%).
+const double kMinZoom = 0.5;
+
+/// The largest "Display size" zoom (200%).
+const double kMaxZoom = 2;
+
+/// "Display size" steps per 1.0 of zoom (10% steps).
+const int kZoomStepsPerUnit = 10;
+
+/// [zoom] clamped to [kMinZoom]..[kMaxZoom] and snapped to a whole step, so
+/// repeated Ctrl + / Ctrl - presses never drift (0.1 is inexact in binary).
+double snapZoom(double zoom) =>
+    (zoom.clamp(kMinZoom, kMaxZoom) * kZoomStepsPerUnit).round() /
+    kZoomStepsPerUnit;

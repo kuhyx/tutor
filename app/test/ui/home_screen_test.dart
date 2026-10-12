@@ -119,6 +119,13 @@ void main() {
     }
     await t.tap(find.byTooltip('More'));
     await t.pumpAndSettle();
+    await t.tap(find.text('Display size'));
+    await t.pumpAndSettle();
+    expect(find.text('100%'), findsOneWidget);
+    await t.tap(find.text('Done'));
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('More'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Report a problem'));
     await t.pumpAndSettle();
     expect(find.text('Save report'), findsOneWidget);

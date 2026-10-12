@@ -15,6 +15,7 @@ import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/util/refresher.dart';
@@ -154,12 +155,14 @@ class _HomeScreenState extends State<HomeScreen> {
             'progress' => _go(() => openProgress(context, _s)),
             'editor' => _go(() => openEditor(context, _s)),
             'report' => showReport(context, _s, route: '/'),
+            'display' => showDisplaySize(context),
             _ => _signOut(),
           },
           itemBuilder: (_) => [
             const PopupMenuItem(value: 'history', child: Text('History')),
             const PopupMenuItem(value: 'progress', child: Text('Progress')),
             const PopupMenuItem(value: 'editor', child: Text('Edit cards')),
+            const PopupMenuItem(value: 'display', child: Text('Display size')),
             const PopupMenuItem(
               value: 'report',
               child: Text('Report a problem'),

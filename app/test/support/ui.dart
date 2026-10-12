@@ -9,6 +9,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
+import 'package:tutor/ui/ui_zoom.dart';
 
 import '../../tool/fixture/fixture_data.dart';
 import 'fake_rtdb.dart';
@@ -42,7 +43,14 @@ Future<void> pumpScreen(
     ..physicalSize = size
     ..devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(MaterialApp(theme: buildLightTheme(), home: screen));
+  // The zoom host as in TutorApp, so ⋮ -> Display size works in screens.
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildLightTheme(),
+      builder: (context, child) => UiZoomHost(child: child!),
+      home: screen,
+    ),
+  );
   // A screen still loading spins forever: no settling then.
   if (settle) {
     await tester.pumpAndSettle();
