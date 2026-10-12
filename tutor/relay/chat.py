@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor import history, resume
 from tutor.relay.errors import RequestError
+from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.views import key
 
 if TYPE_CHECKING:
@@ -38,10 +39,22 @@ def _sessions(engine: Engine) -> Path:
     return engine.store.root / "sessions"
 
 
+async def _home_pick(ctx: RequestContext) -> str | None:
+    """``prefs.current_subject`` (picked on Home), if it is a slug."""
+    value = await ctx.rtdb.get("prefs/current_subject")
+    if isinstance(value, str) and len(value) <= SLUG_MAX and SLUG.fullmatch(value):
+        return value
+    return None
+
+
 async def session_start(ctx: RequestContext) -> dict[str, Any]:
-    """Start a session on ``card`` (or the next open card) of ``subject``."""
+    """Start a session on ``card`` (or the next open card) of ``subject``.
+
+    No ``subject``: Home's pick, else the live one (curriculum contract §6).
+    """
     engine = ctx.engine
-    await engine.start(ctx.body["card"], subject=ctx.body["subject"])
+    subject = ctx.body["subject"] or await _home_pick(ctx)
+    await engine.start(ctx.body["card"], subject=subject)
     return {"session": engine.session_id}
 
 
