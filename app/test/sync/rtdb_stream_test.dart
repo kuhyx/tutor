@@ -153,4 +153,39 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(s.requests, hasLength(1));
   });
+
+  test('a listen cancelled while connecting aborts and lets go', () async {
+    // RTDB is HTTP/1.1: a browser has 6 connections to it. A leaked listen
+    // starved the next session's meta/msgs (empty chat after Next card).
+    final server = _Server();
+    final gate = Completer<void>();
+    var released = false;
+    final body = StreamController<List<int>>(onCancel: () => released = true);
+    server.script.add((_) => http.StreamedResponse(body.stream, 200));
+    final client = MockClient.streaming((req, _) async {
+      server.requests.add(req);
+      await gate.future;
+      return server.script.removeAt(0)(req);
+    });
+    final stream = RtdbStream(
+      RtdbClient(
+        databaseUrl: 'https://db',
+        idToken: () async => 'tok',
+        httpClient: client,
+      ),
+      sleep: (d) async {},
+    );
+    final sub = stream.listen('tutor/v1/live').listen((_) {});
+    await Future<void>.delayed(Duration.zero);
+    final req = server.requests.single as http.Abortable;
+    var aborted = false;
+    unawaited(req.abortTrigger!.then((_) => aborted = true));
+    await sub.cancel();
+    await Future<void>.delayed(Duration.zero);
+    expect(aborted, isTrue);
+    gate.complete();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(released, isTrue);
+  });
 }

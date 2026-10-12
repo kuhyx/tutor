@@ -73,3 +73,25 @@ class NotLiveStatus extends StatelessWidget {
     ),
   );
 }
+
+/// A session with nothing to show yet: the first tutor turn (or the
+/// request that finds the session) is on its way.
+class Preparing extends StatelessWidget {
+  /// Creates the wait.
+  const new({super.key});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'The tutor is preparing this card...',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      ],
+    ),
+  );
+}

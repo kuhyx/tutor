@@ -64,6 +64,7 @@ Map<String, Object?> fixtureTree(int now) {
       'today': {
         'day': '2026-10-12',
         'credited_minutes': 23,
+        'active_minutes': 31,
         'target': 60,
         'new': 4,
         'new_cap': 10,

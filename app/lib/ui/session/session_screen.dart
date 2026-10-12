@@ -14,6 +14,7 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
+import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_side.dart';
@@ -54,6 +55,10 @@ class _SessionScreenState extends State<SessionScreen> {
     subject: widget.subject,
   );
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
+  late final TodayFeed _today = TodayFeed(
+    client: widget.services.client,
+    rev: widget.services.rev,
+  );
   late final AppLifecycleListener _lifecycle;
   final _scroll = ScrollController();
   Map<String, SubjectData> _subjects = const {};
@@ -64,6 +69,7 @@ class _SessionScreenState extends State<SessionScreen> {
   void initState() {
     super.initState();
     _feed.start();
+    _today.start();
     _s.presence.start();
     _lifecycle = AppLifecycleListener(
       onShow: () {
@@ -85,6 +91,7 @@ class _SessionScreenState extends State<SessionScreen> {
     _lifecycle.dispose();
     unawaited(_feed.dispose());
     unawaited(_runner.dispose());
+    unawaited(_today.dispose());
     _scroll.dispose();
     super.dispose();
   }
@@ -95,6 +102,7 @@ class _SessionScreenState extends State<SessionScreen> {
     if (status is RelayDone) {
       final sid = status.data['session'];
       if (sid is String && mounted) _feed.follow(sid);
+      if (mounted) unawaited(_today.load());
     }
     return status;
   }
@@ -129,7 +137,12 @@ class _SessionScreenState extends State<SessionScreen> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([_feed.view, _feed.loaded, _runner.status]),
+    listenable: Listenable.merge([
+      _feed.view,
+      _feed.loaded,
+      _runner.status,
+      _today.today,
+    ]),
     builder: (context, _) {
       final view = _feed.view.value;
       final meta = view?.meta;
@@ -162,6 +175,7 @@ class _SessionScreenState extends State<SessionScreen> {
           services: _s,
           feed: _feed,
           view: view,
+          today: _today.today.value,
           runner: _runner,
           scroll: _scroll,
           now: widget.now ?? DateTime.now,

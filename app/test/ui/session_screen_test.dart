@@ -37,7 +37,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsWidgets);
     await _feed(t, db, stream);
     await t.pumpAndSettle();
-    expect(find.textContaining('Active 14 min'), findsOneWidget);
+    expect(find.textContaining('This card: 14 min'), findsOneWidget);
     expect(find.textContaining('Stalled'), findsOneWidget);
     expect(find.text('Target card'), findsOneWidget); // wide: side inline
     expect(find.textContaining('Comprehension check'), findsOneWidget);
@@ -83,6 +83,7 @@ void main() {
       db,
       stream,
       data: {'session': '20261012-180000-aaaa'},
+      settle: false, // the new session's first turn is on its way
     );
     expect(next['kind'], 'next');
     expect(

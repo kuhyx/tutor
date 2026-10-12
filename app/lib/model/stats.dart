@@ -12,12 +12,14 @@ class Today {
     required this.target,
     required this.newCards,
     required this.newCap,
+    this.activeMinutes,
   });
 
   /// Parses `stats.today`.
   factory fromJson(Json j) => Today(
     day: str(j, 'day'),
     creditedMinutes: integer(j, 'credited_minutes'),
+    activeMinutes: intOr(j, 'active_minutes'),
     target: integer(j, 'target'),
     newCards: integer(j, 'new'),
     newCap: integer(j, 'new_cap'),
@@ -28,6 +30,9 @@ class Today {
 
   /// Verified minutes today.
   final int creditedMinutes;
+
+  /// Engaged minutes of today's sessions (null: an older worker).
+  final int? activeMinutes;
 
   /// Daily target (60).
   final int target;
@@ -42,6 +47,7 @@ class Today {
   Json toJson() => {
     'day': day,
     'credited_minutes': creditedMinutes,
+    'active_minutes': ?activeMinutes,
     'target': target,
     'new': newCards,
     'new_cap': newCap,

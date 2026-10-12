@@ -153,4 +153,26 @@ void main() {
     await w.dispose();
     await sub.cancel();
   });
+
+  test('stats moves: one shared listen for both streams', () async {
+    final s = _FakeStream();
+    final w = RevWatcher(s, binding: binding);
+    final stats = <int>[];
+    final catalog = <int>[];
+    final a = w.statsChanges.listen(stats.add);
+    final b = w.catalogChanges.listen(catalog.add);
+    expect(s.paths, ['tutor/v1/rev']); // the second listener shares it
+    s.events!
+      ..add(const RtdbPut('/', {'catalog': 1, 'stats': 4}))
+      ..add(const RtdbPut('/', {'catalog': 1, 'stats': 4}))
+      ..add(const RtdbPatch('/', {'stats': 5}));
+    await Future<void>.delayed(Duration.zero);
+    expect(stats, [5]);
+    expect(catalog, isEmpty);
+    await b.cancel();
+    expect(w.listening, isTrue); // stats still wants it
+    await a.cancel();
+    expect(w.listening, isFalse);
+    await w.dispose();
+  });
 }

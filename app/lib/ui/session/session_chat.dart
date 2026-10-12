@@ -8,11 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/model/request_body.dart';
+import 'package:tutor/model/stats.dart';
 import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/session/session_feed.dart';
+import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/composer.dart';
@@ -26,6 +28,7 @@ class SessionChat extends StatefulWidget {
     required this.services,
     required this.feed,
     required this.view,
+    required this.today,
     required this.runner,
     required this.scroll,
     required this.now,
@@ -43,6 +46,9 @@ class SessionChat extends StatefulWidget {
 
   /// Session on screen.
   final SessionView? view;
+
+  /// `stats.today` for the header (null until read).
+  final Today? today;
 
   /// Request runner.
   final RequestRunner runner;
@@ -97,6 +103,18 @@ class _SessionChatState extends State<SessionChat> {
         askedOf(last.message).isNotEmpty;
     _follow(messages.length + (busy == null ? 0 : 1));
     final clock = meta?.clock;
+    final header = meta == null
+        ? null
+        : headerLines(
+            widget.today,
+            activeSeconds: meta.clock.activeSeconds,
+            sessionCredited: meta.creditedMinutes,
+          );
+    final empty = view == null || (messages.isEmpty && busy == null);
+    // Nothing to show yet, but something is on its way: the request that
+    // finds the session, or a live session's first tutor turn.
+    final waiting =
+        widget.runner.busy || (view != null && !(meta?.stopped ?? false));
     return Column(
       children: [
         if (meta != null)
@@ -112,12 +130,9 @@ class _SessionChatState extends State<SessionChat> {
               runSpacing: AppSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  'Active ${(clock!.activeSeconds / 60).floor()} min'
-                  ' · credited ${meta.creditedMinutes}',
-                  style: text.bodySmall,
-                ),
-                if (clock.pausedReason != null)
+                Text(header!.$1, style: text.titleSmall),
+                Text(header.$2, style: text.bodyMedium),
+                if (clock!.pausedReason != null)
                   Pill('Clock paused: ${clock.pausedReason}', warn: true),
                 if (live &&
                     clock.stalledAt(widget.now().millisecondsSinceEpoch))
@@ -128,8 +143,10 @@ class _SessionChatState extends State<SessionChat> {
           ),
         PcOfflineBanner(widget.services.presence.state),
         Expanded(
-          child: view == null
-              ? (widget.feed.loaded.value
+          child: empty
+              ? (waiting
+                    ? const Preparing()
+                    : widget.feed.loaded.value || view != null
                     ? const EmptyState(
                         icon: Icons.chat_bubble_outline,
                         title: 'No session yet',

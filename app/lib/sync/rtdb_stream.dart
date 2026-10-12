@@ -5,6 +5,11 @@
 /// narrowly (DOCS-contract §9). `auth_revoked` reconnects at once with a
 /// fresh token; network failures and clean ends back off 1 s .. 30 s;
 /// `cancel` (rules changed) ends the stream for good.
+///
+/// RTDB speaks HTTP/1.1, so a browser holds at most 6 connections to it and
+/// every listen is one. A cancelled listen therefore aborts its request, even
+/// one still connecting: a leaked stream starved the next session's listens
+/// and the chat stayed empty after Next card (2026-10-12).
 library;
 
 import 'dart:async';
@@ -39,6 +44,7 @@ class RtdbStream {
   }) {
     late final StreamController<RtdbEvent> out;
     StreamSubscription<String>? sub;
+    final abort = Completer<void>();
     var stopped = false;
     void emit(RtdbEvent event) {
       if (!stopped && !out.isClosed) out.add(event);
@@ -90,8 +96,15 @@ class RtdbStream {
       while (!stopped) {
         var end = _End.backoff;
         try {
-          final res = await _open(await client.uri(path, query: query));
-          if (stopped) break;
+          final res = await _open(
+            await client.uri(path, query: query),
+            abort.future,
+          );
+          if (stopped) {
+            // Cancelled while connecting: let go of the response too.
+            await res.stream.listen(null).cancel();
+            break;
+          }
           attempt = 0;
           emit(const RtdbConnected());
           end = await consume(res);
@@ -112,6 +125,7 @@ class RtdbStream {
       onListen: () => unawaited(run()),
       onCancel: () async {
         stopped = true;
+        if (!abort.isCompleted) abort.complete();
         await sub?.cancel();
       },
     );
@@ -120,10 +134,10 @@ class RtdbStream {
 
   /// GET with `Accept: text/event-stream`, following redirects by hand so
   /// the Accept header survives a 307 to another RTDB host.
-  Future<http.StreamedResponse> _open(Uri uri) async {
+  Future<http.StreamedResponse> _open(Uri uri, Future<void> abort) async {
     var target = uri;
     for (var hop = 0; hop < 5; hop++) {
-      final request = http.Request('GET', target)
+      final request = http.AbortableRequest('GET', target, abortTrigger: abort)
         // A browser's fetch cannot hand a redirect back (http's
         // BrowserClient raises instead) and follows it keeping Accept, so
         // only the VM follows by hand.
