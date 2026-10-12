@@ -17,7 +17,7 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from tutor import deck_edit, diagrams, feedback, feedback_snapshot, images
+from tutor import deck_edit, diagrams, feedback, feedback_snapshot, images, webapp
 from tutor.engine import DECK_DIR, Engine
 from tutor.routes_editor import editor_routes
 from tutor.routes_sessions import session_routes
@@ -109,6 +109,9 @@ def create_app(
         Route("/api/feedback", _feedback_route(eng), methods=["POST"]),
         Route("/media/{name}", media),
         Mount("/static", _RevalidatedStatic(directory=STATIC)),
+        # The Flutter client (desktop: Chrome --app window); `/` stays the
+        # old page until the Flutter one is at parity and retires it.
+        *webapp.webapp_routes(*webapp.paths_from_env()),
     ]
 
     @asynccontextmanager
