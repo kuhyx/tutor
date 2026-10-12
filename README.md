@@ -17,7 +17,7 @@ scripts/setup_dev.sh   # .venv with tutor (editable) + test/lint tools
 ```
 
 The live server never runs from the working tree. `scripts/tutor_deploy.sh`
-copies a release into `~/.local/lib/automation-tutor-live/releases/`,
+copies a release into `~/.local/lib/tutor-live/releases/`,
 smoke-tests it on a scratch port against a copy of today's sessions, waits
 until no reply is in flight, then swaps it in. The session resumes from its
 transcript. `scripts/tutor_launch.sh` starts a release in its own
@@ -25,10 +25,10 @@ transcript. `scripts/tutor_launch.sh` starts a release in its own
 
 | What | Where |
 | --- | --- |
-| sessions, transcripts | `~/.local/share/automation_tutor` (`AUTOMATION_TUTOR_DATA`) |
-| earned-time ledger | `~/.local/share/automation_tutor/ledger.json` |
-| server log | `~/.local/state/automation_tutor/server.log` |
-| releases | `~/.local/lib/automation-tutor-live` (`TUTOR_LIVE_ROOT`) |
+| sessions, transcripts | `~/.local/share/tutor` (`TUTOR_DATA`) |
+| earned-time ledger | `~/.local/share/tutor/ledger.json` |
+| server log | `~/.local/state/tutor/server.log` |
+| releases | `~/.local/lib/tutor-live` (`TUTOR_LIVE_ROOT`) |
 
 ## The deck
 
@@ -49,7 +49,7 @@ The **Edit cards** view (side panel, or `#edit` in the URL) edits a card's
 front, back, source, excerpt and `requires`, or adds a card to a topic. Ids
 are never editable and nothing is deleted. A save runs the card checks and the
 250-line cap, and writes nothing if one fails. It writes the repo deck
-(`AUTOMATION_TUTOR_DECK_SRC`, which `run.sh` and `scripts/tutor_deploy.sh`
+(`TUTOR_DECK_SRC`, which `run.sh` and `scripts/tutor_deploy.sh`
 set) and the live release's own copy. Without the variable the view is
 read-only.
 

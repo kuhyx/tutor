@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.fresh and engine.resume_latest():
         print(f"resumed session {engine.session_id}", file=sys.stderr)
     app = create_app(engine)
-    print(f"automation tutor: http://127.0.0.1:{args.port}/", file=sys.stderr)
+    print(f"tutor: http://127.0.0.1:{args.port}/", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
     return 0
 

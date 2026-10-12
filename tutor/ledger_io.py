@@ -1,8 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Where the tutor's signed ledger lives, and reading / writing it safely.
 
-Paths resolve at call time: ``AUTOMATION_TUTOR_DATA`` moves the data dir,
-``AUTOMATION_TUTOR_KEY`` the key. The real key is root-owned and only read.
+Paths resolve at call time: ``TUTOR_DATA`` moves the data dir,
+``TUTOR_KEY`` the key. The real key is root-owned and only read.
 """
 
 from __future__ import annotations
@@ -44,10 +44,10 @@ class Paths:
 
 def default_paths() -> Paths:
     """The active locations, honouring the sandbox environment variables."""
-    data = os.environ.get("AUTOMATION_TUTOR_DATA")
-    key = os.environ.get("AUTOMATION_TUTOR_KEY")
+    data = os.environ.get("TUTOR_DATA")
+    key = os.environ.get("TUTOR_KEY")
     return Paths(
-        data_dir=Path(data) if data else Path.home() / ".local/share/automation_tutor",
+        data_dir=Path(data) if data else Path.home() / ".local/share/tutor",
         key_file=Path(key) if key else _REAL_KEY,
     )
 

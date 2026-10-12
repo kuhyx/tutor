@@ -28,8 +28,8 @@ def sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Paths:
     """Every test writes to a temp ledger with a temp key."""
     key = tmp_path / "hmac.key"
     key.write_bytes(b"test-key-not-the-real-one\n")
-    monkeypatch.setenv("AUTOMATION_TUTOR_DATA", str(tmp_path / "data"))
-    monkeypatch.setenv("AUTOMATION_TUTOR_KEY", str(key))
+    monkeypatch.setenv("TUTOR_DATA", str(tmp_path / "data"))
+    monkeypatch.setenv("TUTOR_KEY", str(key))
     return default_paths()
 
 
@@ -95,5 +95,5 @@ def test_session_minutes_without_key_or_ledger(
     put(sandbox, [paid("s1-m1", 1)])
     sandbox.ledger.write_text("{not json", encoding="utf-8")
     assert session_minutes("s1") == set()
-    monkeypatch.setenv("AUTOMATION_TUTOR_KEY", str(sandbox.data_dir / "nope"))
+    monkeypatch.setenv("TUTOR_KEY", str(sandbox.data_dir / "nope"))
     assert session_minutes("s1") == set()

@@ -94,9 +94,7 @@ def test_close_without_a_started_task_is_a_noop(
 
 
 def test_sandbox_dir_is_under_the_redirected_home(tutor_sandbox: Path) -> None:
-    assert sandbox_dir() == (
-        tutor_sandbox / "home/.local/share/automation_tutor/sandbox"
-    )
+    assert sandbox_dir() == (tutor_sandbox / "home/.local/share/tutor/sandbox")
 
 
 def test_isolated_options_structured_by_default(tutor_sandbox: Path) -> None:

@@ -13,9 +13,11 @@ Read README.md first. These are the invariants that are easy to break.
 - **Every card is checked against its source by code.** `excerpt` is verbatim
   text from `source`. Never hand-edit an excerpt to "make it pass".
 - **Ids are stable.** Session transcripts and the done-set key on card ids.
-- **Names stay `automation_tutor` for now**: env vars `AUTOMATION_TUTOR_*`,
-  `~/.local/share/automation_tutor`, `~/.local/lib/automation-tutor-live`.
-  Renaming them is a separate, planned migration.
+- **Names are `tutor`** (renamed from `automation_tutor` 2026-10-12): env vars
+  `TUTOR_*`, data `~/.local/share/tutor`, logs `~/.local/state/tutor`,
+  releases `~/.local/lib/tutor-live`, caches `~/.cache/tutor/`. The old
+  `~/.local/share/automation_tutor` and `~/.local/state/automation_tutor` are
+  read-only backups; never write to them.
 
 ## Layout
 

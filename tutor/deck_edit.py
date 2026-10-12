@@ -3,7 +3,7 @@
 
 The live server runs from a frozen release copy (``scripts/tutor_deploy.sh``),
 which the next deploy replaces, so an edit written only there would vanish.
-A save therefore goes to the repo deck named by ``AUTOMATION_TUTOR_DECK_SRC``
+A save therefore goes to the repo deck named by ``TUTOR_DECK_SRC``
 (the source of truth) and to the server's own copy; with the variable unset the
 editor is read-only. The edited topic file is read from the repo deck, so its
 other uncommitted edits are kept. Nothing is committed and nothing reaches
@@ -25,7 +25,7 @@ from typing import Any, Final
 
 from tutor import cards, sources
 
-DECK_SRC_ENV: Final = "AUTOMATION_TUTOR_DECK_SRC"
+DECK_SRC_ENV: Final = "TUTOR_DECK_SRC"
 MAX_LINES: Final = 250
 FIELDS: Final = ("front", "back", "source", "excerpt")
 # New ids only (every existing id already matches): lowercase words and dashes.
@@ -47,7 +47,7 @@ class Dirs:
 
     @classmethod
     def from_env(cls, live: Path) -> Dirs:
-        """``src`` from ``AUTOMATION_TUTOR_DECK_SRC`` (unset or empty: none)."""
+        """``src`` from ``TUTOR_DECK_SRC`` (unset or empty: none)."""
         value = os.environ.get(DECK_SRC_ENV, "").strip()
         return cls(Path(value) if value else None, live)
 
@@ -178,7 +178,7 @@ def _staged(base: Path, stem: str, text: str, label: str) -> list[cards.Card]:
     Every validator the build runs applies: fields, word counts, the id
     prefix, unique ids, and ``requires`` (ids exist, no self, no cycle).
     """
-    with tempfile.TemporaryDirectory(prefix="plc-lab-edit-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="tutor-edit-") as tmp:
         staged = Path(tmp)
         for other in _TOPICS:
             if other == stem:

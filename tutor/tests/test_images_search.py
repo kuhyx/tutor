@@ -22,8 +22,8 @@ def test_cache_dir_env_override(tutor_sandbox: Path) -> None:
 def test_cache_dir_home_default(
     tutor_sandbox: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("AUTOMATION_TUTOR_IMAGE_CACHE")
-    expected = tutor_sandbox / "home" / ".cache" / "plc-lab" / "tutor-images"
+    monkeypatch.delenv("TUTOR_IMAGE_CACHE")
+    expected = tutor_sandbox / "home" / ".cache" / "tutor" / "images"
     assert images.cache_dir() == expected
 
 

@@ -39,8 +39,8 @@ def sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Paths:
     """Every test writes to a temp ledger with a temp key, in a pinned zone."""
     key = tmp_path / "hmac.key"
     key.write_bytes(KEY + b"\n")
-    monkeypatch.setenv("AUTOMATION_TUTOR_DATA", str(tmp_path / "data"))
-    monkeypatch.setenv("AUTOMATION_TUTOR_KEY", str(key))
+    monkeypatch.setenv("TUTOR_DATA", str(tmp_path / "data"))
+    monkeypatch.setenv("TUTOR_KEY", str(key))
     return default_paths()
 
 
@@ -138,7 +138,7 @@ def test_cap_is_per_local_day(sandbox: Paths) -> None:
 def test_missing_key_records_nothing(
     sandbox: Paths, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("AUTOMATION_TUTOR_KEY", str(sandbox.data_dir / "nope"))
+    monkeypatch.setenv("TUTOR_KEY", str(sandbox.data_dir / "nope"))
     receipt = credit_span(unit(), 1, "s1", now=NOON)
     assert not receipt.recorded
     assert "signing key unreadable" in str(receipt.error)

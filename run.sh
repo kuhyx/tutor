@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Open the Automation tutor (the +1 h gaming / +60 min shutdown earner).
+# Open the Tutor (the +1 h gaming / +60 min shutdown earner).
 #
 # If the live server answers, just open it. Otherwise start it from the frozen
 # live release (never the working tree), deploying one first if none exists.
@@ -15,10 +15,10 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO
 readonly PORT="${TUTOR_PORT:-8778}"
 readonly URL="http://127.0.0.1:$PORT/"
-readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
-readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
+readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/tutor-live}"
+readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/tutor}"
 # The card editor writes here (the repo deck), not only into the release copy.
-readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
+readonly DECK_SRC="${TUTOR_DECK_SRC:-$REPO/subjects/automation/deck}"
 OPEN=1
 
 usage() {
@@ -48,7 +48,7 @@ start_server() {
         return
     fi
     mkdir -p "$LOG_DIR"
-    AUTOMATION_TUTOR_DECK_SRC="$DECK_SRC" "$REPO/scripts/tutor_launch.sh" \
+    TUTOR_DECK_SRC="$DECK_SRC" "$REPO/scripts/tutor_launch.sh" \
         "$LIVE_ROOT/current" "$PORT" "$LOG_DIR/server.log"
 }
 

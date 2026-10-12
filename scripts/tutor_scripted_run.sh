@@ -27,8 +27,8 @@ mkdir -p "$RUN/data" "$ROOT/build/tutor-screenshots"
 rm -rf "${RUN:?}/data"
 mkdir -p "$RUN/data"
 head -c 32 /dev/urandom | base64 > "$RUN/test.key"
-export AUTOMATION_TUTOR_DATA="$RUN/data"
-export AUTOMATION_TUTOR_KEY="$RUN/test.key"
+export TUTOR_DATA="$RUN/data"
+export TUTOR_KEY="$RUN/test.key"
 
 "$PY" -m tutor --port "$PORT" --simulate-time 2> "$RUN/server.log" &
 SERVER_PID=$!

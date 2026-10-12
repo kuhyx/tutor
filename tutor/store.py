@@ -1,8 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """What the learner has mastered and what was said, kept across sessions.
 
-Layout under the data dir (``AUTOMATION_TUTOR_DATA``, else
-``~/.local/share/automation_tutor``, the same dir the credit ledger uses):
+Layout under the data dir (``TUTOR_DATA``, else
+``~/.local/share/tutor``, the same dir the credit ledger uses):
 ``progress.json`` and ``sessions/<session_id>.jsonl`` (one event per line).
 """
 
@@ -17,8 +17,8 @@ from typing import Any
 
 def data_dir() -> Path:
     """The tutor's data directory, resolved at call time."""
-    override = os.environ.get("AUTOMATION_TUTOR_DATA")
-    return Path(override) if override else Path.home() / ".local/share/automation_tutor"
+    override = os.environ.get("TUTOR_DATA")
+    return Path(override) if override else Path.home() / ".local/share/tutor"
 
 
 def _now() -> str:

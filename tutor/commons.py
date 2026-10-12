@@ -15,9 +15,7 @@ import urllib.parse
 import urllib.request
 
 API: Final = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT: Final = (
-    "plc-lab-tutor/0.1 (https://github.com/kuhyx/plc-lab; local study tool)"
-)
+USER_AGENT: Final = "tutor/0.1 (https://github.com/kuhyx/tutor; local study tool)"
 MIMES: Final = ("image/jpeg", "image/png", "image/svg+xml", "image/webp")
 _TAG: Final = re.compile(r"<[^>]+>")
 TIMEOUT: Final = 20

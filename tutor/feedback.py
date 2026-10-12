@@ -35,7 +35,7 @@ MAX_TEXT: Final = 4000
 
 
 def feedback_path() -> Path:
-    """Where reports live; follows ``AUTOMATION_TUTOR_DATA`` at call time."""
+    """Where reports live; follows ``TUTOR_DATA`` at call time."""
     return data_dir() / "feedback.jsonl"
 
 

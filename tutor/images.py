@@ -38,10 +38,10 @@ _log = logging.getLogger(__name__)
 
 
 def cache_dir() -> Path:
-    """The image cache: ``AUTOMATION_TUTOR_IMAGE_CACHE``, resolved at call time."""
+    """The image cache: ``TUTOR_IMAGE_CACHE``, resolved at call time."""
     return Path(
-        os.environ.get("AUTOMATION_TUTOR_IMAGE_CACHE")
-        or Path.home() / ".cache" / "plc-lab" / "tutor-images"
+        os.environ.get("TUTOR_IMAGE_CACHE")
+        or Path.home() / ".cache" / "tutor" / "images"
     )
 
 

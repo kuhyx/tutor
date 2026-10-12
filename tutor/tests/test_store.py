@@ -21,8 +21,8 @@ def test_data_dir_prefers_the_env_override(tutor_sandbox: Path) -> None:
 def test_data_dir_defaults_under_home(
     tutor_sandbox: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("AUTOMATION_TUTOR_DATA")
-    assert data_dir() == tutor_sandbox / "home/.local/share/automation_tutor"
+    monkeypatch.delenv("TUTOR_DATA")
+    assert data_dir() == tutor_sandbox / "home/.local/share/tutor"
 
 
 def test_default_store_uses_the_data_dir(tutor_sandbox: Path) -> None:

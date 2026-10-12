@@ -24,7 +24,7 @@ def circuit(**fields: Any) -> dict[str, Any]:
 
 
 def test_cache_dir_follows_home(tutor_sandbox: Path) -> None:
-    expected = tutor_sandbox / "home" / ".cache" / "plc-lab" / "tutor-diagrams"
+    expected = tutor_sandbox / "home" / ".cache" / "tutor" / "diagrams"
     assert diagrams.cache_dir() == expected
 
 
@@ -90,7 +90,7 @@ def test_render_reuses_cached_file(
 
 def test_render_default_cache_is_under_home(tutor_sandbox: Path) -> None:
     names = diagrams.render({"circuits": [circuit()]})
-    cache = tutor_sandbox / "home" / ".cache" / "plc-lab" / "tutor-diagrams"
+    cache = tutor_sandbox / "home" / ".cache" / "tutor" / "diagrams"
     assert (cache / names[0]).is_file()
 
 

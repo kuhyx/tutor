@@ -10,7 +10,7 @@ class ApiError extends Error {
   constructor(method, path, body, res, data, cause) {
     super(cause ? "Tutor server is not reachable - is it running?" : `HTTP ${res.status}: ${data?.error || res.statusText}`);
     const lines = [
-      `Automation tutor error (${new Date().toISOString()})`,
+      `Tutor error (${new Date().toISOString()})`,
       `Request: ${method} ${path}${body ? ` ${JSON.stringify(body)}` : ""}`,
     ];
     if (cause) {

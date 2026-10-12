@@ -46,7 +46,7 @@ class SessionError(RuntimeError):
 
 def sandbox_dir() -> Path:
     """The model's empty working directory (resolved at call time)."""
-    return Path.home() / ".local" / "share" / "automation_tutor" / "sandbox"
+    return Path.home() / ".local" / "share" / "tutor" / "sandbox"
 
 
 def isolated_options(

@@ -23,7 +23,7 @@ from tutor.models import ELEMENT_KINDS
 
 def cache_dir() -> Path:
     """Where rendered SVGs go; resolved at call time so HOME can move."""
-    return Path.home() / ".cache" / "plc-lab" / "tutor-diagrams"
+    return Path.home() / ".cache" / "tutor" / "diagrams"
 
 
 _MAX_CIRCUITS: Final = 2

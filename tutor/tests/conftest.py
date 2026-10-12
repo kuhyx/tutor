@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Every tutor test runs in a private HOME and data dir, with no network.
 
-HOME moves too, so a fallback to ``~/.local/share/automation_tutor`` (the real
+HOME moves too, so a fallback to ``~/.local/share/tutor`` (the real
 ledger), ``~/.cache`` or ``~/.claude`` can only ever land in ``tmp_path``.
 """
 
@@ -33,9 +33,9 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     key = tmp_path / "hmac.key"
     key.write_bytes(KEY + b"\n")
     monkeypatch.setenv("HOME", str(home))
-    monkeypatch.setenv("AUTOMATION_TUTOR_DATA", str(tmp_path / "data"))
-    monkeypatch.setenv("AUTOMATION_TUTOR_KEY", str(key))
-    monkeypatch.setenv("AUTOMATION_TUTOR_IMAGE_CACHE", str(tmp_path / "images"))
+    monkeypatch.setenv("TUTOR_DATA", str(tmp_path / "data"))
+    monkeypatch.setenv("TUTOR_KEY", str(key))
+    monkeypatch.setenv("TUTOR_IMAGE_CACHE", str(tmp_path / "images"))
     monkeypatch.setattr(urllib.request, "urlopen", _offline)
     return tmp_path
 

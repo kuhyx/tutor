@@ -32,10 +32,10 @@ def test_default_paths_follow_the_sandbox_environment(tmp_path: Path) -> None:
 
 
 def test_default_paths_without_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("AUTOMATION_TUTOR_DATA")
-    monkeypatch.delenv("AUTOMATION_TUTOR_KEY")
+    monkeypatch.delenv("TUTOR_DATA")
+    monkeypatch.delenv("TUTOR_KEY")
     where = default_paths()
-    assert where.ledger == Path.home() / ".local/share/automation_tutor/ledger.json"
+    assert where.ledger == Path.home() / ".local/share/tutor/ledger.json"
     assert where.key_file == Path("/etc/workout-locker/hmac.key")
 
 

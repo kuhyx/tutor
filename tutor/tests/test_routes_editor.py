@@ -90,7 +90,7 @@ def test_overview_read_only_without_a_deck_source(tmp_path: Path) -> None:
     for c in _client(tmp_path, Dirs(None, tmp_path / "gone")):
         data = c.get("/api/editor").json()
         assert data["writable"] is False
-        assert "AUTOMATION_TUTOR_DECK_SRC is not set" in data["reason"]
+        assert "TUTOR_DECK_SRC is not set" in data["reason"]
         assert {t["lines"] for t in data["topics"]} == {0}
         assert len(data["cards"]) > 100  # the server's own deck, read-only
         refused = c.post("/api/editor/save", json=_body())

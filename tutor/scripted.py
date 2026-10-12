@@ -2,7 +2,7 @@
 """A simulated learner who knows nothing, driving the tutor over its HTTP API.
 
 Run against a server started with ``--simulate-time`` and a sandboxed
-``AUTOMATION_TUTOR_DATA`` / ``AUTOMATION_TUTOR_KEY`` (``scripts/tutor_scripted_run.sh``
+``TUTOR_DATA`` / ``TUTOR_KEY`` (``scripts/tutor_scripted_run.sh``
 does all of it), so no real gaming time is ever minted. The learner is a cheap
 isolated model; two replies are forced to filler so ``low_effort`` is exercised.
 """
