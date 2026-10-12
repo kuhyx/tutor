@@ -33,7 +33,7 @@ smoke-test server, in its own `systemd-run --user` unit.
 | sessions, transcripts | `~/.local/share/tutor` (`TUTOR_DATA`) |
 | earned-time ledger | `~/.local/share/tutor/ledger.json` |
 | server log | `~/.local/state/tutor/server.log` |
-| releases | `~/.local/lib/tutor-live` (`TUTOR_LIVE_ROOT`) |
+| releases | `~/.local/lib/tutor-live` (fixed: `tutor.service` runs its `current`) |
 
 ## The deck
 

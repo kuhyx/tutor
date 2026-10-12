@@ -19,7 +19,7 @@ readonly REPO
 readonly PORT=8778
 readonly UNIT="tutor.service"
 readonly URL="http://127.0.0.1:$PORT/"
-readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/tutor-live}"
+readonly LIVE_ROOT="$HOME/.local/lib/tutor-live"  # current/ = tutor.service cwd
 readonly LOG="$HOME/.local/state/tutor/server.log"
 readonly APP_URL="${URL}app/"
 # Fixed port (above) and fixed profile: the desktop app's sign-in and its

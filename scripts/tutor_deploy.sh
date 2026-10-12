@@ -23,7 +23,7 @@ SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 readonly REPO
-readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/tutor-live}"
+readonly LIVE_ROOT="$HOME/.local/lib/tutor-live"  # current/ = tutor.service cwd
 readonly DATA="${TUTOR_DATA:-$HOME/.local/share/tutor}"
 # The live server; it owns the port, the relay and deck-source env, the log.
 readonly UNIT="${TUTOR_UNIT:-tutor.service}"
