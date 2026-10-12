@@ -118,7 +118,8 @@ class _SessionChatState extends State<SessionChat> {
     return Column(
       children: [
         if (meta != null)
-          Padding(
+          Container(
+            alignment: AlignmentDirectional.centerStart,
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.md,
               AppSpacing.sm,
@@ -126,12 +127,18 @@ class _SessionChatState extends State<SessionChat> {
               0,
             ),
             child: Wrap(
-              spacing: AppSpacing.sm,
+              spacing: AppSpacing.md,
               runSpacing: AppSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(header!.$1, style: text.titleSmall),
-                Text(header.$2, style: text.bodyMedium),
+                // The day's totals lead; this card's minutes are secondary.
+                Text(header!.$1, style: text.titleMedium),
+                Text(
+                  header.$2,
+                  style: text.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 if (clock!.pausedReason != null)
                   Pill('Clock paused: ${clock.pausedReason}', warn: true),
                 if (live &&

@@ -7,6 +7,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/sign_in_screen.dart';
+import 'package:tutor/ui/ui_scale.dart';
 
 /// The app.
 class TutorApp extends StatelessWidget {
@@ -32,6 +33,7 @@ class TutorApp extends StatelessWidget {
     title: 'Tutor',
     theme: buildLightTheme(),
     darkTheme: buildDarkTheme(),
+    builder: (context, child) => UiScale(child: child!),
     home: config.isComplete
         ? _Gate(open: open, initialRoute: initialRoute)
         : _Message(

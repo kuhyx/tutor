@@ -51,6 +51,8 @@ open_ui() {
         # XDG_CONFIG_HOME: Arch's launcher would read chromium-flags.conf,
         # whose claude-in-chrome extension opens a sign-in window beside the
         # app (seen on Xvfb). The guard wrapper's extensions still load.
+        # No --force-device-scale-factor: it is process-wide (wrong on the
+        # QHD monitor); the app scales itself per display (lib/ui/ui_scale.dart).
         XDG_CONFIG_HOME="$PROFILE.xdg" setsid -f "$b" --app="$APP_URL" \
             --user-data-dir="$PROFILE" \
             --class=tutor --password-store=basic --no-first-run \

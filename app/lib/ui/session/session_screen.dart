@@ -22,6 +22,12 @@ import 'package:tutor/ui/session/session_side.dart';
 /// Width from which the side panel sits beside the chat.
 const kWideLayout = 900.0;
 
+/// Widest the chat column gets (prose stays readable on wide windows).
+const kChatMaxWidth = 960.0;
+
+/// The side panel's width for a window [width] wide (wide layout only).
+double sideWidth(double width) => (width * 0.25).clamp(300, 420);
+
 /// The Session screen.
 class SessionScreen extends StatefulWidget {
   /// Creates the screen; [now] is injectable for the stalled pill.
@@ -205,9 +211,21 @@ class _SessionScreenState extends State<SessionScreen> {
             body: wide
                 ? Row(
                     children: [
-                      Expanded(child: chat),
+                      // The chat keeps a reading width; the panel grows
+                      // with the window so long card fronts wrap, not clip.
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: kChatMaxWidth,
+                            ),
+                            child: chat,
+                          ),
+                        ),
+                      ),
                       const VerticalDivider(width: 1),
-                      SizedBox(width: 320, child: side),
+                      SizedBox(width: sideWidth(box.maxWidth), child: side),
                     ],
                   )
                 : chat,

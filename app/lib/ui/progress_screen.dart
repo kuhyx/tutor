@@ -9,6 +9,7 @@ import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/progress/progress.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/progress_chart.dart';
 
 /// The Progress screen.
@@ -47,8 +48,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
         final (stats, modules) = snap.requireData;
         final days = timeline(stats?.days ?? const {});
         final text = Theme.of(context).textTheme;
-        return PageList(
-          children: [
+        return TwoColumnPage(
+          firstFlex: 3,
+          secondFlex: 2,
+          first: [
             if (days.isEmpty)
               const EmptyState(
                 icon: Icons.insights,
@@ -74,6 +77,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
               const SectionHeader('Days'),
               _DayTable(days.reversed.toList()),
             ],
+          ],
+          second: [
             const SectionHeader('Modules'),
             if (modules.isEmpty) const Text('No approved plans yet.'),
             for (final m in modules)

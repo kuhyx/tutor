@@ -55,7 +55,9 @@ The desktop app is this web build in a Chrome `--app` window: `../run.sh`
 opens `http://127.0.0.1:8778/app/` with a fixed profile
 (`~/.local/share/tutor-desktop/profile`) once the running server serves it
 (`tutor/webapp.py`, build dir `$TUTOR_WEBAPP_DIR`, default `app/build/web`).
-It signs in without Google: on first start the page fetches the PC's seeded
+The app scales itself by the display it is on (`lib/util/ui_scale.dart`:
+x2 on a 4K monitor at DPR 1, x1 up to full HD), so layouts work in full-HD
+units everywhere; wide windows get two columns. It signs in without Google: on first start the page fetches the PC's seeded
 session from `/app/sync-credentials` (served once per server process,
 same-origin localhost only, uid checked) and keeps it in its own store.
 

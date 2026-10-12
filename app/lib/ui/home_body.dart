@@ -11,6 +11,7 @@ import 'package:tutor/progress/progress.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
 
 /// Home's body.
@@ -65,8 +66,11 @@ class HomeBody extends StatelessWidget {
     final today = data.today;
     final entry = sessionEntry(data.live, data.currentSubject);
     final text = Theme.of(context).textTheme;
-    return PageList(
-      children: [
+    // Wide: today on the left; subjects and a new one on the right.
+    return TwoColumnPage(
+      secondFlex: 3,
+      firstFlex: 2,
+      first: [
         if (data.offline)
           const Card(
             child: ListTile(
@@ -88,6 +92,7 @@ class HomeBody extends StatelessWidget {
                 else ...[
                   Text(
                     'Credited ${today.creditedMinutes}/${today.target} min'
+                    '${_active(today.activeMinutes)}'
                     ' · new cards ${today.newCards}/${today.newCap}',
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -118,6 +123,8 @@ class HomeBody extends StatelessWidget {
             ),
           ),
         ),
+      ],
+      second: [
         const SectionHeader('Subjects'),
         if (data.subjects.isEmpty)
           const EmptyState(
@@ -229,3 +236,6 @@ class _SubjectTile extends StatelessWidget {
     );
   }
 }
+
+String _active(int? minutes) =>
+    minutes == null ? '' : ' · $minutes min active';
