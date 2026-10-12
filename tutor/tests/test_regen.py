@@ -11,6 +11,7 @@ import pytest
 from tutor import __main__ as tutor_main
 from tutor.curriculum import cardgen, judge, regen
 from tutor.curriculum.errors import RequestError
+from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.subject_store import Change
 from tutor.tests._cur import card, make_ctx, module, subject
 
@@ -38,7 +39,10 @@ def car(tmp_path: Path) -> tuple[Context, Fakes]:
 
 def _verdicts(**on: bool) -> dict[str, Any]:
     return {
-        "verdicts": [{"id": i, "on_topic": v, "reason": "r"} for i, v in on.items()]
+        "verdicts": [
+            {"id": i, "on_topic": v, "module": "a", "reason": "r"}
+            for i, v in on.items()
+        ]
     }
 
 
@@ -50,6 +54,7 @@ def test_regenerate_suspends_refused_and_reopens(car: tuple[Context, Fakes]) -> 
         "suspended": ["toy"],
         "why": ["toy: off topic (r)"],
         "kept": ["good"],
+        "taught": [],
     }
     cards = ctx.subjects.cards("car")
     assert cards["toy"].suspended
@@ -61,6 +66,19 @@ def test_regenerate_suspends_refused_and_reopens(car: tuple[Context, Fakes]) -> 
     assert '"source": "How To Build a Pinewood Derby Car/Rules"' in prompt
     assert '"old"' not in prompt
     assert '"other"' not in prompt
+
+
+def test_taught_cards_are_never_gated_or_suspended(car: tuple[Context, Fakes]) -> None:
+    ctx, fakes = car
+    taught = worker_event("taught", ("car", "toy"), dev=ctx.device, at=5, session="s")
+    ctx.log.append([taught])
+    fakes.replies.append(_verdicts(good=False))
+    out = regen.regenerate(ctx, "car", "a")
+    assert (out["suspended"], out["taught"]) == (["good"], ["toy"])
+    assert '"toy"' not in fakes.prompts[0][1]  # the gate never saw it
+    cards = ctx.subjects.cards("car")
+    assert not cards["toy"].suspended
+    assert cards["good"].suspended
 
 
 def test_refusals(car: tuple[Context, Fakes]) -> None:

@@ -71,9 +71,12 @@ pass the same vectors.
 - Ids never renamed, cards never deleted (`suspended:true`). `origin`:
   `seed | generated | edited`.
 - Just-in-time generation when a module unlocks (`generating`), model with
-  no tools (it only sees text) and code alternating:
+  no tools (it only sees text) and code alternating. Every model call sees
+  the plan around the module (`plan_context`): each other module's id, title
+  and summary, split by plan order into earlier (already taught: their
+  content is a duplicate) and later (they teach their own topic in depth):
   1. model names <= 5 canonical Wikipedia titles for the module (goal, title,
-     summary); 2. code looks those and the module title up exactly
+     summary), none that is another module's main article; 2. code looks those and the module title up exactly
      (`redirects=1`), then searches en.wikipedia.org (4 hits) and
      en.wikibooks.org (3) for the title and the title + 3 new summary words;
      drops disambiguation (`pageprops`), list/outline/index pages and pages
@@ -81,18 +84,24 @@ pass the same vectors.
      mostly words the module never uses (`relevance.title_fit` < 0.6) and
      ranks the rest by summary-word coverage, exact-title hits first;
   4. model keeps the on-topic candidates (title + first 150 words), <= 3;
+     a page whose main subject another module covers is off topic;
      < 2 -> `failed`; 5. model drafts 6-12 cards from them (<= 2500 words
-     each; other module titles named so it leaves their details alone);
+     each), each fitting THIS module better than any other: another
+     module's part or system only as what it is and does for the whole;
   6. code keeps the cards that pass the rules and the verbatim excerpt
-     check; 7. model gates each card against the module summary (fail
-     closed: no `on_topic:true` verdict -> refused). < 3 kept -> `failed`;
+     check; 7. model gates each card against the module summary and names
+     the plan module it fits best (`module`, enum of the plan's ids); code
+     keeps it only for `on_topic:true` AND `module` = this module (fail
+     closed: no verdict -> refused; an earlier module -> "duplicates", a
+     later one -> "belongs to later module"). < 3 kept -> `failed`;
      else `ready` with `cards` = live (not suspended) count. A chosen
      page's extract is seeded into the excerpt-check cache for the article
      URL (unless cached already), so the model drafts from exactly the text
      the check verifies; a re-check of a wiki card whose cache entry is gone
      re-seeds the extract first.
 - Repair (`python -m tutor regenerate SUBJ MODULE`): step 7 over the
-  module's live cards, refused ones `suspended:true`, module back to
+  module's live cards that were never taught (a taught card always stays,
+  untouched), refused ones `suspended:true`, module back to
   `generating`; the worker drafts replacements (numbered after the module's
   last card, told not to repeat the suspended ones). A regeneration that
   fails leaves a module with >= 3 live cards `ready` (with `error`).

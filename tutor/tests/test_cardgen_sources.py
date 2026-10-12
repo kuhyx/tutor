@@ -37,7 +37,10 @@ def ctx_fakes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Context,
 
 def _verdicts(ids: list[str], off: tuple[str, ...] = ()) -> dict[str, Any]:
     return {
-        "verdicts": [{"id": i, "on_topic": i not in off, "reason": "r"} for i in ids]
+        "verdicts": [
+            {"id": i, "on_topic": i not in off, "module": "a", "reason": "r"}
+            for i in ids
+        ]
     }
 
 
@@ -131,7 +134,9 @@ def test_regeneration_appends_after_existing_cards(
     assert found["gone-2"].order == 5
     assert found["gone-2"].requires == ["keep"]
     assert [found[c].order for c in ("card-1", "card-2")] == [6, 7]
-    assert "Refused as off topic, do not repeat" in fakes.prompts[0][1]
+    assert (
+        "Refused (off topic or another module's), do not repeat" in fakes.prompts[0][1]
+    )
     assert '"gone"' not in fakes.prompts[0][1].split("Existing cards")[1].split("\n")[0]
     plan = ctx.subjects.plan("car")
     assert plan is not None

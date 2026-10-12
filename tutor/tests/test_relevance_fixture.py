@@ -19,6 +19,7 @@ import pytest
 
 from tutor import sources
 from tutor.curriculum import regen, relevance, wiki
+from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.records import CardRec, Meta, Plan
 from tutor.curriculum.subject_store import Change
 from tutor.tests._cur import make_ctx
@@ -31,13 +32,13 @@ FIXTURE = Path(__file__).parent / "data" / "cardgen" / "car_overview.json"
 PINEWOOD = "https://en.wikibooks.org/wiki/How_To_Build_a_Pinewood_Derby_Car/Rules"
 
 
-@pytest.fixture
-def replay(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def load(
+    fixture: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Context, Fakes, dict[str, Any]]:
+    """A context replaying ``fixture``: its pages, replies, subject, taught ids."""
     monkeypatch.setattr(sources, "CACHE_DIR", tmp_path / "src-cache")
     monkeypatch.setenv("TUTOR_WIKI_CACHE", str(tmp_path / "wiki"))
-    data = json.loads(FIXTURE.read_text("utf-8"))
+    data = json.loads(fixture.read_text("utf-8"))
     ctx, fakes = make_ctx(tmp_path / "data")
     fakes.pages.update({u: json.dumps(b).encode() for u, b in data["fetch"].items()})
     fakes.replies.extend(r["reply"] for r in data["model"])
@@ -47,7 +48,20 @@ def replay(
     ctx.subjects.commit(
         data["subject"], Meta.from_json(before["meta"]), Change(plan=plan, cards=cards)
     )
+    ctx.log.append(
+        worker_event(
+            "taught", (data["subject"], cid), dev=ctx.device, at=1, session="s"
+        )
+        for cid in before.get("taught", [])
+    )
     return ctx, fakes, data
+
+
+@pytest.fixture
+def replay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Context, Fakes, dict[str, Any]]:
+    return load(FIXTURE, tmp_path, monkeypatch)
 
 
 def test_pinewood_derby_cards_are_suspended_and_replaced(

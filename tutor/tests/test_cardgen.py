@@ -49,7 +49,7 @@ def gen(
     ctx, fakes = make_ctx(tmp_path)
     found = list(SOURCES)
     monkeypatch.setattr(cardgen, "_sources", lambda *_: found)
-    monkeypatch.setattr(judge, "gate", lambda _c, _m, _mod, cards, _t: (cards, []))
+    monkeypatch.setattr(judge, "gate", lambda _c, _s, cards, _t: (cards, []))
     subject(
         ctx,
         modules=[module("a", status="generating"), module("b", "a"), module("c", "b")],
@@ -92,6 +92,10 @@ def test_generate_keeps_verified_cards(
     assert system == draft_prompt.SYSTEM
     assert '<source n="2" url="https://en.wikibooks.org/wiki/B">' in prompt
     assert '"old"' in prompt
+    earlier, later = prompt.split("Later modules", 1)
+    assert "(none)" in earlier.split("Earlier modules", 1)[1]  # a is first
+    assert '- b "B": ' in later
+    assert '- c "C": ' in later
 
 
 def test_too_few_cards_fails_the_module(

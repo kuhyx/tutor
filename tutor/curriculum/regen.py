@@ -2,9 +2,11 @@
 """Repair a module whose cards drifted off topic: suspend them, draft more.
 
 ``python -m tutor regenerate SUBJECT MODULE [--data DIR] [--now]`` runs the
-per-card relevance gate (``judge.gate``) over the module's live cards,
+per-card relevance gate (``judge.gate``: on topic AND best placed in this
+module of the plan) over the module's live cards that were never taught,
 suspends the refused ones (never deletes: ids stay stable, the review queue
-skips them) and puts the module back to ``generating``. The worker's next
+skips them) and puts the module back to ``generating``. A taught card always
+stays: the learner has met it, and its review history keys on its id. The worker's next
 sync then drafts replacements with ``cardgen.generate`` and publishes them;
 ``--now`` generates in this process instead (a data dir no worker serves).
 """
@@ -20,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Final
 from tutor.curriculum import cardgen, judge, wiki
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import BAD_REQUEST, RequestError
+from tutor.curriculum.plan_context import Scope
 from tutor.curriculum.subject_store import LOCK, Change
 from tutor.store import data_dir
 
@@ -37,25 +40,8 @@ def _title(url: str) -> str:
     return found[1] if found else url
 
 
-def regenerate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
-    """Gate the module's live cards, suspend the refused, set ``generating``."""
-    meta = ctx.subjects.need_meta(subject)
-    plan = ctx.subjects.plan(subject)
-    module = plan.module(module_id) if plan else None
-    if plan is None or plan.status != "approved" or module is None:
-        msg = f"{subject}/{module_id} is not a module of an approved plan"
-        raise RequestError(BAD_REQUEST, msg)
-    if module.status not in _DONE:
-        msg = f"{subject}/{module_id} is {module.status}, not {'/'.join(_DONE)}"
-        raise RequestError(BAD_REQUEST, msg)
-    live: dict[str, CardRec] = {
-        cid: c
-        for cid, c in ctx.subjects.cards(subject).items()
-        if c.module == module_id and not c.suspended
-    }
-    titles = {c.source: _title(c.source) for c in live.values()}
-    kept, refused = judge.gate(ctx, meta, module, live, titles)
-    gone = [cid for cid in live if cid not in kept]
+def _suspend(ctx: Context, subject: str, module_id: str, gone: list[str]) -> None:
+    """Suspend ``gone`` and put the module back to ``generating``."""
     with LOCK:  # re-read: the worker may have written meanwhile
         meta = ctx.subjects.need_meta(subject)
         plan = ctx.subjects.plan(subject)
@@ -71,7 +57,32 @@ def regenerate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
             c.module == module_id and not c.suspended for c in cards.values()
         )
         ctx.subjects.commit(subject, meta, Change(plan=plan, cards=cards))
-    return {"suspended": gone, "why": refused, "kept": list(kept)}
+
+
+def regenerate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
+    """Gate the module's untaught live cards, suspend the refused, reopen it."""
+    meta = ctx.subjects.need_meta(subject)
+    plan = ctx.subjects.plan(subject)
+    module = plan.module(module_id) if plan else None
+    if plan is None or plan.status != "approved" or module is None:
+        msg = f"{subject}/{module_id} is not a module of an approved plan"
+        raise RequestError(BAD_REQUEST, msg)
+    if module.status not in _DONE:
+        msg = f"{subject}/{module_id} is {module.status}, not {'/'.join(_DONE)}"
+        raise RequestError(BAD_REQUEST, msg)
+    taught = ctx.fold().taught_ids(subject)
+    live: dict[str, CardRec] = {
+        cid: c
+        for cid, c in ctx.subjects.cards(subject).items()
+        if c.module == module_id and not c.suspended
+    }
+    judged = {cid: c for cid, c in live.items() if cid not in taught}
+    titles = {c.source: _title(c.source) for c in judged.values()}
+    kept, refused = judge.gate(ctx, Scope(meta, module, plan), judged, titles)
+    gone = [cid for cid in judged if cid not in kept]
+    _suspend(ctx, subject, module_id, gone)
+    stay = [cid for cid in live if cid in taught]
+    return {"suspended": gone, "why": refused, "kept": list(kept), "taught": stay}
 
 
 def main(argv: list[str], make: Callable[[Path], Context] = Context) -> int:

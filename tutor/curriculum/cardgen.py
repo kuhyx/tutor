@@ -23,7 +23,8 @@ from tutor.curriculum import card_rules, judge, relevance, wiki
 from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import slug
-from tutor.curriculum.records import CardRec, Meta, Module
+from tutor.curriculum.plan_context import Scope
+from tutor.curriculum.records import CardRec, Module
 from tutor.curriculum.subject_store import LOCK, Change
 
 _logger = logging.getLogger(__name__)
@@ -108,9 +109,10 @@ def _settle(
     return kept
 
 
-def _sources(ctx: Context, meta: Meta, module: Module) -> list[wiki.Source] | str:
+def _sources(ctx: Context, scope: Scope) -> list[wiki.Source] | str:
     """The on-topic sources (seeded for the excerpt check), or why none."""
-    titles = judge.propose_titles(ctx, meta, module)
+    meta, module = scope.meta, scope.module
+    titles = judge.propose_titles(ctx, scope)
     try:
         pages = wiki.candidates(
             ctx.fetch, [module.title, *titles], [module.title, relevance.query(module)]
@@ -119,7 +121,7 @@ def _sources(ctx: Context, meta: Meta, module: Module) -> list[wiki.Source] | st
         _logger.warning("source search failed: %r", err)
         return f"source search failed: {err}"
     ranked = relevance.shortlist(pages, relevance.focus(meta, module))
-    chosen = judge.pick_sources(ctx, meta, module, ranked, wiki.MAX_SOURCES)
+    chosen = judge.pick_sources(ctx, scope, ranked, wiki.MAX_SOURCES)
     if len(chosen) < MIN_SOURCES:
         have = f"{len(chosen)} on-topic source(s) of {len(pages)}"
         return f"found {have}, need {MIN_SOURCES}"
@@ -130,19 +132,17 @@ def _outcome(
     ctx: Context, subject: str, module: Module
 ) -> tuple[dict[str, CardRec], str | None]:
     """Draft and check the cards: (kept cards, error or None)."""
-    meta = ctx.subjects.need_meta(subject)
+    # Every call sees the other modules, so each card lands in the right one.
+    scope = Scope(ctx.subjects.need_meta(subject), module, ctx.subjects.plan(subject))
     existing = ctx.subjects.cards(subject)
     try:
-        found = _sources(ctx, meta, module)
+        found = _sources(ctx, scope)
         if isinstance(found, str):
             return {}, found
-        plan = ctx.subjects.plan(subject)  # other modules: leave their details
-        raw = ctx.model(
-            SYSTEM, prompt(meta, module, existing, found, plan), CARDS_SCHEMA
-        )
+        raw = ctx.model(SYSTEM, prompt(scope, existing, found), CARDS_SCHEMA)
         checked, problems = _drafts(ctx, module, existing, found, raw)
         named = {s.url: s.title for s in found}
-        kept, refused = judge.gate(ctx, meta, module, checked, named)
+        kept, refused = judge.gate(ctx, scope, checked, named)
         problems += refused
     except RequestError as err:
         _logger.warning("card drafting failed: %s", err.message)

@@ -4,9 +4,10 @@
 
 Runs ``python -m tutor regenerate SUBJECT MODULE --now`` on ``--data``
 (a SCRATCH copy, never the live data dir) with the real model and the real
-MediaWiki API, recording every API answer (extracts clipped to what the
-pipeline reads) and every model reply in call order, into ``--out``.
-``tutor/tests/test_relevance_fixture.py`` replays it offline.
+MediaWiki API, recording the subject's files and taught card ids before,
+every API answer (extracts clipped to what the pipeline reads) and every
+model reply in call order, into ``--out``. ``tutor/tests/test_relevance_fixture.py``
+and ``test_scope_fixture.py`` replay them offline.
 
 Usage: .venv/bin/python scripts/record_cardgen_fixture.py --data DIR \
            --out tutor/tests/data/cardgen/NAME.json SUBJECT MODULE
@@ -25,6 +26,8 @@ from typing import Any
 from tutor import sources
 from tutor.curriculum import modelcall, regen, wiki
 from tutor.curriculum.context import Context
+from tutor.curriculum.eventlog import EventLog
+from tutor.curriculum.fold import fold
 
 _CLIP_WORDS = 2600
 ATTRIBUTION = (
@@ -70,10 +73,13 @@ def main() -> int:
         sys.exit("refusing to record on the live data dir; use a scratch copy")
     rec = Recorder()
     folder = args.data / "subjects" / args.subject
-    before = {
+    before: dict[str, Any] = {
         name: json.loads((folder / f"{name}.json").read_text("utf-8"))
         for name in ("meta", "plan", "cards")
     }
+    # Taught cards are never gated (``regen``); the replay re-teaches them.
+    taught = fold(EventLog(args.data).read()).taught_ids(args.subject)
+    before["taught"] = sorted(taught)
     with tempfile.TemporaryDirectory() as cache:
         os.environ["TUTOR_WIKI_CACHE"] = cache  # every API call reaches fetch
         # The clipped extracts must never reach the real excerpt-check cache.
