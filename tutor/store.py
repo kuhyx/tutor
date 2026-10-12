@@ -86,12 +86,6 @@ class Store:
             archived[session_id] = {"at": _now()}
             self._save(data)
 
-    def unarchive(self, session_id: str) -> None:
-        """Show an archived session in History again."""
-        data = self.progress()
-        if data.get("archived", {}).pop(session_id, None) is not None:
-            self._save(data)
-
     def repaired(self, name: str) -> bool:
         """Whether the one-off repair ``name`` already ran on this data dir."""
         return bool(self.progress().get("repairs", {}).get(name))

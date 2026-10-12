@@ -2,7 +2,8 @@
 
 # ============================================================================
 # Install the live tutor as a persistent user service (tutor.service): the
-# web page on 127.0.0.1:8778 plus the Firebase relay the phone talks to.
+# desktop web app on 127.0.0.1:8778/app/ plus the Firebase relay the phone
+# and that app talk to.
 # Enabled under default.target (linger is on), so it is back after every
 # reboot or curfew shutdown. Writes only under $HOME. Rerunnable.
 #

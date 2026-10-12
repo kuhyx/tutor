@@ -13,9 +13,7 @@ import pytest
 from tutor import adjudicate
 from tutor.adjudicate import (
     MIN_UNCHECKED_BLOCK,
-    anchors,
     load,
-    message_indices,
     verdicts,
 )
 from tutor.models import REQUIRED_FIELDS
@@ -143,14 +141,6 @@ def test_f_fails_without_low_effort_after_the_first_turn() -> None:
     assert not results(events)["f"]
 
 
-def test_anchors_point_at_first_image_first_diagram_and_last() -> None:
-    events = good()
-    events[2]["ui"] = {"images": [IMAGE]}
-    assert anchors(events) == {"last": "m2", "image": "m1", "diagram": "m1"}
-    events[1]["ui"] = {}
-    assert anchors(events) == {"last": "m2", "image": "m2", "diagram": "m0"}
-
-
 def test_g_needs_a_recorded_unchecked_credit_after_15_minutes() -> None:
     early = good()
     early[4]["block"] = MIN_UNCHECKED_BLOCK - 1
@@ -184,20 +174,6 @@ def test_h_needs_a_choice_after_every_card_done() -> None:
     assert not results(second_done)["h"]
 
 
-def test_message_indices_follow_the_page_message_count() -> None:
-    events = [
-        tutor_event("first"),
-        {"type": "learner", "text": "a"},
-        tutor_event("second"),
-        {"type": "learner", "text": "unanswered"},
-        {"type": "next_card", "ui": {"title": "divider"}},
-        tutor_event("new card"),
-        {"type": "next_card"},
-        tutor_event("after a bare next_card"),
-    ]
-    assert message_indices(events) == [0, 2, 4, 5]
-
-
 def write_jsonl(path: Path, events: list[dict[str, Any]]) -> Path:
     """Write a transcript, with a blank line the loader must skip."""
     body = "\n".join(json.dumps(e) for e in events) + "\n\n"
@@ -221,18 +197,6 @@ def test_main_passes_and_fails(
     bad = write_jsonl(tmp_path / "bad.jsonl", good()[:1])
     assert adjudicate.main(["prog", str(bad)]) == 1
     assert "FAIL" in capsys.readouterr().out
-
-
-def test_main_anchors_prints_json(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    path = write_jsonl(tmp_path / "s.jsonl", good())
-    assert adjudicate.main(["prog", "--anchors", str(path)]) == 0
-    assert json.loads(capsys.readouterr().out) == {
-        "last": "m2",
-        "image": "m1",
-        "diagram": "m1",
-    }
 
 
 def test_module_runs_as_a_script(

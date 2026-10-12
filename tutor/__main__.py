@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     if sink is not None:
         cli.with_relay(app, engine, sink)
         print("tutor: Firebase relay enabled", file=sys.stderr)
-    print(f"tutor: http://127.0.0.1:{args.port}/", file=sys.stderr)
+    print(f"tutor: http://127.0.0.1:{args.port}/app/", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
     return 0
 

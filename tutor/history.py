@@ -86,7 +86,7 @@ def _summary(conv: Conversation, view: View) -> dict[str, Any]:
 def session_view(
     sessions_dir: Path, session_id: str, view: View
 ) -> dict[str, Any] | None:
-    """One session's transcript for ``GET /api/session/<id>``; ``None`` -> 404."""
+    """One session's transcript, as the relay publishes it; ``None`` if absent."""
     path = transcript_path(sessions_dir, session_id)
     replayed = resume.replay(path) if path else None
     if replayed is None:
@@ -97,31 +97,3 @@ def session_view(
         "messages": conv.messages,
         "receipts": conv.receipts,
     }
-
-
-def sessions_list(sessions_dir: Path, view: View) -> list[dict[str, Any]]:
-    """Every replayable session, newest first, for ``GET /api/sessions``."""
-    out: list[dict[str, Any]] = []
-    for path in sorted(sessions_dir.glob("*.jsonl"), reverse=True):
-        if not SESSION_ID.fullmatch(path.stem):
-            continue
-        replayed = resume.replay(path)
-        if replayed is None:
-            continue
-        info = _summary(replayed.conversation, view)
-        sid = info["session_id"]
-        out.append(
-            {
-                "session_id": sid,
-                # The id is local time: slice, do not parse (no timezone to guess).
-                "started": f"{sid[:4]}-{sid[4:6]}-{sid[6:8]} {sid[9:11]}:{sid[11:13]}",
-                "cards": info["cards"],
-                "active_minutes": int(info["active_seconds"] // 60),
-                "credited_minutes": info["credited_minutes"],
-                "live": info["live"],
-                "archived": info["archived"],
-                "auto_archived": info["auto_archived"],
-                "stopped": info["stopped"],
-            }
-        )
-    return out

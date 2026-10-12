@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""``card_edit``: fix or add one card, validated exactly like ``deck_edit``.
+"""``card_edit``: fix or add one card, validated like the deck itself.
 
 Fields, word limits, the module's id prefixes, ``requires`` (known, no
 cycle), then the source fetch and the verbatim excerpt check. Any refusal is

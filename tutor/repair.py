@@ -6,7 +6,7 @@ passed (session ``20261010-153545-b193``: the card was never recorded done and
 "next unfinished card" served it again). The transcripts still hold the
 tutor's word, so this marks those cards done from them, by code. It runs once
 per data dir (``Store.mark_repaired``): after that the manual override
-(``POST /api/card_done``) owns the state, and a restart must not undo it.
+(the ``card_done`` request) owns the state, and a restart must not undo it.
 """
 
 from __future__ import annotations

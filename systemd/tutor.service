@@ -1,5 +1,5 @@
 [Unit]
-Description=tutor: web page + Firebase relay worker (loopback :8778)
+Description=tutor: desktop web app + Firebase relay worker (loopback :8778)
 Documentation=file://%h/src/tutor/DOCS-relay.md
 
 [Service]
@@ -9,10 +9,8 @@ Type=simple
 # makes `-m tutor` import the release copy, not the editable working tree.
 WorkingDirectory=%h/.local/lib/tutor-live/current
 # Serve the phone over the relay; TUTOR_RELAY=0 in a drop-in
-# (`systemctl --user edit tutor.service`) serves the page alone.
+# (`systemctl --user edit tutor.service`) serves the web app alone.
 Environment=TUTOR_RELAY=1
-# The card editor writes the repo deck (the source of the next release).
-Environment=TUTOR_DECK_SRC=%h/src/tutor/subjects/automation/deck
 ExecStartPre=%h/src/tutor/scripts/tutor_port_free.sh 8778
 ExecStart=%h/src/tutor/.venv/bin/python -m tutor --port 8778
 # The log the deploy, the control panel and the README point at; install.sh

@@ -7,14 +7,15 @@
 # tree, so half-finished edits in ~/src/tutor are never served. A deploy:
 #   1. copies a new release,
 #   2. smoke-tests it on a scratch port against a copy of today's sessions
-#      (it must start, resume the live session and serve valid page JS),
+#      (it must start, resume the live session, redirect / to /app/ and
+#      serve the Flutter web build there),
 #   3. waits until no reply is in flight (the newest session log does not
 #      end on a learner message),
 #   4. points `current` at it and restarts tutor.service (install.sh), whose
 #      graceful stop drains the old server; the release resumes the session
 #      from its transcript (tutor/resume.py).
-# The page retries while the server is down, so the learner's next message
-# simply lands on the new code.
+# The phone and desktop app talk through the RTDB relay, which queues
+# requests while the server is down; the next one lands on the new code.
 # ============================================================================
 
 set -euo pipefail
@@ -122,7 +123,7 @@ copy_release() {
     rsync -a "$web/" "$1/app/build/web/"
 }
 
-# The release must start, resume the same session and serve parseable JS.
+# The release must start, resume the same session and serve the web app.
 smoke_test() {
     local release="$1" expected="$2" port got dir
     port="$(free_port)"
@@ -133,10 +134,9 @@ smoke_test() {
         if [[ -d "$DATA/$dir" ]]; then cp -r "$DATA/$dir" "$TEMP_DIR/data/"; fi
     done
     head -c 32 /dev/urandom >"$TEMP_DIR/key"
-    # No deck source: the smoke server's card editor stays read-only.
     # No relay: a temp-data server must never claim real phone requests.
     TUTOR_DATA="$TEMP_DIR/data" TUTOR_KEY="$TEMP_DIR/key" TUTOR_RELAY=0 \
-        TUTOR_DECK_SRC="" launch "$release" "$port" "$TEMP_DIR/smoke.log"
+        launch "$release" "$port" "$TEMP_DIR/smoke.log"
     if ! wait_listening "$port"; then
         echo "Smoke test: release did not start:" >&2
         tail -n 20 "$TEMP_DIR/smoke.log" >&2
@@ -148,25 +148,21 @@ smoke_test() {
         echo "Smoke test: expected session '$expected', release resumed '$got'" >&2
         exit 1
     fi
-    # Every script the served page loads, read from its own <script> tags so a
-    # new file is checked without editing this list; a missing or unparsable
-    # one leaves the page blank.
-    local script scripts
-    curl -sf -m 5 "http://127.0.0.1:$port/" >"$TEMP_DIR/index.html"
-    mapfile -t scripts < <(grep -o 'src="/static/[A-Za-z0-9_.-]*\.js"' \
-        "$TEMP_DIR/index.html" | sed 's|^src="/static/||; s|"$||')
-    if ((${#scripts[@]} == 0)); then
-        echo "Smoke test: the page loads no /static/*.js" >&2
+    # `/` is only a redirect now; /app/ must serve the build it points at.
+    local root
+    root="$(curl -s -m 5 -o /dev/null -w '%{http_code} %{redirect_url}' \
+        "http://127.0.0.1:$port/")"
+    if [[ "$root" != "307 http://127.0.0.1:$port/app/" ]]; then
+        echo "Smoke test: / answered '$root', not a redirect to /app/" >&2
         exit 1
     fi
-    for script in "${scripts[@]}"; do
-        curl -sf -m 5 "http://127.0.0.1:$port/static/$script" >"$TEMP_DIR/$script"
-        node --check "$TEMP_DIR/$script"
-    done
-    echo "Smoke test: node --check ok for ${scripts[*]}"
-    curl -sf -m 5 "http://127.0.0.1:$port/api/cards" | jq -e 'length > 0' >/dev/null
-    curl -sf -m 5 -o /dev/null "http://127.0.0.1:$port/app/" ||
+    # Read into a variable: `curl | grep -q` can fail on SIGPIPE under pipefail.
+    local page
+    page="$(curl -sf -m 5 "http://127.0.0.1:$port/app/" || true)"
+    [[ "$page" == *flutter_bootstrap.js* ]] ||
         { echo "Smoke test: /app/ does not serve the web build" >&2; exit 1; }
+    curl -sf -m 5 -o /dev/null "http://127.0.0.1:$port/app/main.dart.js" ||
+        { echo "Smoke test: /app/main.dart.js is missing" >&2; exit 1; }
     kill "$SMOKE_PID"
     SMOKE_PID=""
     echo "Smoke test passed (session '${got:-none}')."
@@ -211,7 +207,6 @@ main() {
     systemctl --user cat "$UNIT" >/dev/null 2>&1 ||
         { echo "$UNIT is not installed; run $REPO/install.sh" >&2; exit 1; }
     command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
-    command -v node >/dev/null || { echo "node is required" >&2; exit 1; }
     # Releases run on the repo venv; the relay needs crdt-sync and httpx in it.
     "$REPO/.venv/bin/python" -c 'import crdt_sync, httpx' 2>/dev/null ||
         { echo "The venv lacks the relay deps; run scripts/setup_dev.sh" >&2; exit 1; }

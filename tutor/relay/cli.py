@@ -5,8 +5,8 @@
 * ``publish-all``: one-off migration publish of every transcript, plus the
   archived flags, then exit (``DOCS-contract.md`` §11).
 * :func:`with_relay`: the web server's lifespan also runs the relay
-  (``TUTOR_RELAY=1`` / ``--relay``), so the page and the phone share ONE
-  engine during the transition.
+  (``TUTOR_RELAY=1`` / ``--relay``), so the desktop app and the phone share
+  ONE engine.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def with_relay(app: Starlette, engine: Engine, sink: phases.PhaseSink) -> None:
         try:
             rtdb = config.connect()
         except config.RelaySetupError:
-            _logger.exception("relay disabled, serving the web page only")
+            _logger.exception("relay disabled, serving the web app only")
             async with inner(host):
                 yield
             return

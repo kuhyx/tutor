@@ -56,7 +56,7 @@ def pick(deck: list[Card], done: Collection[str], card_id: str | None) -> Card:
 
 
 def listing(deck: list[Card], done: Collection[str]) -> list[dict[str, Any]]:
-    """``/api/cards``: every card, done or not, and what still locks it."""
+    """Every card, done or not, and what still locks it."""
     return [
         {
             "id": c.id,

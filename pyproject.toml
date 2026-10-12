@@ -33,9 +33,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["tutor*"]
 
-[tool.setuptools.package-data]
-"tutor" = ["static/*"]
-
 [tool.ruff]
 target-version = "py314"
 include = ["*.py", "**/*.py"]

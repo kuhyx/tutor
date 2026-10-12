@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Final
 from tutor import credit, gating, unit_credit
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
-from tutor.curriculum.source import DeckSource, source_for, transcript_subject
+from tutor.curriculum.source import source_for, transcript_subject
 
 if TYPE_CHECKING:
     import asyncio
@@ -92,11 +92,6 @@ class CardFlow:
     def deck(self) -> list[cards_mod.Card]:
         """The current subject's cards."""
         return self.source.cards()
-
-    @deck.setter
-    def deck(self, found: list[cards_mod.Card]) -> None:
-        """The card editor reloaded the repo deck (unmigrated data only)."""
-        self.source = DeckSource(self.store, found)
 
     def _source_for(self, subject: str | None) -> CardSource:
         """``subject``'s cards: the live source when it is that subject."""

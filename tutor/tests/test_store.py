@@ -96,10 +96,9 @@ def test_log_appends_jsonl_lines(tmp_path: Path) -> None:
     assert events[0]["logged_at"]
 
 
-def test_unfinish_and_unarchive_of_unknown_ids_write_nothing(tmp_path: Path) -> None:
+def test_unfinish_of_an_unknown_id_writes_nothing(tmp_path: Path) -> None:
     store = Store(tmp_path)
     store.unfinish_card("nope")
-    store.unarchive("nope")
     assert not store.progress_path.exists()
 
 

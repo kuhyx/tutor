@@ -132,40 +132,10 @@ def test_archive_flags(tmp_path: Path) -> None:
     assert (auto["archived"], auto["auto_archived"]) == (True, True)
 
 
-def test_sessions_list_is_newest_first_and_skips_strays(tmp_path: Path) -> None:
-    store = Store(tmp_path)
-    make_session(store, OLD)
-    make_session(store, NEW, reply=False)
-    store.log("20261011-000000-0000", {"type": "stop"})  # not replayable
-    folder = sessions_dir(store)
-    (folder / "notes.jsonl").write_text("{}\n", encoding="utf-8")  # not a session
-    store.log(NEW, {"type": "stop"})
-    listed = history.sessions_list(folder, view(archived={OLD}, live=""))
-    assert [row["session_id"] for row in listed] == [NEW, OLD]
-    newest, oldest = listed
-    assert newest["started"] == "2026-10-10 09:30"
-    assert newest["stopped"] is True
-    assert newest["auto_archived"] is True
-    assert oldest == {
-        "session_id": OLD,
-        "started": "2026-10-09 10:15",
-        "cards": [
-            {"id": CARD, "front": "What is a PLC?", "done": False, "done_here": True}
-        ],
-        "active_minutes": 2,
-        "credited_minutes": 2,
-        "live": False,
-        "archived": True,
-        "auto_archived": False,
-        "stopped": False,
-    }
-
-
 def test_nothing_here_writes_anything(tmp_path: Path) -> None:
     store = Store(tmp_path)
     make_session(store, OLD)
     before = {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
-    history.sessions_list(sessions_dir(store), view())
     history.session_view(sessions_dir(store), OLD, view())
     after = {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
     assert after == before

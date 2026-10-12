@@ -3,8 +3,8 @@
 # ============================================================================
 # Open the Tutor (the +1 h gaming / +60 min shutdown earner).
 #
-# Opens the desktop app (the Flutter web build in a Chrome --app window) when
-# the server serves /app/, else the old page. If the live server answers,
+# Opens the desktop app (the Flutter web build at /app/ in a Chrome --app
+# window; any browser when there is no Chromium). If the live server answers,
 # just open it. Otherwise start tutor.service (the frozen live release, never
 # the working tree), installing the unit or deploying a first release when
 # missing. The server is the unit, so closing this terminal never kills a
@@ -34,11 +34,6 @@ usage() {
     exit 0
 }
 
-# The Flutter web app, when the running server has it built and mounted.
-app_up() {
-    curl -sf -m 2 -o /dev/null "$APP_URL"
-}
-
 # chromium on this PC (google-chrome-stable as a fallback); TUTOR_BROWSER wins.
 browser() {
     local b
@@ -50,7 +45,7 @@ browser() {
 
 open_ui() {
     local b
-    if app_up && b="$(browser)"; then
+    if b="$(browser)"; then
         mkdir -p "$PROFILE" "$PROFILE.xdg"
         # --class: the window groups as "tutor", not as the browser. Own
         # XDG_CONFIG_HOME: Arch's launcher would read chromium-flags.conf,
@@ -61,8 +56,7 @@ open_ui() {
             --class=tutor --password-store=basic --no-first-run \
             >/dev/null 2>&1
     else
-        # Old page until the release ships the web app (or no browser).
-        setsid -f xdg-open "$URL" >/dev/null 2>&1
+        setsid -f xdg-open "$APP_URL" >/dev/null 2>&1
     fi
 }
 
@@ -99,7 +93,7 @@ main() {
         start_server
         wait_up || { echo "Tutor did not start; see $LOG" >&2; exit 1; }
     fi
-    echo "Tutor: $URL"
+    echo "Tutor: $APP_URL"
     if [[ $OPEN -eq 1 ]]; then
         open_ui
     fi

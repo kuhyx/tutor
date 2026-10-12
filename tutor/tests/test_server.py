@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The web app: pages, state, start / message routes, error mapping, media."""
+"""The server: `/` redirect, state / start / message / stop, errors, media."""
 
 from __future__ import annotations
 
@@ -50,32 +50,22 @@ def client(rig: Rig) -> Iterator[TestClient]:
     assert rig.engine._session is None
 
 
-def test_index_and_static_page(client: TestClient) -> None:
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "<html" in response.text.lower()
-    assert client.get("/static/nothing-here.js").status_code == 404
+def test_root_redirects_to_the_flutter_app(client: TestClient) -> None:
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/app/"
+    assert client.get("/static/app.js").status_code == 404
 
 
-def test_page_and_scripts_are_revalidated(client: TestClient) -> None:
-    # A plain reload must never run a cached app.js against a newer page.
-    page = client.get("/")
-    script = client.get("/static/app.js")
-    assert script.status_code == 200
-    assert "ctrlKey || e.metaKey" in script.text  # Enter is a newline
-    for response in (page, script):
-        assert response.headers["cache-control"] == "no-cache"
-    etag = script.headers["etag"]
-    again = client.get("/static/app.js", headers={"if-none-match": etag})
-    assert again.status_code == 304
-    assert again.headers["cache-control"] == "no-cache"
-
-
-def test_state_and_cards(client: TestClient, rig: Rig) -> None:
+def test_state(client: TestClient) -> None:
     assert client.get("/api/state").json()["session_id"] == ""
-    cards = client.get("/api/cards").json()
-    assert [c["id"] for c in cards] == [c.id for c in rig.engine.deck]
-    assert not any(c["done"] for c in cards)
+
+
+def test_stop_ends_the_live_session(client: TestClient) -> None:
+    started = client.post("/api/start", json={}).json()
+    assert started["session_id"]
+    assert client.post("/api/stop").json()["session_id"] == ""
+    assert client.post("/api/stop").status_code == 200  # nothing live: a no-op
 
 
 def test_start_then_message(client: TestClient, rig: Rig) -> None:
@@ -207,6 +197,6 @@ def test_create_app_builds_its_own_engine(
     cache.mkdir()
     (cache / f"{NAME}.jpg").write_bytes(b"JPG")
     with TestClient(create_app()) as c:
-        assert c.get("/api/cards").status_code == 200
+        assert c.get("/api/state").status_code == 200
         assert c.get(f"/media/{NAME}.jpg").content == b"JPG"
         assert rig.engine.deck

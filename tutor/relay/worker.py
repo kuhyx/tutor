@@ -4,7 +4,7 @@
 Hosted either inside the web server's process (``hosting``) or alone
 (``python -m tutor worker``); in both there is exactly one Engine. Startup
 never fails the host: if RTDB is unreachable it keeps retrying in the
-background while the web page works on.
+background while the HTTP server works on.
 """
 
 from __future__ import annotations

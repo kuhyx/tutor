@@ -170,46 +170,8 @@ def _choice_follows_card_done(events: list[dict[str, Any]]) -> bool:
     return bool(done_at) and all(any(c > i for c in choices) for i in done_at)
 
 
-def message_indices(events: list[dict[str, Any]]) -> list[int]:
-    """The page-message index (``m<i>``) of each tutor turn, as the page counts.
-
-    A learner bubble precedes the tutor message it was answered by; a Next card
-    divider is a message of its own and drops a learner message that got no reply.
-    """
-    out: list[int] = []
-    count = 0
-    pending = False
-    for event in events:
-        kind = event["type"]
-        if kind == "learner":
-            pending = True
-        elif kind == "tutor":
-            count += int(pending)
-            pending = False
-            out.append(count)
-            count += 1
-        elif kind == "next_card":
-            pending = False
-            count += int(bool(event.get("ui")))  # only an in-session switch
-    return out
-
-
-def anchors(events: list[dict[str, Any]]) -> dict[str, str]:
-    """Page anchors (``m<i>``) for the first picture, first diagram and last turn."""
-    tutor = [e for e in events if e["type"] == "tutor"]
-    at = message_indices(events)
-    out = {"last": f"m{at[-1]}"}
-    for name, key in (("image", "images"), ("diagram", "diagrams")):
-        hit = next((i for i, e in enumerate(tutor) if e["ui"].get(key)), 0)
-        out[name] = f"m{at[hit]}"
-    return out
-
-
 def main(argv: list[str]) -> int:
     """Print the verdicts for a transcript; 1 if any item failed."""
-    if argv[1] == "--anchors":
-        print(json.dumps(anchors(load(Path(argv[2])))))
-        return 0
     results = verdicts(load(Path(argv[1])))
     for item, ok, evidence in results:
         print(f"{'PASS' if ok else 'FAIL'}  {item}\n      {evidence}")

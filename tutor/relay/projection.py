@@ -128,7 +128,7 @@ class Publisher:
         await self.stats()
 
     async def refresh(self) -> None:
-        """Catch changes made outside the relay (the web page) to the live session."""
+        """Catch changes made outside the relay (HTTP turns) to the live session."""
         sid = self._engine.session_id
         if sid and views.transcript_rev(self.sessions_dir, sid) != self._revs.get(sid):
             await self.session(sid)

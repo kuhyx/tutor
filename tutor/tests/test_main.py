@@ -90,7 +90,7 @@ def test_serves_on_localhost_and_reports_resume(
     ]
     err = capsys.readouterr().err
     assert "resumed session 20261009-sess" in err
-    assert "http://127.0.0.1:18999/" in err
+    assert "http://127.0.0.1:18999/app/" in err
     engine = FakeEngine.built[0]
     assert served.apps == [engine]
     assert engine.simulated_time is False

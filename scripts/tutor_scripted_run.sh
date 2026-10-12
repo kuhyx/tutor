@@ -3,8 +3,9 @@
 # ============================================================================
 # Scripted tutor run: a simulated know-nothing learner drives the real tutor
 # over HTTP against a SANDBOXED data dir and ledger key (no real gaming time
-# is minted), then the transcript is adjudicated by code and the page is
-# screenshotted headlessly. The server is left running only until the end.
+# is minted), then the transcript is adjudicated by code. The server is left
+# running only until the end. (The old page's screenshots went with the page
+# on 2026-10-12; the Flutter client has its own: CLAUDE.md "app screenshots".)
 # ============================================================================
 
 set -euo pipefail
@@ -23,7 +24,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$RUN/data" "$ROOT/build/tutor-screenshots"
+mkdir -p "$RUN/data" "$ROOT/build/tutor-run-out"
 rm -rf "${RUN:?}/data"
 mkdir -p "$RUN/data"
 head -c 32 /dev/urandom | base64 > "$RUN/test.key"
@@ -37,28 +38,10 @@ for _ in {1..40}; do
     sleep 0.5
 done
 
-# The chromium wrapper returns before the PNG exists; the pipe waits for its
-# "bytes written" line, so the server is never killed mid-screenshot.
-# The run ends with Stop here, so the final shots open the stopped session by id.
-shot() {  # shot <name> <anchor>: headless, temp profile, never the live display
-    chromium --headless=new --no-sandbox --user-data-dir="$(mktemp -d)" --disable-gpu \
-        --hide-scrollbars --window-size=1280,1000 --virtual-time-budget=6000 \
-        --screenshot="$ROOT/build/tutor-screenshots/$1.png" \
-        "http://127.0.0.1:$PORT/#$2" 2>&1 | grep -q "bytes written"
-}
-export -f shot
-export ROOT PORT
-
-"$PY" -m tutor.scripted --url "http://127.0.0.1:$PORT" \
-    --hook-after 7 --hook-cmd 'shot session-mid m14' "$@"
+"$PY" -m tutor.scripted --url "http://127.0.0.1:$PORT" "$@"
 
 session="$(ls -t "$RUN"/data/sessions/*.jsonl | head -1)"
-cp "$session" "$ROOT/build/tutor-screenshots/transcript.jsonl"
-"$PY" -m tutor.adjudicate "$session" | tee "$ROOT/build/tutor-screenshots/adjudication.txt" || true
+cp "$session" "$ROOT/build/tutor-run-out/transcript.jsonl"
+"$PY" -m tutor.adjudicate "$session" | tee "$ROOT/build/tutor-run-out/adjudication.txt" || true
 
-sid="$(basename "$session" .jsonl)"
-for name in image diagram last; do
-    anchor="$("$PY" -m tutor.adjudicate --anchors "$session" | jq -r ".$name")"
-    shot "session-$name" "$sid/$anchor"
-done
-echo "screenshots in $ROOT/build/tutor-screenshots/"
+echo "transcript and adjudication in $ROOT/build/tutor-run-out/"

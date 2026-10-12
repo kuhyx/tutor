@@ -1,59 +1,41 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The local web page: a small Starlette app bound to 127.0.0.1 only."""
+"""The local server: a small Starlette app bound to 127.0.0.1 only.
+
+``/`` redirects to the Flutter client at ``/app/`` (``tutor.webapp``). The
+JSON routes left are the ones scripts drive over HTTP: ``tutor.scripted``
+(start, message, stop), the deploy smoke test and ``run.sh`` (state). The
+phone and the desktop app talk to the engine over the RTDB relay instead.
+"""
 
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
 import logging
-from pathlib import Path
 import re
 import traceback
 from typing import TYPE_CHECKING, Any, Final
 
 from claude_agent_sdk import ClaudeSDKError
 from starlette.applications import Starlette
-from starlette.concurrency import run_in_threadpool
-from starlette.responses import FileResponse, JSONResponse, Response
-from starlette.routing import Mount, Route
-from starlette.staticfiles import StaticFiles
+from starlette.responses import (
+    FileResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
+from starlette.routing import Route
 
-from tutor import deck_edit, diagrams, feedback, feedback_snapshot, images, webapp
-from tutor.curriculum.source import DECK_DIR
+from tutor import diagrams, images, webapp
 from tutor.engine import Engine
-from tutor.routes_editor import editor_routes
-from tutor.routes_sessions import session_routes
 from tutor.session import SessionError
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
-    import os
-    from os import PathLike
+    from collections.abc import AsyncIterator, Coroutine
+    from pathlib import Path
 
     from starlette.requests import Request
-    from starlette.types import Scope
 
 _logger = logging.getLogger(__name__)
-STATIC: Final = Path(__file__).parent / "static"
-# The page and its scripts change on every deploy; without this a plain reload
-# can run a cached app.js against the new page (2026-10-10: Enter still sent).
-_REVALIDATE: Final = {"Cache-Control": "no-cache"}
-
-
-class _RevalidatedStatic(StaticFiles):
-    """Static files the browser must revalidate (ETag) before every use."""
-
-    def file_response(
-        self,
-        full_path: PathLike[str] | str,
-        stat_result: os.stat_result,
-        scope: Scope,
-        status_code: int = 200,
-    ) -> Response:
-        response = super().file_response(full_path, stat_result, scope, status_code)
-        response.headers.update(_REVALIDATE)
-        return response
-
-
 _SAFE_NAME: Final = re.compile(r"^[0-9a-f]{16}(-\d)?\.(png|jpg|svg)$")
 
 
@@ -61,20 +43,17 @@ def create_app(
     engine: Engine | None = None,
     *,
     media_dirs: tuple[Path, Path] | None = None,
-    deck_dirs: deck_edit.Dirs | None = None,
 ) -> Starlette:
-    """Build the app; the engine and the media and deck dirs are injectable."""
+    """Build the app; the engine and the media dirs are injectable."""
     eng = engine or Engine()
     image_dir, diagram_dir = media_dirs or (images.cache_dir(), diagrams.cache_dir())
 
     async def index(_: Request) -> Response:
-        return FileResponse(STATIC / "index.html", headers=_REVALIDATE)
+        # Temporary: a browser must not cache where `/` points.
+        return RedirectResponse("/app/", status_code=307)
 
     async def state(_: Request) -> Response:
         return JSONResponse(eng.state())
-
-    async def cards(_: Request) -> Response:
-        return JSONResponse(eng.cards())
 
     async def start(request: Request) -> Response:
         body = await _json(request)
@@ -91,6 +70,9 @@ def create_app(
         advance = float(body.get("advance_s", 0))
         return await _guard(eng.reply(text, advance, msg_id, sent_at))
 
+    async def stop(_: Request) -> Response:
+        return await _guard(eng.stop())
+
     async def media(request: Request) -> Response:
         name = request.path_params["name"]
         if not _SAFE_NAME.match(name):
@@ -102,16 +84,11 @@ def create_app(
     routes = [
         Route("/", index),
         Route("/api/state", state),
-        Route("/api/cards", cards),
         Route("/api/start", start, methods=["POST"]),
         Route("/api/message", message, methods=["POST"]),
-        *session_routes(eng, _guard, _json),
-        *editor_routes(eng, deck_dirs or deck_edit.Dirs.from_env(DECK_DIR), _json),
-        Route("/api/feedback", _feedback_route(eng), methods=["POST"]),
+        Route("/api/stop", stop, methods=["POST"]),
         Route("/media/{name}", media),
-        Mount("/static", _RevalidatedStatic(directory=STATIC)),
-        # The Flutter client (desktop: Chrome --app window); `/` stays the
-        # old page until the Flutter one is at parity and retires it.
+        # The Flutter client (desktop: Chrome --app window).
         *webapp.webapp_routes(*webapp.paths_from_env()),
     ]
 
@@ -120,7 +97,7 @@ def create_app(
         yield
         await eng.close()
 
-    # Anything no route maps itself still reaches the page as JSON it can show
+    # Anything no route maps itself still reaches the caller as JSON
     # (Starlette's ServerErrorMiddleware runs this, then re-raises so uvicorn
     # logs the traceback): typed handlers below, this net for the rest.
     app = Starlette(
@@ -128,53 +105,6 @@ def create_app(
     )
     app.state.engine = eng
     return app
-
-
-def _feedback_route(eng: Engine) -> Callable[[Request], Awaitable[Response]]:
-    """POST /api/feedback, bound to ``eng``."""
-
-    async def report(request: Request) -> Response:
-        return await _report(eng, await _json(request))
-
-    return report
-
-
-async def _report(eng: Engine, body: dict[str, Any]) -> Response:
-    """Store developer feedback; never touches the conversation or clock."""
-    try:
-        entry = _feedback_entry(eng, body)
-    except ValueError as err:
-        _logger.warning("feedback refused: %s", err)
-        return JSONResponse(_error_body(err), status_code=400)
-    try:
-        stored = await run_in_threadpool(feedback.record, entry)
-    # The file or its lock failed, or an existing line is corrupt (bad JSON,
-    # missing id); anything else reaches ``_unhandled``.
-    except (OSError, ValueError, KeyError) as err:
-        _logger.exception("could not store feedback")
-        return JSONResponse(_error_body(err), status_code=500)
-    return JSONResponse({"id": stored["id"], "markdown": feedback.to_markdown(stored)})
-
-
-def _feedback_entry(eng: Engine, body: dict[str, Any]) -> dict[str, Any]:
-    """The report to store; snapshots come from the server's own messages."""
-    scoped = body.get("message_index") is not None
-    if scoped and body.get("session_id") != eng.session_id:
-        msg = "the session changed since this message was shown; reload the page"
-        raise ValueError(msg)
-    category, text, index = feedback.validate(body, len(eng.messages))
-    entry: dict[str, Any] = {
-        "category": category,
-        "text": text,
-        "session_id": eng.session_id or None,
-        "card_id": eng.card.id if eng.card else None,
-        "page_url": str(body.get("page_url", ""))[:500],
-        "user_agent": str(body.get("user_agent", ""))[:500],
-    }
-    if index is not None:
-        entry["message_index"] = index
-        entry["snapshot"] = feedback_snapshot.snapshot(eng.messages, index)
-    return entry
 
 
 async def _json(request: Request) -> dict[str, Any]:
@@ -201,7 +131,7 @@ async def _guard(call: Coroutine[Any, Any, dict[str, Any]]) -> Response:
 
 
 async def _unhandled(_: Request, err: Exception) -> Response:
-    """Any error no route maps: a 500 whose body the page shows to paste back."""
+    """Any error no route maps: a 500 whose body carries the traceback."""
     _logger.error("unhandled tutor error: %s", err)
     return JSONResponse(_error_body(err), status_code=500)
 
