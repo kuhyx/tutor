@@ -18,10 +18,10 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/rev_watcher.dart';
+import 'package:tutor/sync/rtdb_stream.dart';
 import 'package:tutor/util/ulid.dart';
 
 import 'fake_rtdb.dart';
-import 'fake_stream.dart';
 
 /// Device id of the test install.
 const testDev = '0b6f2c1e-8f2a-4c1d-9e3b-7a5d4c3b2a10';
@@ -34,10 +34,10 @@ const testConfig = FirebaseConfig(
   serverClientId: 'client',
 );
 
-/// Services over a fake DB and fake stream; the IdP answers [uid].
+/// Services over a fake DB and a fake [stream]; the IdP answers [uid].
 TutorServices services(
   FakeRtdb db,
-  FakeStream stream, {
+  RtdbStream stream, {
   String uid = 'right',
   KvStore? kv,
 }) {
