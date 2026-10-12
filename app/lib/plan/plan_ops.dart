@@ -7,6 +7,8 @@
 /// plan that can only come back `bad_request`.
 library;
 
+import 'dart:convert';
+
 import 'package:tutor/model/ids.dart';
 import 'package:tutor/model/plan.dart';
 
@@ -139,3 +141,8 @@ List<String> planProblems(List<Module> modules) {
   }
   return problems;
 }
+
+/// Whether [a] and [b] are the same plan on the wire (a refetch that only
+/// moved another subject must not count as "the plan changed").
+bool samePlan(Plan? a, Plan? b) =>
+    jsonEncode(a?.toJson()) == jsonEncode(b?.toJson());

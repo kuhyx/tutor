@@ -78,4 +78,18 @@ void main() {
       isFalse,
     );
   });
+
+  test('samePlan compares the wire form', () {
+    const p = Plan(rev: 1, status: 'draft', modules: [_a, _b]);
+    expect(
+      samePlan(p, const Plan(rev: 1, status: 'draft', modules: [_a, _b])),
+      isTrue,
+    );
+    expect(
+      samePlan(p, const Plan(rev: 2, status: 'draft', modules: [_a, _b])),
+      isFalse,
+    );
+    expect(samePlan(null, null), isTrue);
+    expect(samePlan(p, null), isFalse);
+  });
 }

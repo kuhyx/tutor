@@ -13,10 +13,12 @@ import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/subject.dart';
+import 'package:tutor/plan/plan_ops.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/plan_editor.dart';
+import 'package:tutor/util/refresher.dart';
 
 /// The Plan screen for one subject.
 class PlanScreen extends StatefulWidget {
@@ -35,21 +37,50 @@ class PlanScreen extends StatefulWidget {
 
 class _PlanScreenState extends State<PlanScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
-  late Future<SubjectData?> _data = _load();
+  // The plan on screen stays put while a refetch runs; a change that would
+  // replace a draft with unsaved edits waits behind a banner instead.
+  late final _data = Refresher<SubjectData?>(
+    () => widget.services.catalog.fetch(widget.subject),
+    hold: (now, next) =>
+        _editorDirty && _editing(now) && !samePlan(now?.plan, next?.plan),
+  );
+  late final StreamSubscription<int> _changes;
   final _comment = TextEditingController();
+  bool _editorDirty = false;
+  String? _editorKey;
 
-  Future<SubjectData?> _load() => widget.services.catalog.fetch(widget.subject);
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_data.reload());
+    // Live while visible: the worker bumps rev.catalog as modules generate.
+    _changes = widget.services.rev.catalogChanges.listen(
+      (_) => unawaited(_data.reload()),
+    );
+  }
 
   @override
   void dispose() {
+    unawaited(_changes.cancel());
     unawaited(_runner.dispose());
+    _data.dispose();
     _comment.dispose();
     super.dispose();
   }
 
-  void _reload() => setState(() {
-    _data = _load()..ignore(); // FutureBuilder reports errors
-  });
+  static bool _editing(SubjectData? d) =>
+      d != null &&
+      d.plan?.status == 'draft' &&
+      d.meta.status != SubjectStatus.failed &&
+      d.meta.status != SubjectStatus.drafting;
+
+  void _reload() => unawaited(_data.reload(force: true));
+
+  void _onDirty(bool dirty) {
+    _editorDirty = dirty;
+    // Edits undone: a change that waited behind the banner can land now.
+    if (!dirty) _data.applyPending();
+  }
 
   Future<void> _send(RequestBody body) async {
     final status = await _runner.run(body);
@@ -71,16 +102,16 @@ class _PlanScreenState extends State<PlanScreen> {
         ),
       ],
     ),
-    body: FutureBuilder<SubjectData?>(
-      future: _data,
-      builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+    body: ListenableBuilder(
+      listenable: _data,
+      builder: (context, _) {
+        final error = _data.error;
+        if (!_data.hasData) {
+          return error == null
+              ? const Center(child: CircularProgressIndicator())
+              : PageList(children: [Text('Could not load: $error')]);
         }
-        if (snap.hasError) {
-          return PageList(children: [Text('Could not load: ${snap.error}')]);
-        }
-        final data = snap.data;
+        final data = _data.data;
         if (data == null) {
           return const PageList(
             children: [Text('This subject does not exist (yet).')],
@@ -94,9 +125,25 @@ class _PlanScreenState extends State<PlanScreen> {
   Widget _body(BuildContext context, SubjectData data) {
     final plan = data.plan;
     final text = Theme.of(context).textTheme;
-    final draft = plan != null && plan.status == 'draft';
+    final key = 'plan-${plan?.rev}-${_data.resets}';
+    if (key != _editorKey) {
+      // A new editor (new rev, or edits dropped): it starts clean.
+      _editorKey = key;
+      _editorDirty = false;
+    }
     return PageList(
       children: [
+        if (_data.hasPending)
+          MaterialBanner(
+            content: const Text('Plan changed — reload'),
+            actions: [
+              TextButton(
+                onPressed: _data.applyPending,
+                child: const Text('Reload plan'),
+              ),
+            ],
+          ),
+        if (_data.error != null) Text('Could not refresh: ${_data.error}'),
         Text(data.meta.title, style: text.headlineSmall),
         if (data.meta.goal.isNotEmpty) Text(data.meta.goal),
         const SizedBox(height: AppSpacing.sm),
@@ -112,17 +159,18 @@ class _PlanScreenState extends State<PlanScreen> {
           const EmptyState(
             icon: Icons.hourglass_empty,
             title: 'The tutor is drafting the plan',
-            message: 'It appears here when the PC is done. Reload to check.',
+            message: 'It appears here by itself when the PC is done.',
           )
-        else if (draft) ...[
+        else if (_editing(data)) ...[
           if (plan.notes.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(plan.notes, style: text.bodyMedium),
           ],
           PlanEditor(
-            key: ValueKey('plan-${plan.rev}'),
+            key: ValueKey(key),
             plan: plan,
             busy: _runner.status,
+            onDirty: _onDirty,
             onSave: (modules) =>
                 _send(RequestBody.planEdit(data.id, plan.rev, modules)),
             onApprove: () => _send(RequestBody.planApprove(data.id, plan.rev)),

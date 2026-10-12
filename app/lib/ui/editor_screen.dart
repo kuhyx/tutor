@@ -4,6 +4,7 @@
 library;
 
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ class EditorScreen extends StatefulWidget {
 
 class _EditorScreenState extends State<EditorScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
+  late final StreamSubscription<int> _changes;
   Map<String, SubjectData> _subjects = const {};
   String? _subject;
 
@@ -43,17 +45,31 @@ class _EditorScreenState extends State<EditorScreen> {
     super.initState();
     _subject = widget.subject;
     unawaited(_load());
+    // Cards land while a module generates: refetch the open subject in
+    // place (the list stays on screen; an open card form is its own page).
+    _changes = widget.services.rev.catalogChanges.listen(
+      (_) => unawaited(_load(fresh: true)),
+    );
   }
 
   @override
   void dispose() {
+    unawaited(_changes.cancel());
     unawaited(_runner.dispose());
     super.dispose();
   }
 
   Future<void> _load({bool fresh = false}) async {
     final s = _subject;
-    if (fresh && s != null) await widget.services.catalog.fetch(s);
+    if (fresh && s != null) {
+      try {
+        await widget.services.catalog.fetch(s);
+      } on Object catch (error) {
+        // `on Object`: a background refresh must not throw; the cached
+        // subject stays on screen until the next change or save.
+        log('editor refresh failed', level: 900, error: error);
+      }
+    }
     final all = await widget.services.catalog.cached();
     if (!mounted) return;
     setState(() {

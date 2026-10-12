@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/plan/plan_ops.dart';
 import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/ui/module_dialog.dart';
 
 /// Editable module list.
 class PlanEditor extends StatefulWidget {
@@ -17,6 +18,7 @@ class PlanEditor extends StatefulWidget {
     required this.busy,
     required this.onSave,
     required this.onApprove,
+    this.onDirty,
     super.key,
   });
 
@@ -31,6 +33,9 @@ class PlanEditor extends StatefulWidget {
 
   /// Approves the plan as it is.
   final VoidCallback onApprove;
+
+  /// Told after each local change whether edits are unsaved.
+  final ValueChanged<bool>? onDirty;
 
   @override
   State<PlanEditor> createState() => _PlanEditorState();
@@ -48,76 +53,32 @@ class _PlanEditorState extends State<PlanEditor> {
     super.dispose();
   }
 
-  void _set(List<Module> next) => setState(() => _modules = next);
+  @override
+  void didUpdateWidget(PlanEditor old) {
+    super.didUpdateWidget(old);
+    // A refetch of the same plan rev: follow it unless kuhy has edits.
+    if (identical(_modules, old.plan.modules)) _modules = widget.plan.modules;
+  }
+
+  void _set(List<Module> next) {
+    setState(() => _modules = next);
+    widget.onDirty?.call(_dirty);
+  }
 
   Future<void> _edit(int i) async {
-    final m = _modules[i];
-    final title = TextEditingController(text: m.title);
-    final summary = TextEditingController(text: m.summary);
-    final requires = {...m.requires};
-    final earlier = _modules.take(i).toList();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
-          title: const Text('Edit module'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: title,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                TextField(
-                  controller: summary,
-                  maxLength: 300,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Summary'),
-                ),
-                if (earlier.isNotEmpty) const SectionHeader('Requires'),
-                for (final e in earlier)
-                  CheckboxListTile(
-                    value: requires.contains(e.id),
-                    title: Text(e.title),
-                    onChanged: (on) => setLocal(() {
-                      if (on ?? false) {
-                        requires.add(e.id);
-                      } else {
-                        requires.remove(e.id);
-                      }
-                    }),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Done'),
-            ),
-          ],
-        ),
+    final edit = await editModuleDialog(
+      context,
+      _modules[i],
+      _modules.take(i).toList(),
+    );
+    if (edit == null || !mounted) return;
+    _set(
+      setRequires(
+        renameModule(_modules, i, edit.title, summary: edit.summary),
+        i,
+        edit.requires,
       ),
     );
-    if (ok ?? false) {
-      final kept = [
-        for (final e in earlier)
-          if (requires.contains(e.id)) e.id,
-      ];
-      _set(
-        setRequires(
-          renameModule(_modules, i, title.text, summary: summary.text),
-          i,
-          kept,
-        ),
-      );
-    }
   }
 
   @override

@@ -17,6 +17,7 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/util/refresher.dart';
 
 /// Home screen.
 class HomeScreen extends StatefulWidget {
@@ -48,7 +49,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<HomeSnapshot> _snapshot = widget.services.home.load();
+  // The last snapshot stays on screen while a refresh runs (no flash).
+  late final _snapshot = Refresher<HomeSnapshot>(widget.services.home.load);
+  late final StreamSubscription<int> _changes;
   late final AppLifecycleListener _lifecycle;
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
 
@@ -59,6 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     // Stream presence only while visible (DOCS-contract §9 budget).
+    unawaited(_snapshot.reload());
+    // Only while Home is on top: returning to it refreshes anyway (_back),
+    // and a reload here re-GETs every subject once rev.catalog moved.
+    _changes = _s.rev.catalogChanges.listen((_) {
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) _refresh();
+    });
     _presence.start();
     _lifecycle = AppLifecycleListener(
       onShow: _presence.start,
@@ -75,14 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _lifecycle.dispose();
+    unawaited(_changes.cancel());
+    _snapshot.dispose();
     unawaited(_presence.stop());
     unawaited(_runner.dispose());
     super.dispose();
   }
 
-  void _refresh() => setState(() {
-    _snapshot = _s.home.load()..ignore(); // FutureBuilder reports errors
-  });
+  void _refresh() => unawaited(_snapshot.reload());
 
   // Back on Home from any screen: counters may have moved.
   void _back(Object? _) {
@@ -161,19 +170,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     ),
-    body: FutureBuilder<HomeSnapshot>(
-      future: _snapshot,
-      builder: (context, snap) {
-        // A refresh keeps the previous error/data in the snapshot while
-        // waiting; show the spinner instead of a stale result.
-        if (snap.connectionState != ConnectionState.done) {
+    body: ListenableBuilder(
+      listenable: _snapshot,
+      builder: (context, _) {
+        // A failed load shows its error (the loader already falls back to
+        // the cache when offline, so what is left is worth reading).
+        final error = _snapshot.error;
+        if (error != null) {
+          return PageList(children: [Text('Could not load: $error')]);
+        }
+        if (!_snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snap.hasError) {
-          return PageList(children: [Text('Could not load: ${snap.error}')]);
-        }
         return HomeBody(
-          data: snap.requireData,
+          data: _snapshot.data,
           presence: _presence.state,
           runner: _runner,
           onReview: () => _go(() => openReview(context, _s)),
