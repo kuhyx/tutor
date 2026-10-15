@@ -11,10 +11,11 @@ the drill kinds never need Claude.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Final
 from weakref import WeakKeyDictionary
 
-from tutor import history, outage, resume
+from tutor import anki, anki_collection, history, outage, resume
 from tutor.clock import reply_time
 from tutor.drill import Drill
 from tutor.relay.errors import RequestError
@@ -164,6 +165,14 @@ async def card_done(ctx: RequestContext) -> dict[str, Any]:
     return {}
 
 
+async def anki_status(ctx: RequestContext) -> dict[str, Any]:
+    """Credit new Anki reviews, then today's Anki figures (the Sync button)."""
+    try:
+        return await asyncio.to_thread(anki.status, ctx.now())
+    except anki_collection.AnkiError as exc:
+        raise RequestError(str(exc), code="worker_error", retry=True) from exc
+
+
 CHAT_HANDLERS: Final[
     dict[str, Callable[[RequestContext], Awaitable[dict[str, Any]]]]
 ] = {
@@ -175,4 +184,5 @@ CHAT_HANDLERS: Final[
     "card_done": card_done,
     "drill_next": drill_next,
     "drill_answer": drill_answer,
+    "anki_status": anki_status,
 }

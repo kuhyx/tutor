@@ -101,8 +101,7 @@ Worker streams `requests` (kept small by GC). Per rid, in key order:
 `retry:true` (`model_error`) = resend as a NEW rid, same `sent_at`. More: `DOCS-relay.md`.
 
 Lanes: `chat` (session kinds) and `build` (subject/plan/card kinds) are
-separate serial queues; within a lane a later rid never overtakes an earlier
-one. For `message`, `rid` is the engine's `msg_id`.
+separate serial queues; within a lane a later rid never overtakes an earlier one. For `message`, `rid` is the engine's `msg_id`.
 Client: after PUT, stream `requests/{rid}` until `result`, show phase. On
 network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
@@ -127,6 +126,7 @@ Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked
 | `stop` | `{"session":sid}` | `{}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
 | `drill_next`, `drill_answer` | the model-free drill, `DOCS-relay.md` "Claude unavailable" | | chat |
+| `anki_status` | `{}` (credits new Anki reviews first; idempotent) | `{"credited_today_min","eligible_today_min","last_sync_at":s\|null,"unavailable":{"until":s,"reason"}\|null}` | chat |
 
 One live session at a time; message for a non-`live` session -> `not_live`,
 client offers Continue (`session_resume`, replaces `resume_latest`, re-primes

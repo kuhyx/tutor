@@ -137,6 +137,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     # The model-free drill (``tutor.drill``): served while Claude is not.
     "drill_next": (CHAT, {"subject": _opt_slug}),
     "drill_answer": (CHAT, {"prompt_id": _ulid, "choice": _int}),
+    "anki_status": (CHAT, {}),
 }
 
 
