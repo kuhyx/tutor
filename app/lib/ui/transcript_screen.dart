@@ -16,6 +16,7 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/message_tile.dart';
+import 'package:tutor/util/device.dart';
 
 /// The transcript screen.
 class TranscriptScreen extends StatefulWidget {
@@ -65,7 +66,7 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
   });
 
   Future<void> _toSession(RequestBody body) async {
-    final status = await _runner.run(body);
+    final status = await _runner.run(body.withDevice(deviceName));
     if (status is RelayDone && mounted) {
       await openSession(context, _s, replace: true);
     }

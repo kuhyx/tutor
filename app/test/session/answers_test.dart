@@ -43,6 +43,26 @@ void main() {
     );
   });
 
+  test('choices follow the questions; the check has none', () {
+    const withChoices = Message(
+      role: 'tutor',
+      text: 't',
+      questions: ['Why?', 'How?'],
+      choices: [
+        ['a', 'b', 'c'],
+        [],
+        ['stray', 'extra', 'row'],
+      ],
+      check: {'question': 'What is a rung?'},
+    );
+    expect(askedOf(withChoices).map((a) => a.choices), [
+      ['a', 'b', 'c'],
+      <String>[],
+      <String>[],
+    ]);
+    expect(askedOf(m).first.choices, isEmpty); // an old message
+  });
+
   test('draft keys', () {
     expect(answersDraftKey('s', 'm0001'), 'draft.answers.s.m0001');
     expect(plainDraftKey('s'), 'draft.text.s');

@@ -19,6 +19,7 @@ import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_side.dart';
+import 'package:tutor/util/device.dart';
 
 /// Width from which the side panel sits beside the chat.
 const kWideLayout = 900.0;
@@ -109,7 +110,8 @@ class _SessionScreenState extends State<SessionScreen> {
 
   /// Runs [body]; a result naming a session is followed at once.
   Future<RelayStatus> _run(RequestBody body) async {
-    final status = await _runner.run(body);
+    // Every request of this screen says which device it comes from.
+    final status = await _runner.run(body.withDevice(deviceName));
     if (status is RelayDone) {
       final sid = status.data['session'];
       if (sid is String && mounted) _feed.follow(sid);
@@ -156,6 +158,8 @@ class _SessionScreenState extends State<SessionScreen> {
     ]),
     builder: (context, _) {
       final view = _feed.view.value;
+      final phone = isPhone;
+      final keyboard = phone && MediaQuery.viewInsetsOf(context).bottom > 0;
       final meta = view?.meta;
       final subject = _subjects[meta?.subject];
       final live = meta != null && !meta.stopped;
@@ -193,6 +197,8 @@ class _SessionScreenState extends State<SessionScreen> {
           onRun: _run,
           onStart: () => _run(_continue()),
           onSend: _send,
+          phone: phone,
+          keyboard: keyboard,
         ),
       );
       return LayoutBuilder(

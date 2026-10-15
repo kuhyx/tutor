@@ -52,7 +52,11 @@ void main() {
       data: {'session': 'x'},
       settle: false,
     );
-    expect(repeat['body'], {'subject': 'car', 'card': 'eng-crank'});
+    expect(repeat['body'], {
+      'subject': 'car',
+      'card': 'eng-crank',
+      'device': 'desktop',
+    });
     expect(find.text('Target card'), findsOneWidget); // replaced by Session
   });
 

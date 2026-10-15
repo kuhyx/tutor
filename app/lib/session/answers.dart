@@ -12,7 +12,12 @@ import 'package:tutor/model/message.dart';
 /// One question shown with an answer box.
 class Asked {
   /// Creates the question.
-  const new({required this.label, required this.text, this.check = false});
+  const new({
+    required this.label,
+    required this.text,
+    this.check = false,
+    this.choices = const [],
+  });
 
   /// `Q1`, `Q2`, ...
   final String label;
@@ -22,6 +27,9 @@ class Asked {
 
   /// The comprehension check (shown with its own label).
   final bool check;
+
+  /// Tap-to-fill answers the tutor suggests (empty: none).
+  final List<String> choices;
 
   /// Label as shown above the box.
   String get heading => check ? '$label - Comprehension check' : label;
@@ -35,7 +43,12 @@ List<Asked> askedOf(Message m) {
   ];
   return [
     for (final (n, (text, check)) in texts.indexed)
-      Asked(label: 'Q${n + 1}', text: text, check: check),
+      Asked(
+        label: 'Q${n + 1}',
+        text: text,
+        check: check,
+        choices: !check && n < m.choices.length ? m.choices[n] : const [],
+      ),
   ];
 }
 

@@ -1,7 +1,8 @@
-/// The answer composer (`static/questions.js`): one box per question of the
-/// latest tutor message plus "Your own comment", sent as ONE message; else
-/// a plain answer box. Drafts survive a reload (per session + message) and
-/// are dropped once sent. Ctrl+Enter sends.
+/// The answer composer (`static/questions.js`): a box per question of the
+/// latest tutor message plus "Your own comment", sent as ONE message; else a
+/// plain box. Boxes get the question's choices as chips plus "Hint" (sends
+/// "Hint"). Drafts survive a reload; Ctrl+Enter sends. Phone: one question
+/// at a time (1/3, Back, Next / Send), no comment box, no Ctrl+Enter hint.
 library;
 
 import 'dart:async';
@@ -13,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/storage/kv_store.dart';
+import 'package:tutor/ui/session/composer_parts.dart';
 
 /// The composer.
 class Composer extends StatefulWidget {
@@ -23,6 +25,7 @@ class Composer extends StatefulWidget {
     required this.kv,
     required this.enabled,
     required this.onSend,
+    this.phone = false,
     super.key,
   });
 
@@ -41,6 +44,9 @@ class Composer extends StatefulWidget {
   /// Sends the composed text; true once the worker has it.
   final Future<bool> Function(String text) onSend;
 
+  /// The Android app.
+  final bool phone;
+
   @override
   State<Composer> createState() => _ComposerState();
 }
@@ -49,7 +55,8 @@ class _ComposerState extends State<Composer> {
   List<Asked> _asked = const [];
   String _key = '';
   List<TextEditingController> _boxes = [];
-
+  int _step = 0; // phone: the question on screen
+  bool _moved = false; // stepped by hand: a late draft keeps it
   @override
   void initState() {
     super.initState();
@@ -70,24 +77,24 @@ class _ComposerState extends State<Composer> {
     super.dispose();
   }
 
-  String _draftKey() {
+  List<Asked> _askedNow() {
     final m = widget.latest;
-    final asked = m != null && m.message.role == 'tutor'
+    return m != null && m.message.role == 'tutor'
         ? askedOf(m.message)
-        : const <Asked>[];
-    return asked.isEmpty
-        ? plainDraftKey(widget.sid)
-        : answersDraftKey(widget.sid, m!.key);
+        : const [];
   }
+
+  String _draftKey() => _askedNow().isEmpty
+      ? plainDraftKey(widget.sid)
+      : answersDraftKey(widget.sid, widget.latest!.key);
 
   // Boxes are rebuilt only when the latest tutor message changes, so a
   // poll never wipes what is being typed.
   void _rebuild() {
-    final m = widget.latest;
-    _asked = m != null && m.message.role == 'tutor'
-        ? askedOf(m.message)
-        : const [];
+    _asked = _askedNow();
     _key = _draftKey();
+    _step = 0;
+    _moved = false;
     for (final b in _boxes) {
       b.dispose();
     }
@@ -102,6 +109,13 @@ class _ComposerState extends State<Composer> {
         final saved = (jsonDecode(raw) as List).cast<String>();
         for (final (i, v) in saved.indexed) {
           if (i < _boxes.length) _boxes[i].text = v;
+        }
+        // Back to where the learner left off: the first unanswered question.
+        if (!_moved && _asked.isNotEmpty) {
+          final open = _asked.indexed.where((e) => _boxes[e.$1].text.isEmpty);
+          setState(
+            () => _step = open.isEmpty ? _asked.length - 1 : open.first.$1,
+          );
         }
       }),
     );
@@ -130,60 +144,107 @@ class _ComposerState extends State<Composer> {
             ..clear()
             ..addListener(_save);
         }
-        setState(() {});
+        setState(() => _step = 0);
       }
     }
   }
 
-  Widget _box(int i, String label) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: TextField(
-      controller: _boxes[i],
-      readOnly: !widget.enabled,
-      minLines: _asked.isEmpty ? 3 : 1,
-      maxLines: 12,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-    ),
+  void _pick(int i, String c) => _boxes[i].value = TextEditingValue(
+    text: c,
+    selection: TextSelection.collapsed(offset: c.length),
   );
+
+  void _hint() {
+    if (widget.enabled) unawaited(widget.onSend('Hint'));
+  }
+
+  void _go(int step) => setState(() {
+    _step = step;
+    _moved = true;
+  });
+
+  Widget _box(int i, String label) => AnswerBox(
+    controller: _boxes[i],
+    label: label,
+    enabled: widget.enabled,
+    minLines: _asked.isEmpty && !widget.phone ? 3 : 1,
+    maxLines: widget.phone ? 6 : 12,
+  );
+
+  Widget _chips(int i) => AnswerChips(
+    choices: _asked[i].choices,
+    enabled: widget.enabled,
+    onPick: (c) => _pick(i, c),
+    onHint: _hint,
+  );
+
+  // One question at a time: its full text, chips, box, then 1/3 + Back/Next.
+  List<Widget> _phoneStep(TextTheme text, bool canSend) {
+    final a = _asked[_step];
+    return [
+      Flexible(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('${a.heading}: ${a.text}', style: text.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
+              _chips(_step),
+              _box(_step, 'Your answer'),
+            ],
+          ),
+        ),
+      ),
+      StepBar(
+        step: _step,
+        total: _asked.length,
+        canSend: canSend,
+        onBack: () => _go(_step - 1),
+        onNext: () => _go(_step + 1),
+        onSend: _send,
+      ),
+    ];
+  }
+
+  List<Widget> _deskBoxes(TextTheme text, bool canSend) => [
+    for (final (i, a) in _asked.indexed) ...[
+      Text('${a.heading}: ${a.text}', style: text.labelLarge),
+      const SizedBox(height: AppSpacing.xs),
+      _chips(i),
+      _box(i, 'Your answer'),
+    ],
+    _box(_asked.length, 'Your own comment'),
+    SendRow(canSend: canSend, onSend: _send, hint: 'Ctrl+Enter to send'),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final canSend = widget.enabled && _compose().trim().isNotEmpty;
-    return CallbackShortcuts(
+    final body = CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.enter, control: true): () =>
             unawaited(_send()),
       },
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_asked.isEmpty)
-            _box(0, 'Your answer. Reason it out; guesses are welcome.')
-          else ...[
-            for (final (i, a) in _asked.indexed) ...[
-              Text('${a.heading}: ${a.text}', style: text.labelLarge),
-              const SizedBox(height: AppSpacing.xs),
-              _box(i, 'Your answer'),
-            ],
-            _box(_asked.length, 'Your own comment'),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: Text('Ctrl+Enter to send', style: text.bodySmall),
-              ),
-              FilledButton(
-                onPressed: canSend ? _send : null,
-                child: const Text('Send'),
-              ),
-            ],
-          ),
+          if (_asked.isEmpty) ...[
+            _box(0, 'Your answer. Reason it out; guesses are welcome.'),
+            SendRow(
+              canSend: canSend,
+              onSend: _send,
+              hint: widget.phone ? null : 'Ctrl+Enter to send',
+            ),
+          ] else if (widget.phone)
+            ..._phoneStep(text, canSend)
+          else
+            ..._deskBoxes(text, canSend),
         ],
       ),
     );
+    // Phone: the scrolling step view takes the panel's height (flex child).
+    return widget.phone ? Flexible(child: body) : body;
   }
 }

@@ -114,6 +114,19 @@ class RequestBody {
   /// `anki_status`.
   factory ankiStatus() => const RequestBody._(RequestKind.ankiStatus, {});
 
+  /// The kinds whose body takes `device` (DOCS-contract §4).
+  static const Set<RequestKind> deviceKinds = {
+    RequestKind.message,
+    RequestKind.sessionStart,
+    RequestKind.next,
+  };
+
+  /// This request tagged with [device] (`phone` or `desktop`, so the tutor
+  /// knows how much the learner can type); other kinds come back unchanged.
+  RequestBody withDevice(String device) => deviceKinds.contains(kind)
+      ? RequestBody._(kind, {...body, 'device': device})
+      : this;
+
   /// Kind.
   final RequestKind kind;
 

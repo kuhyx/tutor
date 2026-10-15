@@ -95,3 +95,29 @@ class Preparing extends StatelessWidget {
     ),
   );
 }
+
+/// The chat area while there is nothing to show: [waiting] = something is on
+/// its way, else the empty state once [loaded], else a spinner.
+class NoChat extends StatelessWidget {
+  /// Creates the placeholder.
+  const new({required this.waiting, required this.loaded, super.key});
+
+  /// A request or a first tutor turn is on its way.
+  final bool waiting;
+
+  /// The feed has answered.
+  final bool loaded;
+
+  @override
+  Widget build(BuildContext context) => waiting
+      ? const Preparing()
+      : loaded
+      ? const EmptyState(
+          icon: Icons.chat_bubble_outline,
+          title: 'No session yet',
+          message:
+              'Start one: the tutor first asks what you already know, '
+              'then teaches what is missing.',
+        )
+      : const Center(child: CircularProgressIndicator());
+}

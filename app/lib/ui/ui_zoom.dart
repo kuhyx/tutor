@@ -14,12 +14,14 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:tutor/storage/kv_store.dart';
+import 'package:tutor/util/device.dart';
 import 'package:tutor/util/ui_scale.dart';
 
 /// The current zoom (1 = automatic size), persisted once [load] has run.
 class UiZoom extends ValueNotifier<double> {
-  /// Starts at [initial] (snapped); nothing is saved until [load].
-  new({double initial = 1}) : super(snapZoom(initial));
+  /// Starts at [initial] (snapped; null = the device default, 90% on the
+  /// phone); nothing is saved until [load], and a saved value always wins.
+  new({double? initial}) : super(snapZoom(initial ?? defaultZoom));
 
   /// The KvStore key.
   static const key = 'ui.zoom';
