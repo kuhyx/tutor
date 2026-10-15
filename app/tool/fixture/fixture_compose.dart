@@ -30,3 +30,11 @@ Map<String, Object?> fixtureComposeMsg(int now) => {
   ],
   'at': now - 60000,
 };
+
+/// A comprehension check with its own choices: the composer tests add it to
+/// the message and tap one, which is sent with `(picked option)`.
+const fixtureComposeCheck = <String, Object?>{
+  'question': 'What turns the piston push into rotation?',
+  'concept': 'crankshaft',
+  'choices': ['The crankshaft', 'The camshaft', 'The flywheel'],
+};

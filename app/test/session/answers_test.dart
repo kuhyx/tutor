@@ -43,24 +43,56 @@ void main() {
     );
   });
 
-  test('choices follow the questions; the check has none', () {
-    const withChoices = Message(
+  test('choices follow the questions; the check has its own', () {
+    Message withCheck(Object? checkChoices) => Message(
       role: 'tutor',
       text: 't',
-      questions: ['Why?', 'How?'],
-      choices: [
+      questions: const ['Why?', 'How?'],
+      choices: const [
         ['a', 'b', 'c'],
         [],
         ['stray', 'extra', 'row'],
       ],
-      check: {'question': 'What is a rung?'},
+      check: {'question': 'What is a rung?', 'choices': checkChoices},
     );
-    expect(askedOf(withChoices).map((a) => a.choices), [
+    expect(askedOf(withCheck(null)).map((a) => a.choices), [
       ['a', 'b', 'c'],
       <String>[],
-      <String>[],
+      <String>[], // RTDB dropped the check's empty list; no stray row
     ]);
+    expect(askedOf(withCheck(['x', ' ', 'y'])).last.choices, ['x', 'y']);
+    expect(
+      askedOf(withCheck({'1': 'q', '0': 'p', '2': 'r'})).last.choices,
+      ['p', 'q', 'r'], // keyed by index, as RTDB may return it
+    );
     expect(askedOf(m).first.choices, isEmpty); // an old message
+    expect(askedOf(m).last.choices, isEmpty);
+  });
+
+  test('compose: an unedited tapped choice is marked, an edited one not', () {
+    const tapped = Message(
+      role: 'tutor',
+      text: 't',
+      questions: ['Why?'],
+      choices: [
+        ['a', 'b', 'c'],
+      ],
+      check: {
+        'question': 'What is a rung?',
+        'choices': ['one line', 'a coil', 'a wire'],
+      },
+    );
+    final asked = askedOf(tapped);
+    expect(
+      composeAnswers(asked, ['a ', 'one line', 'a']),
+      'Q1: Why?\nA: a $pickedMarker\n\n'
+      'Q2: What is a rung?\nA: one line $pickedMarker\n\n'
+      'Comment: a', // the comment box has no choices
+    );
+    expect(
+      composeAnswers(asked, ['ab', 'one line, I think']),
+      'Q1: Why?\nA: ab\n\nQ2: What is a rung?\nA: one line, I think',
+    );
   });
 
   test('draft keys', () {

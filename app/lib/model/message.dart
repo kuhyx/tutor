@@ -97,8 +97,15 @@ class Message {
   /// The tutor judged the answer low-effort.
   final bool lowEffort;
 
-  /// `{"question","concept"}`.
+  /// `{"question","concept","choices"}`.
   final Json? check;
+
+  /// The check's tap-to-fill answers (`check.choices`: none or three), read
+  /// as forgivingly as [choices].
+  List<String> get checkChoices => [
+    for (final c in _ordered(_slots(check?['choices'])))
+      if (c is String && c.trim().isNotEmpty) c,
+  ];
 
   /// `{"passed","feedback"}`.
   final Json? checkResult;

@@ -34,6 +34,8 @@ class CheckState:
     mark: float = 0.0
     # Which answer of the open check is awaited (1..MAX_CHECK_ATTEMPTS), else 0.
     attempt: int = 0
+    # The open check's concept: a why after a tapped answer keeps it.
+    concept: str = ""
 
 
 @dataclass
@@ -111,6 +113,7 @@ class Conversation:
             self.notes.append(_DROPPED)
             return False
         self.pose_check(t)
+        self.check.concept = str(turn["check"].get("concept", ""))
         self.check.attempt = prior + 1 if retry else max(self.check.attempt, 1)
         return True
 

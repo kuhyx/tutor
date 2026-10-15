@@ -47,7 +47,9 @@ List<Asked> askedOf(Message m) {
         label: 'Q${n + 1}',
         text: text,
         check: check,
-        choices: !check && n < m.choices.length ? m.choices[n] : const [],
+        choices: check
+            ? m.checkChoices
+            : (n < m.choices.length ? m.choices[n] : const []),
       ),
   ];
 }
@@ -57,14 +59,23 @@ String? _checkText(Json? check) {
   return q is String && q.trim().isNotEmpty ? q : null;
 }
 
+/// Ends an answer a tapped choice filled and nobody edited, so the server
+/// tells a tap from a typed answer (`tutor/picked.py`): a tap alone never
+/// passes the comprehension check.
+const pickedMarker = '(picked option)';
+
 /// The one message the boxes send: `Q1: ...` / `A: ...` per question, then
 /// `Comment: ...`. [values] has one entry per question plus the comment.
 /// Empty when nothing was typed. Only trailing space is cut, so an indented
-/// first line of code keeps its indent.
+/// first line of code keeps its indent. A box still holding exactly one of
+/// its question's choices gets [pickedMarker] (stateless, so a reloaded
+/// draft keeps it; a choice typed word for word is as cued as a tap).
 String composeAnswers(List<Asked> asked, List<String> values) {
   String at(int i) {
-    final v = i < values.length ? values[i] : '';
-    return v.trim().isEmpty ? '' : v.trimRight();
+    final v = i < values.length ? values[i].trimRight() : '';
+    if (v.trim().isEmpty) return '';
+    final tap = i < asked.length && asked[i].choices.contains(v.trim());
+    return tap ? '${v.trim()} $pickedMarker' : v;
   }
 
   if (List.generate(asked.length + 1, at).every((v) => v.isEmpty)) return '';

@@ -15,7 +15,7 @@ from dataclasses import asdict
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import continuing, credit, gating, unit_credit
+from tutor import continuing, credit, gating, picked, unit_credit
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.source import source_for, transcript_subject
@@ -72,11 +72,7 @@ class CardFlow:
 
     @property
     def minutes_today(self) -> int:
-        """Today's ledger total; 0 once the local day it was read on is over.
-
-        The server outlives midnight, so a bare counter that only ever grows
-        (``max``) would show yesterday's credit as today's.
-        """
+        """Today's ledger total; 0 after midnight (no ``max`` carries yesterday's)."""
         day, minutes = self._minutes
         return minutes if day == credit.local_day(self.time())[0] else 0
 
@@ -212,22 +208,28 @@ class CardFlow:
             "card_done": bool(conv and conv.card_done),
         }
 
-    def _apply(self, turn: TutorTurn, t: float, message: dict[str, Any]) -> None:
+    def _apply(
+        self, turn: TutorTurn, t: float, message: dict[str, Any], *, tap: bool = False
+    ) -> None:
         _, conv, card = self._live()
         logged = asdict(turn)
+        # A tapped check answer: no pass, no mastery, no card_done (picked.py).
+        if tap and picked.refuse(logged, message, conv.check):
+            conv.notes.append(picked.REFUSED)
         if not conv.apply_checks(logged, t):
             message["check"] = None  # a refused third attempt is never shown
-        if not turn.low_effort and turn.concepts_mastered:
-            names = [c.strip().lower() for c in turn.concepts_mastered if c.strip()]
+        if not turn.low_effort and (mastered := logged["concepts_mastered"]):
+            names = [c.strip().lower() for c in mastered if c.strip()]
             message["mastered_new"] = self.source.master(
                 names, card.id, self.session_id
             )
         # Only a card_done reads progress.json: most turns end nothing.
-        need = gating.missing(card, self.source.done()) if turn.card_done else []
+        done = bool(logged["card_done"])
+        need = gating.missing(card, self.source.done()) if done else []
         if need:  # locked: logged as refused, so replay and repair skip it
             logged["card_done"], logged["card_done_refused"] = False, need
             conv.notes.append(gating.refused_note(card, need))
-        elif turn.card_done:  # the tutor's word is enough (b193: a gate dropped it)
+        elif done:  # the tutor's word is enough (b193: a gate dropped it)
             if conv.mark_card_done():
                 self.source.mark(card.id, self.session_id, done=True)
             message["card_done"] = True

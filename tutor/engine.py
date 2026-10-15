@@ -1,11 +1,9 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """The session engine: model turns in, clock / credit / store / media wired up.
 
-Every event goes to the engagement clock the moment it happens; the model only
-supplies the per-reply ``low_effort`` flag and each check's pass/fail. Credit
-is written for each active minute the clock releases (``unit_credit`` holds the
-ledger seam), and the UI only claims it once the ledger read-back says it is
-recorded. Card end, Next card, Stop and ``state`` live in ``cardflow``.
+Every event reaches the engagement clock as it happens; the model supplies only
+``low_effort`` and check grades. Each released minute is credited (``unit_credit``)
+and claimed once the ledger reads it back. Card end, Next, Stop: ``cardflow``.
 """
 
 from __future__ import annotations
@@ -16,7 +14,7 @@ import time
 from typing import TYPE_CHECKING, Any
 import uuid
 
-from tutor import backfill, gating, media, repair, resume, unit_credit
+from tutor import backfill, gating, media, picked, repair, resume, unit_credit
 from tutor import cards as cards_mod
 from tutor.cardflow import CardFlow
 from tutor.clock import EngagementClock, reply_time
@@ -212,24 +210,27 @@ class Engine(CardFlow):
         t_learner: float | None = None,
         device: str = DESKTOP,
     ) -> None:
-        session, conv, _ = self._live()
+        session, conv = self._live()[:2]
         resume.reprime(conv, session.restarts)
         t_learner = self.time() if t_learner is None else t_learner
         active = conv.clock.active_seconds
+        tap = conv.check.open and picked.tapped(learner_text or "")
         note = engine_note(
             active,
             active - conv.check.mark,
             check_open=conv.check.open,
-            notes=[*conv.notes, *note_lines(device)],
+            notes=[*conv.notes, *note_lines(device), *picked.note(tap=tap)],
             attempt=conv.check.attempt or 1,
         )
         body = wrap_learner(prompt_text) if learner_text else prompt_text
         if conv.resumed.note:
             body = f"{conv.resumed.note}\n{body}"
         if learner_text is not None:
-            event: dict[str, Any] = {"type": "learner", "text": learner_text}
-            event |= {"note": note, "t": t_learner, "msg_id": msg_id, "device": device}
-            self.store.log(self.session_id, event)
+            self.store.log(
+                self.session_id,
+                {"type": "learner", "text": learner_text, "note": note}
+                | {"t": t_learner, "msg_id": msg_id, "device": device},
+            )
         turn, _ = await session.ask(f"{note}\n{body}")
         if not self.source.profile.diagrams:  # schemdraw draws circuits only
             turn = replace(turn, diagram=None)
@@ -246,4 +247,4 @@ class Engine(CardFlow):
         if learner_text is not None:
             conv.clock.user_reply(t_learner, learner_text, low_effort=turn.low_effort)
         conv.clock.tutor_message(t_tutor)
-        self._apply(turn, t_tutor, message)
+        self._apply(turn, t_tutor, message, tap=tap)

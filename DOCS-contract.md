@@ -152,7 +152,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   "credited_minutes":6,
   "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
 "msgs/m0007": {"role":"tutor","text":"markdown","questions":["...","..."],"choices":[[],["a","b","c"]],"low_effort":false,
-  "check":{"question":"...","concept":"..."},"check_result":{"passed":true,"feedback":"..."},
+  "check":{"question":"...","concept":"...","choices":["a","b","c"]},"check_result":{"passed":true,"feedback":"..."},
   "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"card_done":false,"at":ms}
 "msgs/m0008": {"role":"learner","text":"...","at":ms,"rid":"...","dev":"..."}
 "msgs/m0009": {"role":"card","text":"<front>","card_id":"ld-y"}
@@ -160,7 +160,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 "user": {"archived":true}
 ```
 - `busy` null when idle; `check`/`check_result` may be null. `user` is
-  client-written; the live session can't be archived. `choices[i]` belongs to `questions[i]`: `[]` or 3 short answers (one right, unmarked; the app sends the tapped one as text). RTDB drops empty lists, so a client reads a missing `choices`, a missing index or null as `[]` (old transcripts have none).
+  client-written; the live session can't be archived. `choices[i]` belongs to `questions[i]`, `check.choices` to the check: `[]` or 3 short answers (one right, unmarked). RTDB drops empty lists, so a client reads a missing `choices`, a missing index or null as `[]` (old transcripts have none). A box still holding a tapped choice, unedited, is sent as `A: <choice> (picked option)`; a tapped check answer never passes on its own (`tutor/picked.py`): the server takes back any pass, mastery and `card_done`, and a typed one-sentence why (check `choices` `[]`) is what passes.
 - Learner bubble appears only after the turn succeeds (as today); until then
   all devices show `busy.text` as a pending bubble. "Stalled" =
   `awaiting_since + 600 s < now` (client display only).

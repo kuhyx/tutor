@@ -44,7 +44,7 @@ def test_from_json_happy_path_strips_and_tuples() -> None:
     assert parsed.message == "Coils, then."
     assert parsed.questions == ("What is a coil?", "4")  # stripped, blanks dropped
     assert parsed.low_effort is False
-    assert parsed.check == {"question": "why?", "concept": "coil"}
+    assert parsed.check == {"question": "why?", "concept": "coil", "choices": []}
     assert parsed.check_result == {"passed": True, "feedback": "yes"}
     assert parsed.images == (("relay",), ("7",), ("PLC rack", "rack", "a"))
     assert parsed.diagram == {"title": "t", "circuits": []}

@@ -60,6 +60,9 @@ _CHOICES_DOC: Final = (
     "and two plausible wrong ones, mixed, none marked. An open question "
     "(diagnose, explain in your own words): []."
 )
+_CHECK_CHOICES_DOC: Final = (
+    "Like `choices`: 3 short answers, one right; [] for a why after a tap."
+)
 
 
 def _nullable(schema: dict[str, Any]) -> dict[str, Any]:
@@ -111,8 +114,16 @@ TURN_SCHEMA: Final = {
         "check": _nullable(
             {
                 "type": "object",
-                "properties": {"question": _STR, "concept": _STR},
-                "required": ["question", "concept"],
+                "properties": {
+                    "question": _STR,
+                    "concept": _STR,
+                    "choices": {
+                        "type": "array",
+                        "description": _CHECK_CHOICES_DOC,
+                        "items": _STR,
+                    },
+                },
+                "required": ["question", "concept", "choices"],
                 "additionalProperties": False,
             }
         ),
@@ -191,7 +202,7 @@ class TutorTurn:
     questions: tuple[str, ...] = ()
     # Aligned with ``questions``: () or three answers each (``tutor.choices``).
     choices: tuple[tuple[str, ...], ...] = ()
-    check: dict[str, str] | None = None
+    check: dict[str, Any] | None = None
     check_result: dict[str, Any] | None = None
     images: tuple[tuple[str, ...], ...] = ()
     diagram: dict[str, Any] | None = None
@@ -230,7 +241,7 @@ class TutorTurn:
             low_effort=raw["low_effort"],
             questions=questions,
             choices=choices,
-            check=raw["check"],
+            check=choices_mod.repair_check(raw["check"]),
             check_result=result,
             images=image_requests(raw["images"]),
             diagram=raw["diagram"],

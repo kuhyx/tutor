@@ -28,10 +28,12 @@ Future<(FakeRtdb, FakeStream)> openComposer(
   Size? size,
   List<String>? draft,
   bool questions = true,
+  bool check = false,
 }) async {
   debugPhone = phone;
   final db = fixtureDb();
   final msg = fixtureComposeMsg(fixtureNow);
+  if (check) msg['check'] = fixtureComposeCheck;
   if (!questions) {
     msg
       ..remove('questions')

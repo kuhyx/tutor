@@ -5,13 +5,14 @@ The model offers three short answers (one right, two plausible wrong) under a
 question with one right answer, and none under an open one. Its output is
 repaired, never trusted: an entry that is not three distinct short strings
 becomes ``[]``, and the list is padded or cut to line up with the questions.
-Turns logged before choices existed read as all ``[]``.
+Turns logged before choices existed read as all ``[]``. The comprehension
+check carries its own under ``check["choices"]`` (:func:`repair_check`).
 """
 
 from __future__ import annotations
 
 import secrets
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -45,6 +46,13 @@ def mixed(choice: Choice) -> Choice:
     shuffled = list(choice)
     _RANDOM.shuffle(shuffled)
     return tuple(shuffled)
+
+
+def repair_check(raw: object) -> dict[str, Any] | None:
+    """The model's check with its choices repaired and mixed (``[]`` if not 3)."""
+    if not isinstance(raw, dict):
+        return None
+    return {**raw, "choices": list(mixed(entry(raw.get("choices"))))}
 
 
 def _at(raw: object, index: int) -> object:
