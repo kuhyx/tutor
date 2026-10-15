@@ -44,6 +44,7 @@ void main() {
       'subject': 'automation',
       'card': null,
       'resume': true,
+      'device': 'desktop',
     });
     expect(
       stream.listens.keys,

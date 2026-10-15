@@ -86,6 +86,7 @@ void main() {
       settle: false, // the new session's first turn is on its way
     );
     expect(next['kind'], 'next');
+    expect(next['body'], {'session': fixtureLiveSid, 'device': 'desktop'});
     expect(
       stream.listens.keys,
       contains('tutor/v1/sessions/20261012-180000-aaaa/meta'),
@@ -129,7 +130,11 @@ void main() {
     await t.tap(find.textContaining('What opens the valves?'));
     await sent(t);
     final start = await answer(t, db, stream);
-    expect(start['body'], {'subject': 'car', 'card': 'eng-valves'});
+    expect(start['body'], {
+      'subject': 'car',
+      'card': 'eng-valves',
+      'device': 'desktop',
+    });
   });
 
   testWidgets('live session: Stop here before the card is done', (t) async {
@@ -159,6 +164,11 @@ void main() {
     final start = await answer(t, db, stream);
     expect(start['kind'], 'session_start');
     // Start continues the subject's open session before a fresh card.
-    expect(start['body'], {'subject': null, 'card': null, 'resume': true});
+    expect(start['body'], {
+      'subject': null,
+      'card': null,
+      'resume': true,
+      'device': 'desktop',
+    });
   });
 }

@@ -187,7 +187,7 @@ class _ComposerState extends State<Composer> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('${a.heading}: ${a.text}', style: text.bodyMedium),
+              Text('${a.heading}: ${a.text}', style: text.labelLarge),
               const SizedBox(height: AppSpacing.sm),
               _chips(_step),
               _box(_step, 'Your answer'),

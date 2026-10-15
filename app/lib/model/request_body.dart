@@ -79,14 +79,11 @@ class RequestBody {
   factory sessionResume(String session) =>
       RequestBody._(RequestKind.sessionResume, {'session': session});
 
-  /// `message` (<= 8000 chars); [device] (`phone` or `desktop`) tells the
-  /// tutor how much the learner can type.
-  factory message(String session, String text, {String? device}) =>
-      RequestBody._(RequestKind.message, {
-        'session': session,
-        'text': _cap(text, 8000),
-        'device': ?device,
-      });
+  /// `message` (<= 8000 chars).
+  factory message(String session, String text) => RequestBody._(
+    RequestKind.message,
+    {'session': session, 'text': _cap(text, 8000)},
+  );
 
   /// `next`.
   factory next(String session) =>
@@ -116,6 +113,19 @@ class RequestBody {
 
   /// `anki_status`.
   factory ankiStatus() => const RequestBody._(RequestKind.ankiStatus, {});
+
+  /// The kinds whose body takes `device` (DOCS-contract §4).
+  static const Set<RequestKind> deviceKinds = {
+    RequestKind.message,
+    RequestKind.sessionStart,
+    RequestKind.next,
+  };
+
+  /// This request tagged with [device] (`phone` or `desktop`, so the tutor
+  /// knows how much the learner can type); other kinds come back unchanged.
+  RequestBody withDevice(String device) => deviceKinds.contains(kind)
+      ? RequestBody._(kind, {...body, 'device': device})
+      : this;
 
   /// Kind.
   final RequestKind kind;

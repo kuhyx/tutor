@@ -1,25 +1,42 @@
 /// `sessions/{sid}/msgs/{m}` and `receipts/{r}` (DOCS-contract §6, §8).
 library;
 
+import 'dart:math' show max;
+
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/media.dart';
 
 export 'package:tutor/model/media.dart' show Dgm, Img;
 
-// `choices` is optional and forgiving: anything that is not a list of string
-// lists is read as "no choices" for that question, never an error.
+// `choices` is optional and forgiving. RTDB drops empty lists, so the field
+// can be missing, hold null entries, or come back as an object keyed by the
+// surviving indices ({"1": [...]}): every gap reads as "no choices" for that
+// question, and anything malformed is never an error.
 List<List<String>> _choicesOf(Json j) {
-  final raw = j['choices'];
-  if (raw is! List) return const [];
+  final slots = _slots(j['choices']);
+  final n = slots.isEmpty ? 0 : slots.keys.reduce(max) + 1;
   return [
-    for (final entry in raw)
+    for (var i = 0; i < n; i++)
       [
-        if (entry is List)
-          for (final c in entry)
-            if (c is String && c.trim().isNotEmpty) c,
+        for (final c in _ordered(_slots(slots[i])))
+          if (c is String && c.trim().isNotEmpty) c,
       ],
   ];
 }
+
+/// [raw] (a list, or an object keyed by index) as index -> value.
+Map<int, Object?> _slots(Object? raw) => switch (raw) {
+  final List<Object?> l => l.asMap(),
+  final Map<Object?, Object?> m => {
+    for (final e in m.entries)
+      if (int.tryParse('${e.key}') case final i? when i >= 0) i: e.value,
+  },
+  _ => const {},
+};
+
+List<Object?> _ordered(Map<int, Object?> slots) => [
+  for (final k in slots.keys.toList()..sort()) slots[k],
+];
 
 /// One transcript message. [role] is `tutor`, `learner` or `card`.
 class Message {

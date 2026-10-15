@@ -99,7 +99,6 @@ class _SessionChatState extends State<SessionChat> {
   Widget build(BuildContext context) {
     final view = widget.view;
     final meta = view?.meta;
-    final text = Theme.of(context).textTheme;
     final live = meta != null && !meta.stopped;
     final busy = meta?.busy;
     final messages = view?.messages ?? const <KeyedMessage>[];
@@ -153,18 +152,13 @@ class _SessionChatState extends State<SessionChat> {
                           message: Message(role: 'learner', text: busy.text!),
                           pending: true,
                         ),
-                      if (busy != null)
-                        Text(phaseText(busy.phase), style: text.bodyMedium),
+                      if (busy != null) Text(phaseText(busy.phase)),
                     ].reversed.toList(),
                   ),
           ),
           const Divider(height: 1),
-          // The composer takes at most 40% of the height (70% with the
-          // keyboard open): the chat stays the main scroller.
           ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: box.maxHeight * (widget.keyboard ? 0.7 : 0.4),
-            ),
+            constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
             child: _panel(
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -204,15 +198,19 @@ class _SessionChatState extends State<SessionChat> {
         ],
       ),
     );
-    return widget.keyboard
-        ? MediaQuery(
-            data: mq.copyWith(
-              textScaler: TextScaler.linear(mq.textScaler.scale(1) * 0.85),
-            ),
-            child: chat,
-          )
-        : chat;
+    // Same tree keyboard open or shut: a new root would drop focus.
+    return MediaQuery(
+      data: mq.copyWith(
+        textScaler: widget.keyboard
+            ? TextScaler.linear(mq.textScaler.scale(1) * 0.85)
+            : mq.textScaler,
+      ),
+      child: chat,
+    );
   }
+
+  // The height share the composer may take (the chat stays the scroller).
+  double get _share => widget.keyboard ? 0.7 : (widget.phone ? 0.5 : 0.4);
 
   // Phone: the step bar stays pinned, the composer scrolls itself.
   Widget _panel(Widget child) => widget.phone

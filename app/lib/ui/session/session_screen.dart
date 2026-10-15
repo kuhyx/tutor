@@ -110,7 +110,8 @@ class _SessionScreenState extends State<SessionScreen> {
 
   /// Runs [body]; a result naming a session is followed at once.
   Future<RelayStatus> _run(RequestBody body) async {
-    final status = await _runner.run(body);
+    // Every request of this screen says which device it comes from.
+    final status = await _runner.run(body.withDevice(deviceName));
     if (status is RelayDone) {
       final sid = status.data['session'];
       if (sid is String && mounted) _feed.follow(sid);
@@ -124,8 +125,7 @@ class _SessionScreenState extends State<SessionScreen> {
       RequestBody.sessionStart(subject: widget.subject, resume: true);
 
   Future<bool> _send(String sid, String text) async =>
-      await _run(RequestBody.message(sid, text, device: deviceName))
-          is! RelayNotSent;
+      await _run(RequestBody.message(sid, text)) is! RelayNotSent;
 
   Future<void> _switch(String? subjectId) async {
     final subject = _subjects[subjectId];
