@@ -101,6 +101,19 @@ class RequestBody {
         'done': done,
       });
 
+  /// `drill_next`: the next question; null [subject] = any.
+  factory drillNext({String? subject}) =>
+      RequestBody._(RequestKind.drillNext, {'subject': subject});
+
+  /// `drill_answer`: option [choice] of question [promptId].
+  factory drillAnswer(String promptId, int choice) => RequestBody._(
+    RequestKind.drillAnswer,
+    {'prompt_id': promptId, 'choice': choice},
+  );
+
+  /// `anki_status`.
+  factory ankiStatus() => const RequestBody._(RequestKind.ankiStatus, {});
+
   /// Kind.
   final RequestKind kind;
 

@@ -1,10 +1,12 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
-/// `/progress`, `/editor[/<subject>]`, `/review`, `/report`).
+/// `/progress`, `/editor[/<subject>]`, `/review`, `/drill`, `/report`;
+/// `/session/continue` opens the Session and asks for the open session).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
+import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
@@ -68,9 +70,19 @@ Future<void> openEditor(
   String? subject,
 }) => _push(context, EditorScreen(services: s, subject: subject));
 
-/// Opens Review.
-Future<void> openReview(BuildContext context, TutorServices s) =>
-    _push(context, ReviewScreen(services: s));
+/// Opens Review; [drill] starts in Drill mode (pick-an-answer, no model),
+/// with [unavailable] as the "Claude limit" banner.
+Future<void> openReview(
+  BuildContext context,
+  TutorServices s, {
+  bool drill = false,
+  Unavailable? unavailable,
+  bool replace = false,
+}) => _push(
+  context,
+  ReviewScreen(services: s, drill: drill, unavailable: unavailable),
+  replace: replace,
+);
 
 /// Shows "Report a problem".
 Future<void> showReport(
@@ -97,12 +109,18 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
   final arg = parts.length > 1 ? parts[1] : null;
   return switch (parts.firstOrNull) {
     'plan' when arg != null => openPlan(context, s, arg),
+    'session' when arg == 'continue' => openSession(
+      context,
+      s,
+      entry: const SessionEntry(label: 'Continue', resume: true),
+    ),
     'session' => openSession(context, s),
     'history' when arg != null => openTranscript(context, s, arg),
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),
     'editor' => openEditor(context, s, subject: arg),
     'review' => openReview(context, s),
+    'drill' => openReview(context, s, drill: true),
     'report' => showReport(context, s, route: '/'),
     _ => Future<void>.value(),
   };

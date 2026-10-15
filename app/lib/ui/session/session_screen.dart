@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/request_body.dart';
+import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
@@ -109,6 +110,12 @@ class _SessionScreenState extends State<SessionScreen> {
       final sid = status.data['session'];
       if (sid is String && mounted) _feed.follow(sid);
       if (mounted) unawaited(_today.load());
+    }
+    // Claude is out: the model-free drill takes over, with its banner.
+    if (status is RelayFailed && status.code == claudeUnavailable && mounted) {
+      unawaited(
+        openReview(context, _s, drill: true, unavailable: status.unavailable),
+      );
     }
     return status;
   }

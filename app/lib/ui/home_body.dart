@@ -22,6 +22,7 @@ class HomeBody extends StatelessWidget {
     required this.presence,
     required this.runner,
     required this.onReview,
+    required this.onDrill,
     required this.onSession,
     required this.onPlan,
     required this.onEdit,
@@ -42,6 +43,9 @@ class HomeBody extends StatelessWidget {
 
   /// Opens Review.
   final VoidCallback onReview;
+
+  /// Opens Review in Drill mode (pick-an-answer, no model).
+  final VoidCallback onDrill;
 
   /// Opens the Session for Home's button.
   final ValueChanged<SessionEntry> onSession;
@@ -116,6 +120,11 @@ class HomeBody extends StatelessWidget {
                       onPressed: onReview,
                       icon: const Icon(Icons.style),
                       label: Text('Review (${data.due} due)'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: onDrill,
+                      icon: const Icon(Icons.touch_app_outlined),
+                      label: const Text('Drill'),
                     ),
                   ],
                 ),
@@ -237,5 +246,4 @@ class _SubjectTile extends StatelessWidget {
   }
 }
 
-String _active(int? minutes) =>
-    minutes == null ? '' : ' · $minutes min active';
+String _active(int? minutes) => minutes == null ? '' : ' · $minutes min active';

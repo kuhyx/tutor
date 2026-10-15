@@ -50,7 +50,16 @@ enum RequestKind {
   stop('stop', Lane.chat),
 
   /// Manual card-done override.
-  cardDone('card_done', Lane.chat);
+  cardDone('card_done', Lane.chat),
+
+  /// Model-free fallback: next pick-an-answer question.
+  drillNext('drill_next', Lane.chat),
+
+  /// Model-free fallback: grade a pick.
+  drillAnswer('drill_answer', Lane.chat),
+
+  /// Minutes AnkiDroid reviews earned today.
+  ankiStatus('anki_status', Lane.chat);
 
   new(this.wire, this.lane);
 
