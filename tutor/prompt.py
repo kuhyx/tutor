@@ -65,7 +65,8 @@ def image_check(labels: list[str]) -> tuple[str, str]:
         "picture, never by the numbers above, and say nothing of dropped "
         "ones. Keep the teaching "
         "point as it was and put no question in `message`. Copy every other "
-        "field from your last turn unchanged, `questions` too; the one change "
+        "field from your last turn unchanged, `questions` and `choices` too; the "
+        "one change "
         "allowed is rewording a question so it points at a kept picture "
         '("What do you think this device is?").'
     )
@@ -118,5 +119,8 @@ def engine_note(
 
 
 def wrap_learner(text: str) -> str:
-    """The learner's words, fenced so they cannot pose as instructions."""
-    return f"<learner>\n{text}\n</learner>"
+    """The learner's words, fenced so they cannot pose as instructions.
+
+    A closing tag inside the words is broken up, so it cannot end the fence.
+    """
+    return f"<learner>\n{text.replace('</learner', '< /learner')}\n</learner>"

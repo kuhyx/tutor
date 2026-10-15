@@ -19,8 +19,10 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
+from tutor import choices
 from tutor.clock import BlockReady, EngagementClock
 from tutor.conversation import Conversation
+from tutor.delivery import PHONE, learner_message
 from tutor.models import asked
 from tutor.prompt import wrap_learner
 
@@ -69,10 +71,12 @@ def _time(event: dict[str, Any]) -> float:
 
 def _ui(turn: dict[str, Any]) -> dict[str, Any]:
     """The page message for a turn logged before ``ui`` was (media is lost)."""
+    questions = turn.get("questions") or []
     return {
         "role": "tutor",
         "text": turn.get("message", ""),
-        "questions": list(turn.get("questions") or []),
+        "questions": list(questions),
+        "choices": choices.aligned(questions, turn.get("choices")),
         "low_effort": bool(turn.get("low_effort")),
         "check": turn.get("check"),
         "check_result": turn.get("check_result"),
@@ -91,11 +95,13 @@ def _replay_tutor(
         text = str(pending.get("text", ""))
         low = bool(turn.get("low_effort"))
         conv.clock.user_reply(_time(pending), text, low_effort=low)
-        conv.messages.append({"role": "learner", "text": text})
+        conv.messages.append(learner_message(text, pending.get("device")))
         conv.resumed.answered_id = str(pending.get("msg_id", ""))
     conv.clock.tutor_message(t)
     conv.apply_checks(turn, t)
     ui = event.get("ui") or _ui(turn)
+    # Logged before choices existed: none under any question.
+    ui.setdefault("choices", choices.aligned(ui.get("questions") or [], None))
     if turn.get("card_done") or ui.get("card_done"):
         conv.mark_card_done()
     conv.messages.append(ui)
@@ -168,9 +174,10 @@ def primer(messages: list[dict[str, Any]]) -> str:
     for message in messages[last + 1 :]:
         text = str(message.get("text", ""))
         if message.get("role") == "learner":
-            lines.append(
-                "LEARNER:\n" + wrap_learner(text.replace("</learner", "< /learner"))
+            who = (
+                "LEARNER (on a phone)" if message.get("device") == PHONE else "LEARNER"
             )
+            lines.append(f"{who}:\n{wrap_learner(text)}")
         else:
             # The questions are boxes on the page, not part of the text.
             boxes = "".join(f"\n- {q}" for q in asked(message))

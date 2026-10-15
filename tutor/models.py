@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Final
 
+from tutor import choices as choices_mod
+
 ELEMENT_KINDS: Final = (
     "dc_source",
     "ac_source",
@@ -52,6 +54,12 @@ _IMAGES_DOC: Final = (
     "picture-check reply instead: the numbers of the pictures to keep, as "
     "strings."
 )
+_CHOICES_DOC: Final = (
+    "One entry per `questions` entry, same order. A question with one right "
+    "answer: exactly 3 short answers (each at most 12 words), the right one "
+    "and two plausible wrong ones, mixed, none marked. An open question "
+    "(diagnose, explain in your own words): []."
+)
 
 
 def _nullable(schema: dict[str, Any]) -> dict[str, Any]:
@@ -92,6 +100,13 @@ TURN_SCHEMA: Final = {
         # Each question or task for the learner, one per entry; the page gives
         # every one its own answer box, so none is copied out of `message`.
         "questions": {"type": "array", "items": _STR},
+        # Tap targets under each question (``tutor.choices`` repairs them);
+        # not in REQUIRED_FIELDS, so a reply without them still parses.
+        "choices": {
+            "type": "array",
+            "description": _CHOICES_DOC,
+            "items": {"type": "array", "items": _STR},
+        },
         "low_effort": {"type": "boolean"},
         "check": _nullable(
             {
@@ -128,7 +143,7 @@ TURN_SCHEMA: Final = {
         "concepts_mastered": {"type": "array", "items": _STR},
         "card_done": {"type": "boolean"},
     },
-    "required": list(REQUIRED_FIELDS),
+    "required": [*REQUIRED_FIELDS, "choices"],
     "additionalProperties": False,
 }
 
@@ -174,6 +189,8 @@ class TutorTurn:
     message: str
     low_effort: bool
     questions: tuple[str, ...] = ()
+    # Aligned with ``questions``: () or three answers each (``tutor.choices``).
+    choices: tuple[tuple[str, ...], ...] = ()
     check: dict[str, str] | None = None
     check_result: dict[str, Any] | None = None
     images: tuple[tuple[str, ...], ...] = ()
@@ -207,10 +224,12 @@ class TutorTurn:
         ):
             msg = "check_result.passed must be a boolean"
             raise TurnError(msg)
+        questions, choices = choices_mod.pair(raw["questions"], raw.get("choices"))
         return cls(
             message=raw["message"].strip(),
             low_effort=raw["low_effort"],
-            questions=tuple(str(q).strip() for q in raw["questions"] if str(q).strip()),
+            questions=questions,
+            choices=choices,
             check=raw["check"],
             check_result=result,
             images=image_requests(raw["images"]),

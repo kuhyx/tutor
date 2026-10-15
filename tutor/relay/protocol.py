@@ -13,6 +13,7 @@ import json
 import re
 from typing import TYPE_CHECKING, Any, Final
 
+from tutor import delivery
 from tutor.history import SESSION_ID
 from tutor.relay.errors import RequestError
 
@@ -130,7 +131,11 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
         {"subject": _opt_slug, "card": _opt_slug, "resume": _opt_bool},
     ),
     "session_resume": (CHAT, {"session": _session}),
-    "message": (CHAT, {"session": _session, "text": _text(MAX_MESSAGE)}),
+    # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).
+    "message": (
+        CHAT,
+        {"session": _session, "text": _text(MAX_MESSAGE), "device": delivery.device},
+    ),
     "next": (CHAT, {"session": _session}),
     "stop": (CHAT, {"session": _session}),
     "card_done": (CHAT, {"subject": _opt_slug, "card": _slug, "done": _bool}),

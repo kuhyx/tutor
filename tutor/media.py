@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from claude_agent_sdk import ClaudeSDKError
 
-from tutor import diagrams, images
+from tutor import choices, diagrams, images
 from tutor.picture_guard import unseen_picture_guard
 from tutor.prompt import image_check
 
@@ -53,10 +53,12 @@ def page_message(turn: TutorTurn) -> dict[str, Any]:
     """The page message for a turn, before media is attached."""
     # The check has its own box: a copy of it in `questions` would be a second.
     check = (turn.check or {}).get("question")
+    questions, offered = choices.boxes(turn.questions, turn.choices, check)
     return {
         "role": "tutor",
         "text": turn.message,
-        "questions": [q for q in turn.questions if q != check],
+        "questions": questions,
+        "choices": offered,
         "low_effort": turn.low_effort,
         "check": turn.check,
         "check_result": turn.check_result,
@@ -213,7 +215,9 @@ async def check_images(
     message["images"] = [img.to_json() for img in kept]
     if kept and checked.questions:  # reworded to point at a kept picture
         own = (turn.check or {}).get("question")
-        message["questions"] = [q for q in checked.questions if q != own]
+        message["questions"], message["choices"] = choices.boxes(
+            checked.questions, choices.reworded(checked, turn), own
+        )
     for img in offered:
         verdict = "shown" if img in kept else "dropped after you looked at it"
         live.conv.notes.append(f"image {verdict} for {img.term!r}: {img.title}")

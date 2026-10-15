@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
+    from tutor.delivery import Delivery
+
 NAME = "0123456789abcdef"
 
 
@@ -87,10 +89,10 @@ def test_message_passes_a_numeric_sent_at_only(
     real = rig.engine.reply
 
     async def spy(
-        text: str, advance: float, msg_id: str, sent_at: float | None
+        text: str, advance: float, msg_id: str, via: Delivery
     ) -> dict[str, Any]:
-        seen.append(sent_at)
-        return await real(text, advance, msg_id, sent_at)
+        seen.append(via.sent_at)
+        return await real(text, advance, msg_id, via)
 
     monkeypatch.setattr(rig.engine, "reply", spy)
     client.post("/api/start", json={})

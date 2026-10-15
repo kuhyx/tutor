@@ -117,7 +117,7 @@ def test_from_json_rejects_questions_that_are_not_a_list(questions: object) -> N
 
 def test_schema_requires_questions_as_strings() -> None:
     assert "questions" in REQUIRED_FIELDS
-    assert TURN_SCHEMA["required"] == list(REQUIRED_FIELDS)
+    assert TURN_SCHEMA["required"] == [*REQUIRED_FIELDS, "choices"]
     properties = TURN_SCHEMA["properties"]
     assert isinstance(properties, dict)
     assert properties["questions"] == {

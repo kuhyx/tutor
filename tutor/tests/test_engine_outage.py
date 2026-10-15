@@ -7,6 +7,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from tutor.clock import GENERATION_CAP, REPLY_TIMEOUT, SEND_GRACE
+from tutor.delivery import Delivery
 from tutor.engine import Engine
 from tutor.store import Store
 from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
@@ -33,7 +34,7 @@ def test_a_retried_send_is_timed_from_the_first_press(tmp_path: Path) -> None:
     asyncio.run(engine.start(CARD))
     pressed = clock.t + REPLY_TIMEOUT - 30
     clock.advance(REPLY_TIMEOUT - 30 + SEND_GRACE)  # arrives 5 min after the press
-    state = asyncio.run(engine.reply(ANSWER, msg_id="m1", sent_at=pressed))
+    state = asyncio.run(engine.reply(ANSWER, msg_id="m1", via=Delivery(pressed)))
     # The press-to-tutor wait then counts as generation, capped as ever.
     assert state["clock"]["active_seconds"] == REPLY_TIMEOUT - 30 + GENERATION_CAP
 

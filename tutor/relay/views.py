@@ -29,7 +29,14 @@ if TYPE_CHECKING:
     from tutor.conversation import Conversation
 
 DEFAULT_SUBJECT: Final = "automation"
-_TUTOR_KEYS: Final = ("text", "questions", "low_effort", "check", "check_result")
+_TUTOR_KEYS: Final = (
+    "text",
+    "questions",
+    "choices",
+    "low_effort",
+    "check",
+    "check_result",
+)
 _TUTOR_FLAGS: Final = ("mastered_new", "card_done")
 _logger = logging.getLogger(__name__)
 

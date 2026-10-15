@@ -39,7 +39,7 @@ def test_valid_message_drops_unknown_fields() -> None:
     got = protocol.validate(RID, raw)
     assert (got.kind, got.lane, got.dev) == ("message", "chat", DEV)
     assert (got.created_ms, got.sent_at_ms) == (5000, 4000)
-    assert got.body == {"session": SID, "text": "hello"}
+    assert got.body == {"session": SID, "text": "hello", "device": "desktop"}
 
 
 def test_every_kind_has_a_lane_and_validates() -> None:

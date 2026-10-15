@@ -25,7 +25,7 @@ from starlette.responses import (
 )
 from starlette.routing import Route
 
-from tutor import diagrams, images, webapp
+from tutor import delivery, diagrams, images, webapp
 from tutor.engine import Engine
 from tutor.outage import ClaudeUnavailableError
 from tutor.session import SessionError
@@ -61,15 +61,10 @@ def create_app(
         return await _guard(eng.start(body.get("card_id")))
 
     async def message(request: Request) -> Response:
-        body = await _json(request)
-        text = str(body.get("text", "")).strip()
-        if not text:
-            return JSONResponse({"error": "empty message"}, status_code=400)
-        msg_id = str(body.get("msg_id", ""))[:64]
-        sent = body.get("sent_at")
-        sent_at = float(sent) if isinstance(sent, (int, float)) else None
-        advance = float(body.get("advance_s", 0))
-        return await _guard(eng.reply(text, advance, msg_id, sent_at))
+        args = _reply_args(await _json(request))
+        if isinstance(args, Response):
+            return args
+        return await _guard(eng.reply(*args))
 
     async def stop(_: Request) -> Response:
         return await _guard(eng.stop())
@@ -115,6 +110,28 @@ async def _json(request: Request) -> dict[str, Any]:
         _logger.warning("%s body is not JSON: %s", request.url.path, err)
         return {}
     return body if isinstance(body, dict) else {}
+
+
+def _reply_args(
+    body: dict[str, Any],
+) -> tuple[str, float, str, delivery.Delivery] | Response:
+    """``Engine.reply``'s arguments from a message body, or the 400 refusing it.
+
+    ``sent_at`` counts only when numeric; ``device`` is phone or desktop.
+    """
+    text = str(body.get("text", "")).strip()
+    if not text:
+        return JSONResponse({"error": "empty message"}, status_code=400)
+    try:
+        device = delivery.device(body.get("device"))
+    except ValueError as err:
+        _logger.warning("message refused: %s", err)
+        return JSONResponse({"error": str(err)}, status_code=400)
+    sent = body.get("sent_at")
+    sent_at = float(sent) if isinstance(sent, (int, float)) else None
+    msg_id = str(body.get("msg_id", ""))[:64]
+    advance = float(body.get("advance_s", 0))
+    return text, advance, msg_id, delivery.Delivery(sent_at, device=device)
 
 
 async def _guard(call: Coroutine[Any, Any, dict[str, Any]]) -> Response:

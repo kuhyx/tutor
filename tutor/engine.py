@@ -22,6 +22,7 @@ from tutor.cardflow import CardFlow
 from tutor.clock import EngagementClock, reply_time
 from tutor.conversation import Conversation
 from tutor.curriculum.source import CardSource, source_for
+from tutor.delivery import DESKTOP, Delivery, learner_message, note_lines
 from tutor.prompt import engine_note, system_prompt, wrap_learner
 from tutor.session import TutorSession, isolated_options
 from tutor.store import Store
@@ -162,23 +163,26 @@ class Engine(CardFlow):
         text: str,
         advance_s: float = 0.0,
         msg_id: str = "",
-        sent_at: float | None = None,
-        received: float | None = None,
+        via: Delivery | None = None,
     ) -> dict[str, Any]:
         """The learner answers; returns the new state (a resent ``msg_id``: no-op).
 
-        ``sent_at`` is the page's first Send press, so a send the page had to
-        retry through a restart is timed from the press (``clock.reply_time``).
-        ``received`` (relay: RTDB server time) replaces the engine's own clock.
+        ``via``: when Send was first pressed (a send retried through a restart
+        is timed from the press, ``clock.reply_time``), when the relay got it
+        and the device it was typed on (``tutor.delivery``).
         """
+        via = via or Delivery()
         async with self._lock:
             _, conv, _ = self._live()
             if msg_id and msg_id == conv.resumed.answered_id:
                 return self.state()
             if self.simulated:
                 self._offset += max(0.0, advance_s)
-            t = reply_time(self.time() if received is None else received, sent_at)
-            await self._turn(text, learner_text=text, msg_id=msg_id, t_learner=t)
+            got = self.time() if via.received is None else via.received
+            t = reply_time(got, via.sent_at)
+            await self._turn(
+                text, learner_text=text, msg_id=msg_id, t_learner=t, device=via.device
+            )
             conv.resumed.answered_id = msg_id
         return self.state()
 
@@ -207,6 +211,7 @@ class Engine(CardFlow):
         learner_text: str | None,
         msg_id: str = "",
         t_learner: float | None = None,
+        device: str = DESKTOP,
     ) -> None:
         session, conv, _ = self._live()
         resume.reprime(conv, session.restarts)
@@ -216,19 +221,16 @@ class Engine(CardFlow):
             active,
             active - conv.check.mark,
             check_open=conv.check.open,
-            notes=conv.notes,
+            notes=[*conv.notes, *note_lines(device)],
             attempt=conv.check.attempt or 1,
         )
-        body = (
-            wrap_learner(prompt_text.replace("</learner", "< /learner"))
-            if learner_text
-            else prompt_text
-        )
+        body = wrap_learner(prompt_text) if learner_text else prompt_text
         if conv.resumed.note:
             body = f"{conv.resumed.note}\n{body}"
         if learner_text is not None:
-            event = {"type": "learner", "text": learner_text, "note": note}
-            self.store.log(self.session_id, {**event, "t": t_learner, "msg_id": msg_id})
+            event: dict[str, Any] = {"type": "learner", "text": learner_text}
+            event |= {"note": note, "t": t_learner, "msg_id": msg_id, "device": device}
+            self.store.log(self.session_id, event)
         turn, _ = await session.ask(f"{note}\n{body}")
         if not self.source.profile.diagrams:  # schemdraw draws circuits only
             turn = replace(turn, diagram=None)
@@ -236,7 +238,7 @@ class Engine(CardFlow):
         # text for a retry) and keeps the notes and primer for that retry.
         conv.notes, conv.resumed.note = [], ""
         if learner_text is not None:
-            conv.messages.append({"role": "learner", "text": learner_text})
+            conv.messages.append(learner_message(learner_text, device))
         message = media.page_message(turn)
         await media.attach(media.Turn(session, conv, self.store), turn, message)
         # Stamped when the final message (after any image check) is ready, so

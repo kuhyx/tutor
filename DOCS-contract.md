@@ -121,7 +121,7 @@ Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked
 | `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}` | `{"card":"ld-x","rev":2}` | build |
 | `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?}` (null card = next open) | `{"session":sid}` | chat |
 | `session_resume` | `{"session":sid}` | `{"session":sid}` | chat |
-| `message` | `{"session":sid,"text":"..."}` <=8000 ch | `{"msg":"m0012"}` | chat |
+| `message` | `{"session":sid,"text":"...","device":"phone"\|"desktop"?}` <=8000 ch; no device = desktop, other values `bad_request`; phone: typos ignored, short answers, one question (prompt rule 13); text `Hint` gets a hint, never credit | `{"msg":"m0012"}` | chat |
 | `next` | `{"session":sid}` (next_card+stop, starts new) | `{"session":newsid}` | chat |
 | `stop` | `{"session":sid}` | `{}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
@@ -151,7 +151,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   "clock":{"active_seconds":412.5,"paused_reason":null,"awaiting_since":ms,"reply_timeout_s":600},
   "credited_minutes":6,
   "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
-"msgs/m0007": {"role":"tutor","text":"markdown","questions":["..."],"low_effort":false,
+"msgs/m0007": {"role":"tutor","text":"markdown","questions":["...","..."],"choices":[[],["a","b","c"]],"low_effort":false,
   "check":{"question":"...","concept":"..."},"check_result":{"passed":true,"feedback":"..."},
   "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"card_done":false,"at":ms}
 "msgs/m0008": {"role":"learner","text":"...","at":ms,"rid":"...","dev":"..."}
@@ -160,7 +160,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 "user": {"archived":true}
 ```
 - `busy` null when idle; `check`/`check_result` may be null. `user` is
-  client-written; the live session can't be archived.
+  client-written; the live session can't be archived. `choices[i]` belongs to `questions[i]`: `[]` or 3 short answers (one right, unmarked; the app sends the tapped one as text). RTDB drops empty lists, so a client reads a missing `choices`, a missing index or null as `[]` (old transcripts have none).
 - Learner bubble appears only after the turn succeeds (as today); until then
   all devices show `busy.text` as a pending bubble. "Stalled" =
   `awaiting_since + 600 s < now` (client display only).

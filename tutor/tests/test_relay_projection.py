@@ -8,6 +8,7 @@ import json
 from typing import TYPE_CHECKING
 
 from tutor import history
+from tutor.delivery import Delivery
 from tutor.relay import views
 from tutor.tests._fake_rtdb import FakeRtdb
 from tutor.tests._fakes import turn
@@ -35,7 +36,7 @@ def studied(tmp_path: Path) -> Engine:
     eng, _ = engine(tmp_path, turn("Q1?"), turn("Good. Q2?"), RuntimeError("cli died"))
     asyncio.run(eng.start())
     asyncio.run(
-        eng.reply("an answer", msg_id=RIDS[0], sent_at=None, received=eng.time())
+        eng.reply("an answer", msg_id=RIDS[0], via=Delivery(received=eng.time()))
     )
     eng.messages[-1]["images"] = [IMG]  # as media.attach would have put it
     sid = eng.session_id

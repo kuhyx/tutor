@@ -17,6 +17,7 @@ from weakref import WeakKeyDictionary
 
 from tutor import anki, anki_collection, history, outage, resume
 from tutor.clock import reply_time
+from tutor.delivery import Delivery
 from tutor.drill import Drill
 from tutor.relay.errors import RequestError
 from tutor.relay.protocol import SLUG, SLUG_MAX
@@ -98,12 +99,8 @@ async def message(ctx: RequestContext) -> dict[str, Any]:
     engine, req = ctx.engine, ctx.request
     _require_live(engine, req.body["session"])
     sent = None if req.sent_at_ms is None else req.sent_at_ms / 1000
-    await engine.reply(
-        str(req.body["text"]),
-        msg_id=req.rid,
-        sent_at=sent,
-        received=req.created_ms / 1000,
-    )
+    via = Delivery(sent, req.created_ms / 1000, str(req.body["device"]))
+    await engine.reply(str(req.body["text"]), msg_id=req.rid, via=via)
     return {"msg": key("m", len(engine.messages))}
 
 

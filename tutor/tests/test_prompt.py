@@ -70,7 +70,7 @@ def test_a_check_never_asks_more_than_the_card_front() -> None:
 def test_image_check_keeps_questions_out_of_the_message() -> None:
     _, ask = image_check(["search term 'a'"])
     assert "put no question in `message`" in ask
-    assert "`questions` too" in ask
+    assert "`questions` and `choices` too" in ask
     assert "alternatives for ONE picture" in ask
     assert "never by the numbers above" in ask
 
