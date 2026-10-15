@@ -155,6 +155,14 @@ def test_the_models_own_why_stays_but_loses_its_choices(tmp_path: Path) -> None:
     assert len(fake.prompts) == 2
 
 
+def test_an_ungraded_tap_gets_a_neutral_why(tmp_path: Path) -> None:
+    engine, _ = make(tmp_path, turn("Hmm, tell me more."))
+    state = asyncio.run(engine.reply(TAP, msg_id="m1"))
+    assert state["messages"][-1]["check"]["question"] == picked.WHY_UNGRADED
+    assert state["check_open"] is True
+    assert "check_result_refused" not in tutor_log(engine)[-1]
+
+
 def test_a_tapped_wrong_answer_is_graded_like_a_typed_one(tmp_path: Path) -> None:
     retry = turn("Not quite.", check_result=FAIL, check=posed().check)
     engine, _ = make(tmp_path, retry)

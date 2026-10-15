@@ -61,7 +61,7 @@ _CHOICES_DOC: Final = (
     "(diagnose, explain in your own words): []."
 )
 _CHECK_CHOICES_DOC: Final = (
-    "Like `choices`: 3 short answers, one right; [] for a why after a tap."
+    "Always 3 short answers (one right); [] only for the why after a tap."
 )
 
 

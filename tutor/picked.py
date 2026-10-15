@@ -20,7 +20,9 @@ if TYPE_CHECKING:
 
 MARKER: Final = "(picked option)"
 _TAPPED: Final = re.compile(rf"^A: .*{re.escape(MARKER)}[ \t]*$", re.MULTILINE)
+# The code-posed why: "right" only when the model did grade the tap a pass.
 WHY: Final = "Why is that the right answer? Say it in one sentence."
+WHY_UNGRADED: Final = "Why that answer? Say it in one sentence."
 NOTE: Final = (
     "check_answer: TAPPED - the learner answered the open check by tapping one "
     "of its choices. A tap alone never passes (rule 14). If it is wrong, grade "
@@ -50,7 +52,8 @@ def refuse(logged: dict[str, Any], message: dict[str, Any], check: CheckState) -
     ``logged`` is the transcript's copy of the turn, ``message`` the page's;
     both are edited, so replay rebuilds exactly this. A "not yet" stands (a
     wrong tap is a wrong answer). Otherwise the check stays open with a why
-    posed: the model's own why, or :data:`WHY` if it posed none. Returns
+    posed: the model's own why, else :data:`WHY` (or, with no grade at all,
+    :data:`WHY_UNGRADED`: nothing has judged the tap right). Returns
     ``True`` when the model's pass was taken back.
     """
     if logged.get("concepts_mastered"):
@@ -65,6 +68,7 @@ def refuse(logged: dict[str, Any], message: dict[str, Any], check: CheckState) -
     if passed:
         logged["check_result_refused"] = result
         logged["check_result"] = message["check_result"] = None
-    posed = logged.get("check") or {"question": WHY, "concept": check.concept}
+    why = WHY if passed else WHY_UNGRADED
+    posed = logged.get("check") or {"question": why, "concept": check.concept}
     logged["check"] = message["check"] = {**posed, "choices": []}
     return passed

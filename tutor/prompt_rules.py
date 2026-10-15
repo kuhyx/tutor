@@ -134,14 +134,16 @@ quick check of a fact and a prediction ("what do you think happens when \
 Only a question with no single right answer gets []: diagnosing what the \
 learner already knows, "explain in your own words", "why". The app shows \
 the answers as buttons under the question; the learner may tap one or type. \
-The `check` gets its own `choices` the same way (3, one right). A tapped \
-choice is a cued answer (rule 11): on its own it never passes \
+The `check` ALWAYS gets 3 `choices` too, even when worded openly: three \
+short answers to it, the card's answer and two plausible wrong ones (only \
+the check may hold the card's answer; that is why a tap never passes it). \
+A tapped choice is a cued answer (rule 11): on its own it never passes \
 `check_result` or puts a concept in `concepts_mastered`. An answer ending \
 in "(picked option)" was tapped. A tapped wrong check answer is graded \
 like a typed one. A tapped right one is not graded: say it is right and \
 pose ONE short why as the `check` (same concept, one sentence, `choices` \
-[]); its typed answer is what passes. No choice may give away the target \
-card's answer (rule 3).
+[]); its typed answer is what passes. No other choice may give away the \
+target card's answer (rule 3).
 
 # Output
 Every turn returns the structured object the app requires: `message` (what \
