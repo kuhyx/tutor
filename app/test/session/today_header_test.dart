@@ -26,22 +26,19 @@ void main() {
     // kuhy, 2026-10-12: after Next card the header read "Active 0 min ·
     // credited 0" because the new card is a new session.
     final today = Today.fromJson(_today);
-    expect(
-      headerLines(today, activeSeconds: 59, sessionCredited: 0),
-      (
-        'Today: 31 min active · credited 23/60 min',
-        'This card: 0 min · credited 0',
-      ),
-    );
+    expect(headerLines(today, activeSeconds: 59, sessionCredited: 0), (
+      'Today: 31 min active · credited 23/60 min',
+      'This card: 0 min · credited 0',
+    ));
     final older = Today.fromJson({..._today}..remove('active_minutes'));
     expect(
       headerLines(older, activeSeconds: 125, sessionCredited: 2).$1,
       'Today: credited 23/60 min',
     );
-    expect(
-      headerLines(null, activeSeconds: 125, sessionCredited: 2),
-      ('Today: …', 'This card: 2 min · credited 2'),
-    );
+    expect(headerLines(null, activeSeconds: 125, sessionCredited: 2), (
+      'Today: …',
+      'This card: 2 min · credited 2',
+    ));
   });
 
   test('reads stats.today now and on every rev.stats move', () async {

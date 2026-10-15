@@ -7,6 +7,7 @@ library;
 import 'dart:async';
 
 import 'package:tutor/model/ids.dart';
+import 'package:tutor/model/json.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_event.dart';
@@ -15,7 +16,7 @@ import 'package:tutor/sync/rtdb_stream.dart';
 /// Snapshot-only stream.
 class FixtureStream implements RtdbStream {
   /// Creates the stream over [root] (read at listen time).
-  new(this.client, this.root, {this.change});
+  new(this.client, this.root, {this.change, this.worker});
 
   @override
   final RtdbClient client;
@@ -25,6 +26,9 @@ class FixtureStream implements RtdbStream {
 
   /// Applied `after` the first `rev` listen opens, then streamed.
   final ({Duration after, void Function() apply})? change;
+
+  /// Answers a request (its kind and body) with its `result` node.
+  final Json Function(String kind, Json body)? worker;
   bool _changed = false;
 
   @override
@@ -34,6 +38,21 @@ class FixtureStream implements RtdbStream {
   }) async* {
     yield const RtdbConnected();
     yield RtdbPut('/', getAt(root(), path));
+    final node = getAt(root(), path);
+    final req = node is Map<String, dynamic> ? node['req'] : null;
+    final worker = this.worker;
+    if (worker != null && req is Map<String, dynamic>) {
+      // A request just written: the stand-in PC answers a moment later.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final body = req['body'];
+      yield RtdbPut(
+        '/result',
+        worker(
+          req['kind']! as String,
+          body is Map<String, dynamic> ? body : const {},
+        ),
+      );
+    }
     if (path == Paths.workers) {
       await Future<void>.delayed(const Duration(milliseconds: 300));
       yield RtdbPut('/', getAt(root(), path));

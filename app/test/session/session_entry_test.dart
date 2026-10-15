@@ -10,31 +10,28 @@ void main() {
     final none = sessionEntry(null, null);
     expect((none.label, none.subject, none.resume), ('Learn', null, false));
     final live = sessionEntry(_car, null);
-    expect((live.label, live.subject, live.resume), (
-      'Continue session',
-      null,
-      false,
-    ));
+    expect(
+      (live.label, live.subject, live.resume),
+      ('Continue session', null, false),
+    );
   });
 
   test('the live session is of the picked subject: continue it', () {
     final e = sessionEntry(_car, 'how-a-car-works');
-    expect((e.label, e.subject, e.resume), (
-      'Continue session',
-      'how-a-car-works',
-      false,
-    ));
+    expect(
+      (e.label, e.subject, e.resume),
+      ('Continue session', 'how-a-car-works', false),
+    );
   });
 
   test('another subject is live: ask for the picked one, never follow it', () {
     // kuhy, 2026-10-12: in automation, Continue opened the car session.
     for (final live in [_car, null]) {
       final e = sessionEntry(live, 'automation');
-      expect((e.label, e.subject, e.resume), (
-        'Continue learning',
-        'automation',
-        true,
-      ));
+      expect(
+        (e.label, e.subject, e.resume),
+        ('Continue learning', 'automation', true),
+      );
     }
   });
 
@@ -43,9 +40,10 @@ void main() {
       'subject': 'automation',
       'card': null,
     });
-    expect(
-      RequestBody.sessionStart(subject: 'automation', resume: true).body,
-      {'subject': 'automation', 'card': null, 'resume': true},
-    );
+    expect(RequestBody.sessionStart(subject: 'automation', resume: true).body, {
+      'subject': 'automation',
+      'card': null,
+      'resume': true,
+    });
   });
 }

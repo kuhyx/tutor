@@ -7,7 +7,10 @@ library;
 
 import 'package:tutor/model/request.dart';
 
-const _headlines = {
+/// The error code that sends the app to the model-free drill.
+const claudeUnavailable = 'claude_unavailable';
+
+const Map<String, String> _headlines = {
   'bad_request': 'The PC could not read that request.',
   'not_live': 'That session is no longer live.',
   'locked': 'That is locked until earlier modules are mastered.',
@@ -17,6 +20,7 @@ const _headlines = {
   'plan_conflict': 'The plan changed meanwhile. Reload it and try again.',
   'edit_refused': 'The card edit was refused.',
   'model_error': 'The tutor model failed on this turn.',
+  claudeUnavailable: 'Claude is not available right now.',
   'gave_up': 'The PC gave up after three attempts.',
   'worker_error': 'Something broke on the PC.',
 };

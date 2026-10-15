@@ -15,6 +15,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/session/today_header.dart';
+import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_side.dart';
@@ -66,6 +67,7 @@ class _SessionScreenState extends State<SessionScreen> {
     rev: widget.services.rev,
   );
   late final AppLifecycleListener _lifecycle;
+  late final VoidCallback _unwatch;
   final _scroll = ScrollController();
   Map<String, SubjectData> _subjects = const {};
 
@@ -77,6 +79,8 @@ class _SessionScreenState extends State<SessionScreen> {
     _feed.start();
     _today.start();
     _s.presence.start();
+    // Claude out: the model-free drill takes over (also on a Retry).
+    _unwatch = switchToDrillOnLimit(this, _s, _runner);
     _lifecycle = AppLifecycleListener(
       onShow: () {
         _feed.start();
@@ -94,6 +98,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   @override
   void dispose() {
+    _unwatch();
     _lifecycle.dispose();
     unawaited(_feed.dispose());
     unawaited(_runner.dispose());

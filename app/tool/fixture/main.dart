@@ -2,7 +2,9 @@
 // real RTDB). `?screen=/plan/garden` opens that route over Home. Car's
 // drivetrain module goes generating -> ready (rev.catalog bump) 20 s after
 // the app opens (`&bump=<s>` to change it): `?screen=/plan/car` shows the
-// Plan screen updating by itself.
+// Plan screen updating by itself. `?screen=/drill` is the pick-an-answer
+// drill (a stand-in PC answers it); `?screen=/session/continue&claude=out`
+// is the auto-switch: the session's request fails with claude_unavailable.
 //
 // Build: fvm flutter build web -t tool/fixture/main.dart \
 //   -o build/web_fixture --base-href /app/
@@ -11,6 +13,7 @@ import 'package:crdt_sync/crdt_sync.dart'
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
+import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
 import 'package:tutor/history/history.dart';
 import 'package:tutor/home/catalog.dart';
@@ -31,6 +34,7 @@ import '../../test/support/fake_rtdb.dart';
 import 'fixture_data.dart';
 import 'fixture_live.dart';
 import 'fixture_stream.dart';
+import 'fixture_worker.dart';
 
 const _dev = '0b6f2c1e-8f2a-4c1d-9e3b-7a5d4c3b2a10';
 const _config = FirebaseConfig(
@@ -68,6 +72,11 @@ Future<TutorServices> _open() async {
     change: (
       after: fixtureBumpDelay(Uri.base.queryParameters),
       apply: () => db.root = fixtureCardsReady(db.root),
+    ),
+    // `?claude=out`: Claude kinds fail with claude_unavailable.
+    worker: fixtureWorker(
+      claudeOut: Uri.base.queryParameters['claude'] == 'out',
+      now: now ~/ 1000,
     ),
   );
   final ulid = UlidGenerator();
@@ -107,6 +116,8 @@ Future<TutorServices> _open() async {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // `&anki=1` shows the Android-only "Sync Anki & credit" row in the drill.
+  if (Uri.base.queryParameters['anki'] == '1') debugAnkiSupported = true;
   runApp(
     TutorApp(
       config: _config,

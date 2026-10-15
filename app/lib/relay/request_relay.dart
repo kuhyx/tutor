@@ -8,6 +8,7 @@ library;
 
 import 'dart:async';
 
+import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/model/ids.dart';
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/request.dart';
@@ -77,7 +78,12 @@ class RelayDone extends RelayStatus {
 /// Finished with an error the worker reported.
 class RelayFailed extends RelayStatus {
   /// Creates the status.
-  const new({required this.code, required this.text, this.retry = false});
+  const new({
+    required this.code,
+    required this.text,
+    this.retry = false,
+    this.unavailable,
+  });
 
   /// Error code.
   final String? code;
@@ -87,6 +93,9 @@ class RelayFailed extends RelayStatus {
 
   /// The worker suggests retrying.
   final bool retry;
+
+  /// When Claude is back, for `claude_unavailable` (the drill fallback).
+  final Unavailable? unavailable;
 }
 
 /// Maps a `requests/{rid}` snapshot to a status.
@@ -100,6 +109,9 @@ RelayStatus statusOf(Object? node) {
       code: r.code,
       text: errorText(r.code, r.error),
       retry: r.retry,
+      unavailable: r.code == claudeUnavailable
+          ? Unavailable.fromError(result)
+          : null,
     );
   }
   final claim = objOr(j, 'claim');

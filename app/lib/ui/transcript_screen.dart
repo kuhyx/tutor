@@ -13,6 +13,7 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 
@@ -34,6 +35,7 @@ class TranscriptScreen extends StatefulWidget {
 class _TranscriptScreenState extends State<TranscriptScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
   late Future<(Transcript, HistoryEntry?)> _data = _load();
+  late final VoidCallback _unwatch;
 
   TutorServices get _s => widget.services;
 
@@ -45,7 +47,15 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Claude out: the model-free drill takes over.
+    _unwatch = switchToDrillOnLimit(this, _s, _runner);
+  }
+
+  @override
   void dispose() {
+    _unwatch();
     unawaited(_runner.dispose());
     super.dispose();
   }

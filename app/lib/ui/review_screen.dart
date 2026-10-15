@@ -1,6 +1,7 @@
 /// Review (curriculum §5): offline FSRS queue across all subjects. Front ->
 /// reveal back + excerpt + source link -> Again/Hard/Good/Easy, or Flag.
-/// Keys: Space reveals, 1-4 rate, F flags.
+/// Keys: Space reveals, 1-4 rate, F flags. The app bar switches to Drill
+/// (`drill_view.dart`): pick-an-answer cards from the PC, no model.
 library;
 
 import 'dart:async';
@@ -9,19 +10,38 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tutor/app/services.dart';
+import 'package:tutor/drill/anki_sync.dart';
+import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/drill_view.dart';
 import 'package:tutor/ui/flag_dialog.dart';
 
 /// The Review screen.
 class ReviewScreen extends StatefulWidget {
   /// Creates the screen; [now] is injectable for tests.
-  const new({required this.services, this.now, super.key});
+  const new({
+    required this.services,
+    this.drill = false,
+    this.unavailable,
+    this.anki,
+    this.now,
+    super.key,
+  });
 
   /// Services.
   final TutorServices services;
+
+  /// Opens in Drill mode.
+  final bool drill;
+
+  /// The "Claude limit" banner for Drill (the auto-switch).
+  final Unavailable? unavailable;
+
+  /// Drill's AnkiDroid sync (tests inject; default: the Android intent).
+  final AnkiSync? anki;
 
   /// Clock.
   final DateTime Function()? now;
@@ -33,6 +53,7 @@ class ReviewScreen extends StatefulWidget {
 class _ReviewScreenState extends State<ReviewScreen> {
   late final Future<ReviewSession> _run = _start();
   final _focus = FocusNode();
+  late bool _drill = widget.drill;
 
   Future<ReviewSession> _start() async {
     final now = widget.now ?? DateTime.now;
@@ -63,36 +84,52 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Review')),
-    body: FutureBuilder<ReviewSession>(
-      future: _run,
-      builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snap.hasError) {
-          return PageList(children: [Text('Could not load: ${snap.error}')]);
-        }
-        final run = snap.requireData;
-        return ListenableBuilder(
-          listenable: run,
-          builder: (context, _) => CallbackShortcuts(
-            bindings: {
-              const SingleActivator(LogicalKeyboardKey.space): run.reveal,
-              for (final g in Grade.values)
-                SingleActivator(_digit(g.value)): () => unawaited(run.rate(g)),
-              const SingleActivator(LogicalKeyboardKey.keyF): () =>
-                  unawaited(_flag(run)),
-            },
-            child: Focus(
-              focusNode: _focus,
-              autofocus: true,
-              child: _body(context, run),
-            ),
-          ),
-        );
-      },
+    appBar: AppBar(
+      title: Text(_drill ? 'Drill' : 'Review'),
+      actions: [
+        TextButton(
+          onPressed: () => setState(() => _drill = !_drill),
+          child: Text(_drill ? 'Review' : 'Drill'),
+        ),
+      ],
     ),
+    body: _drill
+        ? DrillView(
+            services: widget.services,
+            unavailable: widget.unavailable,
+            anki: widget.anki,
+          )
+        : _review(),
+  );
+
+  Widget _review() => FutureBuilder<ReviewSession>(
+    future: _run,
+    builder: (context, snap) {
+      if (snap.connectionState != ConnectionState.done) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snap.hasError) {
+        return PageList(children: [Text('Could not load: ${snap.error}')]);
+      }
+      final run = snap.requireData;
+      return ListenableBuilder(
+        listenable: run,
+        builder: (context, _) => CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.space): run.reveal,
+            for (final g in Grade.values)
+              SingleActivator(_digit(g.value)): () => unawaited(run.rate(g)),
+            const SingleActivator(LogicalKeyboardKey.keyF): () =>
+                unawaited(_flag(run)),
+          },
+          child: Focus(
+            focusNode: _focus,
+            autofocus: true,
+            child: _body(context, run),
+          ),
+        ),
+      );
+    },
   );
 
   static LogicalKeyboardKey _digit(int n) => switch (n) {
