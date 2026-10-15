@@ -14,6 +14,7 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Final
 
+from tutor import anki_watch
 from tutor.relay import feedback_drain
 from tutor.relay.config import device_id
 from tutor.relay.context import Wiring
@@ -114,8 +115,13 @@ class Relay:
                 _logger.warning("projection refresh failed: %s", err)
 
     def start(self) -> None:
-        """Begin (startup retries in the background)."""
+        """Begin (startup retries in the background).
+
+        Anki credit runs beside, not after, the RTDB startup: it must not
+        wait on Firebase being reachable.
+        """
         self._spawn(self._main(), "main")
+        self._spawn(anki_watch.watch(), "anki")
 
     async def stop(self, grace: float = DRAIN_S) -> None:
         """Claim nothing new, let a request in flight finish, then leave."""

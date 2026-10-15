@@ -9,9 +9,10 @@ reply up to ``SEND_GRACE`` earlier, never later.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import history, resume
+from tutor import anki, anki_collection, history, resume
 from tutor.relay.errors import RequestError
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.views import key
@@ -117,6 +118,14 @@ async def card_done(ctx: RequestContext) -> dict[str, Any]:
     return {}
 
 
+async def anki_status(ctx: RequestContext) -> dict[str, Any]:
+    """Credit new Anki reviews, then today's Anki figures (the Sync button)."""
+    try:
+        return await asyncio.to_thread(anki.status, ctx.now())
+    except anki_collection.AnkiError as exc:
+        raise RequestError(str(exc), code="worker_error", retry=True) from exc
+
+
 CHAT_HANDLERS: Final[
     dict[str, Callable[[RequestContext], Awaitable[dict[str, Any]]]]
 ] = {
@@ -126,4 +135,5 @@ CHAT_HANDLERS: Final[
     "next": next_card,
     "stop": stop,
     "card_done": card_done,
+    "anki_status": anki_status,
 }

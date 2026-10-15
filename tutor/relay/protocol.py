@@ -128,6 +128,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     "next": (CHAT, {"session": _session}),
     "stop": (CHAT, {"session": _session}),
     "card_done": (CHAT, {"subject": _opt_slug, "card": _slug, "done": _bool}),
+    "anki_status": (CHAT, {}),
 }
 
 
