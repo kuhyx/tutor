@@ -1,11 +1,13 @@
 /// The tutor's latest message while the phone keyboard is open: just its
 /// last line, a tap shows the whole message (the keyboard leaves little
-/// room, and the last line is usually the ask).
+/// room, and the last line is usually the ask). One rendered line: a long
+/// last paragraph is cut with an ellipsis, not wrapped.
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/model/message.dart';
+import 'package:tutor/session/markdown.dart';
 import 'package:tutor/ui/session/md_text.dart';
 
 /// The last non-blank line of [text] ('' when there is none).
@@ -52,8 +54,14 @@ class _CollapsedTileState extends State<CollapsedTile> {
           ),
           child: Row(
             children: [
-              // Selectable text would swallow the tap that expands the tile.
-              Expanded(child: IgnorePointer(child: MarkdownText(line))),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(children: mdInlineSpans(parseInline(line), scheme)),
+                  key: const ValueKey('collapsed-line'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const SizedBox(width: AppSpacing.sm),
               Icon(Icons.expand_more, color: scheme.onSurfaceVariant),
             ],

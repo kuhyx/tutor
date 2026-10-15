@@ -14,27 +14,10 @@ class MarkdownText extends StatelessWidget {
   /// Source.
   final String text;
 
-  TextSpan _span(MdSpan s, TextStyle code) => TextSpan(
-    text: s.text,
-    style: switch (s.style) {
-      MdStyle.plain => null,
-      MdStyle.bold => const TextStyle(fontWeight: FontWeight.w600),
-      MdStyle.em => const TextStyle(fontStyle: FontStyle.italic),
-      MdStyle.code => code,
-    },
-  );
-
-  List<InlineSpan> _line(List<MdSpan> spans, TextStyle code) => [
-    for (final s in spans) _span(s, code),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final code = TextStyle(
-      fontFamily: 'monospace',
-      backgroundColor: scheme.surfaceContainerHighest,
-    );
+    List<InlineSpan> line(List<MdSpan> l) => mdInlineSpans(l, scheme);
     final blocks = parseMarkdown(text);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +31,7 @@ class MarkdownText extends StatelessWidget {
                       children: [
                         for (final (i, l) in b.lines.indexed) ...[
                           if (i > 0) const TextSpan(text: '\n'),
-                          ..._line(l, code),
+                          ...line(l),
                         ],
                       ],
                     ),
@@ -70,7 +53,7 @@ class MarkdownText extends StatelessWidget {
                             ),
                             Expanded(
                               child: SelectableText.rich(
-                                TextSpan(children: _line(l, code)),
+                                TextSpan(children: line(l)),
                               ),
                             ),
                           ],
@@ -81,4 +64,24 @@ class MarkdownText extends StatelessWidget {
       ],
     );
   }
+}
+
+/// [spans] as text spans, styled as [MarkdownText] styles them.
+List<InlineSpan> mdInlineSpans(List<MdSpan> spans, ColorScheme scheme) {
+  final code = TextStyle(
+    fontFamily: 'monospace',
+    backgroundColor: scheme.surfaceContainerHighest,
+  );
+  return [
+    for (final s in spans)
+      TextSpan(
+        text: s.text,
+        style: switch (s.style) {
+          MdStyle.plain => null,
+          MdStyle.bold => const TextStyle(fontWeight: FontWeight.w600),
+          MdStyle.em => const TextStyle(fontStyle: FontStyle.italic),
+          MdStyle.code => code,
+        },
+      ),
+  ];
 }
