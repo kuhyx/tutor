@@ -2,6 +2,7 @@
 /// AnkiDroid launcher.
 library;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/sync/rtdb_event.dart';
@@ -9,6 +10,19 @@ import 'package:tutor/sync/rtdb_event.dart';
 import 'fake_rtdb.dart';
 import 'fake_stream.dart';
 import 'ui.dart';
+
+/// A phone-sized window (1080x2400 at 2.625x).
+const kPhone = Size(412, 915);
+
+/// A `resets_at` for the Claude-out tests (unix seconds).
+const kResetsAt = 1792000000;
+
+/// Local HH:MM of [unixSeconds], as the banner shows it.
+String hhmm(int unixSeconds) {
+  final t = DateTime.fromMillisecondsSinceEpoch(unixSeconds * 1000);
+  return '${t.hour.toString().padLeft(2, '0')}:'
+      '${t.minute.toString().padLeft(2, '0')}';
+}
 
 /// A `drill_next` question; [unavailable] adds the Claude-out marker.
 Map<String, Object?> drillQuestion({

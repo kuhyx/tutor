@@ -88,12 +88,7 @@ class _DrillViewState extends State<DrillView> {
     final today = _run.today;
     return [
       if (gone != null) DrillBanner(gone.banner),
-      if (today != null)
-        Text(
-          'Today: ${today.creditedMin} min credited · '
-          '${today.activeMin} min active',
-          style: text.bodySmall,
-        ),
+      _header(text, today),
       const SizedBox(height: AppSpacing.sm),
       switch (_run.stage) {
         DrillStage.empty => const EmptyState(
@@ -110,7 +105,6 @@ class _DrillViewState extends State<DrillView> {
         ),
         _ => _question(context, q),
       },
-      if (_anki.launcher.supported) _ankiRow(text),
     ];
   }
 
@@ -172,19 +166,28 @@ class _DrillViewState extends State<DrillView> {
     ),
   ];
 
-  Widget _ankiRow(TextTheme text) => Padding(
-    padding: const EdgeInsets.only(top: AppSpacing.md),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        OutlinedButton.icon(
-          onPressed: _anki.running ? null : () => unawaited(_anki.run()),
-          icon: const Icon(Icons.sync),
-          label: const Text('Sync Anki & credit'),
-        ),
-        if (_anki.message != null) Text(_anki.message!, style: text.bodySmall),
-      ],
-    ),
+  // One line: the day's credited minutes; on Android the Anki sync beside it.
+  Widget _header(TextTheme text, DrillToday? today) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              today == null ? '' : 'Today: ${today.creditedMin} min credited',
+              style: text.bodySmall,
+            ),
+          ),
+          if (_anki.launcher.supported)
+            TextButton.icon(
+              onPressed: _anki.running ? null : () => unawaited(_anki.run()),
+              icon: const Icon(Icons.sync),
+              label: const Text('Sync Anki & credit'),
+            ),
+        ],
+      ),
+      if (_anki.message != null) Text(_anki.message!, style: text.bodySmall),
+    ],
   );
 }
 

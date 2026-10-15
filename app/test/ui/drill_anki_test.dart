@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/ui/review_screen.dart';
@@ -13,7 +14,7 @@ const _sync = 'Sync Anki & credit';
 
 // Opens the drill (first question answered) over an [AnkiSync] on [launcher];
 // [now] is its clock.
-Future<(FakeRtdb, FakeStream)> _open(
+Future<(FakeRtdb, FakeStream, AnkiSync)> _open(
   WidgetTester t,
   AnkiLauncher launcher, {
   DateTime Function()? now,
@@ -21,18 +22,22 @@ Future<(FakeRtdb, FakeStream)> _open(
   final db = fixtureDb();
   final stream = FakeStream();
   final s = await fixtureServices(db, stream);
+  final anki = AnkiSync(relay: s.relay, launcher: launcher, now: now);
   await pumpScreen(
     t,
-    ReviewScreen(
-      services: s,
-      drill: true,
-      anki: AnkiSync(relay: s.relay, launcher: launcher, now: now),
-    ),
+    ReviewScreen(services: s, drill: true, anki: anki),
     size: const Size(412, 915),
     settle: false,
   );
   await answer(t, db, stream, data: drillQuestion());
-  return (db, stream);
+  return (db, stream, anki);
+}
+
+// A clock that jumps 61 s per read: the deadline has passed at the first check.
+DateTime Function() _jump() {
+  final t0 = DateTime(2026, 10, 15, 12);
+  var calls = 0;
+  return () => t0.add(Duration(seconds: 61 * calls++));
 }
 
 Future<void> _tick(WidgetTester t) async {
@@ -45,7 +50,7 @@ void main() {
     t,
   ) async {
     final launcher = FakeLauncher();
-    final (db, stream) = await _open(t, launcher);
+    final (db, stream, _) = await _open(t, launcher);
     await t.tap(find.text(_sync));
     await sent(t);
     // The baseline comes first, so a fast sync cannot be missed.
@@ -76,7 +81,7 @@ void main() {
   testWidgets('gives up after the timeout, tolerating a bad poll', (t) async {
     final clock = DateTime(2026, 10, 15, 12);
     var calls = 0;
-    final (db, stream) = await _open(
+    final (db, stream, _) = await _open(
       t,
       FakeLauncher(),
       // The deadline is +60 s; the checks read +30 s, then +60 s: one poll.
@@ -90,22 +95,53 @@ void main() {
     expect(find.textContaining('No new credit from Anki yet'), findsOne);
   });
 
-  testWidgets('a failed baseline ends the wait', (t) async {
-    final (db, stream) = await _open(t, FakeLauncher());
+  testWidgets('a failed baseline still syncs; the wait ends at the timeout', (
+    t,
+  ) async {
+    final launcher = FakeLauncher();
+    final (db, stream, _) = await _open(t, launcher, now: _jump());
     await t.tap(find.text(_sync));
     await sent(t);
     await answer(t, db, stream, code: 'worker_error');
-    expect(find.text('The PC did not answer.'), findsOne);
+    expect(launcher.launches, 1);
+    expect(find.textContaining('No new credit from Anki yet'), findsOne);
+  });
+
+  testWidgets('a PC that never answers cannot hold the run', (t) async {
+    final launcher = FakeLauncher();
+    final (_, _, _) = await _open(t, launcher, now: _jump());
+    await t.tap(find.text(_sync));
+    await sent(t);
+    // The intent did not wait for the baseline.
+    expect(launcher.launches, 1);
+    expect(find.text('Syncing AnkiDroid...'), findsOne);
+    await t.pump(const Duration(seconds: 11));
+    expect(find.textContaining('No new credit from Anki yet'), findsOne);
+    expect(find.text(_sync), findsOne);
+  });
+
+  testWidgets('leaving during the wait stops the polls', (t) async {
+    final (db, stream, anki) = await _open(t, FakeLauncher());
+    await t.tap(find.text(_sync));
+    await sent(t);
+    await answer(t, db, stream, data: ankiStatus(5), settle: false);
+    await sent(t);
+    final before = lastRequest(db).$1;
+    await t.pumpWidget(const SizedBox());
+    anki.dispose();
+    await t.pump(const Duration(seconds: 3));
+    expect(lastRequest(db).$1, before);
   });
 
   testWidgets('without AnkiDroid it says so', (t) async {
     final missing = FakeLauncher(ok: false);
-    final (db, stream) = await _open(t, missing);
+    final (_, _, _) = await _open(t, missing);
     await t.tap(find.text(_sync));
     await sent(t);
-    await answer(t, db, stream, data: ankiStatus(1));
     expect(find.textContaining('did not start a sync'), findsOne);
     expect(missing.launches, 1);
+    // The unanswered baseline gives up on its own.
+    await t.pump(const Duration(seconds: 11));
   });
 
   testWidgets('the button is hidden where the intent cannot run', (t) async {
@@ -133,6 +169,9 @@ void main() {
       expect(await launcher.sync(), isTrue);
       expect(await launcher.sync(), isFalse);
       expect(await launcher.sync(), isFalse);
+      // No native side at all (web, desktop).
+      messenger.setMockMethodCallHandler(channel, null);
+      expect(await launcher.sync(), isFalse);
     });
 
     test('supported: Android only, never the web build', () {
@@ -141,6 +180,9 @@ void main() {
       // flutter_test runs as Android, off the web.
       expect(defaultTargetPlatform, TargetPlatform.android);
       expect(ChannelAnkiLauncher().supported, isTrue);
+      debugAnkiSupported = false;
+      addTearDown(() => debugAnkiSupported = null);
+      expect(ChannelAnkiLauncher().supported, isFalse);
     });
   });
 }

@@ -36,12 +36,7 @@ class CardProgress {
 
   /// A short label for the card row.
   String get label => [
-    if (mastered)
-      'mastered'
-    else if (taught)
-      'done'
-    else
-      'not taught yet',
+    if (mastered) 'mastered' else if (taught) 'done' else 'not taught yet',
     if (due) 'due',
     if (flagged) 'flagged',
   ].join(' · ');
@@ -50,12 +45,7 @@ class CardProgress {
 /// Counts over a set of cards.
 class Tally {
   /// Creates the tally.
-  const new({
-    this.cards = 0,
-    this.taught = 0,
-    this.mastered = 0,
-    this.due = 0,
-  });
+  const new({this.cards = 0, this.taught = 0, this.mastered = 0, this.due = 0});
 
   /// Cards counted (not suspended).
   final int cards;
@@ -97,11 +87,7 @@ class Tally {
 /// One subject's progress.
 class SubjectProgress {
   /// Creates the record.
-  const new({
-    required this.cards,
-    required this.modules,
-    required this.total,
-  });
+  const new({required this.cards, required this.modules, required this.total});
 
   /// Card id -> state (suspended cards absent).
   final Map<String, CardProgress> cards;
@@ -125,11 +111,7 @@ Future<FoldResult> foldAll(EventLog events, Catalog catalog) async =>
     fold(await events.all(), cardInfos((await catalog.cached()).values));
 
 /// [s]'s progress from [fold] at [now].
-SubjectProgress subjectProgress(
-  SubjectData s,
-  FoldResult fold,
-  DateTime now,
-) {
+SubjectProgress subjectProgress(SubjectData s, FoldResult fold, DateTime now) {
   final cards = <String, CardProgress>{};
   final modules = <String, Tally>{};
   var total = const Tally();

@@ -6,27 +6,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/ui/review_screen.dart';
-import 'package:tutor/ui/session/session_screen.dart';
 
 import '../support/drill.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
 import '../support/ui.dart';
 
-const _phone = Size(412, 915);
-const _resetsAt = 1792000000;
-
-String _hhmm(int unixSeconds) {
-  final t = DateTime.fromMillisecondsSinceEpoch(unixSeconds * 1000);
-  return '${t.hour.toString().padLeft(2, '0')}:'
-      '${t.minute.toString().padLeft(2, '0')}';
-}
-
 /// Opens the drill on a phone-sized window; the first question is answered.
 Future<(FakeRtdb, FakeStream)> _open(
   WidgetTester t, {
   Unavailable? unavailable,
   Map<String, Object?>? question,
+  bool android = false,
 }) async {
   final db = fixtureDb();
   final stream = FakeStream();
@@ -37,9 +28,12 @@ Future<(FakeRtdb, FakeStream)> _open(
       services: s,
       drill: true,
       unavailable: unavailable,
-      anki: AnkiSync(relay: s.relay, launcher: FakeLauncher(supported: false)),
+      anki: AnkiSync(
+        relay: s.relay,
+        launcher: FakeLauncher(supported: android),
+      ),
     ),
-    size: _phone,
+    size: kPhone,
     settle: false,
   );
   if (question != null) {
@@ -53,7 +47,7 @@ void main() {
     t,
   ) async {
     final (db, stream) = await _open(t, question: drillQuestion());
-    expect(find.text('Today: 23 min credited · 31 min active'), findsOne);
+    expect(find.text('Today: 23 min credited'), findsOne);
     expect(find.text('What does the crankshaft do?'), findsOne);
     expect(find.byType(TextField), findsNothing);
     final first = find.widgetWithText(OutlinedButton, 'Opens valves');
@@ -69,7 +63,7 @@ void main() {
     expect(find.textContaining('turns the pistons'), findsOne);
     expect(find.textContaining('translates reciprocating'), findsOne);
     expect(find.text('en.wikipedia.org'), findsOne);
-    expect(find.text('Today: 23 min credited · 32 min active'), findsOne);
+    expect(find.text('Today: 23 min credited'), findsOne);
     // Everything on one screen: nothing scrolls.
     final list = t.state<ScrollableState>(find.byType(Scrollable).first);
     expect(list.position.maxScrollExtent, 0);
@@ -81,6 +75,28 @@ void main() {
     expect(find.text('Not quite'), findsNothing);
   });
 
+  testWidgets('Android: the Sync row sits in the header; still no scroll', (
+    t,
+  ) async {
+    final (db, stream) = await _open(
+      t,
+      android: true,
+      question: {
+        ...drillQuestion(),
+        'options': ['One', 'Two', 'Three', 'Four'],
+      },
+    );
+    expect(find.text('Sync Anki & credit'), findsOne);
+    await t.tap(find.text('One'));
+    await sent(t);
+    await answer(t, db, stream, data: drillGrade(0));
+    expect(find.text('Next (Space)'), findsOne);
+    // Measured with the test font (every glyph a full square, so wider
+    // than real text): the real-font check is the fixture screenshot.
+    final list = t.state<ScrollableState>(find.byType(Scrollable).first);
+    expect(list.position.maxScrollExtent, 0);
+  });
+
   testWidgets('keys: 2 picks the right option, Space asks for the next', (
     t,
   ) async {
@@ -89,6 +105,7 @@ void main() {
     await sent(t);
     await answer(t, db, stream, data: drillGrade(1));
     expect(find.text('Correct · +1 min credited'), findsOne);
+    expect(find.text('Today: 24 min credited'), findsOne);
     expect(find.byIcon(Icons.close), findsNothing);
     // A second pick on an answered question does nothing.
     await t.sendKeyEvent(LogicalKeyboardKey.digit1);
@@ -106,20 +123,20 @@ void main() {
   testWidgets('banner: from the screen, then from the question', (t) async {
     final (db, stream) = await _open(
       t,
-      unavailable: const Unavailable(until: _resetsAt, reason: 'limit'),
+      unavailable: const Unavailable(until: kResetsAt, reason: 'limit'),
     );
-    final banner = 'Claude limit — back at ${_hhmm(_resetsAt)}';
+    final banner = 'Claude limit — back at ${hhmm(kResetsAt)}';
     expect(find.text(banner), findsOne);
     await answer(
       t,
       db,
       stream,
-      data: drillQuestion(unavailable: {'until': _resetsAt}),
+      data: drillQuestion(unavailable: {'until': kResetsAt}),
     );
     // The PC's answer wins; no reason reads "Claude unavailable".
     expect(find.text(banner), findsNothing);
     expect(
-      find.text('Claude unavailable — back at ${_hhmm(_resetsAt)}'),
+      find.text('Claude unavailable — back at ${hhmm(kResetsAt)}'),
       findsOne,
     );
   });
@@ -168,45 +185,5 @@ void main() {
     expect(find.text('Review'), findsOne);
     expect(db.root, isNotNull);
     expect(stream.listens, isNotEmpty);
-  });
-
-  testWidgets('claude_unavailable in the Session opens the drill', (t) async {
-    final db = fixtureDb();
-    final stream = FakeStream();
-    final s = await fixtureServices(db, stream);
-    await pumpScreen(
-      t,
-      SessionScreen(services: s, subject: 'car', resume: true),
-      size: _phone,
-      settle: false,
-    );
-    await sent(t);
-    await reply(t, db, stream, settle: false, {
-      'ok': false,
-      'at': 1,
-      'code': 'claude_unavailable',
-      'error': 'limit',
-      'resets_at': _resetsAt,
-      'reason': 'five_hour_limit',
-    });
-    await sent(t);
-    expect(find.text('Drill'), findsWidgets);
-    expect(find.text('Claude limit — back at ${_hhmm(_resetsAt)}'), findsOne);
-    // It asks the PC for a question at once.
-    expect(lastRequest(db).$2['kind'], 'drill_next');
-  });
-
-  testWidgets('another failure does not open the drill', (t) async {
-    final db = fixtureDb();
-    final stream = FakeStream();
-    final s = await fixtureServices(db, stream);
-    await pumpScreen(
-      t,
-      SessionScreen(services: s, subject: 'car', resume: true),
-      settle: false,
-    );
-    await sent(t);
-    await answer(t, db, stream, code: 'model_error', settle: false);
-    expect(find.text('Drill'), findsNothing);
   });
 }

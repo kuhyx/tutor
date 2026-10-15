@@ -13,6 +13,7 @@ import 'package:crdt_sync/crdt_sync.dart'
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
+import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
 import 'package:tutor/history/history.dart';
 import 'package:tutor/home/catalog.dart';
@@ -115,6 +116,8 @@ Future<TutorServices> _open() async {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // `&anki=1` shows the Android-only "Sync Anki & credit" row in the drill.
+  if (Uri.base.queryParameters['anki'] == '1') debugAnkiSupported = true;
   runApp(
     TutorApp(
       config: _config,
