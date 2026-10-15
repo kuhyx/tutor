@@ -119,10 +119,10 @@ Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked
 | `plan_approve` | `{"subject","plan_rev":4}` | `{}` | build |
 | `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
 | `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}` | `{"card":"ld-x","rev":2}` | build |
-| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?}` (null card = next open) | `{"session":sid}` | chat |
-| `session_resume` | `{"session":sid}` | `{"session":sid}` | chat |
+| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?}` (null card = next open; `device` as for `message`, shapes the opening turn) | `{"session":sid}` | chat |
+| `session_resume` | `{"session":sid,"device"?}` (device validated only: no model turn) | `{"session":sid}` | chat |
 | `message` | `{"session":sid,"text":"...","device":"phone"\|"desktop"?}` <=8000 ch; no device = desktop, other values `bad_request`; phone: typos ignored, short answers, one question (prompt rule 13); text `Hint` gets a hint, never credit | `{"msg":"m0012"}` | chat |
-| `next` | `{"session":sid}` (next_card+stop, starts new) | `{"session":newsid}` | chat |
+| `next` | `{"session":sid,"device"?}` (next_card+stop, starts new on `device`) | `{"session":newsid}` | chat |
 | `stop` | `{"session":sid}` | `{}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
 | `drill_next`, `drill_answer` | the model-free drill, `DOCS-relay.md` "Claude unavailable" | | chat |

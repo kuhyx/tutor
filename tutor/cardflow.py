@@ -19,6 +19,7 @@ from tutor import continuing, credit, gating, unit_credit
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.source import source_for, transcript_subject
+from tutor.delivery import DESKTOP
 
 if TYPE_CHECKING:
     import asyncio
@@ -107,8 +108,8 @@ class CardFlow:
             _logger.warning("resume: %s; staying on %s", err, self.source.subject)
             return self.source
 
-    async def next_card(self) -> dict[str, Any]:
-        """End this session and start a NEW one on the next unfinished card.
+    async def next_card(self, *, device: str = DESKTOP) -> dict[str, Any]:
+        """End this session and start a NEW one (opened on ``device``).
 
         One card, one session (kuhy, 2026-10-10): the transcript, URL and
         history row each stay about a single card. The ended session logs the
@@ -123,7 +124,7 @@ class CardFlow:
             nxt = self.source.pick(None, skip=card.id)
             self.store.log(conv.session_id, {"type": "next_card", "card": nxt.id})
             self.store.log(conv.session_id, {"type": "stop"})
-        return await self.start(nxt.id)
+        return await self.start(nxt.id, device=device)
 
     async def resume_session(self, path: Path) -> dict[str, Any]:
         """Continue the session in ``path``; the live one is left, not stopped.

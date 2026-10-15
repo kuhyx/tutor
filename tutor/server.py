@@ -57,8 +57,7 @@ def create_app(
         return JSONResponse(eng.state())
 
     async def start(request: Request) -> Response:
-        body = await _json(request)
-        return await _guard(eng.start(body.get("card_id")))
+        return await _start(eng, await _json(request))
 
     async def message(request: Request) -> Response:
         args = _reply_args(await _json(request))
@@ -112,6 +111,22 @@ async def _json(request: Request) -> dict[str, Any]:
     return body if isinstance(body, dict) else {}
 
 
+def _device(body: dict[str, Any]) -> str | Response:
+    """The body's ``device`` (absent: desktop), or the 400 refusing it."""
+    try:
+        return delivery.device(body.get("device"))
+    except ValueError as err:
+        _logger.warning("request refused: %s", err)
+        return JSONResponse({"error": str(err)}, status_code=400)
+
+
+async def _start(eng: Engine, body: dict[str, Any]) -> Response:
+    """``/api/start``: a new session on ``card_id``, opened on ``device``."""
+    if isinstance(device := _device(body), Response):
+        return device
+    return await _guard(eng.start(body.get("card_id"), device=device))
+
+
 def _reply_args(
     body: dict[str, Any],
 ) -> tuple[str, float, str, delivery.Delivery] | Response:
@@ -122,11 +137,8 @@ def _reply_args(
     text = str(body.get("text", "")).strip()
     if not text:
         return JSONResponse({"error": "empty message"}, status_code=400)
-    try:
-        device = delivery.device(body.get("device"))
-    except ValueError as err:
-        _logger.warning("message refused: %s", err)
-        return JSONResponse({"error": str(err)}, status_code=400)
+    if isinstance(device := _device(body), Response):
+        return device
     sent = body.get("sent_at")
     sent_at = float(sent) if isinstance(sent, (int, float)) else None
     msg_id = str(body.get("msg_id", ""))[:64]

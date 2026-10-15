@@ -60,8 +60,10 @@ def test_subject_reaches_start_and_card_done(
     eng, _ = engine(tmp_path)
     seen: list[Any] = []
 
-    async def start(card_id: str | None = None, subject: str | None = None) -> Any:
-        seen.append(("start", card_id, subject))
+    async def start(
+        card_id: str | None = None, subject: str | None = None, *, device: str
+    ) -> Any:
+        seen.append(("start", card_id, subject, device))
         return {}
 
     async def done(card_id: str, *, done: bool, subject: str | None = None) -> Any:
@@ -77,7 +79,7 @@ def test_subject_reaches_start_and_card_done(
         assert (await rig.send("card_done", body))["ok"]
 
     run(eng, script)
-    assert seen == [("start", None, "car"), ("done", "eng-x", False, "car")]
+    assert seen == [("start", None, "car", "desktop"), ("done", "eng-x", False, "car")]
 
 
 def test_build_lane_runs_the_curriculum_and_publishes(

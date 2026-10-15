@@ -126,17 +126,22 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "requires": _slugs,
         },
     ),
+    # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).
     "session_start": (
         CHAT,
-        {"subject": _opt_slug, "card": _opt_slug, "resume": _opt_bool},
+        {
+            "subject": _opt_slug,
+            "card": _opt_slug,
+            "resume": _opt_bool,
+            "device": delivery.device,
+        },
     ),
-    "session_resume": (CHAT, {"session": _session}),
-    # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).
+    "session_resume": (CHAT, {"session": _session, "device": delivery.device}),
     "message": (
         CHAT,
         {"session": _session, "text": _text(MAX_MESSAGE), "device": delivery.device},
     ),
-    "next": (CHAT, {"session": _session}),
+    "next": (CHAT, {"session": _session, "device": delivery.device}),
     "stop": (CHAT, {"session": _session}),
     "card_done": (CHAT, {"subject": _opt_slug, "card": _slug, "done": _bool}),
     # The model-free drill (``tutor.drill``): served while Claude is not.

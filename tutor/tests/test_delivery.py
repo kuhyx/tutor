@@ -120,3 +120,44 @@ def test_http_message_takes_a_device_and_refuses_an_unknown_one(
         body["device"] = "phone"
         assert client.post("/api/message", json=body).status_code == 200
     assert PHONE_NOTE in str(fake.prompts[1])
+
+
+def test_a_phone_session_opens_with_the_phone_line(tmp_path: Path) -> None:
+    eng, fake = relay_engine(tmp_path, turn("Q1?"), turn("Q2?"), turn("Q3?"))
+
+    async def script(rig: Rig) -> None:
+        body = {"subject": None, "card": None, "device": "phone"}
+        sid = (await rig.send("session_start", body))["data"]["session"]
+        resumed = await rig.send("session_resume", {"session": sid, "device": "phone"})
+        assert resumed["ok"]  # nothing to ask the model: validated only
+        got = await rig.send("next", {"session": sid, "device": "phone"})
+        bad = {"session": got["data"]["session"], "device": "tablet"}
+        assert (await rig.send("next", bad))["code"] == "bad_request"
+        assert (await rig.send("session_resume", bad))["code"] == "bad_request"
+        bad = {"subject": None, "card": None, "device": "tablet"}
+        assert (await rig.send("session_start", bad))["code"] == "bad_request"
+        await rig.send("session_start", {"subject": None, "card": eng.deck[2].id})
+
+    run(eng, script)
+    openings = [str(p) for p in fake.prompts]
+    assert [PHONE_NOTE in p for p in openings] == [True, True, False]
+    assert all("Begin the session." in p for p in openings)
+
+
+def test_the_start_event_logs_the_device(tmp_path: Path) -> None:
+    engine = make(tmp_path, FakeSession(turn()))
+    asyncio.run(engine.start(CARD, device="phone"))
+    assert events(engine)[0]["device"] == "phone"
+
+
+def test_http_start_takes_a_device_and_refuses_an_unknown_one(
+    tmp_path: Path,
+) -> None:
+    fake = FakeSession(turn("Begin"))
+    eng = make(tmp_path, fake)
+    with TestClient(create_app(eng, media_dirs=(tmp_path, tmp_path))) as client:
+        refused = client.post("/api/start", json={"device": "tablet"})
+        assert refused.status_code == 400
+        assert fake.prompts == []
+        assert client.post("/api/start", json={"device": "phone"}).status_code == 200
+    assert PHONE_NOTE in str(fake.prompts[0])

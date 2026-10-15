@@ -66,18 +66,23 @@ async def session_start(ctx: RequestContext) -> dict[str, Any]:
 
     No ``subject``: Home's pick, else the live one (curriculum contract §6).
     ``resume`` without a card: the subject's open session first (Continue).
+    ``device`` shapes the new session's opening turn; a Continue has none.
     """
     engine, body = ctx.engine, ctx.body
     subject = body["subject"] or await _home_pick(ctx)
     wants_open = body["resume"] and body["card"] is None
     if wants_open and await engine.continue_subject(subject):
         return {"session": engine.session_id}
-    await engine.start(body["card"], subject=subject)
+    await engine.start(body["card"], subject=subject, device=str(body["device"]))
     return {"session": engine.session_id}
 
 
 async def session_resume(ctx: RequestContext) -> dict[str, Any]:
-    """Continue a past session (History's Continue); the live one is left as is."""
+    """Continue a past session (History's Continue); the live one is left as is.
+
+    ``device`` is validated only: resuming asks the model nothing, and the
+    next ``message`` carries its own.
+    """
     engine, sid = ctx.engine, str(ctx.body["session"])
     if sid == engine.session_id:
         return {"session": sid}
@@ -107,7 +112,7 @@ async def message(ctx: RequestContext) -> dict[str, Any]:
 async def next_card(ctx: RequestContext) -> dict[str, Any]:
     """End the live session and start a new one on the next open card."""
     _require_live(ctx.engine, ctx.body["session"])
-    await ctx.engine.next_card()
+    await ctx.engine.next_card(device=str(ctx.body["device"]))
     return {"session": ctx.engine.session_id}
 
 

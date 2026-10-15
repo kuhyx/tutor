@@ -89,13 +89,17 @@ class Engine(CardFlow):
         return gating.listing(self.deck, self.source.done())
 
     async def start(
-        self, card_id: str | None = None, subject: str | None = None
+        self,
+        card_id: str | None = None,
+        subject: str | None = None,
+        *,
+        device: str = DESKTOP,
     ) -> dict[str, Any]:
         """Begin a session on ``card_id`` (default: the subject's next card).
 
-        ``subject`` switches the subject first. An unknown or locked card, or
-        the daily new-card cap, raises ``ValueError`` (``RequestError``)
-        before the live session is touched.
+        ``subject`` switches the subject first, ``device`` is where it opened.
+        An unknown or locked card, or the daily new-card cap, raises
+        ``ValueError`` (``RequestError``) before the live session is touched.
         """
         async with self._lock:
             src = self._source_for(subject)
@@ -104,15 +108,12 @@ class Engine(CardFlow):
             if self._session is not None:
                 await self._session.close()
             self.card = card
-            self._conv = Conversation(
-                session_id=f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}",
-                card_id=card.id,
-                clock=EngagementClock(self.time()),
-            )
+            sid = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
+            self._conv = Conversation(sid, card.id, EngagementClock(self.time()))
             self._session = self._factory(self._prompt(card))
             start = {"type": "start", "card": card.id, "subject": self.source.subject}
-            self.store.log(self.session_id, start)
-            await self._turn("Begin the session.", learner_text=None)
+            self.store.log(self.session_id, {**start, "device": device})
+            await self._turn("Begin the session.", learner_text=None, device=device)
         return self.state()
 
     def repair_done_cards(self) -> list[tuple[str, str]]:
@@ -167,9 +168,7 @@ class Engine(CardFlow):
     ) -> dict[str, Any]:
         """The learner answers; returns the new state (a resent ``msg_id``: no-op).
 
-        ``via``: when Send was first pressed (a send retried through a restart
-        is timed from the press, ``clock.reply_time``), when the relay got it
-        and the device it was typed on (``tutor.delivery``).
+        ``via``: Send press, relay receipt, device (``tutor.delivery``).
         """
         via = via or Delivery()
         async with self._lock:
