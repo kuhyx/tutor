@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tutor import credit, drill, unavailable
-from tutor.cards import Card, Topic
+from tutor import credit, distractors, drill, unavailable
 from tutor.curriculum.fold import fold
 from tutor.curriculum.source import source_for
 from tutor.store import Store
@@ -39,31 +38,6 @@ def _setup(tmp_path: Path) -> tuple[drill.Drill, Context]:
     return drill.Drill(Store(tmp_path), ctx), ctx
 
 
-def _deck_card(cid: str, back: str, topic: str = "t") -> Card:
-    return Card(cid, "front?", back, "https://x.org", "x", Topic(topic, topic, ("",)))
-
-
-def test_options_prefer_the_topic_and_are_fixed_by_the_prompt() -> None:
-    target = _deck_card("c0", "right")
-    pool = [
-        target,
-        _deck_card("c1", "near one"),
-        _deck_card("c2", "near two"),
-        _deck_card("c3", "right"),  # same text as the answer: never an option
-        _deck_card("c4", "near one"),  # duplicate text: once
-        _deck_card("c5", "far one", "u"),
-        _deck_card("c6", "far two", "u"),
-    ]
-    shown, answer = drill.options_for(target, pool, "seed")
-    assert shown[answer] == "right"
-    assert len(shown) == drill.OPTIONS
-    assert {"near one", "near two"} <= set(shown)
-    assert len(set(shown)) == len(shown)
-    assert drill.options_for(target, pool, "seed") == (shown, answer)
-    alone, at = drill.options_for(target, [target], "seed")
-    assert (alone, at) == (["right"], 0)
-
-
 def test_next_picks_the_oldest_due_taught_card(tmp_path: Path) -> None:
     run, _ = _setup(tmp_path)
     got = run.next(None, NOW)
@@ -74,7 +48,7 @@ def test_next_picks_the_oldest_due_taught_card(tmp_path: Path) -> None:
     }
     assert "Answer two." in got["options"]
     assert "Answer bee." in got["options"]  # the topic has only 2 others
-    assert len(got["options"]) == drill.OPTIONS
+    assert len(got["options"]) == distractors.OPTIONS
     assert got["today"] == {"active_min": 0, "credited_min": 0}
     assert got["unavailable"] is None
     assert run.pending is not None

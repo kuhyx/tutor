@@ -3,8 +3,8 @@
 
 :meth:`Drill.next` picks a card already taught (the curriculum fold's taught
 set, plus ``progress.json`` ``cards_done`` for ``automation``), due first and
-oldest due first, and offers its ``back`` among up to three other backs of
-the same topic, then subject, in an order fixed by the prompt id.
+oldest due first, and offers its ``back`` among up to three other backs,
+the closest cards first (:mod:`tutor.distractors`).
 :meth:`Drill.answer` grades it in code and appends one ``review`` event (Good
 / Again) to the event log in the app's shape, so the app's FSRS fold sees it
 once the relay has pushed it.
@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-import hashlib
 import json
 import logging
 import time
@@ -34,6 +33,7 @@ from tutor.curriculum.errors import RequestError
 from tutor.curriculum.eventlog import review_event
 from tutor.curriculum.ids import ulid
 from tutor.curriculum.source import DEFAULT_SUBJECT, source_for
+from tutor.distractors import options_for
 
 if TYPE_CHECKING:
     from tutor.cards import Card
@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from tutor.curriculum.fold import Fold
     from tutor.store import Store
 
-OPTIONS: Final = 4
 MIN_PICK_SECONDS: Final = 3.0  # a faster pick is a guess: it earns nothing
 GOOD: Final = 3
 AGAIN: Final = 1
@@ -90,21 +89,6 @@ class _Run:
     session_id: str
     day: str
     clock: EngagementClock
-
-
-def _mixed(seed: str, items: list[str]) -> list[str]:
-    """``items`` in an order fixed by ``seed`` (a hash order, not a secret)."""
-    return sorted(items, key=lambda s: hashlib.sha256(f"{seed}\0{s}".encode()).digest())
-
-
-def options_for(card: Card, pool: list[Card], seed: str) -> tuple[list[str], int]:
-    """``card.back`` plus up to 3 distinct other backs (same topic first), mixed."""
-    others = [c for c in pool if c.id != card.id and c.back != card.back]
-    near = _mixed(seed, [c.back for c in others if c.topic == card.topic])
-    far = _mixed(seed, [c.back for c in others if c.topic != card.topic])
-    chosen = list(dict.fromkeys(near + far))[: OPTIONS - 1]
-    shown = _mixed(seed, [card.back, *chosen])
-    return shown, shown.index(card.back)
 
 
 def _iso_ms(value: object) -> int:
