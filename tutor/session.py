@@ -24,6 +24,7 @@ from claude_agent_sdk import (
     SystemMessage,
 )
 
+from tutor import outage
 from tutor.models import TURN_SCHEMA, TurnError, TutorTurn
 
 if TYPE_CHECKING:
@@ -94,11 +95,11 @@ class Reply:
 
 
 def _collect(client_msgs: list[Any]) -> Reply:
+    if (down := outage.detect(client_msgs)) is not None:
+        raise down
     structured: Any = None
-    text = ""
     init: dict[str, Any] = {}
-    hooks = 0
-    cost = 0.0
+    text, hooks, cost = "", 0, 0.0
     for msg in client_msgs:
         if isinstance(msg, SystemMessage):
             if msg.subtype == "init":
@@ -117,11 +118,8 @@ def _collect(client_msgs: list[Any]) -> Reply:
 
 async def _blocks(content: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:
     """One streamed user message carrying content blocks (how images go in)."""
-    yield {
-        "type": "user",
-        "message": {"role": "user", "content": content},
-        "parent_tool_use_id": None,
-    }
+    message = {"role": "user", "content": content}
+    yield {"type": "user", "message": message, "parent_tool_use_id": None}
 
 
 class TutorSession:
@@ -165,8 +163,7 @@ class TutorSession:
 
     async def close(self) -> None:
         """Stop the background task and the CLI process."""
-        if self._task is not None:
-            task = self._task
+        if (task := self._task) is not None:
             if not task.done():
                 await self._queue.put(None)
             # wait(), not await: a task that died is reported by _on_exit,
@@ -178,9 +175,8 @@ class TutorSession:
     async def _run(self) -> None:
         """Own the CLI process; serve queued prompts until the close sentinel.
 
-        Nothing is caught here: whatever kills the process (it failed to
-        start, died, or the SDK raised) ends this task, and :meth:`_on_exit`
-        fails every waiting caller from the task's own exception.
+        Nothing is caught: whatever ends the process (failed start, death, an
+        SDK error) ends this task; :meth:`_on_exit` fails the waiting callers.
         """
         async with ClaudeSDKClient(self._options) as client:
             while (item := await self._queue.get()) is not None:
@@ -191,8 +187,8 @@ class TutorSession:
     def _on_exit(self, task: asyncio.Task[None]) -> None:
         """The process is gone: fail its callers now, not at the turn timeout.
 
-        The next ask starts a fresh process with no memory; :attr:`restarts`
-        counts up first, so a failed caller already sees it and re-primes.
+        :attr:`restarts` counts up first, so a failed caller re-primes the
+        fresh, amnesic process the next ask starts. An API outage is recorded.
         """
         if self._task is task:
             self._task = None
@@ -207,7 +203,7 @@ class TutorSession:
             _logger.error("model task cancelled; cancelling %d callers", len(waiting))
             err: BaseException | None = None
         else:
-            err = task.exception()
+            err = outage.from_exit(task.exception())
             if err is None:
                 if not waiting:
                     return  # a clean close with nobody waiting
@@ -221,15 +217,13 @@ class TutorSession:
     ) -> None:
         """One model call; a failed turn is relayed and the process kept.
 
-        Only the model's error result (:class:`SessionError`) is caught: it is
-        raised after the whole turn was read, so the stream is clean for the
-        next one. Anything else (the CLI died, a line would not parse) leaves
-        the process in an unknown state and ends :meth:`_run`.
+        Only an error result (:class:`SessionError`) or an outage (retried once)
+        is caught: the whole turn was read, so the stream is clean. Anything
+        else (the CLI died, a line would not parse) ends :meth:`_run`.
         """
         try:
-            await client.query(prompt if isinstance(prompt, str) else _blocks(prompt))
-            reply = _collect([m async for m in client.receive_response()])
-        except SessionError as err:
+            reply = await outage.retrying(lambda: _once(client, prompt))
+        except (SessionError, outage.ClaudeUnavailableError) as err:
             _logger.warning("model turn failed; relayed to the caller: %s", err)
             _settle(fut, err)
             return
@@ -237,6 +231,12 @@ class TutorSession:
             self.last_init = reply.init
         if not fut.done():  # the caller may have timed out meanwhile
             fut.set_result(reply)
+
+
+async def _once(client: ClaudeSDKClient, prompt: Prompt) -> Reply:
+    """Send ``prompt``, read the whole turn (each try gets a fresh block stream)."""
+    await client.query(prompt if isinstance(prompt, str) else _blocks(prompt))
+    return _collect([m async for m in client.receive_response()])
 
 
 def _settle(fut: asyncio.Future[Reply], err: BaseException | None) -> None:

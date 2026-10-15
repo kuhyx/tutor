@@ -77,6 +77,12 @@ def _opt_bool(value: object) -> bool:
     return False if value is None else _bool(value)
 
 
+def _ulid(value: object) -> str:
+    if isinstance(value, str) and RID.fullmatch(value):
+        return value
+    raise ValueError
+
+
 def _choice(value: object) -> str:
     if value in {"go_deeper", "review_only"}:
         return str(value)
@@ -128,6 +134,9 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     "next": (CHAT, {"session": _session}),
     "stop": (CHAT, {"session": _session}),
     "card_done": (CHAT, {"subject": _opt_slug, "card": _slug, "done": _bool}),
+    # The model-free drill (``tutor.drill``): served while Claude is not.
+    "drill_next": (CHAT, {"subject": _opt_slug}),
+    "drill_answer": (CHAT, {"prompt_id": _ulid, "choice": _int}),
 }
 
 

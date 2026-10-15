@@ -27,6 +27,7 @@ from starlette.routing import Route
 
 from tutor import diagrams, images, webapp
 from tutor.engine import Engine
+from tutor.outage import ClaudeUnavailableError
 from tutor.session import SessionError
 
 if TYPE_CHECKING:
@@ -119,6 +120,10 @@ async def _json(request: Request) -> dict[str, Any]:
 async def _guard(call: Coroutine[Any, Any, dict[str, Any]]) -> Response:
     try:
         return JSONResponse(await call)
+    except ClaudeUnavailableError as err:  # the relay's claude_unavailable, as a 503
+        _logger.warning("Claude unavailable: %s", err)
+        body = {**_error_body(err), "code": "claude_unavailable", **err.fields()}
+        return JSONResponse(body, status_code=503)
     except (
         SessionError,
         ClaudeSDKError,

@@ -11,6 +11,8 @@ from tutor.clock import BlockReady
 from tutor.credit import CreditReceipt
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 NOON = 1_800_000_000.0  # a winter midday: no DST edge near it
@@ -145,3 +147,16 @@ def test_minutes_today_is_the_newest_total_the_rows_saw() -> None:
 def test_minutes_today_reads_legacy_rows_in_blocks() -> None:
     assert unit_credit.minutes_today([legacy()]) == 2 * 15
     assert unit_credit.minutes_today([{"recorded": True}]) == 0
+
+
+def test_ledger_minutes_today_reads_the_ledger_itself(
+    tutor_sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert unit_credit.ledger_minutes_today(NOON) == 0
+    unit_credit.credit_units(run(2), "s", now=NOON)
+    assert unit_credit.ledger_minutes_today(NOON) == 2
+    assert unit_credit.ledger_minutes_today(NOON + DAY) == 0
+    (tutor_sandbox / "data/ledger.json").write_text("[]", encoding="utf-8")
+    assert unit_credit.ledger_minutes_today(NOON) == 0  # unreadable: unknown
+    monkeypatch.setenv("TUTOR_KEY", str(tutor_sandbox / "missing.key"))
+    assert unit_credit.ledger_minutes_today(NOON) == 0

@@ -103,15 +103,14 @@ Worker streams `requests` (kept small by GC). Per rid, in key order:
 Lanes: `chat` (session kinds) and `build` (subject/plan/card kinds) are
 separate serial queues; within a lane a later rid never overtakes an earlier
 one. For `message`, `rid` is the engine's `msg_id`.
-
 Client: after PUT, stream `requests/{rid}` until `result`, show phase. On
 network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
-Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`,
-`locked`, `daily_new_cap`, `no_card_left`, `unknown_card`, `plan_conflict`,
-`edit_refused`, `model_error`, `gave_up`, `worker_error`. `error` text is shown
-to kuhy; tracebacks stay in the worker log only.
+Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked`,
+`daily_new_cap`, `no_card_left`, `unknown_card`, `plan_conflict`, `edit_refused`,
+`model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`,
+`gave_up`, `worker_error` (`DOCS-relay.md`). `error` is shown; tracebacks stay in the log.
 
 | kind | body | result `data` | lane |
 |---|---|---|---|
@@ -127,6 +126,7 @@ to kuhy; tracebacks stay in the worker log only.
 | `next` | `{"session":sid}` (next_card+stop, starts new) | `{"session":newsid}` | chat |
 | `stop` | `{"session":sid}` | `{}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
+| `drill_next`, `drill_answer` | the model-free drill, `DOCS-relay.md` "Claude unavailable" | | chat |
 
 One live session at a time; message for a non-`live` session -> `not_live`,
 client offers Continue (`session_resume`, replaces `resume_latest`, re-primes
@@ -183,7 +183,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   never reads RTDB.
 - An answer delayed by an offline phone earns only what `REPLY_TIMEOUT`
   (600 s) allows from server receipt. A device cannot claim minutes.
-- FSRS reviews earn no credit in v1.
+- FSRS reviews earn no credit in v1; the drill credits active minutes only.
 
 ## 8. Media (no Firebase Storage, nothing binary in RTDB)
 - `IMG` = `{"url":"https://upload.wikimedia.org/...800px-....jpg","title","author","licence","licence_url","page_url","term"}`.

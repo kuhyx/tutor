@@ -11,6 +11,7 @@ from starlette.testclient import TestClient
 
 from tutor import server
 from tutor.engine import Engine
+from tutor.outage import ClaudeUnavailableError
 from tutor.server import create_app
 from tutor.store import Store
 from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
@@ -170,6 +171,17 @@ def test_sdk_error_is_a_502(client: TestClient, rig: Rig) -> None:
     response = client.post("/api/message", json={"text": "hi"})
     assert response.status_code == 502
     assert response.json()["type"] == "ProcessError"
+
+
+def test_outage_is_a_503_with_its_times(client: TestClient, rig: Rig) -> None:
+    client.post("/api/start", json={})
+    rig.fake.replies.insert(0, ClaudeUnavailableError("rate_limit", 1234))
+    response = client.post("/api/message", json={"text": "hi"})
+    assert response.status_code == 503
+    body = response.json()
+    assert body["code"] == "claude_unavailable"
+    assert (body["reason"], body["resets_at"]) == ("rate_limit", 1234)
+    assert body["type"] == "ClaudeUnavailableError"
 
 
 def test_media_serves_images_and_diagrams(client: TestClient, rig: Rig) -> None:

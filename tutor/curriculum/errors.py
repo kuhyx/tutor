@@ -18,6 +18,8 @@ UNKNOWN_CARD: Final = "unknown_card"
 PLAN_CONFLICT: Final = "plan_conflict"
 EDIT_REFUSED: Final = "edit_refused"
 MODEL_ERROR: Final = "model_error"
+# Claude is rate limited, overloaded or unreachable (``tutor.outage``).
+CLAUDE_UNAVAILABLE: Final = "claude_unavailable"
 CODES: Final = frozenset(
     {
         BAD_REQUEST,
@@ -29,6 +31,7 @@ CODES: Final = frozenset(
         PLAN_CONFLICT,
         EDIT_REFUSED,
         MODEL_ERROR,
+        CLAUDE_UNAVAILABLE,
         "gave_up",
         "worker_error",
     }

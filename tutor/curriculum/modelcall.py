@@ -16,7 +16,8 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor.curriculum.errors import MODEL_ERROR, RequestError
+from tutor.curriculum.errors import CLAUDE_UNAVAILABLE, MODEL_ERROR, RequestError
+from tutor.outage import ClaudeUnavailableError
 from tutor.session import SessionError, TutorSession, isolated_options
 
 if TYPE_CHECKING:
@@ -74,11 +75,17 @@ async def _ask(system: str, prompt: str, schema: dict[str, Any]) -> dict[str, An
 
 
 def ask_model(system: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
-    """Blocking structured call; any model failure is ``model_error``."""
+    """Blocking structured call; any model failure is ``model_error``.
+
+    An outage is ``claude_unavailable`` instead, its :class:`ClaudeUnavailableError`
+    kept as the cause (the relay reads ``reason`` / ``resets_at`` off it).
+    """
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(asyncio.run, _ask(system, prompt, schema))
         try:
             return future.result()
+        except ClaudeUnavailableError as err:
+            raise RequestError(CLAUDE_UNAVAILABLE, str(err)) from err
         except (SessionError, TimeoutError, OSError) as err:
             _logger.warning("curriculum model call failed: %r", err)
             msg = f"the model call failed: {err}"

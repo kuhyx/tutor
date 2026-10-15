@@ -25,9 +25,11 @@ what is actually paid, and so what still needs a row, is asked of the ledger
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import credit, ledger_pay
+from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -35,6 +37,7 @@ if TYPE_CHECKING:
     from tutor.clock import BlockReady
 
 LEGACY_BLOCK_MINUTES: Final = ledger_pay.LEGACY_MINUTES
+_logger = logging.getLogger(__name__)
 
 
 def spans(units: Iterable[BlockReady]) -> list[list[BlockReady]]:
@@ -110,3 +113,21 @@ def minutes_today(receipts: Iterable[dict[str, Any]]) -> int:
         ),
         default=0,
     )
+
+
+def ledger_minutes_today(at: float) -> int:
+    """What the ledger's verified rows pay on ``at``'s local day (every source).
+
+    The ledger's own word, not a receipt's: 0 when the key or ledger is unreadable.
+    """
+    where = default_paths()
+    key = read_key(where.key_file)
+    if key is None:
+        return 0
+    try:
+        paid = ledger_pay.paying(read_rows(where.ledger), key)
+    except LedgerError as exc:
+        _logger.warning("ledger unreadable, today's credit unknown: %s", exc)
+        return 0
+    _, lo, hi = credit.local_day(at)
+    return ledger_pay.minutes_between(paid, lo, hi)

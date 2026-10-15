@@ -68,6 +68,32 @@ seeder once to give the tutor its own refresh token.
 - Stats node: `handlers.stats(engine.ctx)`. `session_start` / `card_done` pass
   `subject`; `live.subject` = `engine.source.subject`.
 
+## Claude unavailable and the drill (`tutor.outage`, `tutor.drill`)
+- An outage is read from typed SDK fields, never prose: a `RateLimitEvent`
+  with `status` `rejected` (its `resets_at`), an API error's HTTP status (429
+  `rate_limit`, any 5xx `overloaded`), or `AssistantMessage.error`
+  `server_error` / `terminal_reason` `api_error` with no status (`network`).
+  A turn that answered is never one. Overloaded / network are retried once in
+  `TutorSession`; what still fails is appended to `unavailable.jsonl`.
+- Result `{"ok":false,"code":"claude_unavailable","retry":false,"reason",
+  "resets_at":<unix s, the window's end>,"error"}`; HTTP `/api/*` answers the
+  same fields with 503. While a window covers `now`, `session_start`,
+  `session_resume`, `message` and `next` fail fast with it (no CLI spawned).
+- `drill_next` `{"subject":slug|null}` -> `{"prompt_id":ulid,"card":{"subject",
+  "id","front"},"options":[str x<=4],"today":{"active_min","credited_min"},
+  "unavailable":{"until","reason"}|null}`, or `{"empty":true}` with no taught
+  card. Taught = the fold's, plus `progress.json` `cards_done` for
+  `automation`; oldest due first; distractors are other backs of the topic,
+  then the subject, ordered by a hash of the prompt id.
+- `drill_answer` `{"prompt_id":ulid,"choice":int}` -> `{"correct",
+  "answer_index","back","excerpt","source","minute_credited","today"}`. One
+  prompt is open; answered, replaced or lost on restart -> `unknown_prompt`.
+  A pick appends one `review` (`r` 3 / 1, `rev`, `dur_ms`, the worker's dev)
+  that the sync pushes to `log/{worker}`. Shown -> pick is a learner gap on
+  the tutor's clock (right or wrong, within `REPLY_TIMEOUT`, none under 3 s);
+  minutes go through `credit_units` as session `drill-<id>` (one per day),
+  daily cap only. Its log: `drill/<session>.jsonl`, not `sessions/`.
+
 ## Live check (2026-10-12, scratch data dir, real RTDB)
 `session_start` claimed in 0.24 s, result in 4.99 s; `message` "hello" result
 in 3.29 s; a picture turn went claimed -> thinking -> images ->

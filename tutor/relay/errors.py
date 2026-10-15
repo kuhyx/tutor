@@ -5,6 +5,7 @@ The ``error`` text is shown to kuhy; tracebacks stay in the worker log.
 ``retry`` tells the client the same request may succeed if sent again as a
 NEW rid (same ``sent_at``): the done-map answers a resent rid with the
 recorded result forever, so a retry is never the same rid.
+``claude_unavailable`` also carries ``reason`` and ``resets_at`` (unix s).
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from typing import Final
 
 from claude_agent_sdk import ClaudeSDKError
 
+from tutor.outage import ClaudeUnavailableError
 from tutor.session import SessionError
 
 CODES: Final = frozenset(
@@ -26,6 +28,8 @@ CODES: Final = frozenset(
         "plan_conflict",
         "edit_refused",
         "model_error",
+        "claude_unavailable",
+        "unknown_prompt",
         "gave_up",
         "worker_error",
     }
@@ -41,18 +45,31 @@ _VALUE_CODES: Final = (
 class RequestError(Exception):
     """A request the worker refuses or failed, with its contract code."""
 
-    def __init__(self, message: str, *, code: str, retry: bool = False) -> None:
-        """``code`` must be one of :data:`CODES` (else ``worker_error``)."""
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str,
+        retry: bool = False,
+        extra: dict[str, object] | None = None,
+    ) -> None:
+        """``code`` must be one of :data:`CODES` (else ``worker_error``).
+
+        ``extra`` fields join the result node (``claude_unavailable``'s times).
+        """
         super().__init__(message)
         self.code = code if code in CODES else "worker_error"
         self.message = message
         self.retry = retry
+        self.extra = extra or {}
 
 
-def classify(err: BaseException) -> RequestError:
-    """The contract error for any exception a handler raised."""
-    if isinstance(err, RequestError):
-        return err
+def _coded(err: BaseException) -> RequestError | None:
+    """An outage (itself, or the cause a curriculum error kept), or a coded error."""
+    for found in (err, err.__cause__):
+        if isinstance(found, ClaudeUnavailableError):
+            msg, extra = str(found), found.fields()
+            return RequestError(msg, code="claude_unavailable", extra=extra)
     code = getattr(err, "code", None)
     if isinstance(code, str) and code in CODES:  # B2's curriculum RequestError
         return RequestError(
@@ -60,6 +77,15 @@ def classify(err: BaseException) -> RequestError:
             code=code,
             retry=bool(getattr(err, "retry", False)),
         )
+    return None
+
+
+def classify(err: BaseException) -> RequestError:
+    """The contract error for any exception a handler raised."""
+    if isinstance(err, RequestError):
+        return err
+    if (coded := _coded(err)) is not None:
+        return coded
     if isinstance(err, (SessionError, ClaudeSDKError, TimeoutError)):
         msg = f"the tutor model failed: {err}"
         return RequestError(msg, code="model_error", retry=True)
@@ -74,4 +100,10 @@ def classify(err: BaseException) -> RequestError:
 
 def result_of(err: RequestError) -> dict[str, object]:
     """The ``result`` node of a failed request (``at`` added on write)."""
-    return {"ok": False, "code": err.code, "error": err.message, "retry": err.retry}
+    return {
+        **err.extra,
+        "ok": False,
+        "code": err.code,
+        "error": err.message,
+        "retry": err.retry,
+    }

@@ -4,14 +4,19 @@
 Credit is untouched: the engine's clock and ledger rows work exactly as for
 the web page. The relay only supplies the learner's times (§7): ``created``
 is RTDB server time, and the first Send press (``sent_at``) may date the
-reply up to ``SEND_GRACE`` earlier, never later.
+reply up to ``SEND_GRACE`` earlier, never later. The kinds that talk to
+Claude fail fast with ``claude_unavailable`` while an outage window is open;
+the drill kinds never need Claude.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Final
+from weakref import WeakKeyDictionary
 
-from tutor import history, resume
+from tutor import history, outage, resume
+from tutor.clock import reply_time
+from tutor.drill import Drill
 from tutor.relay.errors import RequestError
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.views import key
@@ -33,6 +38,13 @@ def _not_live(sid: str) -> RequestError:
 def _require_live(engine: Engine, sid: object) -> None:
     if not engine.session_id or engine.session_id != sid:
         raise _not_live(str(sid))
+
+
+def _learner_time(ctx: RequestContext) -> float:
+    """When the learner acted: RTDB ``created``, or the Send press within grace."""
+    req = ctx.request
+    sent = None if req.sent_at_ms is None else req.sent_at_ms / 1000
+    return reply_time(req.created_ms / 1000, sent)
 
 
 def _sessions(engine: Engine) -> Path:
@@ -108,6 +120,41 @@ async def stop(ctx: RequestContext) -> dict[str, Any]:
     return {}
 
 
+_DRILLS: Final[WeakKeyDictionary[Engine, Drill]] = WeakKeyDictionary()
+
+
+def _drill(engine: Engine) -> Drill:
+    """The engine's drill (its open prompt lives as long as this process)."""
+    found = _DRILLS.get(engine)
+    if found is None:
+        found = _DRILLS[engine] = Drill(engine.store, engine.ctx)
+    return found
+
+
+async def drill_next(ctx: RequestContext) -> dict[str, Any]:
+    """The next multiple-choice question on a taught card (no model)."""
+    return _drill(ctx.engine).next(ctx.body["subject"], ctx.now())
+
+
+async def drill_answer(ctx: RequestContext) -> dict[str, Any]:
+    """Grade a drill pick; its review event and any credited minute are written."""
+    body = ctx.body
+    pick = str(body["prompt_id"]), int(body["choice"])
+    return _drill(ctx.engine).answer(*pick, _learner_time(ctx))
+
+
+def _needs_claude(
+    handler: Callable[[RequestContext], Awaitable[dict[str, Any]]],
+) -> Callable[[RequestContext], Awaitable[dict[str, Any]]]:
+    """``handler``, refused up front while Claude is known to be unavailable."""
+
+    async def gated(ctx: RequestContext) -> dict[str, Any]:
+        outage.ensure_available(ctx.now())
+        return await handler(ctx)
+
+    return gated
+
+
 async def card_done(ctx: RequestContext) -> dict[str, Any]:
     """Manual override: a card done (or not); never touches credit."""
     body = ctx.body
@@ -120,10 +167,12 @@ async def card_done(ctx: RequestContext) -> dict[str, Any]:
 CHAT_HANDLERS: Final[
     dict[str, Callable[[RequestContext], Awaitable[dict[str, Any]]]]
 ] = {
-    "session_start": session_start,
-    "session_resume": session_resume,
-    "message": message,
-    "next": next_card,
+    "session_start": _needs_claude(session_start),
+    "session_resume": _needs_claude(session_resume),
+    "message": _needs_claude(message),
+    "next": _needs_claude(next_card),
     "stop": stop,
     "card_done": card_done,
+    "drill_next": drill_next,
+    "drill_answer": drill_answer,
 }

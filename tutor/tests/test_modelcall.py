@@ -10,6 +10,7 @@ import pytest
 
 from tutor.curriculum import modelcall
 from tutor.curriculum.errors import RequestError
+from tutor.outage import ClaudeUnavailableError
 from tutor.session import Reply, SessionError
 
 SCHEMA = {"type": "object"}
@@ -68,6 +69,14 @@ def test_session_failure_is_model_error(session: type[_Session]) -> None:
     with pytest.raises(RequestError, match="boom") as err:
         modelcall.ask_model("s", "p", SCHEMA)
     assert err.value.code == "model_error"
+
+
+def test_outage_is_claude_unavailable_with_its_cause(session: type[_Session]) -> None:
+    session.reply = ClaudeUnavailableError("overloaded", 1234)
+    with pytest.raises(RequestError, match="overloaded") as err:
+        modelcall.ask_model("s", "p", SCHEMA)
+    assert err.value.code == "claude_unavailable"
+    assert isinstance(err.value.__cause__, ClaudeUnavailableError)
 
 
 def test_callable_from_inside_a_running_loop(session: type[_Session]) -> None:

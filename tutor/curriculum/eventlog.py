@@ -134,3 +134,25 @@ def worker_event(
     if kind == "taught" and session:
         event["session"] = session
     return event
+
+
+def review_event(
+    ref: tuple[str, str], rating: int, *, dev: str, span: tuple[int, int], rev: int
+) -> dict[str, Any]:
+    """A ``review`` of ``ref`` in the app's shape (``log_event.dart``), fresh eid.
+
+    ``span`` is (shown, answered) in unix ms: ``at`` is the answer.
+    """
+    subject, card = ref
+    shown, at = span
+    return {
+        "dev": dev,
+        "eid": ulid(at),
+        "k": "review",
+        "s": subject,
+        "c": card,
+        "r": rating,
+        "at": at,
+        "rev": rev,
+        "dur_ms": max(0, at - shown),
+    }
