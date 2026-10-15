@@ -75,6 +75,24 @@ void main() {
     expect(find.text('Not quite'), findsNothing);
   });
 
+  testWidgets('a long excerpt scrolls the page; Next stays on screen', (
+    t,
+  ) async {
+    final (db, stream) = await _open(t, question: drillQuestion());
+    await t.tap(find.widgetWithText(OutlinedButton, 'Opens valves'));
+    await sent(t);
+    final long = 'A long quoted excerpt from the source page. ' * 40;
+    await answer(t, db, stream, data: {...drillGrade(0), 'excerpt': long});
+    final list = t.state<ScrollableState>(find.byType(Scrollable).first);
+    expect(list.position.maxScrollExtent, greaterThan(0));
+    final next = find.text('Next (Space)');
+    expect(t.getRect(next).bottom, lessThanOrEqualTo(kPhone.height));
+    await t.tap(next);
+    await sent(t);
+    final asked = await answer(t, db, stream, data: drillQuestion(front: 'Q2'));
+    expect(asked['kind'], 'drill_next');
+  });
+
   testWidgets('Android: the Sync row sits in the header; still no scroll', (
     t,
   ) async {

@@ -1,7 +1,7 @@
 /// Drill mode of the Review screen: the model-free fallback for when Claude
 /// is out. The front, then 2-4 big option buttons (no typing); a pick is
-/// marked right or wrong, the back, excerpt and source show, and Next asks
-/// for another. Keys: 1-4 pick, Space/Enter next. On Android a button
+/// marked right or wrong, the back, excerpt and source show, and a Next
+/// pinned under the page asks for another. Keys: 1-4 pick, Space/Enter next. On Android a button
 /// syncs AnkiDroid and reports the minutes it credited.
 library;
 
@@ -72,7 +72,12 @@ class _DrillViewState extends State<DrillView> {
       autofocus: true,
       child: ListenableBuilder(
         listenable: Listenable.merge([_run, _anki]),
-        builder: (context, _) => PageList(children: _children(context)),
+        builder: (context, _) => Column(
+          children: [
+            Expanded(child: PageList(children: _children(context))),
+            if (_run.answer != null) _nextBar(),
+          ],
+        ),
       ),
     ),
   );
@@ -158,13 +163,32 @@ class _DrillViewState extends State<DrillView> {
     ),
     const SizedBox(height: AppSpacing.xs),
     LinkText(hostOf(a.source), a.source),
-    const SizedBox(height: AppSpacing.md),
-    FilledButton(
-      style: drillButton,
-      onPressed: _run.stage == DrillStage.loading ? null : _next,
-      child: const Text('Next (Space)'),
-    ),
   ];
+
+  // Pinned under the scrolling page: a long excerpt pushed an inline Next
+  // below the fold on a phone (kuhy, 2026-10-15).
+  Widget _nextBar() => SafeArea(
+    top: false,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: kPageMaxWidth),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            style: drillButton,
+            onPressed: _run.stage == DrillStage.loading ? null : _next,
+            child: const Text('Next (Space)'),
+          ),
+        ),
+      ),
+    ),
+  );
 
   // One line: the day's credited minutes; on Android the Anki sync beside it.
   Widget _header(TextTheme text, DrillToday? today) => Column(
