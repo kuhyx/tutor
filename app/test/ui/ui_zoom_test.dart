@@ -5,6 +5,7 @@ import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/ui_scale.dart';
 import 'package:tutor/ui/ui_zoom.dart';
+import 'package:tutor/util/device.dart';
 import 'package:tutor/util/ui_scale.dart';
 
 void main() {
@@ -63,6 +64,50 @@ void main() {
     await t.pumpWidget(const SizedBox());
     await ctrl(LogicalKeyboardKey.equal);
     expect(zoom.value, 1);
+  });
+
+  test(
+    'phone: 90% until the user sets a value, a saved value always wins',
+    () async {
+      debugPhone = true;
+      addTearDown(() => debugPhone = false);
+      final unset = MemoryKv();
+      final fresh = UiZoom();
+      expect(fresh.value, 0.9);
+      await fresh.load(Future.value(unset)); // never set: stays 90%
+      expect(fresh.value, 0.9);
+      expect(unset.data[UiZoom.key], isNull); // the default is not "saved"
+      final saved = MemoryKv()..data[UiZoom.key] = '1.0';
+      final zoom = UiZoom();
+      await zoom.load(Future.value(saved));
+      expect(zoom.value, 1);
+      expect(UiZoom(initial: 1.4).value, 1.4);
+      debugPhone = false;
+      expect(UiZoom().value, 1); // desktop (web): automatic size
+    },
+  );
+
+  testWidgets('the fixture keyboard inset reaches MediaQuery.viewInsets', (
+    t,
+  ) async {
+    debugKeyboardInset = 300;
+    addTearDown(() => debugKeyboardInset = null);
+    double? bottom;
+    await t.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(size: Size(400, 800)),
+        child: UiScale(
+          display: const Size(1920, 1080),
+          child: Builder(
+            builder: (c) {
+              bottom = MediaQuery.viewInsetsOf(c).bottom;
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(bottom, 300);
   });
 
   testWidgets('UiScale multiplies the display scale by the zoom', (t) async {

@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:tutor/ui/ui_zoom.dart';
+import 'package:tutor/util/device.dart';
 import 'package:tutor/util/ui_scale.dart';
 
 /// Applies the display's UI scale and the zoom to [child]
@@ -24,7 +25,7 @@ class UiScale extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final screen = display ?? _displayOf(context);
+    final screen = display ?? debugDisplay ?? _displayOf(context);
     final s = uiScaleFor(screen) * UiZoom.of(context);
     // Always the same tree, even at 1: switching shape when the zoom crosses
     // 100% would remount [child] (the Navigator) and drop every open screen.
@@ -40,7 +41,9 @@ class UiScale extends StatelessWidget {
             devicePixelRatio: mq.devicePixelRatio * s,
             padding: mq.padding / s,
             viewPadding: mq.viewPadding / s,
-            viewInsets: mq.viewInsets / s,
+            viewInsets: debugKeyboardInset == null
+                ? mq.viewInsets / s
+                : EdgeInsets.only(bottom: debugKeyboardInset! / s),
           ),
           child: child,
         ),

@@ -2,96 +2,23 @@
 library;
 
 import 'package:tutor/model/json.dart';
+import 'package:tutor/model/media.dart';
 
-/// A Wikimedia picture with attribution (§8).
-class Img {
-  /// Creates the record.
-  const new({
-    required this.url,
-    required this.title,
-    required this.author,
-    required this.licence,
-    required this.pageUrl,
-    this.licenceUrl,
-    this.term,
-  });
+export 'package:tutor/model/media.dart' show Dgm, Img;
 
-  /// Parses an `IMG`.
-  factory fromJson(Object? v) {
-    final j = asJson(v, 'image');
-    return Img(
-      url: strOr(j, 'url') ?? '',
-      title: str(j, 'title'),
-      author: str(j, 'author'),
-      licence: str(j, 'licence'),
-      licenceUrl: strOr(j, 'licence_url'),
-      pageUrl: str(j, 'page_url'),
-      term: strOr(j, 'term'),
-    );
-  }
-
-  /// Only Commons' upload and thumbnail hosts are ever loaded.
-  static const allowedPrefixes = [
-    'https://upload.wikimedia.org/',
-    'https://thumb.wikimedia.org/',
+// `choices` is optional and forgiving: anything that is not a list of string
+// lists is read as "no choices" for that question, never an error.
+List<List<String>> _choicesOf(Json j) {
+  final raw = j['choices'];
+  if (raw is! List) return const [];
+  return [
+    for (final entry in raw)
+      [
+        if (entry is List)
+          for (final c in entry)
+            if (c is String && c.trim().isNotEmpty) c,
+      ],
   ];
-
-  /// Thumbnail URL; empty when the worker could not resolve one (the
-  /// attribution is still shown).
-  final String url;
-
-  /// Title.
-  final String title;
-
-  /// Author (plain text).
-  final String author;
-
-  /// Licence (plain text).
-  final String licence;
-
-  /// Licence link.
-  final String? licenceUrl;
-
-  /// Commons page (the attribution link).
-  final String pageUrl;
-
-  /// Search term that found it.
-  final String? term;
-
-  /// Whether [url] is on the image host allowlist.
-  bool get loadable => allowedPrefixes.any(url.startsWith);
-
-  /// Wire form.
-  Json toJson() => compact({
-    'url': url.isEmpty ? null : url,
-    'title': title,
-    'author': author,
-    'licence': licence,
-    'licence_url': licenceUrl,
-    'page_url': pageUrl,
-    'term': term,
-  });
-}
-
-/// An inline worker-rendered SVG diagram (<= 8 KB).
-class Dgm {
-  /// Creates the record.
-  const new({required this.title, required this.svg});
-
-  /// Parses a `DGM`.
-  factory fromJson(Object? v) {
-    final j = asJson(v, 'diagram');
-    return Dgm(title: str(j, 'title'), svg: str(j, 'svg'));
-  }
-
-  /// Title.
-  final String title;
-
-  /// SVG markup.
-  final String svg;
-
-  /// Wire form.
-  Json toJson() => {'title': title, 'svg': svg};
 }
 
 /// One transcript message. [role] is `tutor`, `learner` or `card`.
@@ -102,6 +29,7 @@ class Message {
     required this.text,
     this.at,
     this.questions = const [],
+    this.choices = const [],
     this.lowEffort = false,
     this.check,
     this.checkResult,
@@ -120,6 +48,7 @@ class Message {
     text: str(j, 'text'),
     at: intOr(j, 'at'),
     questions: strings(j, 'questions'),
+    choices: _choicesOf(j),
     lowEffort: flag(j, 'low_effort'),
     check: objOr(j, 'check'),
     checkResult: objOr(j, 'check_result'),
@@ -143,6 +72,10 @@ class Message {
 
   /// Questions, each gets its own answer box.
   final List<String> questions;
+
+  /// Tap-to-fill answers, aligned with [questions]: each entry is empty or
+  /// three short strings. Older messages have none.
+  final List<List<String>> choices;
 
   /// The tutor judged the answer low-effort.
   final bool lowEffort;
@@ -179,6 +112,7 @@ class Message {
     'role': role,
     'text': text,
     'questions': questions.isEmpty ? null : questions,
+    'choices': choices.any((c) => c.isNotEmpty) ? choices : null,
     'low_effort': lowEffort ? true : null,
     'check': check,
     'check_result': checkResult,

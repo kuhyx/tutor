@@ -79,11 +79,14 @@ class RequestBody {
   factory sessionResume(String session) =>
       RequestBody._(RequestKind.sessionResume, {'session': session});
 
-  /// `message` (<= 8000 chars).
-  factory message(String session, String text) => RequestBody._(
-    RequestKind.message,
-    {'session': session, 'text': _cap(text, 8000)},
-  );
+  /// `message` (<= 8000 chars); [device] (`phone` or `desktop`) tells the
+  /// tutor how much the learner can type.
+  factory message(String session, String text, {String? device}) =>
+      RequestBody._(RequestKind.message, {
+        'session': session,
+        'text': _cap(text, 8000),
+        'device': ?device,
+      });
 
   /// `next`.
   factory next(String session) =>

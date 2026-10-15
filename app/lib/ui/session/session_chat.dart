@@ -14,12 +14,13 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/session/session_feed.dart';
-import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/collapsed_tile.dart';
 import 'package:tutor/ui/session/composer.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/ui/session/session_bits.dart';
+import 'package:tutor/ui/session/session_header.dart';
 
 /// The chat column.
 class SessionChat extends StatefulWidget {
@@ -35,6 +36,8 @@ class SessionChat extends StatefulWidget {
     required this.onRun,
     required this.onStart,
     required this.onSend,
+    this.phone = false,
+    this.keyboard = false,
     super.key,
   });
 
@@ -68,6 +71,13 @@ class SessionChat extends StatefulWidget {
   /// Sends a learner message.
   final Future<bool> Function(String sid, String text) onSend;
 
+  /// The Android app (step-through composer).
+  final bool phone;
+
+  /// The phone keyboard is open: no header lines, the latest tutor message
+  /// folded to its last line, chat and composer text at 85%.
+  final bool keyboard;
+
   @override
   State<SessionChat> createState() => _SessionChatState();
 }
@@ -75,8 +85,7 @@ class SessionChat extends StatefulWidget {
 class _SessionChatState extends State<SessionChat> {
   int _count = -1;
 
-  // New messages scroll to the bottom (as renderLog does); the list is
-  // reversed, so the bottom is offset 0.
+  // New messages scroll to the bottom (offset 0: the list is reversed).
   void _follow(int count) {
     if (count == _count) return;
     _count = count;
@@ -102,141 +111,140 @@ class _SessionChatState extends State<SessionChat> {
         last.message.role == 'tutor' &&
         askedOf(last.message).isNotEmpty;
     _follow(messages.length + (busy == null ? 0 : 1));
-    final clock = meta?.clock;
-    final header = meta == null
-        ? null
-        : headerLines(
-            widget.today,
-            activeSeconds: meta.clock.activeSeconds,
-            sessionCredited: meta.creditedMinutes,
-          );
     final empty = view == null || (messages.isEmpty && busy == null);
-    // Nothing to show yet, but something is on its way: the request that
-    // finds the session, or a live session's first tutor turn.
+    // Nothing shown yet but something is coming: a request or a first turn.
     final waiting =
         widget.runner.busy || (view != null && !(meta?.stopped ?? false));
-    return Column(
-      children: [
-        if (meta != null)
-          Container(
-            alignment: AlignmentDirectional.centerStart,
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.sm,
-              AppSpacing.md,
-              0,
+    final mq = MediaQuery.of(context);
+    final chat = LayoutBuilder(
+      builder: (context, box) => Column(
+        children: [
+          if (meta != null)
+            SessionHeader(
+              meta: meta,
+              today: widget.today,
+              nowMs: widget.now().millisecondsSinceEpoch,
+              live: live,
+              compact: widget.keyboard,
             ),
-            child: Wrap(
-              spacing: AppSpacing.md,
-              runSpacing: AppSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                // The day's totals lead; this card's minutes are secondary.
-                Text(header!.$1, style: text.titleMedium),
-                Text(
-                  header.$2,
-                  style: text.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+          PcOfflineBanner(widget.services.presence.state),
+          Expanded(
+            child: empty
+                ? NoChat(
+                    waiting: waiting,
+                    loaded: widget.feed.loaded.value || view != null,
+                  )
+                // Reversed: offset 0 is the newest message, so pictures that
+                // finish loading above never push the bottom out of view.
+                : ListView(
+                    controller: widget.scroll,
+                    reverse: true,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    children: [
+                      for (final (i, m) in messages.indexed)
+                        _tile(
+                          m,
+                          i == messages.length - 1,
+                          boxes: boxes,
+                          sid: view.sid,
+                        ),
+                      if (busy != null && (busy.text ?? '').isNotEmpty)
+                        MessageTile(
+                          message: Message(role: 'learner', text: busy.text!),
+                          pending: true,
+                        ),
+                      if (busy != null)
+                        Text(phaseText(busy.phase), style: text.bodyMedium),
+                    ].reversed.toList(),
                   ),
-                ),
-                if (clock!.pausedReason != null)
-                  Pill('Clock paused: ${clock.pausedReason}', warn: true),
-                if (live &&
-                    clock.stalledAt(widget.now().millisecondsSinceEpoch))
-                  const Pill('Stalled: no reply for 10 min', warn: true),
-                if (meta.stopped) const Pill('Stopped'),
-              ],
+          ),
+          const Divider(height: 1),
+          // The composer takes at most 40% of the height (70% with the
+          // keyboard open): the chat stays the main scroller.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: box.maxHeight * (widget.keyboard ? 0.7 : 0.4),
             ),
-          ),
-        PcOfflineBanner(widget.services.presence.state),
-        Expanded(
-          child: empty
-              ? (waiting
-                    ? const Preparing()
-                    : widget.feed.loaded.value || view != null
-                    ? const EmptyState(
-                        icon: Icons.chat_bubble_outline,
-                        title: 'No session yet',
-                        message:
-                            'Start one: the tutor first asks what you '
-                            'already know, then teaches what is missing.',
-                      )
-                    : const Center(child: CircularProgressIndicator()))
-              // Reversed: offset 0 is the newest message, so pictures that
-              // finish loading above never push the bottom out of view.
-              : ListView(
-                  controller: widget.scroll,
-                  reverse: true,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  children: [
-                    for (final (i, m) in messages.indexed)
-                      MessageTile(
-                        message: m.message,
-                        questionsAsBoxes: boxes && i == messages.length - 1,
-                        onReport: m.message.role == 'tutor'
-                            ? () => showReport(
-                                context,
-                                widget.services,
-                                route: '/session',
-                                session: view.sid,
-                                msg: m.key,
-                                preview: m.message.text,
-                              )
-                            : null,
+            child: _panel(
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  NotLiveStatus(
+                    runner: widget.runner,
+                    view: view,
+                    onRun: widget.onRun,
+                  ),
+                  if (live && meta.cardDone)
+                    CardEnd(
+                      onNext: () => widget.onRun(RequestBody.next(view!.sid)),
+                      onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
+                    )
+                  else if (live)
+                    Composer(
+                      sid: view!.sid,
+                      latest: last,
+                      kv: widget.services.kv,
+                      enabled: busy == null && !widget.runner.busy,
+                      onSend: (t) => widget.onSend(view.sid, t),
+                      phone: widget.phone,
+                    )
+                  else
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: widget.onStart,
+                        child: const Text('Start session'),
                       ),
-                    if (busy != null && (busy.text ?? '').isNotEmpty)
-                      MessageTile(
-                        message: Message(role: 'learner', text: busy.text!),
-                        pending: true,
-                      ),
-                    if (busy != null)
-                      Text(phaseText(busy.phase), style: text.bodyMedium),
-                  ].reversed.toList(),
-                ),
-        ),
-        const Divider(height: 1),
-        // The composer never takes more than ~40% of the height: the chat
-        // stays the main scroller, the boxes scroll inside this panel.
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.4,
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                NotLiveStatus(
-                  runner: widget.runner,
-                  view: view,
-                  onRun: widget.onRun,
-                ),
-                if (live && meta.cardDone)
-                  CardEnd(
-                    onNext: () => widget.onRun(RequestBody.next(view!.sid)),
-                    onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
-                  )
-                else if (live)
-                  Composer(
-                    sid: view!.sid,
-                    latest: last,
-                    kv: widget.services.kv,
-                    enabled: busy == null && !widget.runner.busy,
-                    onSend: (t) => widget.onSend(view.sid, t),
-                  )
-                else
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton(
-                      onPressed: widget.onStart,
-                      child: const Text('Start session'),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+    return widget.keyboard
+        ? MediaQuery(
+            data: mq.copyWith(
+              textScaler: TextScaler.linear(mq.textScaler.scale(1) * 0.85),
+            ),
+            child: chat,
+          )
+        : chat;
+  }
+
+  // Phone: the step bar stays pinned, the composer scrolls itself.
+  Widget _panel(Widget child) => widget.phone
+      ? Padding(padding: const EdgeInsets.all(AppSpacing.md), child: child)
+      : SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: child,
+        );
+
+  Widget _tile(
+    KeyedMessage m,
+    bool latest, {
+    required bool boxes,
+    required String sid,
+  }) {
+    final tutor = m.message.role == 'tutor';
+    final tile = MessageTile(
+      message: m.message,
+      questionsAsBoxes: boxes && latest,
+      onReport: tutor
+          ? () => showReport(
+              context,
+              widget.services,
+              route: '/session',
+              session: sid,
+              msg: m.key,
+              preview: m.message.text,
+            )
+          : null,
+    );
+    return widget.keyboard && latest && tutor
+        ? CollapsedTile(message: m.message, full: tile)
+        : tile;
   }
 }

@@ -5,9 +5,15 @@
 // Plan screen updating by itself. `?screen=/drill` is the pick-an-answer
 // drill (a stand-in PC answers it); `?screen=/session/continue&claude=out`
 // is the auto-switch: the session's request fails with claude_unavailable.
+// `?screen=/session&compose=1` adds a 3-question tutor message with
+// choices; `&phone=1` plays the Android app, `&keyboard=1` an open keyboard,
+// `&step=3` has the first two answers already typed (resumes on 3/3);
+// `&display=1366x768` sets the display the UI scale is computed for.
 //
 // Build: fvm flutter build web -t tool/fixture/main.dart \
 //   -o build/web_fixture --base-href /app/
+import 'dart:convert';
+
 import 'package:crdt_sync/crdt_sync.dart'
     show FirebaseCredentials, InMemoryCredentialStore;
 import 'package:flutter/material.dart';
@@ -22,17 +28,21 @@ import 'package:tutor/log/event_log.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/session/answers.dart' show answersDraftKey;
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/ui/ui_zoom.dart';
+import 'package:tutor/util/device.dart';
 import 'package:tutor/util/ulid.dart';
 
 import '../../test/support/fake_rtdb.dart';
+import 'fixture_compose.dart';
 import 'fixture_data.dart';
 import 'fixture_live.dart';
+import 'fixture_sessions.dart' show fixtureLiveSid;
 import 'fixture_stream.dart';
 import 'fixture_worker.dart';
 
@@ -56,6 +66,23 @@ Future<TutorServices> _open() async {
     ...getAt(db.root, '$live/meta')! as Map<String, dynamic>,
     'stopped': true,
   });
+  final kv = MemoryKv();
+  final q = Uri.base.queryParameters;
+  if (q['compose'] == '1') {
+    db.root = setAt(
+      db.root,
+      '$live/msgs/$fixtureComposeKey',
+      fixtureComposeMsg(now),
+    );
+    // `&step=N`: the first N-1 answers typed, so the composer opens on N.
+    final typed = (int.tryParse(q['step'] ?? '') ?? 1) - 1;
+    if (typed > 0) {
+      await kv.set(
+        answersDraftKey(fixtureLiveSid, fixtureComposeKey),
+        jsonEncode([for (var i = 0; i < typed; i++) 'My answer ${i + 1}']),
+      );
+    }
+  }
   final store = InMemoryCredentialStore();
   await store.save(
     FirebaseCredentials(
@@ -64,7 +91,6 @@ Future<TutorServices> _open() async {
       expiresAt: DateTime.now().add(const Duration(days: 1)),
     ),
   );
-  final kv = MemoryKv();
   final client = db.client();
   final stream = FixtureStream(
     client,
@@ -118,6 +144,22 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // `&anki=1` shows the Android-only "Sync Anki & credit" row in the drill.
   if (Uri.base.queryParameters['anki'] == '1') debugAnkiSupported = true;
+  // `&phone=1` plays the Android app; `&keyboard=1` an open keyboard.
+  // `&display=1366x768`: the screen whose UI scale applies (default: the
+  // Xvfb's 4K, scale 2); `&phone=1` implies a phone's 412x915.
+  final display = RegExp(r'^(\d+)x(\d+)$')
+      .firstMatch(Uri.base.queryParameters['display'] ?? '');
+  if (display != null) {
+    debugDisplay = Size(
+      double.parse(display.group(1)!),
+      double.parse(display.group(2)!),
+    );
+  }
+  if (Uri.base.queryParameters['phone'] == '1') {
+    debugPhone = true;
+    debugDisplay ??= const Size(412, 915);
+  }
+  if (Uri.base.queryParameters['keyboard'] == '1') debugKeyboardInset = 300;
   runApp(
     TutorApp(
       config: _config,
@@ -125,7 +167,7 @@ void main() {
       initialRoute: Uri.base.queryParameters['screen'],
       // `&zoom=1.5` for screenshots of the Display size setting.
       zoom: UiZoom(
-        initial: double.tryParse(Uri.base.queryParameters['zoom'] ?? '') ?? 1,
+        initial: double.tryParse(Uri.base.queryParameters['zoom'] ?? ''),
       ),
     ),
   );
