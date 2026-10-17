@@ -173,7 +173,7 @@ pass the same vectors.
 
 ## 6. Unlock, mastery, daily cap (raw log only, not FSRS)
 - `reviewed(c)` iff c taught and **some** review after the last `taught` has
-  `r >= 3`, no time gap. `mastered(m)` (the app's "reviewed") iff m was
+  `r >= 3`, no time gap. `mastered(m)` ("reviewed") iff m was
   `ready` and every card of m not flagged, not suspended is reviewed (none
   such: never); sticky. Display only: `good(c)` (latest such review `r >= 3`,
   `at >= taught.at + 20 h`) and `recall(m)` = good / counted cards (0 if none).

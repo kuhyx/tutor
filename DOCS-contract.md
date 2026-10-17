@@ -106,7 +106,7 @@ network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
 Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked`,
-`daily_new_cap`, `no_card_left` (+`subject_title`, `next`, `module`, `module_title`, `due_at`:
+`daily_new_cap`, `no_card_left` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`;
 `DOCS-relay.md`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
 `worker_error` (`DOCS-relay.md`). `error` is shown; tracebacks stay in the log.
 
