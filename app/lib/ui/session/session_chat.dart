@@ -133,27 +133,29 @@ class _SessionChatState extends State<SessionChat> {
                     waiting: waiting,
                     loaded: widget.feed.loaded.value || view != null,
                   )
-                // Reversed: offset 0 is the newest message, so pictures that
-                // finish loading above never push the bottom out of view.
-                : ListView(
-                    controller: widget.scroll,
-                    reverse: true,
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    children: [
-                      for (final (i, m) in messages.indexed)
-                        _tile(
-                          m,
-                          i == messages.length - 1,
-                          boxes: boxes,
-                          sid: view.sid,
-                        ),
-                      if (busy != null && (busy.text ?? '').isNotEmpty)
-                        MessageTile(
-                          message: Message(role: 'learner', text: busy.text!),
-                          pending: true,
-                        ),
-                      if (busy != null) Text(phaseText(busy.phase)),
-                    ].reversed.toList(),
+                // Reversed (offset 0 = newest: late pictures above never push
+                // the bottom away); ONE SelectionArea: copies as one text.
+                : SelectionArea(
+                    child: ListView(
+                      controller: widget.scroll,
+                      reverse: true,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      children: [
+                        for (final (i, m) in messages.indexed)
+                          _tile(
+                            m,
+                            i == messages.length - 1,
+                            boxes: boxes,
+                            sid: view.sid,
+                          ),
+                        if (busy != null && (busy.text ?? '').isNotEmpty)
+                          MessageTile(
+                            message: Message(role: 'learner', text: busy.text!),
+                            pending: true,
+                          ),
+                        if (busy != null) Text(phaseText(busy.phase)),
+                      ].reversed.toList(),
+                    ),
                   ),
           ),
           const Divider(height: 1),

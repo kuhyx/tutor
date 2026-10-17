@@ -1,5 +1,6 @@
 /// Renders the tutor's tiny markdown (`session/markdown.dart`) as text
-/// spans. Selectable, so a learner can copy a term.
+/// spans. Plain Text.rich: the chat's one SelectionArea makes it selectable,
+/// across blocks and messages (a SelectableText per block would split it).
 library;
 
 import 'package:design_system/design_system.dart';
@@ -26,7 +27,7 @@ class MarkdownText extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: b.kind == MdBlockKind.paragraph
-                ? SelectableText.rich(
+                ? Text.rich(
                     TextSpan(
                       children: [
                         for (final (i, l) in b.lines.indexed) ...[
@@ -52,9 +53,7 @@ class MarkdownText extends StatelessWidget {
                               ),
                             ),
                             Expanded(
-                              child: SelectableText.rich(
-                                TextSpan(children: line(l)),
-                              ),
+                              child: Text.rich(TextSpan(children: line(l))),
                             ),
                           ],
                         ),

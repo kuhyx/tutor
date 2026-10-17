@@ -187,7 +187,7 @@ class _ComposerState extends State<Composer> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('${a.heading}: ${a.text}', style: text.labelLarge),
+              QuestionLabel(a),
               const SizedBox(height: AppSpacing.sm),
               _chips(_step),
               _box(_step, 'Your answer'),
@@ -208,7 +208,7 @@ class _ComposerState extends State<Composer> {
 
   List<Widget> _deskBoxes(TextTheme text, bool canSend) => [
     for (final (i, a) in _asked.indexed) ...[
-      Text('${a.heading}: ${a.text}', style: text.labelLarge),
+      QuestionLabel(a),
       const SizedBox(height: AppSpacing.xs),
       _chips(i),
       _box(i, 'Your answer'),

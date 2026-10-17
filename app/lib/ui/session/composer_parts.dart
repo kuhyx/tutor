@@ -1,9 +1,11 @@
-/// Small parts of the answer composer: the tap-to-fill chips above an answer
-/// box and the phone's step bar (1/3, Back, Next / Send).
+/// Small parts of the answer composer: the question label and tap-to-fill
+/// chips above an answer box and the phone's step bar (1/3, Back, Next /
+/// Send).
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/session/answers.dart';
 
 /// The tutor's suggested answers as chips, plus a fixed "Hint" chip.
 class AnswerChips extends StatelessWidget {
@@ -50,6 +52,23 @@ class AnswerChips extends StatelessWidget {
           onPressed: enabled ? onHint : null,
         ),
       ],
+    ),
+  );
+}
+
+/// A question above its answer box, selectable so it can be copied.
+class QuestionLabel extends StatelessWidget {
+  /// Creates the label for [asked].
+  const new(this.asked, {super.key});
+
+  /// The question.
+  final Asked asked;
+
+  @override
+  Widget build(BuildContext context) => SelectionArea(
+    child: Text(
+      '${asked.heading}: ${asked.text}',
+      style: Theme.of(context).textTheme.labelLarge,
     ),
   );
 }
