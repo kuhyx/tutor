@@ -28,6 +28,10 @@ const Map<String, String> _headlines = {
 /// Network failure while sending (the request may not have arrived).
 const offlineText = 'Not sent: no connection. Retry sends the same request.';
 
+/// A sent request with no result and no progress for minutes: Send is open
+/// again (the same text resends the same request, so nothing doubles).
+const noReplyText = 'No reply from PC \u2014 send again';
+
 /// Shown while the PC is offline (DOCS-contract §5).
 const pcOfflineText = 'PC offline: replies wait; reviews still work';
 

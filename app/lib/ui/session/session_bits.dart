@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/model/request_body.dart';
+import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/no_card.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
@@ -73,7 +74,7 @@ class NotLiveStatus extends StatelessWidget {
     builder: (context, s, _) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        RequestStatusLine(runner),
+        RequestStatusLine(runner, stalledText: noReplyText),
         if (s is RelayFailed && s.code == 'not_live' && view != null)
           Align(
             alignment: Alignment.centerRight,

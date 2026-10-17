@@ -184,7 +184,11 @@ class _SessionChatState extends State<SessionChat> {
                       sid: view!.sid,
                       latest: last,
                       kv: widget.services.kv,
-                      enabled: busy == null && !widget.runner.busy,
+                      // A lost reply must not block Send forever: once the
+                      // runner is stalled the learner may send again.
+                      enabled:
+                          widget.runner.stalled.value ||
+                          (busy == null && !widget.runner.busy),
                       onSend: (t) => widget.onSend(view.sid, t),
                       phone: widget.phone,
                     )

@@ -112,3 +112,10 @@ checking_images -> publishing (12.9 s). Learner time = `sent_at` (inside
 grace of `created`). `bad_request` / `not_live` codes as specified; feedback
 drained to `feedback.jsonl`; presence beat (skew 25 ms) and deleted on clean
 exit. SSE with `orderBy="$key"&startAt=` returns only keys >= startAt.
+
+## Client: a reply that never lands
+The session screen's runner is stalled after 3 min with no result and no new
+phase: the line reads "No reply from PC — send again" and Send, Ctrl+Enter and
+Hint reopen (typed text is kept). The same text again re-PUTs the same rid, so
+a late result lands once (done-map, no second model call); other text is a new
+message under a new rid.

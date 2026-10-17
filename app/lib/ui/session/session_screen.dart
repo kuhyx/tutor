@@ -64,7 +64,10 @@ class _SessionScreenState extends State<SessionScreen> {
     widget.services.stream,
     subject: widget.subject,
   );
-  late final RequestRunner _runner = RequestRunner(widget.services.relay);
+  late final RequestRunner _runner = RequestRunner(
+    widget.services.relay,
+    stallAfter: sessionStallAfter,
+  );
   late final TodayFeed _today = TodayFeed(
     client: widget.services.client,
     rev: widget.services.rev,
@@ -154,6 +157,7 @@ class _SessionScreenState extends State<SessionScreen> {
       _feed.view,
       _feed.loaded,
       _runner.status,
+      _runner.stalled,
       _today.today,
       _subjectFeed.subjects,
     ]),

@@ -136,20 +136,27 @@ class PcOfflineBanner extends StatelessWidget {
 /// with Retry (the same request), nothing once done.
 class RequestStatusLine extends StatelessWidget {
   /// Creates the line.
-  const new(this.runner, {this.queuedText, super.key});
+  const new(this.runner, {this.queuedText, this.stalledText, super.key});
 
   /// The runner.
   final RequestRunner runner;
+
+  /// Shown instead of the waiting/phase line once the runner is stalled (no
+  /// result and no progress for minutes); null keeps the plain line.
+  final String? stalledText;
 
   /// Text while queued (default: waiting for the PC).
   final String? queuedText;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<RelayStatus?>(
-    valueListenable: runner.status,
-    builder: (context, s, _) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([runner.status, runner.stalled]),
+    builder: (context, _) {
+      final s = runner.status.value;
+      final lost = runner.stalled.value ? stalledText : null;
       final (text, error) = switch (s) {
         null || RelayDone() => (null, false),
+        RelayQueued() || RelayWorking() when lost != null => (lost, true),
         RelayQueued() => (queuedText ?? 'Sent; waiting for the PC...', false),
         RelayWorking(:final phase) => (phaseText(phase), false),
         RelayNotSent(:final text) => (text, true),
@@ -175,7 +182,7 @@ class RequestStatusLine extends StatelessWidget {
             ),
             if (runner.canRetry)
               TextButton(onPressed: runner.retry, child: const Text('Retry')),
-            if (error)
+            if (error && lost == null)
               IconButton(
                 tooltip: 'Dismiss',
                 onPressed: runner.clear,
