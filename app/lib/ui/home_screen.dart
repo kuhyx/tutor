@@ -192,6 +192,9 @@ class _HomeScreenState extends State<HomeScreen> {
           onReview: () => _go(() => openReview(context, _s)),
           onDrill: () => _go(() => openReview(context, _s, drill: true)),
           onReviewModule: (m) => _go(() => openReview(context, _s, module: m)),
+          onReviewSubject: (id, title) => _go(
+            () => openReview(context, _s, subject: id, subjectTitle: title),
+          ),
           onSession: (e) => _go(() => openSession(context, _s, entry: e)),
           onPlan: (id) => _go(() => openPlan(context, _s, id)),
           onEdit: (id) => _go(() => openEditor(context, _s, subject: id)),

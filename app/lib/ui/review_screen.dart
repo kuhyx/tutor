@@ -1,4 +1,5 @@
-/// Review (curriculum §5): offline FSRS queue across all subjects. Front ->
+/// Review (curriculum §5): offline FSRS queue across all subjects (or one
+/// subject's, from a Review inside that subject). Front ->
 /// reveal back + excerpt + source link -> Again/Hard/Good/Easy, or Flag.
 /// Keys: Space reveals, 1-4 rate, F flags. The app bar switches to Drill
 /// (`drill_view.dart`): pick-an-answer cards from the PC, no model.
@@ -30,9 +31,17 @@ class ReviewScreen extends StatefulWidget {
     this.unavailable,
     this.anki,
     this.module,
+    this.subject,
+    this.subjectTitle,
     this.now,
     super.key,
   });
+
+  /// Only this subject's due cards (null: every subject's).
+  final String? subject;
+
+  /// Its title, for the app bar.
+  final String? subjectTitle;
 
   /// Services.
   final TutorServices services;
@@ -71,6 +80,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
             catalog: s.catalog,
             events: s.events,
             now: now().toUtc(),
+            subject: widget.subject,
           )
         : await moduleItems(
             catalog: s.catalog,
@@ -104,9 +114,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
       title: Text(
         _drill
             ? 'Drill'
-            : widget.module == null
-            ? 'Review'
-            : 'Review: ${widget.module!.title}',
+            : widget.module != null
+            ? 'Review: ${widget.module!.title}'
+            : widget.subject != null
+            ? 'Review: ${widget.subjectTitle ?? 'this subject'}'
+            : 'Review',
       ),
       actions: [
         TextButton(

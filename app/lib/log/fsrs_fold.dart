@@ -187,3 +187,12 @@ List<DueCard> reviewQueue(
       });
   return due;
 }
+
+/// Subject id -> how many of [queue] are its (subjects with none absent).
+Map<String, int> dueBySubject(List<DueCard> queue) {
+  final out = <String, int>{};
+  for (final d in queue) {
+    out.update(d.key.split('/').first, (n) => n + 1, ifAbsent: () => 1);
+  }
+  return out;
+}

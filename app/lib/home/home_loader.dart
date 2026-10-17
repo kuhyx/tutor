@@ -54,7 +54,11 @@ class HomeSnapshot {
     this.live,
     this.toReview = const {},
     this.cardTally = const {},
+    this.dueBySubject = const {},
   });
+
+  /// Subject id -> its due cards (what its Review shows; 0 = absent).
+  final Map<String, int> dueBySubject;
 
   /// Subject id -> its cards' tally (done / recalled / due; suspended
   /// cards not counted).
@@ -163,6 +167,7 @@ class HomeLoader {
       live: live,
       toReview: snap.toReview,
       cardTally: snap.cardTally,
+      dueBySubject: snap.dueBySubject,
     );
   }
 
@@ -221,10 +226,11 @@ class HomeLoader {
     entries.sort((a, b) => a.meta.title.compareTo(b.meta.title));
     final folded = fold(await events.all(), cards);
     final now = _now().toUtc();
-    final due = reviewQueue(folded, cards, now).length;
+    final queue = reviewQueue(folded, cards, now);
     return HomeSnapshot(
       subjects: entries,
-      due: due,
+      due: queue.length,
+      dueBySubject: dueBySubject(queue),
       offline: offline,
       today: today,
       toReview: {

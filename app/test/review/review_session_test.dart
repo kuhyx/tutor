@@ -39,13 +39,22 @@ void main() {
             'meta': subjectMeta,
             'cards': {'a': card, 'b': card},
           },
+          'garden': {
+            'meta': {...subjectMeta, 'title': 'Gardening'},
+            'cards': {'g': card},
+          },
         },
       }),
     );
-    for (final (c, at) in [('a', 0), ('b', 1), ('gone', 2)]) {
+    for (final (subject, c, at) in [
+      ('car', 'a', 0),
+      ('car', 'b', 1),
+      ('car', 'gone', 2),
+      ('garden', 'g', 3),
+    ]) {
       await events.record(
         TaughtEvent(
-          subject: 'car',
+          subject: subject,
           card: c,
           at: _t0.millisecondsSinceEpoch + at,
         ),
@@ -59,9 +68,26 @@ void main() {
       events: events,
       now: _t0.add(const Duration(days: 30)),
     );
-    expect(items.map((i) => i.cardId), ['a', 'b']);
+    expect(items.map((i) => i.cardId), ['a', 'b', 'g']);
     expect(items.first.subjectTitle, 'How a car works');
     expect(await dueItems(catalog: catalog, events: events, now: _t0), isEmpty);
+  });
+
+  test("a subject filter keeps only that subject's due cards", () async {
+    final later = _t0.add(const Duration(days: 30));
+    Future<List<String>> keys(String? subject) async => [
+      for (final i in await dueItems(
+        catalog: catalog,
+        events: events,
+        now: later,
+        subject: subject,
+      ))
+        '${i.subject}/${i.cardId}',
+    ];
+    expect(await keys('car'), ['car/a', 'car/b']);
+    expect(await keys('garden'), ['garden/g']);
+    expect(await keys('nope'), isEmpty);
+    expect(await keys(null), hasLength(3));
   });
 
   test('reveal, rate, flag; events queued and flushed', () async {
@@ -69,6 +95,7 @@ void main() {
       catalog: catalog,
       events: events,
       now: _t0.add(const Duration(days: 30)),
+      subject: 'car',
     );
     var now = _t0.add(const Duration(days: 30));
     final run = ReviewSession(items: items, events: events, now: () => now);

@@ -30,8 +30,12 @@ class HomeBody extends StatelessWidget {
     required this.onNewSubject,
     required this.onFinish,
     this.onReviewModule,
+    this.onReviewSubject,
     super.key,
   });
+
+  /// Reviews one subject's due cards (id, title).
+  final void Function(String subject, String title)? onReviewSubject;
 
   /// Starts a done module's review.
   final ValueChanged<ModuleRef>? onReviewModule;
@@ -120,10 +124,14 @@ class HomeBody extends StatelessWidget {
                       icon: const Icon(Icons.chat_bubble_outline),
                       label: Text(entry.label),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: onReview,
-                      icon: const Icon(Icons.style),
-                      label: Text('Review (${data.due} due)'),
+                    // Every subject's due cards; the tooltip says whose.
+                    _withTip(
+                      _dueSplit(data),
+                      OutlinedButton.icon(
+                        onPressed: onReview,
+                        icon: const Icon(Icons.style),
+                        label: Text('Review (${data.due} due)'),
+                      ),
                     ),
                     OutlinedButton.icon(
                       onPressed: onDrill,
@@ -150,7 +158,11 @@ class HomeBody extends StatelessWidget {
             entry: s,
             toReview: data.toReview[s.id],
             tally: data.cardTally[s.id],
+            due: data.dueBySubject[s.id] ?? 0,
             onReviewModule: onReviewModule,
+            onReviewDue: onReviewSubject == null
+                ? null
+                : () => onReviewSubject!(s.id, s.meta.title),
             current: s.id == data.currentSubject,
             onPlan: () => onPlan(s.id),
             onEdit: () => onEdit(s.id),
@@ -164,5 +176,15 @@ class HomeBody extends StatelessWidget {
     );
   }
 }
+
+/// "Title: N due" per subject with due cards, one per line.
+String _dueSplit(HomeSnapshot data) => [
+  for (final s in data.subjects)
+    if ((data.dueBySubject[s.id] ?? 0) > 0)
+      '${s.meta.title}: ${data.dueBySubject[s.id]} due',
+].join('\n');
+
+Widget _withTip(String tip, Widget child) =>
+    tip.isEmpty ? child : Tooltip(message: tip, child: child);
 
 String _active(int? minutes) => minutes == null ? '' : ' · $minutes min active';

@@ -73,13 +73,16 @@ Future<void> openEditor(
 
 /// Opens Review; [drill] starts in Drill mode (pick-an-answer, no model),
 /// with [unavailable] as the "Claude limit" banner; [module] reviews that
-/// module's taught cards instead of the due queue.
+/// module's taught cards instead of the due queue; [subject] (titled
+/// [subjectTitle]) keeps the due queue to that subject.
 Future<void> openReview(
   BuildContext context,
   TutorServices s, {
   bool drill = false,
   Unavailable? unavailable,
   ModuleRef? module,
+  String? subject,
+  String? subjectTitle,
   bool replace = false,
 }) => _push(
   context,
@@ -88,6 +91,8 @@ Future<void> openReview(
     drill: drill,
     unavailable: unavailable,
     module: module,
+    subject: subject,
+    subjectTitle: subjectTitle,
   ),
   replace: replace,
 );

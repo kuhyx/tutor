@@ -1,6 +1,6 @@
 /// One subject on Home: status, modules reviewed, and its actions (Plan,
-/// Cards, Learn this next, "Review" + a done module, Go deeper / Review
-/// only).
+/// Cards, Learn this next, "Review" + a done module, "Review (N due)" for
+/// this subject's due cards only, Go deeper / Review only).
 library;
 
 import 'package:design_system/design_system.dart';
@@ -26,8 +26,16 @@ class SubjectTile extends StatelessWidget {
     this.toReview,
     this.tally,
     this.onReviewModule,
+    this.due = 0,
+    this.onReviewDue,
     super.key,
   });
+
+  /// This subject's cards due now.
+  final int due;
+
+  /// Reviews only this subject's due cards (shown while [due] > 0).
+  final VoidCallback? onReviewDue;
 
   /// The subject.
   final SubjectEntry entry;
@@ -120,6 +128,12 @@ class SubjectTile extends StatelessWidget {
                     onPressed: () => onReviewModule!(review),
                     icon: const Icon(Icons.style),
                     label: Text('Review ${review.title}'),
+                  ),
+                if (due > 0 && onReviewDue != null)
+                  OutlinedButton.icon(
+                    onPressed: onReviewDue,
+                    icon: const Icon(Icons.style),
+                    label: Text('Review ($due due)'),
                   ),
                 TextButton(onPressed: onPlan, child: const Text('Plan')),
                 if (data != null && data.cards.isNotEmpty)

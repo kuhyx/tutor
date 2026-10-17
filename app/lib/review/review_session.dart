@@ -37,11 +37,13 @@ class ReviewItem {
   final StudyCard card;
 }
 
-/// Builds the due queue across all subjects.
+/// Builds the due queue across all subjects, or only [subject]'s (a
+/// Review button inside a subject never mixes in another subject's cards).
 Future<List<ReviewItem>> dueItems({
   required Catalog catalog,
   required EventLog events,
   required DateTime now,
+  String? subject,
 }) async {
   final subjects = await catalog.cached();
   final infos = <String, CardInfo>{};
@@ -54,7 +56,11 @@ Future<List<ReviewItem>> dueItems({
     }
   }
   final queue = reviewQueue(fold(await events.all(), infos), infos, now);
-  return [for (final due in queue) ?_item(subjects, due.key)];
+  return [
+    for (final due in queue)
+      if (subject == null || due.key.startsWith('$subject/'))
+        ?_item(subjects, due.key),
+  ];
 }
 
 /// Every taught card of [module], due or not, in module order (the module
