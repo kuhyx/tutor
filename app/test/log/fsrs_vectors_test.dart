@@ -5,7 +5,7 @@
 // Format: [{"name", "events": [{"dev","eid","k","s","c","at","r"?,"rev"?,...}],
 //           "cards": {"x": {"rev": 1}},
 //           "expect": {"x": {"taught","due","stability","difficulty",
-//                            "state","flagged","good"}},
+//                            "state","flagged","good","reviewed"?}},
 //           "dropped": [...], "ignored": [...]}]
 // Events are listed unsorted on purpose (the fold sorts). Tolerance 1e-6 on
 // stability/difficulty; `due` exact to the ms; `good` (§6 unlock rule) too.
@@ -58,6 +58,14 @@ void _check(Map<String, dynamic> v) {
       want['good'] ?? false,
       reason: '$name: $id good',
     );
+    // `reviewed` (module unlock) only once the worker's vectors carry it.
+    if (want.containsKey('reviewed')) {
+      expect(
+        result.reviewed.contains(key),
+        want['reviewed'],
+        reason: '$name: $id reviewed',
+      );
+    }
     if (card == null) continue;
     expect(
       card.due.millisecondsSinceEpoch,

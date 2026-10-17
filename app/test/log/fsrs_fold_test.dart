@@ -137,4 +137,34 @@ void main() {
     // A runtime (non-const) construction, which coverage can see.
     expect(CardInfo(rev: int.parse('2')).suspended, isFalse);
   });
+
+  test('reviewed: any Good/Easy review after the latest taught, no gap', () {
+    bool rev(List<LoggedEvent> es) => fold(es, _cards).reviewed.contains('s/x');
+    final taught = _e(_a, _taught(_t0));
+    expect(rev([taught]), isFalse);
+    expect(rev([taught, _e(_a, _rev(_t0 + 1, Grade.good))]), isTrue);
+    expect(rev([taught, _e(_a, _rev(_t0 + 1, Grade.easy))]), isTrue);
+    expect(rev([taught, _e(_a, _rev(_t0 + 1, Grade.hard))]), isFalse);
+    // Sticky: a later Again does not undo it (unlike `good`).
+    final later = [
+      taught,
+      _e(_a, _rev(_t0 + 1, Grade.good)),
+      _e(_a, _rev(_t0 + 2, Grade.again)),
+    ];
+    expect(rev(later), isTrue);
+    expect(fold(later, _cards).good, isEmpty);
+    // Re-taught or untaught clears it; a review before teaching is ignored.
+    expect(rev([...later, _e(_a, _taught(_t0 + 3))]), isFalse);
+    expect(
+      rev([
+        ...later,
+        _e(_a, const UntaughtEvent(subject: 's', card: 'x', at: _t0 + 3)),
+      ]),
+      isFalse,
+    );
+    expect(
+      rev([_e(_a, _rev(_t0, Grade.good)), _e(_a, _taught(_t0 + 1))]),
+      isFalse,
+    );
+  });
 }

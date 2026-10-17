@@ -40,6 +40,7 @@ class FoldResult {
     required this.scheduled,
     required this.flagged,
     this.good = const {},
+    this.reviewed = const {},
   });
 
   /// FSRS card per taught `subject/card` key (untaught cards are absent).
@@ -51,6 +52,12 @@ class FoldResult {
   /// Keys whose card is `good` (curriculum §6): taught, and the latest
   /// review since then rated Good or Easy 20 h or more after `taught`.
   final Set<String> good;
+
+  /// Keys whose card is `reviewed` (the module unlock): taught, and at
+  /// least one review since the latest `taught` rated Good or Easy, with
+  /// no time gap. Sticky: a later Again does not clear it; only a new
+  /// `taught` or an `untaught` does.
+  final Set<String> reviewed;
 }
 
 /// One entry of the review queue.
@@ -102,6 +109,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
   final flagged = <String>{};
   final taughtAt = <String, int>{};
   final latest = <String, ReviewEvent>{};
+  final reviewed = <String>{};
   for (final e in mergeEvents(events)) {
     final event = e.event;
     final key = event.key;
@@ -111,15 +119,18 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         scheduled[key] = scheduler.first(Grade.good, _utc(at));
         taughtAt[key] = at;
         latest.remove(key);
+        reviewed.remove(key);
       case UntaughtEvent():
         scheduled.remove(key);
         taughtAt.remove(key);
         latest.remove(key);
+        reviewed.remove(key);
       case ReviewEvent(:final at, :final grade):
         final card = scheduled[key];
         if (card == null) continue; // a review of an untaught card
         scheduled[key] = scheduler.review(card, grade, _utc(at));
         latest[key] = event;
+        if (grade.value >= Grade.good.value) reviewed.add(key);
       case FlagEvent(:final rev):
         if (cards[key]?.rev == rev) flagged.add(key);
     }
@@ -133,6 +144,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
             r.at >= taughtAt[key]! + goodGapMs)
           key,
     },
+    reviewed: reviewed,
   );
 }
 
