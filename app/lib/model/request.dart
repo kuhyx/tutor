@@ -34,6 +34,12 @@ enum RequestKind {
   /// Edit or add a card.
   cardEdit('card_edit', Lane.build),
 
+  /// Bring back a card the tutor removed.
+  cardRestore('card_restore', Lane.build),
+
+  /// Remove (suspend) a card the tutor added.
+  cardRemove('card_remove', Lane.build),
+
   /// Start a teaching session.
   sessionStart('session_start', Lane.chat),
 

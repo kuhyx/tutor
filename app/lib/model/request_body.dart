@@ -66,6 +66,16 @@ class RequestBody {
     'requires': requires,
   });
 
+  /// `card_restore`: undo the tutor's removal of [card].
+  factory cardRestore(String subject, String card) => RequestBody._(
+    RequestKind.cardRestore,
+    {'subject': subject, 'card': card},
+  );
+
+  /// `card_remove`: suspend [card], one the tutor added.
+  factory cardRemove(String subject, String card) =>
+      RequestBody._(RequestKind.cardRemove, {'subject': subject, 'card': card});
+
   /// `session_start`: null [card] = next open card; [resume] (Continue)
   /// first makes the subject's open session live (DOCS-contract §4).
   factory sessionStart({String? subject, String? card, bool resume = false}) =>

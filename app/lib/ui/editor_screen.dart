@@ -1,6 +1,7 @@
 /// Editor (curriculum §8): subject -> module -> cards; edit or add a card
 /// (`card_edit`, validated by the worker against its source), flag one
-/// (a `flag` event, offline OK).
+/// (a `flag` event, offline OK), undo the tutor's edits: Restore a card
+/// it removed (`card_restore`), Remove one it added (`card_remove`).
 library;
 
 import 'dart:async';
@@ -15,8 +16,10 @@ import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/model/plan.dart';
+import 'package:tutor/model/request_body.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/terms.dart';
+import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/card_form.dart';
 import 'package:tutor/ui/card_state.dart';
@@ -120,6 +123,33 @@ class _EditorScreenState extends State<EditorScreen> {
     if (mounted) showToast(context, 'Flagged; it leaves review until edited.');
   }
 
+  Future<void> _undo(RequestBody body) async {
+    final status = await _runner.run(body);
+    if (status is RelayDone) unawaited(_load(fresh: true));
+  }
+
+  Widget _actions(SubjectData s, MapEntry<String, StudyCard> c) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (c.value.removedByTutor)
+        TextButton(
+          onPressed: () => _undo(RequestBody.cardRestore(s.id, c.key)),
+          child: const Text('Restore'),
+        ),
+      if (c.value.addedByTutor)
+        IconButton(
+          tooltip: 'Remove',
+          onPressed: () => _undo(RequestBody.cardRemove(s.id, c.key)),
+          icon: const Icon(Icons.remove_circle_outline),
+        ),
+      IconButton(
+        tooltip: 'Flag',
+        onPressed: () => _flag(s, c.key, c.value),
+        icon: const Icon(Icons.flag_outlined),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final s = _subjects[_subject];
@@ -182,11 +212,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       ),
                       isThreeLine: true,
                       onTap: () => _edit(s, m, c),
-                      trailing: IconButton(
-                        tooltip: 'Flag',
-                        onPressed: () => _flag(s, c.key, c.value),
-                        icon: const Icon(Icons.flag_outlined),
-                      ),
+                      trailing: _actions(s, c),
                     ),
                   Padding(
                     padding: const EdgeInsets.all(AppSpacing.sm),
@@ -209,5 +235,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
 String _cards(int n) => '$n card${n == 1 ? '' : 's'}';
 
-String _state(StudyCard card, CardProgress? p) =>
-    card.suspended ? 'suspended' : p?.label ?? '';
+String _state(StudyCard card, CardProgress? p) => card.removedByTutor
+    ? 'Removed by tutor'
+    : card.suspended
+    ? 'suspended'
+    : p?.label ?? '';

@@ -18,6 +18,7 @@ class StudyCard {
     this.requires = const [],
     this.created,
     this.suspended = false,
+    this.tutor,
   });
 
   /// Parses a card.
@@ -35,6 +36,7 @@ class StudyCard {
       origin: str(j, 'origin'),
       created: intOr(j, 'created'),
       suspended: flag(j, 'suspended'),
+      tutor: objOr(j, 'tutor'),
     );
   }
 
@@ -71,6 +73,16 @@ class StudyCard {
   /// Hidden from teaching and review.
   final bool suspended;
 
+  /// The tutor's mark: `{"added": ms}`, `{"removed": ms,
+  /// "requires_of": {...}}` (curriculum §3); null = untouched.
+  final Json? tutor;
+
+  /// Suspended by the tutor: the Editor offers Restore.
+  bool get removedByTutor => suspended && tutor?['removed'] != null;
+
+  /// Added by the tutor and live: the Editor offers Remove.
+  bool get addedByTutor => !suspended && tutor?['added'] != null;
+
   /// Wire form.
   Json toJson() => compact({
     'module': module,
@@ -84,6 +96,7 @@ class StudyCard {
     'origin': origin,
     'created': created,
     'suspended': suspended,
+    'tutor': tutor,
   });
 }
 
