@@ -1,9 +1,10 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Ids: subject / module / card slugs, ULID event ids and the device id.
 
-Slugs are ``[a-z0-9]+(-[a-z0-9]+)*`` and at most 48 characters
-(``DOCS-contract.md`` §3); nothing builds a path from an id that did not pass
-:func:`valid_id`.
+Slugs are words of ``[a-z0-9ąćęłńóśźż]`` joined by single hyphens, at most 48
+characters (``DOCS-contract.md`` §3); nothing builds a path from an id that
+did not pass :func:`valid_id`. The whitelist holds only precomposed letters, so
+an NFD spelling ("o" + U+0301) is rejected and one word is one id.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import re
 import secrets
 import threading
 from typing import TYPE_CHECKING, Final
+import unicodedata
 import uuid
 
 if TYPE_CHECKING:
@@ -19,8 +21,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 MAX_ID: Final = 48
-_ID: Final = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-_NON_SLUG: Final = re.compile(r"[^a-z0-9]+")
+SLUG_CHARS: Final = "a-z0-9ąćęłńóśźż"
+_ID: Final = re.compile(rf"[{SLUG_CHARS}]+(?:-[{SLUG_CHARS}]+)*")
+_NON_SLUG: Final = re.compile(rf"[^{SLUG_CHARS}]+")
 _CROCKFORD: Final = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 _ULID: Final = re.compile(r"[0-9A-HJKMNP-TV-Z]{26}")
 _MAX_RAND: Final = (1 << 80) - 1
@@ -46,8 +49,11 @@ def slug(text: str, taken: Collection[str] = (), fallback: str = "item") -> str:
     """A fresh id from free text: lowercase words, cut at a word, unique.
 
     A clash with ``taken`` gets ``-2``, ``-3``... appended (still <= 48 ch).
+    Polish letters are kept; the text is composed to NFC after casefolding so
+    "o" + U+0301 and "ó" give the same id.
     """
-    words = [w for w in _NON_SLUG.split(text.casefold()) if w]
+    folded = unicodedata.normalize("NFC", text.casefold())
+    words = [w for w in _NON_SLUG.split(folded) if w]
     base = ""
     for word in words:
         longer = f"{base}-{word}" if base else word

@@ -1,0 +1,34 @@
+{
+  "note": "Shared by tutor/tests/test_ids.py and app/test/model/slug_vectors_test.dart. Texts stay under 40 characters: the Dart slugFor cuts hard at 40, the Python slug at a word near 45.",
+  "slug": [
+    {"text": "How a Car works?", "slug": "how-a-car-works"},
+    {"text": "Rust 2024 edition", "slug": "rust-2024-edition"},
+    {"text": "Chcę rozumieć pojęcia z maila", "slug": "chcę-rozumieć-pojęcia-z-maila"},
+    {"text": "ZAŻÓŁĆ GĘŚLĄ JAŹŃ", "slug": "zażółć-gęślą-jaźń"},
+    {"text": "Łódź", "slug": "łódź"},
+    {"text": "Zażółć gęślą jaźń", "slug": "zażółć-gęślą-jaźń"},
+    {"text": "Ę, Ą / Ć: Ń; Ó Ś Ź Ż", "slug": "ę-ą-ć-ń-ó-ś-ź-ż"},
+    {"text": "Café au lait", "slug": "caf-au-lait"},
+    {"text": "Ünïcode", "slug": "n-code"}
+  ],
+  "valid": [
+    {"id": "car", "ok": true},
+    {"id": "how-a-car-works", "ok": true},
+    {"id": "chcę-rozumieć", "ok": true},
+    {"id": "łódź", "ok": true},
+    {"id": "zażółć-gęślą-jaźń", "ok": true},
+    {"id": "ą-2", "ok": true},
+    {"id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "ok": true},
+    {"id": "ąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąą", "ok": true},
+    {"id": "ąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąą", "ok": false},
+    {"id": "Łódź", "ok": false},
+    {"id": "Car", "ok": false},
+    {"id": "žluťoučký", "ok": false},
+    {"id": "café", "ok": false},
+    {"id": "zażółć", "ok": false},
+    {"id": "ó", "ok": false},
+    {"id": "ą-", "ok": false},
+    {"id": "a--b", "ok": false},
+    {"id": "", "ok": false}
+  ]
+}

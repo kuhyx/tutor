@@ -42,6 +42,14 @@ def test_valid_message_drops_unknown_fields() -> None:
     assert got.body == {"session": SID, "text": "hello", "device": "desktop"}
 
 
+def test_polish_ids_pass_and_nfd_ids_fail() -> None:
+    ok = protocol.validate(RID, req("session_start", subject="łódź", card="pojęcia"))
+    assert ok.body["subject"] == "łódź"
+    assert ok.body["card"] == "pojęcia"
+    for bad in ("zażółć", "Łódź", "ą" * 49):
+        assert code_of(req("session_start", subject=bad, card=None)) == "bad_request"
+
+
 def test_every_kind_has_a_lane_and_validates() -> None:
     bodies = {
         "subject_new": {"text": "cars"},

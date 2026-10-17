@@ -17,9 +17,9 @@ pass the same vectors.
   `prefs.current_subject` (picked on Home).
 - `subject_new`: worker writes `meta` with `status:"drafting"` at once, then
   the plan when the model is done. Subject id = slug of the text minus "I want
-  to learn"-style filler (`how-a-car-works`). A failed draft sets
-  `status:"failed"` + `error`; a new `subject_new` with the same text reuses
-  that id.
+  to learn"-style filler (`how-a-car-works`; also Polish "Chcę (się) nauczyć
+  / wiedzieć / zrozumieć / rozumieć / poznać"). A failed draft sets
+  `status:"failed"` + `error`; a new `subject_new` with the same text reuses that id.
 - PC files (canonical, `tutor/curriculum/subject_store.py`):
   `$TUTOR_DATA/subjects/{subj}/meta.json|plan.json|cards.json|concepts.json|profile.json`
   (`cards.json` = id -> card in module/card order) and `$TUTOR_DATA/log.jsonl`

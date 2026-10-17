@@ -14,6 +14,7 @@ import re
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import delivery
+from tutor.curriculum.ids import SLUG_CHARS
 from tutor.history import SESSION_ID
 from tutor.relay.errors import RequestError
 
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 
 RID: Final = re.compile(r"[0-9A-HJKMNP-TV-Z]{26}", re.ASCII)
 DEV: Final = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
-SLUG: Final = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*", re.ASCII)
+SLUG: Final = re.compile(rf"[{SLUG_CHARS}]+(-[{SLUG_CHARS}]+)*")
 SLUG_MAX: Final = 48
 MAX_REQUEST_BYTES: Final = 40_000
 MAX_MESSAGE: Final = 8000

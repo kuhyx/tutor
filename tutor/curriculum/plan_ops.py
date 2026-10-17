@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING, Any, Final
+import unicodedata
 
 from tutor.curriculum import planner, profiles, rules
 from tutor.curriculum.errors import BAD_REQUEST, PLAN_CONFLICT, RequestError
@@ -38,6 +39,14 @@ _FILLER: Final = re.compile(
     r"|teach\s+me|learn)(?:\s+about)?\s+",
     re.IGNORECASE,
 )
+# Polish opener: chcę (się) + nauczyć / wiedzieć / zrozumieć / rozumieć /
+# poznać (+ o), or chciałbym / chciałabym; diacritics optional.
+_VERB_PL: Final = r"(?:nauczy[cć]|wiedzie[cć]|zrozumie[cć]|rozumie[cć]|pozna[cć])"
+_FILLER_PL: Final = re.compile(
+    rf"^\s*(?:chc[eę]|chcia[lł]a?bym)\s+(?:si[eę]\s+)?{_VERB_PL}"
+    r"(?:\s+si[eę])?(?:\s+o)?\s+",
+    re.IGNORECASE,
+)
 _DEEPER: Final = (
     "Go deeper: the learner has mastered every module above. Plan the next, "
     "more advanced round on the same goal."
@@ -46,7 +55,9 @@ _DEEPER: Final = (
 
 def subject_id(goal: str, taken: set[str]) -> str:
     """A subject id from the learner's words ("how-a-car-works")."""
-    return slug(_FILLER.sub("", goal), taken, fallback="subject")
+    words = unicodedata.normalize("NFC", goal)  # so "e" + U+0328 matches "ę"
+    words = _FILLER_PL.sub("", _FILLER.sub("", words))
+    return slug(words, taken, fallback="subject")
 
 
 def subject_new(body: dict[str, Any], ctx: Context) -> dict[str, Any]:

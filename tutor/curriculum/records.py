@@ -121,7 +121,9 @@ class Module:
     def from_json(cls, raw: object, *, client: bool = False) -> Module:
         """A module; ``client`` input keeps only the editable fields."""
         if not isinstance(raw, dict) or not valid_id(raw.get("id")):
-            msg = "a module needs a valid id ([a-z0-9-], <=48 characters)"
+            msg = (
+                "a module needs a valid id (a-z, 0-9, ąćęłńóśźż and -; <=48 characters)"
+            )
             raise bad(msg)
         prefixes = raw.get("prefixes", [])
         if not isinstance(prefixes, list) or not all(

@@ -2,13 +2,18 @@
 /// them. A path segment is only ever built from an id that passed these.
 library;
 
-final _slug = RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$');
+/// Characters a slug word may hold: ASCII lowercase, digits and the nine
+/// precomposed Polish letters. Combining marks are absent, so NFD spellings
+/// never match (one word, one id).
+const slugChars = 'a-z0-9ąćęłńóśźż';
+final _slug = RegExp('^[$slugChars]+(-[$slugChars]+)*\$');
 final _ulid = RegExp(r'^[0-9A-HJKMNP-TV-Z]{26}$');
 final _sid = RegExp(r'^\d{8}-\d{6}-[0-9a-z]{4}$');
 final _msg = RegExp(r'^m\d{4,}$');
 final _receipt = RegExp(r'^r\d{4,}$');
 
-/// Subject / module / card id: `[a-z0-9]+(-[a-z0-9]+)*`, at most 48 chars.
+/// Subject / module / card id: words of [slugChars] joined by single
+/// hyphens, at most 48 characters (not bytes).
 bool isSlug(String s) => s.length <= 48 && _slug.hasMatch(s);
 
 /// `rid` / `eid` / `fid`: 26-char Crockford ULID.

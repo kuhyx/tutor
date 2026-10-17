@@ -68,10 +68,10 @@ feedback/{fid}          developer report (§6)                          client; 
 ```
 IDs: `rid`,`eid`,`fid` = ULID (26 ch Crockford, device clock, sortable,
 offline). `sid` = `YYYYMMDD-HHMMSS-xxxx` (unchanged, PC local). subject /
-module / card ids `[a-z0-9]+(-[a-z0-9]+)*` <=48 ch. Message/receipt keys
-`m%04d`/`r%04d`, never bare numbers (RTDB turns them into arrays). Free text
-(concept names) never a key: arrays only. Client refuses to run if
-`meta.schema` unknown or `min_client` > own version.
+module / card ids: words of `[a-z0-9ąćęłńóśźż]` joined by `-`, NFC only, <=48 chars
+(`contract/slug_vectors.json`). Message/receipt keys `m%04d`/`r%04d`, never bare
+numbers (RTDB turns them into arrays). Free text (concept names) never a key: arrays
+only. Client refuses to run if `meta.schema` unknown or `min_client` > own version.
 
 ## 4. Requests (relay protocol)
 Client PUTs **only** `requests/{rid}/req` (a retry never clobbers claim/result):

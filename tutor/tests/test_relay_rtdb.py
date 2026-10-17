@@ -31,6 +31,9 @@ def test_url_quotes_segments_and_root() -> None:
     db = fake.rtdb()
     assert db.url("requests/a b") == f"{DB}/tutor/v1/requests/a%20b.json"
     assert db.url("/") == f"{DB}/tutor/v1.json"
+    assert db.url("subjects/pojęcia-z-łodzi") == (
+        f"{DB}/tutor/v1/subjects/poj%C4%99cia-z-%C5%82odzi.json"
+    )
     run(db.aclose())
 
 

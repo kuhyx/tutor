@@ -77,11 +77,28 @@ List<Module> removeModule(List<Module> modules, int i) {
   ];
 }
 
-/// Slug of [title], unique among [taken] (`-2`, `-3`... appended).
+/// Base letter + combining mark -> the precomposed Polish letter, so an NFD
+/// spelling slugs like the NFC one (Dart has no normalizer; `ł` has no
+/// decomposition). Python does `unicodedata.normalize('NFC', ...)`.
+final _composePolish = RegExp('[acenosz][̨́̇]');
+const _composed = {
+  'ą': 'ą',
+  'ć': 'ć',
+  'ę': 'ę',
+  'ń': 'ń',
+  'ó': 'ó',
+  'ś': 'ś',
+  'ź': 'ź',
+  'ż': 'ż',
+};
+
+/// Slug of [title], unique among [taken] (`-2`, `-3`... appended). Keeps the
+/// Polish letters (see [slugChars]); same rules as the worker's `slug()`.
 String slugFor(String title, Iterable<String> taken) {
   final words = title
       .toLowerCase()
-      .replaceAll(RegExp('[^a-z0-9]+'), ' ')
+      .replaceAllMapped(_composePolish, (m) => _composed[m[0]] ?? m[0]!)
+      .replaceAll(RegExp('[^$slugChars]+'), ' ')
       .trim()
       .split(' ')
       .where((w) => w.isNotEmpty);
