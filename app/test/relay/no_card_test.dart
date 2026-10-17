@@ -113,6 +113,8 @@ void main() {
     expect(n({'module': 'engine'}).moduleRef(subjects)!.subject, 'car');
     final tie = n({'module': 'fuel', 'subject_title': 'Boats'});
     expect(tie.moduleRef(subjects)!.subject, 'boat');
+    // The title beats the screen's subject (another session may be shown).
+    expect(tie.moduleRef(subjects, hint: 'car')!.subject, 'boat');
     expect(
       n({'module': 'fuel'}).moduleRef(subjects, hint: 'boat')!.subject,
       'boat',

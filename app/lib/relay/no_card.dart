@@ -96,8 +96,9 @@ class NoCardLeft {
   }
 
   /// The module to review, scoped to its subject: the `subject` field, else
-  /// the subject whose plan has [module] ([hint] first, then the one titled
-  /// [subjectTitle]). Null when there is no module or no plan holds it.
+  /// the subject whose plan has [module]: the one titled [subjectTitle]
+  /// first (the worker always sends it), then [hint] (the screen's subject,
+  /// which may be another session's). Null when no plan holds the module.
   ModuleRef? moduleRef(Map<String, SubjectData> subjects, {String? hint}) {
     final id = module;
     if (next != NoCardNext.reviewModule || id == null) return null;
@@ -107,8 +108,8 @@ class NoCardLeft {
     final hinted = subjects[hint];
     final s =
         named ??
-        (hinted != null && has(hinted) ? hinted : null) ??
         candidates.where((s) => s.meta.title == subjectTitle).firstOrNull ??
+        (hinted != null && has(hinted) ? hinted : null) ??
         candidates.firstOrNull;
     if (s == null) return null;
     final title = s.plan?.modules.where((m) => m.id == id).firstOrNull?.title;
