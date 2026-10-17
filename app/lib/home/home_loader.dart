@@ -53,7 +53,12 @@ class HomeSnapshot {
     this.currentSubject,
     this.live,
     this.toReview = const {},
+    this.cardTally = const {},
   });
+
+  /// Subject id -> its cards' tally (done / recalled / due; suspended
+  /// cards not counted).
+  final Map<String, Tally> cardTally;
 
   /// Subject id -> its first module that is done but not reviewed.
   final Map<String, ModuleRef> toReview;
@@ -157,6 +162,7 @@ class HomeLoader {
       currentSubject: current,
       live: live,
       toReview: snap.toReview,
+      cardTally: snap.cardTally,
     );
   }
 
@@ -225,6 +231,10 @@ class HomeLoader {
         for (final e in entries)
           if (e.data case final d?)
             e.id: ?moduleToReview(d, subjectProgress(d, folded, now)),
+      },
+      cardTally: {
+        for (final e in entries)
+          if (e.data case final d?) e.id: subjectProgress(d, folded, now).total,
       },
     );
   }

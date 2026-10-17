@@ -31,6 +31,34 @@ void main() {
     expect(_mastered, findsNothing);
   });
 
+  testWidgets('Home: n/m cards recalled, explained', (t) async {
+    final s = await fixtureServices(fixtureDb(), FakeStream());
+    await s.events.record(
+      TaughtEvent(
+        subject: 'car',
+        card: 'eng-strokes',
+        at: fixtureNow - 30 * 86400000,
+      ),
+    );
+    await s.events.record(
+      ReviewEvent(
+        subject: 'car',
+        card: 'eng-strokes',
+        at: fixtureNow,
+        grade: Grade.good,
+        rev: 1,
+      ),
+    );
+    await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
+    expect(
+      find.textContaining(RegExp(r'^1/\d+ cards recalled')),
+      findsOneWidget,
+    );
+    expect(find.byTooltip(recalledHelp), findsWidgets);
+    expect(find.textContaining('1/4 modules reviewed'), findsOneWidget);
+    expect(_mastered, findsNothing);
+  });
+
   testWidgets('Plan and Progress: module badges done / reviewed', (t) async {
     final s = await fixtureServices(fixtureDb(), FakeStream());
     // fuel's one catalog card taught: the module is done.

@@ -149,6 +149,7 @@ class HomeBody extends StatelessWidget {
           SubjectTile(
             entry: s,
             toReview: data.toReview[s.id],
+            tally: data.cardTally[s.id],
             onReviewModule: onReviewModule,
             current: s.id == data.currentSubject,
             onPlan: () => onPlan(s.id),

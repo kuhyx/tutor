@@ -24,6 +24,7 @@ class SubjectTile extends StatelessWidget {
     required this.onFinish,
     required this.onRetry,
     this.toReview,
+    this.tally,
     this.onReviewModule,
     super.key,
   });
@@ -49,6 +50,9 @@ class SubjectTile extends StatelessWidget {
   /// Failed: drafts the plan again.
   final VoidCallback onRetry;
 
+  /// The subject's cards (recalled / total), when folded.
+  final Tally? tally;
+
   /// A done module waiting for its review.
   final ModuleRef? toReview;
 
@@ -64,6 +68,7 @@ class SubjectTile extends StatelessWidget {
     final teaching =
         status == SubjectStatus.active || status == SubjectStatus.completed;
     final review = toReview;
+    final cards = tally;
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,16 +78,29 @@ class SubjectTile extends StatelessWidget {
               current ? Icons.radio_button_checked : Icons.radio_button_off,
             ),
             title: Text(entry.meta.title),
-            subtitle: Explained(
-              total > 0 ? reviewedModuleHelp : null,
-              child: Text(
-                [
-                  status.wire.replaceAll('_', ' '),
-                  if (total > 0) '$reviewed/$total modules reviewed',
-                  if (current) 'new material from here',
-                  ?entry.meta.error,
-                ].join(' · '),
-              ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Explained(
+                  total > 0 ? reviewedModuleHelp : null,
+                  child: Text(
+                    [
+                      status.wire.replaceAll('_', ' '),
+                      if (total > 0) '$reviewed/$total modules reviewed',
+                      if (current) 'new material from here',
+                      ?entry.meta.error,
+                    ].join(' · '),
+                  ),
+                ),
+                // Per card, a separate stat from the module count above.
+                if (cards != null && cards.cards > 0)
+                  Explained(
+                    recalledHelp,
+                    child: Text(
+                      '${cards.mastered}/${cards.cards} cards recalled',
+                    ),
+                  ),
+              ],
             ),
             onTap: teaching && !current ? onPick : onPlan,
           ),
