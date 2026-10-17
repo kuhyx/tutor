@@ -73,7 +73,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('How a car works'), findsOneWidget);
-    expect(find.text('Review (0 due)'), findsOneWidget);
+    expect(find.textContaining('due)'), findsNothing); // nothing due
     expect(find.text('PC: checking'), findsOneWidget);
     stream.listens[Paths.workers]!
       ..add(const RtdbConnected())

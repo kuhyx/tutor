@@ -126,14 +126,16 @@ class HomeBody extends StatelessWidget {
                       label: Text(entry.label),
                     ),
                     // Every subject's due cards; the tooltip says whose.
-                    _withTip(
-                      _dueSplit(data),
-                      OutlinedButton.icon(
-                        onPressed: onReview,
-                        icon: const Icon(Icons.style),
-                        label: Text('Review (${data.due} due)'),
+                    // Nothing due: no button (kuhy, 2026-10-17).
+                    if (data.due > 0)
+                      _withTip(
+                        _dueSplit(data),
+                        OutlinedButton.icon(
+                          onPressed: onReview,
+                          icon: const Icon(Icons.style),
+                          label: Text('Review (${data.due} due)'),
+                        ),
                       ),
-                    ),
                     OutlinedButton.icon(
                       onPressed: onDrill,
                       icon: const Icon(Icons.touch_app_outlined),
