@@ -96,6 +96,11 @@ def _slugs(value: object) -> list[str]:
     raise ValueError
 
 
+def _requires(value: object) -> list[str]:
+    """Card ids; absent means none, since RTDB stores no empty arrays."""
+    return [] if value is None else _slugs(value)
+
+
 def _module_ids(value: object) -> list[str] | str:
     """``"all"`` or a non-empty list of module ids (``module_pregenerate``)."""
     if value == "all":
@@ -133,7 +138,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "back": _text(MAX_CARD_FIELD, empty=True),
             "source": _text(MAX_CARD_FIELD, empty=True),
             "excerpt": _text(MAX_CARD_FIELD, empty=True),
-            "requires": _slugs,
+            "requires": _requires,
         },
     ),
     # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).

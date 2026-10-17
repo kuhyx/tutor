@@ -178,3 +178,19 @@ def test_done_map_records_prunes_and_survives_bad_lines(tmp_path: Path) -> None:
     assert len(path.read_text().splitlines()) == 1
     untouched = DoneMap(path, now=KEEP_S + 500.0)
     assert untouched.get(RID) is not None
+
+
+def test_card_edit_requires_absent_is_empty() -> None:
+    # RTDB stores no empty arrays: a card with no prerequisites arrives without
+    # ``requires`` at all, and must still be editable from the phone.
+    body = {
+        "subject": "car",
+        "card": "c",
+        "module": "engine",
+        "front": "f",
+        "back": "b",
+        "source": "https://x",
+        "excerpt": "e",
+    }
+    got = protocol.validate(RID, req("card_edit", **body))
+    assert got.body["requires"] == []
