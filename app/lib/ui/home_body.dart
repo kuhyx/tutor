@@ -105,7 +105,8 @@ class HomeBody extends StatelessWidget {
                   Text(
                     'Credited ${today.creditedMinutes}/${today.target} min'
                     '${_active(today.activeMinutes)}'
-                    ' · new cards ${today.newCards}/${today.newCap}',
+                    ' · new cards ${today.newCards}/${today.newCap}'
+                    '${today.newCapLifted ? ' (limit lifted)' : ''}',
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   LinearProgressIndicator(

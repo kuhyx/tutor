@@ -13,6 +13,7 @@ class Today {
     required this.newCards,
     required this.newCap,
     this.activeMinutes,
+    this.newCapLifted = false,
   });
 
   /// Parses `stats.today`.
@@ -23,6 +24,7 @@ class Today {
     target: integer(j, 'target'),
     newCards: integer(j, 'new'),
     newCap: integer(j, 'new_cap'),
+    newCapLifted: j['new_cap_lifted'] == true,
   );
 
   /// PC-local date `YYYY-MM-DD`.
@@ -40,8 +42,11 @@ class Today {
   /// Cards taught today.
   final int newCards;
 
-  /// Daily new-card cap (10).
+  /// Daily new-card cap (25 by default; Settings sets it).
   final int newCap;
+
+  /// The cap was lifted for the rest of today ("Learn more anyway").
+  final bool newCapLifted;
 
   /// Wire form.
   Json toJson() => {
@@ -51,6 +56,7 @@ class Today {
     'target': target,
     'new': newCards,
     'new_cap': newCap,
+    if (newCapLifted) 'new_cap_lifted': true,
   };
 }
 
