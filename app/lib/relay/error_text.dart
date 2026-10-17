@@ -38,7 +38,8 @@ String headlineFor(String? code) =>
 /// Headline plus the worker's [error] detail when it adds something.
 String errorText(String? code, String? error) {
   final headline = headlineFor(code);
-  final detail = error?.trim() ?? '';
+  // no_card_left's detail names the subject id: never shown (see no_card).
+  final detail = code == 'no_card_left' ? '' : error?.trim() ?? '';
   return detail.isEmpty ? headline : '$headline $detail';
 }
 

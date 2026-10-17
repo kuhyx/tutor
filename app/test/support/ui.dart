@@ -69,13 +69,16 @@ Future<void> pumpScreen(
   );
 }
 
-/// Answers the latest request with [data] (or an error [code]).
+/// Answers the latest request with [data] (or an error [code] with [error]
+/// and the [extra] fields the worker adds to the result node).
 Future<Map<String, dynamic>> answer(
   WidgetTester tester,
   FakeRtdb db,
   FakeStream stream, {
   Map<String, Object?> data = const {},
   String? code,
+  String error = 'x',
+  Map<String, Object?> extra = const {},
   bool settle = true,
 }) async {
   final (rid, req) = lastRequest(db);
@@ -83,7 +86,7 @@ Future<Map<String, dynamic>> answer(
     RtdbPut('/', {
       'result': code == null
           ? {'ok': true, 'at': 1, 'data': data}
-          : {'ok': false, 'at': 1, 'code': code, 'error': 'x'},
+          : {...extra, 'ok': false, 'at': 1, 'code': code, 'error': error},
     }),
   );
   settle ? await tester.pumpAndSettle() : await sent(tester);

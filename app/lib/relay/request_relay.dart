@@ -14,6 +14,7 @@ import 'package:tutor/model/json.dart';
 import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/error_text.dart';
+import 'package:tutor/relay/no_card.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -83,10 +84,14 @@ class RelayFailed extends RelayStatus {
     required this.text,
     this.retry = false,
     this.unavailable,
+    this.noCard,
   });
 
   /// Error code.
   final String? code;
+
+  /// For `no_card_left`: the subject title and the next step.
+  final NoCardLeft? noCard;
 
   /// Text for kuhy.
   final String text;
@@ -105,9 +110,12 @@ RelayStatus statusOf(Object? node) {
   if (result != null) {
     final r = RequestResult.fromJson(result);
     if (r.ok) return RelayDone(r.data);
+    // The worker's text would name the subject id; ours names its title.
+    final noCard = r.code == noCardLeft ? NoCardLeft.fromResult(result) : null;
     return RelayFailed(
       code: r.code,
-      text: errorText(r.code, r.error),
+      text: noCard?.text() ?? errorText(r.code, r.error),
+      noCard: noCard,
       retry: r.retry,
       unavailable: r.code == claudeUnavailable
           ? Unavailable.fromError(result)

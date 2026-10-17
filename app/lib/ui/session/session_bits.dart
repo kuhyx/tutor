@@ -3,11 +3,14 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/app/services.dart';
 import 'package:tutor/model/request_body.dart';
+import 'package:tutor/relay/no_card.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/nav.dart';
 
 /// Card done: Next card / Stop here.
 class CardEnd extends StatelessWidget {
@@ -35,15 +38,25 @@ class CardEnd extends StatelessWidget {
   );
 }
 
-/// The request status, plus Continue when the session is no longer live.
+/// The request status, plus Continue when the session is no longer live,
+/// or "Review" + the module title when no card is left and a module waits
+/// for its review.
 class NotLiveStatus extends StatelessWidget {
   /// Creates the line.
   const new({
+    required this.services,
     required this.runner,
     required this.view,
     required this.onRun,
+    this.subject,
     super.key,
   });
+
+  /// Services (the catalog and Review, for the module review).
+  final TutorServices services;
+
+  /// The screen's subject (a hint for the module's subject).
+  final String? subject;
 
   /// Runner.
   final RequestRunner runner;
@@ -69,10 +82,38 @@ class NotLiveStatus extends StatelessWidget {
               child: const Text('Continue this session'),
             ),
           ),
+        if (s is RelayFailed &&
+            s.noCard?.next == NoCardNext.reviewModule &&
+            s.noCard?.module != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: () => _review(context, s.noCard!),
+              child: Text('Review ${s.noCard!.moduleTitle ?? 'this module'}'),
+            ),
+          ),
       ],
     ),
   );
+
+  // The payload names the module but not the subject id: the cached plan
+  // that holds the module does (the screen's subject first).
+  Future<void> _review(BuildContext context, NoCardLeft n) async {
+    final ref = n.moduleRef(await services.catalog.cached(), hint: subject);
+    if (ref != null && context.mounted) {
+      await openReview(context, services, module: ref);
+    }
+  }
 }
+
+/// The bottom panel's frame: on the phone the step bar stays pinned and
+/// the composer scrolls itself; elsewhere the whole panel scrolls.
+Widget sessionPanel(Widget child, {required bool phone}) => phone
+    ? Padding(padding: const EdgeInsets.all(AppSpacing.md), child: child)
+    : SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: child,
+      );
 
 /// A session with nothing to show yet: the first tutor turn (or the
 /// request that finds the session) is on its way.

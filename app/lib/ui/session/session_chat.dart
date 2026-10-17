@@ -161,14 +161,17 @@ class _SessionChatState extends State<SessionChat> {
           const Divider(height: 1),
           ConstrainedBox(
             constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
-            child: _panel(
+            child: sessionPanel(
+              phone: widget.phone,
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   NotLiveStatus(
+                    services: widget.services,
                     runner: widget.runner,
                     view: view,
+                    subject: meta?.subject,
                     onRun: widget.onRun,
                   ),
                   if (live && meta.cardDone)
@@ -213,14 +216,6 @@ class _SessionChatState extends State<SessionChat> {
 
   // The height share the composer may take (the chat stays the scroller).
   double get _share => widget.keyboard ? 0.7 : (widget.phone ? 0.5 : 0.4);
-
-  // Phone: the step bar stays pinned, the composer scrolls itself.
-  Widget _panel(Widget child) => widget.phone
-      ? Padding(padding: const EdgeInsets.all(AppSpacing.md), child: child)
-      : SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: child,
-        );
 
   Widget _tile(
     KeyedMessage m,
