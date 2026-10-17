@@ -60,6 +60,14 @@ ignore = [
 "tutor/curriculum/regen.py" = ["T201"]
 # Dev tool: the printed JSON is the smoke run's evidence.
 "scripts/curriculum_smoke.py" = ["T201"]
+# Agent E2E (scripts/e2e_sandbox.sh): the printed steps, seed counts and the
+# device id are the run's evidence; the driver reads a loopback http
+# emulator; Chrome's --remote-debugging-pipe needs fds 3/4 placed in the
+# child before exec (preexec_fn).
+"scripts/e2e_drive.py" = ["T201", "S310"]
+"scripts/e2e_prepare.py" = ["T201"]
+"scripts/e2e_server.py" = ["T201"]
+"scripts/e2e_cdp.py" = ["PLW1509"]
 # ``publish-all`` prints its counts: the evidence the migration ran.
 "tutor/relay/cli.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).

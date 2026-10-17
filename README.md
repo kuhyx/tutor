@@ -37,6 +37,36 @@ smoke-test server, in its own `systemd-run --user` unit.
 | server log | `~/.local/state/tutor/server.log` |
 | releases | `~/.local/lib/tutor-live` (fixed: `tutor.service` runs its `current`) |
 
+## Agent E2E
+
+`scripts/e2e_sandbox.sh` lets an agent click through the real web app
+against the real engine and relay without touching live state. It copies
+`~/.local/share/tutor` into a `mktemp` dir. The copy has no ledger, a
+throwaway key and a fresh device id; the live id is rewritten. The relay
+talks to a local Firebase RTDB emulator (the cached
+`firebase-database-emulator` jar), never the real database, and the server
+uses a free port, never :8778. The app build is `app/tool/e2e/main.dart`:
+the real services pointed at the emulator, with semantics on so the driver
+can find buttons by label. The driver (`scripts/e2e_drive.py`) runs Chromium
+over `--remote-debugging-pipe` on the Xvfb `:97`. It taps buttons, checks
+the outcome in the emulator (the request result, `live.card`, the first
+tutor message) and saves `app/build/screens/e2e_<flow>_*.png`. Model calls
+are real. Each command fits in 60 s:
+
+```bash
+scripts/e2e_sandbox.sh build                                    # after app changes (~25 s)
+scripts/e2e_sandbox.sh up --as-of "2026-10-17 22:00"            # F1 sandbox
+scripts/e2e_sandbox.sh flow F1   # Continue learning -> E2E_CARD (vhost-what) + tutor message
+scripts/e2e_sandbox.sh up --new-cap 10 --as-of "2026-10-17 22:00"
+scripts/e2e_sandbox.sh flow F2   # daily cap -> "Learn more anyway" -> E2E_CARD
+scripts/e2e_sandbox.sh down
+```
+
+`--as-of` rewinds the copy to a reported moment: later log events,
+transcripts and drill logs are dropped. `--new-cap N` adds a Settings
+`new_cap` event. A flow exits 0 on PASS. Otherwise it prints
+`FAIL <flow> step N: ...`, the page's console errors and a `_fail.png`.
+
 ## The deck
 
 `subjects/automation/deck/<topic>.json` holds the cards, one array per topic

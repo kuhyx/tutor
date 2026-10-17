@@ -48,4 +48,5 @@ Read README.md first. These are the invariants that are easy to break.
 - app test: `cd app && fvm flutter test` (one file: `fvm flutter test test/<path>_test.dart`)
 - app coverage: `cd app && fvm flutter test --coverage && dart run tool/check_coverage.dart`
 - app build (desktop, served at /app/): `cd app && fvm flutter build web --release --base-href /app/`
+- agent E2E (real app + engine + relay on a data-dir copy and a local RTDB emulator; README "Agent E2E"): `scripts/e2e_sandbox.sh build`, then `up [--new-cap N] [--as-of "YYYY-MM-DD HH:MM"]`, `flow F1|F2`, `down` (one call each, < 60 s)
 - app screenshots: `cd app && fvm flutter build web --release -t tool/fixture/main.dart -o build/web_fixture --base-href /app/`, serve with `TUTOR_WEBAPP_DIR=$PWD/build/web_fixture .venv/bin/python -m uvicorn --factory tutor.webapp:standalone_app --port 8791`, then `tool/screenshot.sh /session 1366x768 build/screens/x.png` (needs an Xvfb on :97)
