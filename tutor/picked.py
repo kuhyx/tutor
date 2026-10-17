@@ -8,6 +8,8 @@ before it answers (:func:`note`), and whatever it returns, :func:`refuse`
 takes the pass, the mastery and ``card_done`` back out of the turn and makes
 sure the learner is asked one short why, which must be typed (no choices).
 Fail-safe: a tap on any box counts, since a check turn asks nothing else.
+Since 2026-10-17 a check is typed (no choices), so only a check logged
+before then, resumed with its old chips, can still be tapped.
 """
 
 from __future__ import annotations

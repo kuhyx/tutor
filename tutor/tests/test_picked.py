@@ -88,12 +88,12 @@ def test_tapped_finds_only_an_answer_line_ending_in_the_marker() -> None:
     assert picked.note(tap=True) == [picked.NOTE]
 
 
-def test_the_check_carries_three_mixed_choices_to_the_page(tmp_path: Path) -> None:
+def test_the_check_reaches_the_page_typed_without_choices(tmp_path: Path) -> None:
     engine, _ = make(tmp_path)
     check = engine.state()["messages"][-1]["check"]
     assert check["question"] == CHECK["question"]
-    assert sorted(check["choices"]) == sorted(OPTIONS)
-    assert tutor_log(engine)[0]["check"]["choices"] == check["choices"]
+    assert check["choices"] == []
+    assert tutor_log(engine)[0]["check"]["choices"] == []
     # The phone reads it from the relay projection (``check`` is passed whole).
     deck = history.View({c.id: c.front for c in engine.deck}, "", set(), set())
     src = views.Sources(deck, engine.time(), lambda _r: None, lambda _p: None)
@@ -169,7 +169,7 @@ def test_a_tapped_wrong_answer_is_graded_like_a_typed_one(tmp_path: Path) -> Non
     state = asyncio.run(engine.reply(TAP, msg_id="m1"))
     last = state["messages"][-1]
     assert last["check_result"] == FAIL
-    assert sorted(last["check"]["choices"]) == sorted(OPTIONS)  # attempt 2
+    assert last["check"]["question"] == CHECK["question"]  # attempt 2
     assert state["check_open"] is True
     assert engine._conv is not None
     assert engine._conv.check.attempt == 2

@@ -13,7 +13,7 @@ Map<String, Object?> fixtureComposeMsg(int now) => {
       'Good. Now three quick ones on the **cycle**:\n\n'
       '- the valves open and close on a schedule\n'
       '- the crankshaft turns twice per cycle\n\n'
-      'Answer in your own words; a guess is fine.',
+      'Answer in one sentence; a guess is fine.',
   'questions': [
     'Which stroke makes the power?',
     'Why does the crankshaft turn twice per cycle?',

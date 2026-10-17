@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final
 
 from tutor import choices as choices_mod
+from tutor import wording
 
 ELEMENT_KINDS: Final = (
     "dc_source",
@@ -58,10 +59,7 @@ _CHOICES_DOC: Final = (
     "One entry per `questions` entry, same order. A question with one right "
     "answer: exactly 3 short answers (each at most 12 words), the right one "
     "and two plausible wrong ones, mixed, none marked. An open question "
-    "(diagnose, explain in your own words): []."
-)
-_CHECK_CHOICES_DOC: Final = (
-    "Always 3 short answers (one right); [] only for the why after a tap."
+    "(diagnose, why, explain): []."
 )
 
 
@@ -117,13 +115,9 @@ TURN_SCHEMA: Final = {
                 "properties": {
                     "question": _STR,
                     "concept": _STR,
-                    "choices": {
-                        "type": "array",
-                        "description": _CHECK_CHOICES_DOC,
-                        "items": _STR,
-                    },
                 },
-                "required": ["question", "concept", "choices"],
+                # Typed, never tapped: `choices.repair_check` sets [].
+                "required": ["question", "concept"],
                 "additionalProperties": False,
             }
         ),
@@ -235,9 +229,10 @@ class TutorTurn:
         ):
             msg = "check_result.passed must be a boolean"
             raise TurnError(msg)
-        questions, choices = choices_mod.pair(raw["questions"], raw.get("choices"))
+        said = [wording.scrub(str(q)) for q in raw["questions"]]
+        questions, choices = choices_mod.pair(said, raw.get("choices"))
         return cls(
-            message=raw["message"].strip(),
+            message=wording.scrub(raw["message"]).strip(),
             low_effort=raw["low_effort"],
             questions=questions,
             choices=choices,

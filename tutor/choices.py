@@ -6,13 +6,15 @@ question with one right answer, and none under an open one. Its output is
 repaired, never trusted: an entry that is not three distinct short strings
 becomes ``[]``, and the list is padded or cut to line up with the questions.
 Turns logged before choices existed read as all ``[]``. The comprehension
-check carries its own under ``check["choices"]`` (:func:`repair_check`).
+check is typed: its ``check["choices"]`` is always ``[]`` (:func:`repair_check`).
 """
 
 from __future__ import annotations
 
 import secrets
 from typing import TYPE_CHECKING, Any, Final
+
+from tutor import wording
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -49,10 +51,13 @@ def mixed(choice: Choice) -> Choice:
 
 
 def repair_check(raw: object) -> dict[str, Any] | None:
-    """The model's check with its choices repaired and mixed (``[]`` if not 3)."""
+    """The model's check with no choices: it is the one final, typed question."""
     if not isinstance(raw, dict):
         return None
-    return {**raw, "choices": list(mixed(entry(raw.get("choices"))))}
+    question = raw.get("question")
+    if isinstance(question, str):
+        raw = {**raw, "question": wording.scrub(question)}
+    return {**raw, "choices": []}
 
 
 def _at(raw: object, index: int) -> object:

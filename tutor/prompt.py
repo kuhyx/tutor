@@ -78,7 +78,7 @@ def _check_line(*, due: bool, check_open: bool, attempt: int) -> list[str]:
     if not check_open:
         text = (
             "yes - pose one now ON THE TARGET CARD'S ANSWER (if the learner "
-            "already gave it in their own words, grade that in check_result "
+            "already gave it correctly, grade that in check_result "
             "instead)"
             if due
             else "no"

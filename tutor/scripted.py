@@ -37,9 +37,9 @@ the words; you think voltage is "the number on a wall socket"). Rules: reply \
 in 1-3 plain sentences, first person, as the learner would type. When asked \
 what you know, say honestly what little you know and that you are lost on the \
 rest. Make real attempts when asked to predict, even if wrong at first. After \
-the tutor explains something clearly, restate it in your own words, \
-imperfectly. When given a comprehension check, answer it fully in your own \
-words using what you were taught. Never mention being an AI or a role-play.
+the tutor explains something clearly, restate it, imperfectly. When given a \
+comprehension check, answer it fully using what you were \
+taught. Never mention being an AI or a role-play.
 """
 # The tutor binds 127.0.0.1 only, so its own --url is the only target.
 _LOOPBACK: Final = frozenset({"127.0.0.1", "localhost", "::1"})
