@@ -121,6 +121,29 @@ def test_subject_concepts(tmp_path: Path) -> None:
     assert src.mastered() == ["piston", "valve"]
 
 
+def test_no_card_left_reads_the_title_and_ignores_the_skip(tmp_path: Path) -> None:
+    ctx, _ = make_ctx(tmp_path)
+    subject(ctx, found={"a1": card("a", 1), "a2": card("a", 2)})
+    ctx.log.append(
+        [
+            {
+                "dev": "d",
+                "eid": ulid(1_800_000_000_000, bytes(10)),
+                "k": "taught",
+                "s": "car",
+                "c": "a1",
+                "at": 1_800_000_000_000,
+            }
+        ]
+    )
+    src = SubjectSource(Store(tmp_path), ctx, "car")
+    with pytest.raises(RequestError) as err:
+        src.pick(None, skip="a2")  # a2 is untaught: "a" is not fully taught
+    assert err.value.code == "no_card_left"
+    assert err.value.extra["subject_title"] == "Cars"
+    assert err.value.extra["next"] == "reviews_due"
+
+
 def test_deck_source_skip_and_none_left(tmp_path: Path) -> None:
     src = DeckSource(Store(tmp_path))
     first = src.pick(None)

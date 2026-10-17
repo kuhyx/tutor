@@ -17,13 +17,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 from tutor.credit import local_day
-from tutor.curriculum.errors import (
-    DAILY_NEW_CAP,
-    LOCKED,
-    NO_CARD_LEFT,
-    UNKNOWN_CARD,
-    RequestError,
-)
+from tutor.curriculum.errors import DAILY_NEW_CAP, LOCKED, UNKNOWN_CARD, RequestError
+from tutor.curriculum.no_card import no_card_left
 
 if TYPE_CHECKING:
     from tutor.curriculum.fold import CardFold, Fold
@@ -43,6 +38,7 @@ class View:
     subject: str
     plan: Plan
     cards: dict[str, CardRec]
+    title: str = ""  # shown instead of the slug (``no_card_left``)
 
     def module_cards(self, module_id: str) -> list[tuple[str, CardRec]]:
         """The module's cards in ``order``."""
@@ -157,20 +153,55 @@ def _open(view: View, card: CardRec, fold: Fold) -> bool:
     return not card.suspended and all(need in taught for need in card.requires)
 
 
-def _first(view: View, fold: Fold) -> str | None:
+def _first(view: View, fold: Fold, skip: str) -> str | None:
     taught = fold.taught_ids(view.subject)
     for module in view.plan.modules:
         if module.status not in OPEN or not unlocked(view, module, fold):
             continue
         for cid, card in view.module_cards(module.id):
             flagged = fold.card(view.subject, cid).flagged(card.rev)
-            if cid not in taught and not flagged and _open(view, card, fold):
+            fresh = cid not in taught and cid != skip
+            if fresh and not flagged and _open(view, card, fold):
                 return cid
     return None
 
 
-def pick(view: View, fold: Fold, card_id: str | None, now_ms: int) -> str:
+def _to_review(view: View, fold: Fold) -> Module | None:
+    """The first ``ready`` module fully taught but not yet reviewed."""
+    taught = fold.taught_ids(view.subject)
+    for module in view.plan.modules:
+        cards = counted(view, module.id, fold)
+        done = bool(cards) and all(cid in taught for cid, _ in cards)
+        if (
+            module.status == "ready"
+            and done
+            and not module_reviewed(view, module.id, fold)
+        ):
+            return module
+    return None
+
+
+def _no_card(view: View, fold: Fold, now_ms: int) -> RequestError:
+    """``no_card_left`` with the subject's title and its next step."""
+    states = [
+        s.fsrs_state() for m in view.plan.modules for _, s in counted(view, m.id, fold)
+    ]
+    dues = [state["due"] for state in states if state is not None]
+    return no_card_left(
+        view.title,
+        module=_to_review(view, fold),
+        due_at=min(dues) if dues else None,
+        writing=any(m.status == "generating" for m in view.plan.modules),
+        now_ms=now_ms,
+    )
+
+
+def pick(
+    view: View, fold: Fold, card_id: str | None, now_ms: int, skip: str = ""
+) -> str:
     """The card a session teaches: ``card_id`` if open, else the next one.
+
+    ``skip`` (no ``card_id``): never that card (Next card leaves it).
 
     Raises ``unknown_card``, ``locked``, ``no_card_left`` or, when it would
     teach an untaught card with 10 new cards already taught today,
@@ -190,10 +221,9 @@ def pick(view: View, fold: Fold, card_id: str | None, now_ms: int) -> str:
             raise RequestError(LOCKED, msg)
         chosen = card_id
     else:
-        found = _first(view, fold)
+        found = _first(view, fold, skip)
         if found is None:
-            msg = f"no open card left in {view.subject}"
-            raise RequestError(NO_CARD_LEFT, msg)
+            raise _no_card(view, fold, now_ms)
         chosen = found
     is_new = not fold.card(view.subject, chosen).taught
     if is_new and new_today(fold, now_ms) >= NEW_CAP:

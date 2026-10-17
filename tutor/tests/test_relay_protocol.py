@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from claude_agent_sdk import ClaudeSDKError
 import pytest
 
+from tutor.curriculum.errors import RequestError as CurriculumError
 from tutor.relay import errors, protocol
 from tutor.relay.done import KEEP_S, DoneMap
 from tutor.relay.errors import RequestError, classify, result_of
@@ -165,6 +166,18 @@ def test_classify() -> None:
         "retry": False,
     }
     assert "gave_up" in errors.CODES
+
+
+def test_curriculum_error_fields_reach_the_result() -> None:
+    extra = {"subject_title": "Cars", "next": "reviews_due", "due_at": 5}
+    got = classify(CurriculumError("no_card_left", "Cars — x", extra=extra))
+    assert result_of(got) == {
+        **extra,
+        "ok": False,
+        "code": "no_card_left",
+        "error": "Cars — x",
+        "retry": False,
+    }
 
 
 def test_done_map_records_prunes_and_survives_bad_lines(tmp_path: Path) -> None:

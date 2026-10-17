@@ -69,6 +69,13 @@ seeder once to give the tutor its own refresh token.
   parts; `rev.catalog` + 1), PATCH own `taught`/`untaught` events to
   `log/{worker}`, queue `generate` pairs. One generation at a time, under the
   build lock; a module whose generation raised is not retried until restart.
+- `no_card_left` (`session_start` / `next` with no open card) also carries
+  `subject_title` and `next`: `review_module` (+`module` id, `module_title`:
+  the first `ready` module fully taught, not yet reviewed), else
+  `reviews_due` (+`due_at` ms: earliest FSRS due of a taught, unflagged,
+  unsuspended card), else `none`. `error` = the subject's title (never the
+  slug) + that step, e.g. `Hosting WWW — all cards of “DNS i CNAME” are
+  taught. Review them to open the next module.`
 - Stats node: `handlers.stats(engine.ctx)`. `session_start` / `card_done` pass
   `subject`; `live.subject` = `engine.source.subject`.
 

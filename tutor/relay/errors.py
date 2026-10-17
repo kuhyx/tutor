@@ -76,6 +76,7 @@ def _coded(err: BaseException) -> RequestError | None:
             str(getattr(err, "message", None) or err),
             code=code,
             retry=bool(getattr(err, "retry", False)),
+            extra=dict(getattr(err, "extra", None) or {}),
         )
     return None
 

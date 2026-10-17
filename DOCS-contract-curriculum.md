@@ -192,7 +192,7 @@ pass the same vectors.
 - Next-card pick (worker): subject = `body.subject` or
   `prefs.current_subject`; first card in (module order, card order) that is
   untaught, not flagged/suspended, card `requires` taught, in an unlocked +
-  `ready`/`mastered` module. None -> `no_card_left`. An explicit card: unknown
+  `ready`/`mastered` module. None -> `no_card_left` (+next step: DOCS-relay). Explicit card: unknown
   -> `unknown_card`; its module not open or its requires untaught -> `locked`.
 - Teaching flow unchanged: one card per session, check questions, tutor
   `card_done` -> `taught` event, then Next card / Stop here. First FSRS review

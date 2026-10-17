@@ -119,7 +119,9 @@ class SubjectSource:
         if plan is None:
             msg = f"{self.subject} has no plan yet"
             raise RequestError(BAD_REQUEST, msg)
-        return rules.View(self.subject, plan, self.ctx.subjects.cards(self.subject))
+        meta = self.ctx.subjects.meta(self.subject)
+        cards = self.ctx.subjects.cards(self.subject)
+        return rules.View(self.subject, plan, cards, meta.title if meta else "")
 
     def cards(self) -> list[Card]:
         """Every non-suspended card of a module that has cards, in order."""
@@ -141,11 +143,8 @@ class SubjectSource:
 
     def pick(self, card_id: str | None, skip: str = "") -> Card:
         """``rules.pick`` over the subject (``skip`` left out of the pick)."""
-        view = self._view()
-        if skip and not card_id:
-            kept = {k: v for k, v in view.cards.items() if k != skip}
-            view = rules.View(view.subject, view.plan, kept)
-        chosen = rules.pick(view, self.ctx.fold(), card_id, self.ctx.clock())
+        view, fold, now = self._view(), self.ctx.fold(), self.ctx.clock()
+        chosen = rules.pick(view, fold, card_id, now, "" if card_id else skip)
         return next(c for c in self.cards() if c.id == chosen)
 
     def mark(self, card_id: str, session: str, *, done: bool) -> None:

@@ -45,18 +45,25 @@ class RequestError(ValueError):
     400 keep working when the engine raises one.
     """
 
-    def __init__(self, code: str, message: str) -> None:
-        """``code`` must be one of :data:`CODES`."""
+    def __init__(
+        self, code: str, message: str, *, extra: dict[str, object] | None = None
+    ) -> None:
+        """``code`` must be one of :data:`CODES`.
+
+        ``extra`` fields join the result node (``no_card_left``'s next step).
+        """
         if code not in CODES:
             msg = f"unknown error code {code!r}"
             raise ValueError(msg)
         super().__init__(message)
         self.code = code
         self.message = message
+        self.extra = extra or {}
 
     def result(self, at: int) -> dict[str, object]:
         """The request's ``result`` node for this error."""
         return {
+            **self.extra,
             "ok": False,
             "at": at,
             "code": self.code,
