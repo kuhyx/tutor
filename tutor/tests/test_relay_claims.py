@@ -127,19 +127,37 @@ def test_keep_renews_mirrors_busy_and_survives_a_takeover(
     assert "claim write failed" in caplog.text
 
 
-def test_clear_busy_without_busy_is_a_no_op() -> None:
+def test_clear_busy_without_a_session_is_a_no_op() -> None:
     fake = FakeRtdb()
 
     async def go() -> None:
         db = fake.rtdb()
         claim = Claim(db, RID, "w1", lambda: NOW)
-        await claim.clear_busy()
-        claim.busy_session = "20261012-172346-1a58"
-        await claim.clear_busy()  # never shown: nothing written
+        assert await claim.clear_busy()
         await db.aclose()
 
     asyncio.run(go())
     assert fake.log == []
+
+
+def test_clear_busy_reports_a_failed_write(caplog: pytest.LogCaptureFixture) -> None:
+    fake = FakeRtdb()
+    sid = "20261012-172346-1a58"
+    fake.fail[("PATCH", f"/sessions/{sid}/meta")] = 503
+
+    async def go() -> bool:
+        db = fake.rtdb()
+        claim = Claim(db, RID, "w1", lambda: NOW)
+        claim.busy_session = sid  # never mirrored by this claim: cleared anyway
+        try:
+            return await claim.clear_busy()
+        finally:
+            await db.aclose()
+
+    with caplog.at_level(logging.WARNING):
+        assert asyncio.run(go()) is False
+    assert fake.log == [("PATCH", f"/sessions/{sid}/meta")]
+    assert "busy clear" in caplog.text
 
 
 class _Scripted(TutorSession):

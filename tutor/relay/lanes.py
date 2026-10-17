@@ -39,6 +39,9 @@ class Server:
         """Bind the worker's collaborators."""
         self.w, self.curriculum = wiring, curriculum
         self.current: dict[str, str | None] = {"chat": None, "build": None}
+        # Sessions whose ``meta/busy`` may still show: a clear that failed, or
+        # (seeded at startup) one a previous process left behind.
+        self.stale_busy: set[str] = set()
 
     async def serve(self, rid: str, req: object, lane: str) -> dict[str, Any] | None:
         """Serve ``rid``; returns the result written (``None``: not ours to serve)."""
@@ -52,11 +55,26 @@ class Server:
         self.current[lane] = rid
         try:
             result = await self._run(claim, req)
-        finally:
+        finally:  # a bug or a cancel must not leave Send disabled
             self.current[lane] = None
-        await claim.clear_busy()
+            if await claim.clear_busy():
+                self.stale_busy.discard(claim.busy_session)
+            else:
+                self.stale_busy.add(claim.busy_session)
         await self._put_result(rid, result)
         return result
+
+    async def sweep_busy(self) -> None:
+        """Clear :attr:`stale_busy` while no request is in flight (failures wait)."""
+        if any(self.current.values()):
+            return
+        for sid in sorted(self.stale_busy):
+            try:
+                await self.w.rtdb.patch(f"sessions/{sid}/meta", {"busy": None})
+            except RtdbError as err:
+                _logger.warning("busy sweep on %s failed: %s", sid, err)
+                return
+            self.stale_busy.discard(sid)
 
     def _commit(self, rid: str, raw: object, result: dict[str, Any]) -> None:
         """The done-map row: after it, ``rid`` is never run again."""

@@ -36,6 +36,10 @@ seeder once to give the tutor its own refresh token.
   validate (`protocol.py`), handler, commit, publish, `result`.
 - `claims.py` is the only writer of `requests/{rid}/claim` (holds the ETag;
   renews every 60 s; mirrors phases to `sessions/{sid}/meta/busy`).
+  `busy` always clears: `serve()` clears it in a `finally` (bugs, cancels),
+  a failed clear joins `Server.stale_busy`, and `sweep_busy()` retries it
+  whenever no request is in flight (startup seeds the live session, then
+  every refresh).
   `phases.py` reports `thinking`/`images`/`checking_images` from the
   engine's model session (an injected session factory, no engine hooks).
 - `chat.py` the session kinds; `projection.py` + `views.py` +

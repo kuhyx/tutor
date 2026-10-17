@@ -61,7 +61,6 @@ class Claim:
         self._etag = ""
         self._since = now()
         self._changed = asyncio.Event()
-        self._busy_shown = False
 
     @property
     def path(self) -> str:
@@ -118,7 +117,6 @@ class Claim:
             "text": self.busy_text,
         }
         await self._rtdb.patch(f"sessions/{self.busy_session}/meta", {"busy": node})
-        self._busy_shown = True
 
     async def keep(self) -> None:
         """Renew the lease every minute and publish phase changes; until cancelled."""
@@ -139,9 +137,17 @@ class Claim:
         except RtdbError as err:
             _logger.warning("claim write failed: %s", err)
 
-    async def clear_busy(self) -> None:
-        """Remove ``busy`` if this claim showed it (failures: publish clears it)."""
-        if self.busy_session and self._busy_shown:
-            await self._guarded(
-                self._rtdb.patch(f"sessions/{self.busy_session}/meta", {"busy": None})
-            )
+    async def clear_busy(self) -> bool:
+        """Remove ``busy`` whenever a session is named (False: the write failed).
+
+        Unconditional: a mirror PATCH can land and still fail or be cancelled
+        here, and a previous process may have left the flag behind.
+        """
+        if not self.busy_session:
+            return True
+        try:
+            await self._rtdb.patch(f"sessions/{self.busy_session}/meta", {"busy": None})
+        except RtdbError as err:
+            _logger.warning("busy clear on %s failed: %s", self.busy_session, err)
+            return False
+        return True

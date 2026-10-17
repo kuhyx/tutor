@@ -80,6 +80,9 @@ class Relay:
                 _logger.warning("relay startup failed (%s); retry in %.0fs", err, delay)
                 await asyncio.sleep(delay)
                 continue
+            if sid := self.w.engine.session_id:  # nothing is in flight yet
+                self.server.stale_busy.add(sid)
+            await self.server.sweep_busy()
             _logger.warning(
                 "relay up as worker %s; %d session(s) re-published",
                 self.w.worker,
@@ -107,6 +110,7 @@ class Relay:
             rounds += 1
             try:
                 await self.w.publisher.refresh()
+                await self.server.sweep_busy()
                 if rounds % CURRICULUM_EVERY == 0:
                     await self.curriculum.sync()
                 if rounds % STATS_EVERY == 0:
