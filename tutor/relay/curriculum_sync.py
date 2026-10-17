@@ -5,7 +5,9 @@
 device's new ``log/{dev}`` events into the local log, re-folds
 (``fold_and_advance``), publishes every subject whose local ``rev`` moved,
 PATCHes this worker's own ``taught``/``untaught`` events to ``log/{own}``,
-and queues card generation. Generation (minutes of model time) runs one
+queues card generation, and pays new app-review minutes
+(:mod:`tutor.review_credit`; a failure there is logged, never blocks the
+rest). Generation (minutes of model time) runs one
 module at a time under the build lane's lock, so it never overlaps a build
 request (``DOCS-contract-curriculum.md`` §9).
 """
@@ -17,6 +19,7 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from tutor import review_credit
 from tutor.curriculum import handlers as cur
 from tutor.curriculum.subject_store import read_json
 from tutor.relay import hooks
@@ -141,6 +144,7 @@ class CurriculumSync:
             if key not in self._queued and key not in self._failed:
                 self._queued.add(key)
                 self.queue.put_nowait(key)
+        await asyncio.to_thread(review_credit.credit_now, self.ctx, self.w.now())
 
     async def generate_forever(self) -> None:
         """Generate queued modules' cards, one at a time, under the build lock."""
