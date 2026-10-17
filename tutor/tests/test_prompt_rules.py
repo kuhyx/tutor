@@ -1,0 +1,65 @@
+# Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
+"""Rules that build on what the learner holds instead of asking it again.
+
+2026-10-17: the tutor wrote "Masz już opanowane m.in. DNS, rekord A i CNAME"
+and then asked what CNAME does, four cards in a row. Rule 1 asked about
+every key term and rule 8 allowed a recall question per mastered concept.
+"""
+
+from __future__ import annotations
+
+import re
+
+import pytest
+
+from tutor.cards import Card, Topic
+from tutor.curriculum import profiles
+from tutor.prompt import system_prompt
+
+CARD = Card(
+    id="dns-cname-chain",
+    front="What does a CNAME pointing at another CNAME do?",
+    back="The resolver follows the chain to the final A record.",
+    source="https://example.org/dns",
+    excerpt="the resolver follows the chain",
+    topic=Topic(stem="dns", title="DNS", prefixes=("dns",)),
+)
+HEADING = "Already mastered concepts"
+PROFILES = pytest.mark.parametrize(
+    "profile",
+    [profiles.automation(), profiles.generated("car", {"domain": "cars"})],
+    ids=["automation", "generated"],
+)
+
+
+def _rule(text: str, number: int) -> str:
+    """Rule ``number`` of the rendered prompt, on one line."""
+    found = re.search(
+        rf"^{number}\. (.*?)(?=^\d+\. |^# )", text, re.MULTILINE | re.DOTALL
+    )
+    assert found is not None
+    return " ".join(found[1].split())
+
+
+@PROFILES
+def test_diagnosis_skips_mastered_terms(profile: profiles.Profile) -> None:
+    text = system_prompt(CARD, ["dns", "cname"], profile)
+    assert f"# {HEADING}\ndns, cname\n" in text  # the list the rules name
+    rule = _rule(text, 1)
+    assert f'NOT listed under "{HEADING}"' in rule
+    assert "every key term is already mastered" in rule
+    assert "new relation the card adds" in rule
+
+
+@PROFILES
+def test_resume_never_re_asks_a_mastered_concept(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, ["cname"], profile), 8)
+    assert f'"{HEADING}"' in rule
+    assert "never re-ask what a mastered concept is or does" in rule
+    assert "build on it" in rule
+    assert "only if the target needs it" not in rule
+
+
+@PROFILES
+def test_style_counts_only_unmastered_terms(profile: profiles.Profile) -> None:
+    assert "one per unmastered term" in _rule(system_prompt(CARD, [], profile), 10)
