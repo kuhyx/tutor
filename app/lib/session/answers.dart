@@ -86,6 +86,27 @@ String composeAnswers(List<Asked> asked, List<String> values) {
   return blocks.join('\n\n');
 }
 
+/// What each box of [asked] starts with when the boxes are rebuilt: the
+/// text [typed] (box order of [before]) for the same question, so a
+/// re-keyed message never drops an answer; else empty. No questions: the
+/// one plain box, empty.
+List<String> carriedAnswers(
+  List<Asked> before,
+  List<String> typed,
+  List<Asked> asked,
+) => asked.isEmpty
+    ? ['']
+    : [
+        for (final a in asked)
+          switch (before.indexWhere((b) => b.text == a.text)) {
+            final i when i >= 0 && i < typed.length => typed[i],
+            _ => '',
+          },
+      ];
+
+/// The question texts of [asked], in box order.
+List<String> textsOf(List<Asked> asked) => [for (final a in asked) a.text];
+
 /// Local draft key for the boxes of message [msgKey] in session [sid]
 /// (drafts survive a reload; dropped once the answers are sent).
 String answersDraftKey(String sid, String msgKey) =>

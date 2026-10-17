@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 
 /// The tutor's suggested answers as chips, plus a fixed "Hint" chip.
 class AnswerChips extends StatelessWidget {
-  /// Creates the chips; [onPick] gets the tapped choice, [onHint] sends
-  /// "Hint". Both are inert while [enabled] is false (a turn in flight).
+  /// Creates the chips; [onPick] gets the tapped choice (it only fills the
+  /// box, so it always works), [onHint] sends "Hint" and is inert while
+  /// [enabled] is false (a turn in flight).
   const new({
     required this.choices,
     required this.enabled,
@@ -40,7 +41,7 @@ class AnswerChips extends StatelessWidget {
           ActionChip(
             visualDensity: VisualDensity.compact,
             label: Text(c),
-            onPressed: enabled ? () => onPick(c) : null,
+            onPressed: () => onPick(c),
           ),
         ActionChip(
           visualDensity: VisualDensity.compact,
@@ -144,13 +145,30 @@ class SendRow extends StatelessWidget {
   );
 }
 
-/// One answer box.
+/// Fills each box of [boxes] that is still empty from the draft [saved], so
+/// a draft read that lands late never overwrites what was typed meanwhile.
+/// Extra entries (an old draft's comment box) are ignored.
+void fillEmptyBoxes(List<TextEditingController> boxes, List<String> saved) {
+  for (final (i, v) in saved.indexed) {
+    if (i < boxes.length && boxes[i].text.isEmpty) boxes[i].text = v;
+  }
+}
+
+/// The step to resume on: the first of [questions] boxes still empty, else
+/// the last.
+int resumeStep(List<TextEditingController> boxes, int questions) {
+  for (var i = 0; i < questions; i++) {
+    if (boxes[i].text.isEmpty) return i;
+  }
+  return questions - 1;
+}
+
+/// One answer box: always typeable, even while a turn is in flight.
 class AnswerBox extends StatelessWidget {
-  /// Creates the box; read-only while [enabled] is false.
+  /// Creates the box.
   const new({
     required this.controller,
     required this.label,
-    required this.enabled,
     required this.minLines,
     required this.maxLines,
     super.key,
@@ -161,9 +179,6 @@ class AnswerBox extends StatelessWidget {
 
   /// Floating label.
   final String label;
-
-  /// False while a turn is in flight.
-  final bool enabled;
 
   /// Lines shown when empty.
   final int minLines;
@@ -176,7 +191,6 @@ class AnswerBox extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
     child: TextField(
       controller: controller,
-      readOnly: !enabled,
       minLines: minLines,
       maxLines: maxLines,
       decoration: InputDecoration(

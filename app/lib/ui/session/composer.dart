@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:design_system/design_system.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tutor/session/answers.dart';
@@ -38,7 +39,8 @@ class Composer extends StatefulWidget {
   /// Draft store.
   final KvStore kv;
 
-  /// False while a turn is in flight.
+  /// False while a turn is in flight: Send, Ctrl+Enter and Hint wait; the
+  /// boxes (and the choices that fill them) stay usable.
   final bool enabled;
 
   /// Sends the composed text; true once the worker has it.
@@ -66,7 +68,7 @@ class _ComposerState extends State<Composer> {
   @override
   void didUpdateWidget(Composer old) {
     super.didUpdateWidget(old);
-    if (_draftKey() != _key) _rebuild();
+    if (_draftKey() != _key) _rebuild(carry: old.sid == widget.sid);
   }
 
   @override
@@ -89,33 +91,32 @@ class _ComposerState extends State<Composer> {
       : answersDraftKey(widget.sid, widget.latest!.key);
 
   // Boxes are rebuilt only when the latest tutor message changes, so a
-  // poll never wipes what is being typed.
-  void _rebuild() {
+  // poll never wipes what is being typed; a re-keyed message asking the
+  // same questions keeps their answers (and the phone's step).
+  void _rebuild({bool carry = false}) {
+    final (was, typed) = (_asked, [for (final b in _boxes) b.text]);
     _asked = _askedNow();
     _key = _draftKey();
-    _step = 0;
-    _moved = false;
+    final same = carry && listEquals(textsOf(was), textsOf(_asked));
+    _step = same ? _step : 0;
+    _moved = same && _moved;
     for (final b in _boxes) {
       b.dispose();
     }
     _boxes = [
-      for (var i = 0; i < (_asked.isEmpty ? 1 : _asked.length); i++)
-        TextEditingController()..addListener(_save),
+      for (final v in carriedAnswers(carry ? was : const [], typed, _asked))
+        TextEditingController(text: v)..addListener(_save),
     ];
     final key = _key;
     unawaited(
       widget.kv.get(key).then((raw) {
         if (!mounted || raw == null || key != _key) return;
-        final saved = (jsonDecode(raw) as List).cast<String>();
-        for (final (i, v) in saved.indexed) {
-          if (i < _boxes.length) _boxes[i].text = v;
-        }
+        // Typed before the draft arrived: that typing wins, box by box.
+        final typed = _boxes.any((b) => b.text.isNotEmpty);
+        fillEmptyBoxes(_boxes, (jsonDecode(raw) as List).cast<String>());
         // Back to where the learner left off: the first unanswered question.
-        if (!_moved && _asked.isNotEmpty) {
-          final open = _asked.indexed.where((e) => _boxes[e.$1].text.isEmpty);
-          setState(
-            () => _step = open.isEmpty ? _asked.length - 1 : open.first.$1,
-          );
+        if (!_moved && !typed && _asked.isNotEmpty) {
+          setState(() => _step = resumeStep(_boxes, _asked.length));
         }
       }),
     );
@@ -166,7 +167,6 @@ class _ComposerState extends State<Composer> {
   Widget _box(int i, String label) => AnswerBox(
     controller: _boxes[i],
     label: label,
-    enabled: widget.enabled,
     minLines: _asked.isEmpty && !widget.phone ? 3 : 1,
     maxLines: widget.phone ? 6 : 12,
   );
