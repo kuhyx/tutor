@@ -166,7 +166,9 @@ void main() {
   });
 
   test('error texts', () {
-    expect(errorText('daily_new_cap', null), contains('Ten new cards'));
+    expect(errorText('daily_new_cap', null), contains('limit of new cards'));
+    // A blocking code never repeats the worker's text after the headline.
+    expect(errorText('locked', 'card x locked'), isNot(contains('card x')));
     expect(errorText('weird', '  '), 'The request failed (weird).');
     expect(headlineFor(null), 'The request failed.');
     expect(pcOfflineText, startsWith('PC offline'));

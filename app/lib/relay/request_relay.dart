@@ -13,8 +13,8 @@ import 'package:tutor/model/ids.dart';
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
+import 'package:tutor/relay/blocked.dart';
 import 'package:tutor/relay/error_text.dart';
-import 'package:tutor/relay/no_card.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -35,6 +35,10 @@ class PendingRequest {
 /// Where a request stands, as the UI shows it.
 sealed class RelayStatus {
   const new();
+
+  /// A blocking result: its call to action is the next step.
+  bool get blocks =>
+      this is RelayFailed && (this as RelayFailed).blocked != null;
 }
 
 /// The `req` PUT failed; nothing may have arrived. Offer Retry.
@@ -84,14 +88,15 @@ class RelayFailed extends RelayStatus {
     required this.text,
     this.retry = false,
     this.unavailable,
-    this.noCard,
+    this.blocked,
   });
 
   /// Error code.
   final String? code;
 
-  /// For `no_card_left`: the subject title and the next step.
-  final NoCardLeft? noCard;
+  /// For a blocking code (daily_new_cap, locked, no_card_left): why, and
+  /// what fixes it (a call to action, not an error).
+  final Blocked? blocked;
 
   /// Text for kuhy.
   final String text;
@@ -111,11 +116,13 @@ RelayStatus statusOf(Object? node) {
     final r = RequestResult.fromJson(result);
     if (r.ok) return RelayDone(r.data);
     // The worker's text would name the subject id; ours names its title.
-    final noCard = r.code == noCardLeft ? NoCardLeft.fromResult(result) : null;
+    final blocked = blockedCodes.contains(r.code)
+        ? Blocked.fromResult(result)
+        : null;
     return RelayFailed(
       code: r.code,
-      text: noCard?.text() ?? errorText(r.code, r.error),
-      noCard: noCard,
+      text: blocked?.text() ?? errorText(r.code, r.error),
+      blocked: blocked,
       retry: r.retry,
       unavailable: r.code == claudeUnavailable
           ? Unavailable.fromError(result)

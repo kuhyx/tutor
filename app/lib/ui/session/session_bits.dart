@@ -6,12 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/error_text.dart';
-import 'package:tutor/relay/no_card.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
-import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/blocked_panel.dart';
 
 /// Card done: Next card / Stop here.
 class CardEnd extends StatelessWidget {
@@ -39,9 +38,24 @@ class CardEnd extends StatelessWidget {
   );
 }
 
-/// The request status, plus Continue when the session is no longer live,
-/// or "Review" + the module title when no card is left and a module waits
-/// for its review.
+/// Start session (or continue the subject's open one).
+class StartButton extends StatelessWidget {
+  /// Creates the button.
+  const new({required this.onStart, super.key});
+
+  /// Starts.
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerRight,
+    child: FilledButton(onPressed: onStart, child: const Text('Start session')),
+  );
+}
+
+/// The request status, plus Continue when the session is no longer live;
+/// a blocking result (cap, locked, no card left) shows its call to action
+/// instead ([BlockedPanel]).
 class NotLiveStatus extends StatelessWidget {
   /// Creates the line.
   const new({
@@ -53,10 +67,10 @@ class NotLiveStatus extends StatelessWidget {
     super.key,
   });
 
-  /// Services (the catalog and Review, for the module review).
+  /// Services (the catalog and Review, for the call to action).
   final TutorServices services;
 
-  /// The screen's subject (a hint for the module's subject).
+  /// The screen's subject (a hint when a block names none).
   final String? subject;
 
   /// Runner.
@@ -65,7 +79,7 @@ class NotLiveStatus extends StatelessWidget {
   /// Session on screen.
   final SessionView? view;
 
-  /// Runs `session_resume`.
+  /// Runs a request (`session_resume`, or the block's fix).
   final Future<RelayStatus> Function(RequestBody body) onRun;
 
   @override
@@ -74,7 +88,18 @@ class NotLiveStatus extends StatelessWidget {
     builder: (context, s, _) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        RequestStatusLine(runner, stalledText: noReplyText),
+        // A block is a call to action, shown once (not also as a status).
+        if (s is RelayFailed && s.blocks)
+          BlockedPanel(
+            services: services,
+            blocked: s.blocked!,
+            text: s.text,
+            subject: subject,
+            lastBody: runner.lastBody,
+            onRun: onRun,
+          )
+        else
+          RequestStatusLine(runner, stalledText: noReplyText),
         if (s is RelayFailed && s.code == 'not_live' && view != null)
           Align(
             alignment: Alignment.centerRight,
@@ -83,28 +108,9 @@ class NotLiveStatus extends StatelessWidget {
               child: const Text('Continue this session'),
             ),
           ),
-        if (s is RelayFailed &&
-            s.noCard?.next == NoCardNext.reviewModule &&
-            s.noCard?.module != null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton(
-              onPressed: () => _review(context, s.noCard!),
-              child: Text('Review ${s.noCard!.moduleTitle ?? 'this module'}'),
-            ),
-          ),
       ],
     ),
   );
-
-  // The payload names the module but not the subject id: the cached plan
-  // that holds the module does (the screen's subject first).
-  Future<void> _review(BuildContext context, NoCardLeft n) async {
-    final ref = n.moduleRef(await services.catalog.cached(), hint: subject);
-    if (ref != null && context.mounted) {
-      await openReview(context, services, module: ref);
-    }
-  }
 }
 
 /// The bottom panel's frame: on the phone the step bar stays pinned and

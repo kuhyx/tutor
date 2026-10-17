@@ -44,6 +44,10 @@ class RequestRunner {
 
   Timer? _stallTimer;
   PendingRequest? _pending;
+  RequestBody? _lastBody;
+
+  /// The body of the last request [run] sent (null before the first).
+  RequestBody? get lastBody => _lastBody;
   StreamSubscription<RelayStatus>? _sub;
   Completer<RelayStatus>? _done;
 
@@ -73,6 +77,7 @@ class RequestRunner {
     }
     final pending = relay.prepare(body);
     _pending = pending;
+    _lastBody = body;
     return _follow(relay.resend(pending));
   }
 

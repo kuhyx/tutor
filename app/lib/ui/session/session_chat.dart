@@ -36,10 +36,14 @@ class SessionChat extends StatefulWidget {
     required this.onRun,
     required this.onStart,
     required this.onSend,
+    this.subject,
     this.phone = false,
     this.keyboard = false,
     super.key,
   });
+
+  /// The screen's subject (when no session shows yet).
+  final String? subject;
 
   /// Services.
   final TutorServices services;
@@ -171,7 +175,7 @@ class _SessionChatState extends State<SessionChat> {
                     services: widget.services,
                     runner: widget.runner,
                     view: view,
-                    subject: meta?.subject,
+                    subject: meta?.subject ?? widget.subject,
                     onRun: widget.onRun,
                   ),
                   if (live && meta.cardDone)
@@ -192,14 +196,9 @@ class _SessionChatState extends State<SessionChat> {
                       onSend: (t) => widget.onSend(view.sid, t),
                       phone: widget.phone,
                     )
-                  else
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton(
-                        onPressed: widget.onStart,
-                        child: const Text('Start session'),
-                      ),
-                    ),
+                  // A block's call to action replaces Start (same result).
+                  else if (!(widget.runner.status.value?.blocks ?? false))
+                    StartButton(onStart: widget.onStart),
                 ],
               ),
             ),

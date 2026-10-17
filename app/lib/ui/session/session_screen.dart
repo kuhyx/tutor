@@ -201,6 +201,7 @@ class _SessionScreenState extends State<SessionScreen> {
           now: widget.now ?? DateTime.now,
           onRun: _run,
           onStart: () => _run(_continue()),
+          subject: widget.subject,
           onSend: _send,
           phone: phone,
           keyboard: keyboard,

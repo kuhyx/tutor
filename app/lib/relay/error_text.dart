@@ -6,6 +6,7 @@
 library;
 
 import 'package:tutor/model/request.dart';
+import 'package:tutor/relay/blocked.dart';
 
 /// The error code that sends the app to the model-free drill.
 const claudeUnavailable = 'claude_unavailable';
@@ -14,7 +15,7 @@ const Map<String, String> _headlines = {
   'bad_request': 'The PC could not read that request.',
   'not_live': 'That session is no longer live.',
   'locked': 'That is locked until earlier modules are reviewed.',
-  'daily_new_cap': 'Ten new cards today already. Reviews still work.',
+  'daily_new_cap': "You reached today's limit of new cards.",
   'no_card_left': 'No card left to teach in this subject right now.',
   'unknown_card': 'That card does not exist (any more).',
   'plan_conflict': 'The plan changed meanwhile. Reload it and try again.',
@@ -42,8 +43,9 @@ String headlineFor(String? code) =>
 /// Headline plus the worker's [error] detail when it adds something.
 String errorText(String? code, String? error) {
   final headline = headlineFor(code);
-  // no_card_left's detail names the subject id: never shown (see no_card).
-  final detail = code == 'no_card_left' ? '' : error?.trim() ?? '';
+  // A blocking code's detail names the subject id and repeats the headline:
+  // never shown (the app's own line comes from blocked.dart).
+  final detail = blockedCodes.contains(code) ? '' : error?.trim() ?? '';
   return detail.isEmpty ? headline : '$headline $detail';
 }
 

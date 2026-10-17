@@ -164,6 +164,8 @@ class RequestStatusLine extends StatelessWidget {
       };
       if (text == null) return const SizedBox.shrink();
       final scheme = Theme.of(context).colorScheme;
+      // A block (cap, locked, no card) is a next step, not a failure.
+      final calm = s?.blocks ?? false;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
@@ -177,7 +179,7 @@ class RequestStatusLine extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: TextStyle(color: error ? scheme.error : null),
+                style: TextStyle(color: error && !calm ? scheme.error : null),
               ),
             ),
             if (runner.canRetry)
