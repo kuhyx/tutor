@@ -9,6 +9,8 @@ import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/progress.dart';
+import 'package:tutor/progress/terms.dart';
+import 'package:tutor/ui/card_state.dart';
 
 /// A subject's card on Home.
 class SubjectTile extends StatelessWidget {
@@ -57,7 +59,8 @@ class SubjectTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = entry.meta.status;
     final data = entry.data;
-    final (mastered, total) = data == null ? (0, 0) : masteredOf(data);
+    // `mastered` on the wire is what the app calls "reviewed".
+    final (reviewed, total) = data == null ? (0, 0) : masteredOf(data);
     final teaching =
         status == SubjectStatus.active || status == SubjectStatus.completed;
     final review = toReview;
@@ -70,13 +73,16 @@ class SubjectTile extends StatelessWidget {
               current ? Icons.radio_button_checked : Icons.radio_button_off,
             ),
             title: Text(entry.meta.title),
-            subtitle: Text(
-              [
-                status.wire.replaceAll('_', ' '),
-                if (total > 0) '$mastered/$total modules mastered',
-                if (current) 'new material from here',
-                ?entry.meta.error,
-              ].join(' · '),
+            subtitle: Explained(
+              total > 0 ? reviewedModuleHelp : null,
+              child: Text(
+                [
+                  status.wire.replaceAll('_', ' '),
+                  if (total > 0) '$reviewed/$total modules reviewed',
+                  if (current) 'new material from here',
+                  ?entry.meta.error,
+                ].join(' · '),
+              ),
             ),
             onTap: teaching && !current ? onPick : onPlan,
           ),

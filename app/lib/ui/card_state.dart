@@ -1,13 +1,15 @@
 /// The cards view's progress marks: a subject summary with a bar, and a
-/// per-card icon (mastered / done / not taught yet), as the retired page's
+/// per-card icon (recalled / done / not taught yet), as the retired page's
 /// deck summary and done marks showed them.
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/progress/terms.dart';
 
-/// "x/y done · z mastered · n due" with a done bar.
+/// "x/y done · z recalled · n due" with a done bar; the words explained in
+/// a tooltip.
 class ProgressSummary extends StatelessWidget {
   /// Creates the summary.
   const new(this.tally, {super.key});
@@ -22,13 +24,36 @@ class ProgressSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(tally.summary, style: Theme.of(context).textTheme.titleMedium),
+          Tooltip(
+            message: tallyHelp,
+            child: Text(
+              tally.summary,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           LinearProgressIndicator(value: tally.taught / tally.cards),
         ],
       ),
     ),
   );
+}
+
+/// [child] with the explanation of the progress words it shows (see
+/// `progress/terms.dart`) as a tooltip; no tooltip for a null/empty [help].
+class Explained extends StatelessWidget {
+  /// Creates the wrapper.
+  const new(this.help, {required this.child, super.key});
+
+  /// One line per word.
+  final String? help;
+
+  /// What the words appear in.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      (help ?? '').isEmpty ? child : Tooltip(message: help, child: child);
 }
 
 /// A card's state as an icon with a tooltip (null: not folded yet).
@@ -43,14 +68,22 @@ class CardStateIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = progress;
     final scheme = Theme.of(context).colorScheme;
-    final (icon, color) = switch (p) {
-      null => (Icons.circle_outlined, scheme.outline),
-      CardProgress(mastered: true) => (Icons.star, scheme.primary),
-      CardProgress(taught: true) => (Icons.check_circle, scheme.primary),
-      _ => (Icons.radio_button_unchecked, scheme.outline),
+    final (icon, color, help) = switch (p) {
+      null => (Icons.circle_outlined, scheme.outline, null),
+      CardProgress(mastered: true) => (
+        Icons.star,
+        scheme.primary,
+        recalledHelp,
+      ),
+      CardProgress(taught: true) => (
+        Icons.check_circle,
+        scheme.primary,
+        doneHelp,
+      ),
+      _ => (Icons.radio_button_unchecked, scheme.outline, null),
     };
     return Tooltip(
-      message: p?.label ?? '',
+      message: [?p?.label, ?help].join('\n'),
       child: Icon(icon, color: color),
     );
   }

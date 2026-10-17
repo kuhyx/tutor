@@ -8,6 +8,8 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/progress/progress.dart';
+import 'package:tutor/progress/terms.dart';
+import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/progress_chart.dart';
@@ -88,9 +90,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   padding: const EdgeInsets.only(top: AppSpacing.xs),
                   child: LinearProgressIndicator(value: m.module.recall),
                 ),
-                trailing: Text(
-                  '${(m.module.recall * 100).round()}% · '
-                  '${m.module.status.name}',
+                trailing: Explained(
+                  badgeHelp(moduleBadge(m.module)),
+                  child: Text(
+                    '${(m.module.recall * 100).round()}% · '
+                    '${moduleBadge(m.module)}',
+                  ),
                 ),
               ),
           ],

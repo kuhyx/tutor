@@ -16,6 +16,7 @@ import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/progress/terms.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/card_form.dart';
 import 'package:tutor/ui/card_state.dart';
@@ -156,13 +157,19 @@ class _EditorScreenState extends State<EditorScreen> {
             for (final m in s.plan?.modules ?? const <Module>[])
               ExpansionTile(
                 title: Text(m.title),
-                subtitle: Text(
-                  [
-                    _cards(s.cardsOf(m.id).length),
-                    m.status.name,
-                    if ((progress?.modules[m.id]?.cards ?? 0) > 0)
-                      progress!.modules[m.id]!.doneText,
-                  ].join(' · '),
+                subtitle: Tooltip(
+                  message: [
+                    ?badgeHelp(moduleBadge(m, progress?.review[m.id])),
+                    tallyHelp,
+                  ].join('\n'),
+                  child: Text(
+                    [
+                      _cards(s.cardsOf(m.id).length),
+                      moduleBadge(m, progress?.review[m.id]),
+                      if ((progress?.modules[m.id]?.cards ?? 0) > 0)
+                        progress!.modules[m.id]!.doneText,
+                    ].join(' · '),
+                  ),
                 ),
                 children: [
                   for (final c in s.cardsOf(m.id))

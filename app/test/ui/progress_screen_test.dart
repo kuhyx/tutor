@@ -18,7 +18,7 @@ void main() {
     );
     expect(find.text('Credited minutes per day'), findsOneWidget);
     expect(find.text('2026-10-12'), findsOneWidget);
-    expect(find.textContaining('85% · mastered'), findsOneWidget);
+    expect(find.textContaining('85% · reviewed'), findsOneWidget);
   });
 
   testWidgets('no days yet; unreachable', (t) async {

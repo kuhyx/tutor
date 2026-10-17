@@ -1,5 +1,5 @@
 /// The Session's side panel (`index.html` aside): target card, Switch card,
-/// Mark card done, Stop here, Edit cards, Report a problem, mastered concepts.
+/// Mark card done, Stop here, Edit cards, Report a problem, known concepts.
 library;
 
 import 'package:design_system/design_system.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/session.dart';
+import 'package:tutor/progress/terms.dart';
 
 /// Side panel.
 class SessionSide extends StatelessWidget {
@@ -30,7 +31,7 @@ class SessionSide extends StatelessWidget {
   /// The session's subject, when cached.
   final SubjectData? subject;
 
-  /// Mastered concept names, oldest first.
+  /// Known concept names (the wire's `mastered`), oldest first.
   final List<String> mastered;
 
   /// Start another card instead.
@@ -88,7 +89,16 @@ class SessionSide extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
-        Text('Mastered', style: text.labelLarge),
+        Row(
+          children: [
+            Text('Known', style: text.labelLarge),
+            const SizedBox(width: AppSpacing.xs),
+            const Tooltip(
+              message: knownHelp,
+              child: Icon(Icons.info_outline, size: AppSpacing.md),
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpacing.xs),
         if (mastered.isEmpty) const Text('-'),
         for (final c in mastered.reversed) Text('• $c'),

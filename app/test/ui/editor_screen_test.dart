@@ -30,16 +30,16 @@ void main() {
       EditorScreen(services: s, subject: 'car'),
       size: const Size(800, 1600),
     );
-    // The old page's deck summary: done / mastered per module and subject.
-    expect(find.text('2/4 done · 1 mastered · 2 due'), findsOneWidget);
+    // The old page's deck summary: done / recalled per module and subject.
+    expect(find.text('2/4 done · 1 recalled · 2 due'), findsOneWidget);
     expect(
-      find.text('3 cards · mastered · 2 done · 1 mastered · 2 due'),
+      find.text('3 cards · reviewed · 2 done · 1 recalled · 2 due'),
       findsOneWidget,
     );
-    expect(find.text('1 card · ready · 0 done · 0 mastered'), findsOneWidget);
+    expect(find.text('1 card · ready · 0 done · 0 recalled'), findsOneWidget);
     await t.tap(find.text('The four-stroke engine'));
     await t.pumpAndSettle();
-    expect(find.byIcon(Icons.star), findsOneWidget); // mastered
+    expect(find.byIcon(Icons.star), findsOneWidget); // recalled
     expect(find.byIcon(Icons.check_circle), findsOneWidget); // done
     expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
 

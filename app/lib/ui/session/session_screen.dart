@@ -1,6 +1,6 @@
 /// Session (curriculum §8): the chat from the RTDB projection, answer
 /// boxes, busy phase and pending bubble, Card done -> Next card / Stop
-/// here, Mark card done, Switch card, mastered list, paused/stalled pills,
+/// here, Mark card done, Switch card, known list, paused/stalled pills,
 /// PC-offline banner. Wide windows get the side panel inline.
 library;
 

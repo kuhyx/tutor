@@ -6,6 +6,7 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/model/message.dart';
+import 'package:tutor/progress/terms.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/ui/session/md_text.dart';
 import 'package:tutor/ui/session/media.dart';
@@ -105,9 +106,12 @@ class MessageTile extends StatelessWidget {
             if (!questionsAsBoxes)
               for (final a in askedOf(m)) _Question(a),
             if (m.masteredNew.isNotEmpty)
-              Text(
-                'Mastered: ${m.masteredNew.join(', ')}',
-                style: text.bodySmall,
+              Tooltip(
+                message: knownHelp,
+                child: Text(
+                  'Known: ${m.masteredNew.join(', ')}',
+                  style: text.bodySmall,
+                ),
               ),
             if (m.cardDone) const _Banner('Card done ✓', ok: true),
           ],

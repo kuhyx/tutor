@@ -4,6 +4,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/progress/terms.dart';
+import 'package:tutor/ui/card_state.dart';
 
 /// An approved plan's module: status, card count, recall; Retry if failed;
 /// "Review this module" once every card is done but not yet reviewed.
@@ -21,7 +23,7 @@ class ModuleProgressTile extends StatelessWidget {
   /// The module.
   final Module module;
 
-  /// Its cards: done / mastered / due (null until the log is folded).
+  /// Its cards: done / recalled / due (null until the log is folded).
   final Tally? tally;
 
   /// Its review state (null until the log is folded).
@@ -39,18 +41,22 @@ class ModuleProgressTile extends StatelessWidget {
     final failed = m.status == ModuleStatus.failed;
     final reviewable =
         review == ModuleReview.done && m.status != ModuleStatus.mastered;
+    final badge = moduleBadge(m, review);
+    final counted = tally != null && tally!.cards > 0;
+    final help = [?badgeHelp(badge), if (counted) tallyHelp].join('\n');
+    final subtitle = Text(
+      [
+        badge,
+        if (m.cards > 0) '${m.cards} cards',
+        if (counted) tally!.doneText,
+        'recall ${(m.recall * 100).round()}%',
+        if (failed && m.error != null) m.error!,
+      ].join(' · '),
+    );
     return Card(
       child: ListTile(
         title: Text(m.title),
-        subtitle: Text(
-          [
-            m.status.name,
-            if (m.cards > 0) '${m.cards} cards',
-            if (tally != null && tally!.cards > 0) tally!.doneText,
-            'recall ${(m.recall * 100).round()}%',
-            if (failed && m.error != null) m.error!,
-          ].join(' · '),
-        ),
+        subtitle: Explained(help, child: subtitle),
         trailing: failed
             ? TextButton(onPressed: onRetry, child: const Text('Retry'))
             : reviewable && onReview != null

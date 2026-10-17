@@ -104,19 +104,19 @@ void main() {
     );
     final p = subjectProgress(_subject, r, later);
     expect(p.cards.keys, ['a1', 'a2', 'a3', 'b1']); // a4 suspended
-    expect(p.cards['a1']!.label, 'mastered · due');
+    expect(p.cards['a1']!.label, 'recalled · due');
     expect(p.cards['a2']!.label, 'done · flagged');
     expect(p.cards['a3']!.label, 'not taught yet');
-    expect(p.modules['a']!.summary, '2/3 done · 1 mastered · 1 due');
-    expect(p.modules['b']!.summary, '1/1 done · 0 mastered · 1 due');
-    expect(p.total.summary, '3/4 done · 1 mastered · 2 due');
-    expect(p.total.doneText, '3 done · 1 mastered · 2 due');
+    expect(p.modules['a']!.summary, '2/3 done · 1 recalled · 1 due');
+    expect(p.modules['b']!.summary, '1/1 done · 0 recalled · 1 due');
+    expect(p.total.summary, '3/4 done · 1 recalled · 2 due');
+    expect(p.total.doneText, '3 done · 1 recalled · 2 due');
     final soon = subjectProgress(
       _subject,
       r,
       DateTime.fromMillisecondsSinceEpoch(_t0, isUtc: true),
     );
-    expect(soon.total.summary, '3/4 done · 1 mastered');
+    expect(soon.total.summary, '3/4 done · 1 recalled');
     final empty = SubjectData(id: 'x', meta: _subject.meta);
     expect(subjectProgress(empty, r, later).total.summary, '');
   });

@@ -2,7 +2,7 @@
 /// the log fold (curriculum §4-§6) as the retired page showed it
 /// (`progress.deck_summary`: done / total per topic, plus done per card).
 ///
-/// Done = taught; mastered = `good` (§6: recalled Good 20 h or more after
+/// Done = taught; recalled = `good` (§6: recalled Good 20 h or more after
 /// being taught); due = taught, not flagged, `due <= now`. Suspended cards
 /// are not counted anywhere.
 library;
@@ -36,7 +36,7 @@ class CardProgress {
 
   /// A short label for the card row.
   String get label => [
-    if (mastered) 'mastered' else if (taught) 'done' else 'not taught yet',
+    if (mastered) 'recalled' else if (taught) 'done' else 'not taught yet',
     if (due) 'due',
     if (flagged) 'flagged',
   ].join(' · ');
@@ -53,7 +53,7 @@ class Tally {
   /// Of them taught.
   final int taught;
 
-  /// Of them mastered.
+  /// Of them recalled (`good`; the field keeps its old name).
   final int mastered;
 
   /// Of them due now.
@@ -67,19 +67,19 @@ class Tally {
     due: due + o.due,
   );
 
-  /// "x done · z mastered · n due", for a row that names the card count.
+  /// "x done · z recalled · n due", for a row that names the card count.
   String get doneText => [
     '$taught done',
-    '$mastered mastered',
+    '$mastered recalled',
     if (due > 0) '$due due',
   ].join(' · ');
 
-  /// "x/y done · z mastered · n due" (empty for no cards).
+  /// "x/y done · z recalled · n due" (empty for no cards).
   String get summary => cards == 0
       ? ''
       : [
           '$taught/$cards done',
-          '$mastered mastered',
+          '$mastered recalled',
           if (due > 0) '$due due',
         ].join(' · ');
 }

@@ -19,7 +19,7 @@ void main() {
     );
     expect(find.textContaining('Credited 23/60 min'), findsOneWidget);
     expect(find.text('Continue session'), findsOneWidget);
-    expect(find.textContaining('1/4 modules mastered'), findsOneWidget);
+    expect(find.textContaining('1/4 modules reviewed'), findsOneWidget);
 
     await t.tap(find.text('Vegetable gardening'));
     await t.pumpAndSettle();
