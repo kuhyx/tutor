@@ -10,7 +10,8 @@ from those texts; a card is kept only if it passes the deck's rules
 (``judge.gate``). Fewer than 3 kept, fewer than 2 on-topic sources, or a
 model failure: the module is ``failed`` with the reason (``plan_approve`` on
 the same rev retries it) -- unless it already has cards (a regeneration,
-``regen``), then it stays ``ready``. Else ``ready``.
+``regen``), then it stays ``ready``. Else ``ready``; a module drafted ahead
+(``pregenerated``, ``pregen``) goes back to ``locked`` until it unlocks.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor.cards import CardError
-from tutor.curriculum import card_rules, judge, plan_context, relevance, wiki
+from tutor.curriculum import card_rules, judge, plan_context, relevance, rules, wiki
 from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import slug
@@ -174,6 +175,12 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
         cards = {**ctx.subjects.cards(subject), **kept}
         count = _live(cards, module_id)
         current.status = "failed" if error and count < MIN_CARDS else "ready"
+        if current.status == "ready" and current.pregenerated:
+            view = rules.View(subject, plan, cards)
+            if rules.unlocked(view, current, ctx.fold()):
+                current.pregenerated = False  # its requires were mastered meanwhile
+            else:
+                current.status = "locked"  # drafted ahead: study waits for requires
         # Only a failed module carries its error; a ready one served by its
         # existing cards reports the reason in the returned result only.
         current.error = error if current.status == "failed" else None

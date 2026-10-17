@@ -49,6 +49,7 @@ def test_every_kind_has_a_lane_and_validates() -> None:
         "plan_edit": {"subject": "car", "plan_rev": 3, "modules": [{"id": "a"}]},
         "plan_approve": {"subject": "car", "plan_rev": 4},
         "subject_finish": {"subject": "car", "choice": "go_deeper"},
+        "module_pregenerate": {"subject": "car", "modules": "all"},
         "card_edit": {
             "subject": "car",
             "card": None,

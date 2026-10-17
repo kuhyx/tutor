@@ -78,6 +78,7 @@ def test_registry_and_context_defaults(tmp_path: Path) -> None:
         "plan_edit",
         "plan_approve",
         "subject_finish",
+        "module_pregenerate",
         "card_edit",
     }
     ctx = Context(tmp_path)

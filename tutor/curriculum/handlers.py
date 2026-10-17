@@ -31,6 +31,7 @@ from tutor.curriculum.plan_ops import (
     subject_finish,
     subject_new,
 )
+from tutor.curriculum.pregen import module_pregenerate
 from tutor.curriculum.stats import stats
 
 if TYPE_CHECKING:
@@ -45,6 +46,7 @@ BUILD_HANDLERS: Final[dict[str, Handler]] = {
     "plan_approve": plan_approve,
     "subject_finish": subject_finish,
     "card_edit": card_edit,
+    "module_pregenerate": module_pregenerate,
 }
 
 __all__ = [

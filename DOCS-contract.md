@@ -82,8 +82,7 @@ Client PUTs **only** `requests/{rid}/req` (a retry never clobbers claim/result):
 `sent_at` = client time of the **first** Send press; retries keep it.
 
 Worker streams `requests` (kept small by GC). Per rid, in key order:
-1. Local done-map (`requests_done.jsonl`, 30 d) has rid -> re-PUT its result,
-   stop. No model call.
+1. Done-map (`requests_done.jsonl`, 30 d) has rid -> re-PUT result; no model call.
 2. Claim: GET `claim` w/ ETag; claimable if null, or `lease_until` < now and no
    `result`. PUT with `if-match`:
    `{"by":"<worker dev>","lease_until":ms,"attempt":1,"phase":"claimed","at":ms}`;
@@ -118,6 +117,7 @@ Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked
 | `plan_edit` | `{"subject","plan_rev":3,"modules":[module...]}` | `{"plan_rev":4}` | build |
 | `plan_approve` | `{"subject","plan_rev":4}` | `{}` | build |
 | `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
+| `module_pregenerate` | `{"subject","modules":["b",...]\|"all"}` draft locked modules' cards ahead; study still waits for `requires` (curriculum §2) | `{"queued":["b"]}` | build |
 | `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}` | `{"card":"ld-x","rev":2}` | build |
 | `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?}` (null card = next open; `device` as for `message`, shapes the opening turn) | `{"session":sid}` | chat |
 | `session_resume` | `{"session":sid,"device"?}` (device validated only: no model turn) | `{"session":sid}` | chat |

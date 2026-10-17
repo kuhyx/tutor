@@ -115,6 +115,7 @@ class Module:
     recall: float = 0.0
     cards: int = 0
     error: str | None = None
+    pregenerated: bool = False  # cards drafted ahead, still locked for study
 
     @classmethod
     def from_json(cls, raw: object, *, client: bool = False) -> Module:
@@ -146,6 +147,7 @@ class Module:
             module.cards = _int(raw, "cards")
             error = raw.get("error")
             module.error = error if isinstance(error, str) else None
+            module.pregenerated = raw.get("pregenerated") is True
         return module
 
 
@@ -235,8 +237,11 @@ class CardRec:
 
 
 def plan_json(plan: Plan) -> dict[str, Any]:
-    """The plan's contract shape; refuses one over the 16 KB budget."""
+    """The plan's contract shape (``pregenerated`` only when set); <= 16 KB."""
     out = asdict(plan)
+    for module in out["modules"]:  # an unset flag keeps the old shape
+        if not module["pregenerated"]:
+            del module["pregenerated"]
     if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_PLAN_BYTES:
         msg = f"plan is over {MAX_PLAN_BYTES} bytes"
         raise bad(msg)

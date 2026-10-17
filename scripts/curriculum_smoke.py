@@ -5,6 +5,7 @@
 One step per run (each is minutes of model time; run it detached and poll):
   curriculum_smoke.py --data DIR new "I want to understand how X works"
   curriculum_smoke.py --data DIR approve SUBJECT
+  curriculum_smoke.py --data DIR pregenerate SUBJECT   # every locked module
   curriculum_smoke.py --data DIR generate        # every pending module
   curriculum_smoke.py --data DIR show SUBJECT    # modules and live cards
 """
@@ -23,7 +24,9 @@ def main() -> int:
     """Run one step."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, required=True)
-    parser.add_argument("step", choices=("new", "approve", "generate", "show"))
+    parser.add_argument(
+        "step", choices=("new", "approve", "pregenerate", "generate", "show")
+    )
     parser.add_argument("arg", nargs="?", default="")
     args = parser.parse_args()
     if args.data.resolve() == (Path.home() / ".local/share/tutor").resolve():
@@ -38,6 +41,9 @@ def main() -> int:
         body = {"subject": args.arg, "plan_rev": rev}
         out = [handlers.BUILD_HANDLERS["plan_approve"](body, ctx)]
         out.append(handlers.fold_and_advance(ctx))
+    elif args.step == "pregenerate":
+        body = {"subject": args.arg, "modules": "all"}
+        out = handlers.BUILD_HANDLERS["module_pregenerate"](body, ctx)
     elif args.step == "generate":
         out = [handlers.generate(ctx, s, m) for s, m in handlers.pending(ctx)]
     else:

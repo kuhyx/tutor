@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, Final, Protocol
 from tutor import gating
 from tutor.cards import Card, load_deck
 from tutor.curriculum import card_rules, profiles, rules
-from tutor.curriculum.errors import BAD_REQUEST, NO_CARD_LEFT, RequestError
+from tutor.curriculum.errors import BAD_REQUEST, LOCKED, NO_CARD_LEFT, RequestError
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.subject_store import LOCK, Change
 
@@ -149,7 +149,13 @@ class SubjectSource:
         return next(c for c in self.cards() if c.id == chosen)
 
     def mark(self, card_id: str, session: str, *, done: bool) -> None:
-        """A ``taught`` / ``untaught`` event, mirrored into ``progress.json``."""
+        """A ``taught`` / ``untaught`` event, mirrored into ``progress.json``.
+
+        Never ``taught`` in a ``locked`` module (pre-generated cards): one
+        taught card would open the module before its requires are mastered.
+        """
+        if done:
+            self._refuse_locked_module(card_id)
         kind = "taught" if done else "untaught"
         ref = (self.subject, card_id)
         at = self.ctx.clock()
@@ -160,6 +166,14 @@ class SubjectSource:
             self.store.finish_card(card_id, session)
         else:
             self.store.unfinish_card(card_id)
+
+    def _refuse_locked_module(self, card_id: str) -> None:
+        view = self._view()
+        card = view.cards.get(card_id)
+        module = view.plan.module(card.module) if card else None
+        if module is not None and module.status == "locked":
+            msg = f"{card_id} is locked: module {module.id} is not unlocked yet"
+            raise RequestError(LOCKED, msg)
 
     def mastered(self) -> list[str]:
         """The subject's ``concepts.json`` names."""

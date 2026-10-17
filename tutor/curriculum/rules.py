@@ -32,6 +32,7 @@ GOOD_RATING: Final = 3
 MASTERY: Final = 0.8
 NEW_CAP: Final = 10
 OPEN: Final = frozenset({"ready", "mastered"})
+WAITING: Final = frozenset({"locked", "failed"})  # pre-generated, not yet unlocked
 
 
 @dataclass(frozen=True)
@@ -85,9 +86,10 @@ def advance_statuses(view: View, fold: Fold) -> list[str]:
     """Update recall and status in place (plan order); returns new unlocks.
 
     ``ready`` -> ``mastered`` at recall >= 0.8 (sticky); ``locked`` ->
-    ``generating`` once unlocked. Earlier modules are updated first, so a
-    mastery unlocks its dependents in the same pass. An open module never
-    carries an ``error`` (only ``failed`` does); a stale one is cleared.
+    ``generating`` once unlocked, ``ready`` at once if its cards were
+    pre-generated. Earlier modules are updated first, so a mastery unlocks
+    its dependents in the same pass. An open module never carries an
+    ``error`` (only ``failed`` does); a stale one is cleared.
     """
     unlocked_now = []
     for module in view.plan.modules:
@@ -96,6 +98,18 @@ def advance_statuses(view: View, fold: Fold) -> list[str]:
         module.recall = round(recall(view, module.id, fold), 4)
         if module.status == "ready" and module.recall >= MASTERY:
             module.status = "mastered"
+        elif (
+            module.pregenerated
+            and module.status in WAITING
+            and unlocked(view, module, fold)
+        ):
+            # Drafted ahead (``module_pregenerate``): open those cards and
+            # never draft twice; a failed pre-generation drafts just in time.
+            live = any(not c.suspended for _, c in view.module_cards(module.id))
+            ready = module.status == "locked" and live
+            module.status = "ready" if ready else "generating"
+            module.pregenerated, module.error = False, None
+            unlocked_now.append(module.id)
         elif module.status == "locked" and unlocked(view, module, fold):
             module.status = "generating"
             unlocked_now.append(module.id)

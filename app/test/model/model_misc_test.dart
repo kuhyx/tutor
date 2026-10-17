@@ -145,6 +145,18 @@ void main() {
       );
     });
 
+    test('a pre-generated locked module parses (flag ignored)', () {
+      final m = Module.fromJson({
+        'id': 'b',
+        'title': 'B',
+        'status': 'locked',
+        'cards': 4,
+        'pregenerated': true,
+      });
+      expect((m.status, m.cards), (ModuleStatus.locked, 4));
+      expect(m.toJson().containsKey('pregenerated'), isFalse);
+    });
+
     test('defaults for sparse records', () {
       final m = Module.fromJson({'id': 'a', 'title': 'A'});
       expect(m.status, ModuleStatus.locked);

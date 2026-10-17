@@ -96,6 +96,15 @@ def _slugs(value: object) -> list[str]:
     raise ValueError
 
 
+def _module_ids(value: object) -> list[str] | str:
+    """``"all"`` or a non-empty list of module ids (``module_pregenerate``)."""
+    if value == "all":
+        return "all"
+    if isinstance(value, list) and value:
+        return _slugs(value)
+    raise ValueError
+
+
 def _modules(value: object) -> list[dict[str, Any]]:
     """Shape only; the curriculum validates the modules themselves."""
     if isinstance(value, list) and all(isinstance(m, dict) for m in value):
@@ -113,6 +122,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     "plan_edit": (BUILD, {"subject": _slug, "plan_rev": _int, "modules": _modules}),
     "plan_approve": (BUILD, {"subject": _slug, "plan_rev": _int}),
     "subject_finish": (BUILD, {"subject": _slug, "choice": _choice}),
+    "module_pregenerate": (BUILD, {"subject": _slug, "modules": _module_ids}),
     "card_edit": (
         BUILD,
         {

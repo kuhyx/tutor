@@ -43,7 +43,7 @@ pass the same vectors.
   validated). 3-12 modules per draft. `depth` = go-deeper round (1 = first
   plan). `prefixes` optional (automation id rule).
 - Module `status`: `locked | generating | ready | mastered | failed`; `failed`
-  carries `error`; `plan_approve` (same rev) retries it.
+  carries `error`; `plan_approve` (same rev) retries it. `pregenerated`: below.
 - `plan_edit` sends the full module list (validated, unknown keys dropped);
   `plan_revise` sends a comment and the model redrafts. Both only while
   `status:"draft"` and only for modules without cards: modules with cards (or
@@ -51,10 +51,15 @@ pass the same vectors.
   carries `plan_rev`; mismatch -> `plan_conflict`. "3-12 modules" counts the
   newest `depth` only (a go-deeper draft appends).
 - `plan_approve` -> `status:"approved"`, subject `active`; modules whose
-  requires are met become `generating`. The worker then runs generation
-  (`generate(ctx, subj, module)`) on the build lane for every module
-  `fold_and_advance`/`pending` lists; a module left `generating` by a crash
-  is listed again.
+  requires are met become `generating`. The worker runs `generate(ctx, subj,
+  module)` on the build lane, one at a time, for every module
+  `fold_and_advance`/`pending` lists; one left `generating` by a crash is too.
+- `module_pregenerate` (opt-in): approved plan, else `plan_conflict`; each named
+  module `locked` and not yet pre-generated, else `bad_request`, nothing written
+  (`"all"` = every such one). Each goes `generating` + `pregenerated:true`, then
+  `locked` with its cards (`card_edit` works; never picked, started, marked done
+  or counted) until its `requires` are mastered: `ready`, no second draft, flag
+  cleared. Failed: `failed` (`plan_approve` retries); its unlock drafts afresh.
 - `go_deeper` (after `completed`): new rev, `status:"draft"`, existing modules
   kept verbatim, new ones appended with `depth+1`; needs approval again.
   `review_only` -> subject `review_only`, nothing new.
@@ -114,9 +119,8 @@ pass the same vectors.
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else
   slug of `front`.
-- Concepts: `subjects/{subj}/concepts` =
-  `[{"name":"normally closed contact","at":ms,"card":"ld-x","session":sid}]`,
-  array, appended by worker only.
+- Concepts: `subjects/{subj}/concepts` (array, appended by worker only) =
+  `[{"name":"normally closed contact","at":ms,"card":"ld-x","session":sid}]`.
 
 ## 4. Event log: `log/{dev}/{eid}` (append-only)
 ```json
@@ -182,10 +186,9 @@ pass the same vectors.
   module is mastered (client offers "Go deeper" / "Review only").
 - **Daily new cap = 10, all subjects.** New card = a `taught` event on a card
   that was untaught at that point; `new_today` = such events with `at` on
-  today's PC-local date. A
-  `session_start`/`next` that would teach an untaught card when
-  `new_today >= 10` -> `daily_new_cap`. Re-teaching a taught card is free.
-  Client shows `stats.today.new`/`new_cap`.
+  today's PC-local date. A `session_start`/`next` that would teach an untaught
+  card when `new_today >= 10` -> `daily_new_cap`. Re-teaching a taught card is
+  free. Client shows `stats.today.new`/`new_cap`.
 - Next-card pick (worker): subject = `body.subject` or
   `prefs.current_subject`; first card in (module order, card order) that is
   untaught, not flagged/suspended, card `requires` taught, in an unlocked +
@@ -218,8 +221,7 @@ a new session); that session's own minutes are secondary.
   attribution; diagrams; busy phase; Card done -> Next card / Stop here; Mark
   card done; Switch card; mastered list; stalled/paused pill.
 - **History**: `session_index` (archived toggle, auto-archived hidden), past
-  transcript view, Repeat, Continue (`session_resume`), mark card
-  done/not done.
+  transcript view, Repeat, Continue (`session_resume`), mark card done/not done.
 - **Progress**: `stats.days` timeline + per-module recall.
 - **Editor**: subject -> module -> cards, `card_edit`, flag.
 - **Review**: §5, offline.
@@ -229,9 +231,9 @@ a new session); that session's own minutes are secondary.
 - `Context(data_dir, clock=ms, model=, fetch=, check=, device=)`; defaults are
   the real ones (device = `$TUTOR_DATA/device_id`, the crdt_sync format).
 - `BUILD_HANDLERS[kind](body, ctx) -> data` for `subject_new`, `plan_revise`,
-  `plan_edit`, `plan_approve`, `subject_finish`, `card_edit`. Blocking: call
-  via `asyncio.to_thread`. Refusals raise `RequestError(code, message)`
-  (`.result(at)` = the `result` node).
+  `plan_edit`, `plan_approve`, `subject_finish`, `module_pregenerate`,
+  `card_edit`. Blocking: call via `asyncio.to_thread`. Refusals raise
+  `RequestError(code, message)` (`.result(at)` = the `result` node).
 - `fold_and_advance(ctx) -> {"changed":[subj],"generate":[[subj,module]]}`
   after every log change and before each request; then
   `generate(ctx, subj, module)` per pending module on the build lane
