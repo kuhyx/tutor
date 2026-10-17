@@ -33,7 +33,7 @@ dependencies:
   google_sign_in: 7.2.0
   http: 1.6.0
   # Device id and the offline event queue on web live in IndexedDB.
-  idb_shim: 2.9.11
+  idb_shim: 2.10.1+1
   shared_preferences: 2.5.6
   # Source links and picture attribution open in the browser.
   url_launcher: 6.3.3

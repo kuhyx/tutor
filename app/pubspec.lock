@@ -302,10 +302,10 @@ packages:
     dependency: "direct main"
     description:
       name: idb_shim
-      sha256: "110fe0514a52dc8da5414df42405a8f9e880dfac3e84852fdab8e5559ee6ad07"
+      sha256: "4f32cd03ce97e2996b57cea03b2d098f5153ac55435a27cf2c89716db571728d"
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.11"
+    version: "2.10.1+1"
   image:
     dependency: transitive
     description:
