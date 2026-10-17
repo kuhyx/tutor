@@ -2,11 +2,13 @@
 """Unlock, mastery, recall, the daily new-card cap and the next-card pick.
 
 ``DOCS-contract-curriculum.md`` §6, read from the folded log (never from FSRS
-state): a card is *good* when its latest review since it was taught is Good
-or Easy and came at least 20 h after the teaching; a module's recall is its
-good share of the cards that are neither flagged nor suspended; a ``ready``
-module with recall >= 0.8 becomes ``mastered`` (and stays so); a module
-unlocks when the plan is approved and every module it requires is mastered.
+state): a card is *reviewed* once some review since it was last taught is
+Good or Easy (no time gap); a ``ready`` module whose counted cards (neither
+flagged nor suspended, at least one) are all reviewed becomes ``mastered``
+(and stays so); a module unlocks when the plan is approved and every module
+it requires is mastered. *Good* (the latest review is Good or Easy, 20 h or
+more after the teaching) and a module's *recall* (its good share) are shown
+only: they no longer gate anything.
 """
 
 from __future__ import annotations
@@ -29,7 +31,6 @@ if TYPE_CHECKING:
 
 GOOD_GAP_MS: Final = 20 * 3600 * 1000
 GOOD_RATING: Final = 3
-MASTERY: Final = 0.8
 NEW_CAP: Final = 10
 OPEN: Final = frozenset({"ready", "mastered"})
 WAITING: Final = frozenset({"locked", "failed"})  # pre-generated, not yet unlocked
@@ -57,14 +58,30 @@ def good(state: CardFold) -> bool:
     return rating >= GOOD_RATING and at >= state.taught_at + GOOD_GAP_MS
 
 
-def recall(view: View, module_id: str, fold: Fold) -> float:
-    """Good cards / cards neither flagged nor suspended (0 when none)."""
-    counted = [
-        fold.card(view.subject, cid)
+def reviewed(state: CardFold) -> bool:
+    """Taught, and some review since then is >= Good (no time gap)."""
+    return state.taught and any(r >= GOOD_RATING for _, r in state.reviews)
+
+
+def counted(view: View, module_id: str, fold: Fold) -> list[tuple[str, CardFold]]:
+    """The module's cards that count: neither flagged nor suspended."""
+    return [
+        (cid, fold.card(view.subject, cid))
         for cid, card in view.module_cards(module_id)
         if not card.suspended and not fold.card(view.subject, cid).flagged(card.rev)
     ]
-    return sum(good(s) for s in counted) / len(counted) if counted else 0.0
+
+
+def recall(view: View, module_id: str, fold: Fold) -> float:
+    """Good cards / cards neither flagged nor suspended (0 when none)."""
+    states = [s for _, s in counted(view, module_id, fold)]
+    return sum(good(s) for s in states) / len(states) if states else 0.0
+
+
+def module_reviewed(view: View, module_id: str, fold: Fold) -> bool:
+    """Every counted card reviewed; a module with none never is."""
+    states = [s for _, s in counted(view, module_id, fold)]
+    return bool(states) and all(reviewed(s) for s in states)
 
 
 def unlocked(view: View, module: Module, fold: Fold) -> bool:
@@ -85,7 +102,8 @@ def unlocked(view: View, module: Module, fold: Fold) -> bool:
 def advance_statuses(view: View, fold: Fold) -> list[str]:
     """Update recall and status in place (plan order); returns new unlocks.
 
-    ``ready`` -> ``mastered`` at recall >= 0.8 (sticky); ``locked`` ->
+    ``ready`` -> ``mastered`` once every counted card is reviewed
+    (sticky; ``recall`` is written for display only); ``locked`` ->
     ``generating`` once unlocked, ``ready`` at once if its cards were
     pre-generated. Earlier modules are updated first, so a mastery unlocks
     its dependents in the same pass. An open module never carries an
@@ -96,7 +114,7 @@ def advance_statuses(view: View, fold: Fold) -> list[str]:
         if module.status in OPEN:
             module.error = None
         module.recall = round(recall(view, module.id, fold), 4)
-        if module.status == "ready" and module.recall >= MASTERY:
+        if module.status == "ready" and module_reviewed(view, module.id, fold):
             module.status = "mastered"
         elif (
             module.pregenerated

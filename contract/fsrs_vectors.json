@@ -24,7 +24,8 @@
     "difficulty": 2.118103970459016,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -65,7 +66,8 @@
     "difficulty": 2.111214235785395,
     "state": "review",
     "flagged": false,
-    "good": true
+    "good": true,
+    "reviewed": true
    }
   },
   "dropped": [],
@@ -106,7 +108,8 @@
     "difficulty": 7.394502741279718,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -147,7 +150,8 @@
     "difficulty": 4.752858488532557,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -188,7 +192,8 @@
     "difficulty": 1.0,
     "state": "review",
     "flagged": false,
-    "good": true
+    "good": true,
+    "reviewed": true
    }
   },
   "dropped": [],
@@ -259,7 +264,8 @@
     "difficulty": 7.377814181523433,
     "state": "review",
     "flagged": false,
-    "good": true
+    "good": true,
+    "reviewed": true
    }
   },
   "dropped": [],
@@ -310,7 +316,8 @@
     "difficulty": 2.111214235785395,
     "state": "review",
     "flagged": false,
-    "good": true
+    "good": true,
+    "reviewed": true
    }
   },
   "dropped": [
@@ -363,7 +370,8 @@
     "difficulty": 7.392238132342694,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": true
    }
   },
   "dropped": [],
@@ -414,7 +422,8 @@
     "difficulty": 7.382336607835277,
     "state": "review",
     "flagged": false,
-    "good": true
+    "good": true,
+    "reviewed": true
    }
   },
   "dropped": [],
@@ -473,7 +482,8 @@
     "difficulty": null,
     "state": null,
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -508,7 +518,8 @@
     "difficulty": null,
     "state": null,
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -551,7 +562,8 @@
     "difficulty": 2.118103970459016,
     "state": "review",
     "flagged": true,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -592,7 +604,8 @@
     "difficulty": 2.118103970459016,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -641,7 +654,8 @@
     "difficulty": 2.118103970459016,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],
@@ -682,7 +696,8 @@
     "difficulty": 2.111214235785395,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": true
    }
   },
   "dropped": [],
@@ -744,7 +759,8 @@
     "difficulty": 2.111214235785395,
     "state": "review",
     "flagged": false,
-    "good": true
+    "good": true,
+    "reviewed": true
    },
    "y": {
     "taught": true,
@@ -753,7 +769,183 @@
     "difficulty": 4.752858488532557,
     "state": "review",
     "flagged": false,
-    "good": false
+    "good": false,
+    "reviewed": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "reviewed: Good 1 h after taught, no gap (not good)",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4QX2B405ZP3EKDK0RYA7A20",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0S43RE626K75BG8H0",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791976400000,
+    "stability": 2.3065,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": true
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "reviewed survives a later Again; Hard alone is not",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4QX2B40GEEF9WJD8RT0EEW7",
+    "k": "review",
+    "s": "car",
+    "c": "y",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 2
+   },
+   {
+    "dev": "dev-b",
+    "eid": "01M4QSMFG0VQBW9XBNE6T35R34",
+    "k": "taught",
+    "s": "car",
+    "c": "y",
+    "at": 1791800000000
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4R0G6R0TQ8YVYYXC608N2RM",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791807200000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QX2B40KG1V2A6H523HDZ6X",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 4
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0V2RF80KAPS8XR0TN",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   },
+   "y": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791893600000,
+    "stability": 1.2800093588060393,
+    "difficulty": 7.0269895692968385,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": true
+   },
+   "y": {
+    "taught": true,
+    "due": 1791976400000,
+    "stability": 2.3065,
+    "difficulty": 4.752858488532557,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "re-taught clears reviewed",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4R0G6R0H8BB5WCV9TYYW3NJ",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791807200000
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QX2B40Q7C7AQEJSBH9ZHQR",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4QSMFG0MCMVN2HTBDDJ7F9B",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791980000000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false
    }
   },
   "dropped": [],

@@ -169,3 +169,62 @@ def test_daily_cap_counts_new_cards_on_the_local_day(tmp_path: Path) -> None:
     assert err.value.code == "daily_new_cap"
     assert rules.pick(view, ctx.fold(), "c3", T0 + 100) == "c3"
     assert rules.pick(view, ctx.fold(), None, T0 + 2 * D) == "c10"
+
+
+def test_reviewed_needs_one_good_or_easy_after_taught_no_gap(tmp_path: Path) -> None:
+    ctx, _, _ = _setup(tmp_path)
+    assert not rules.reviewed(ctx.fold().card("car", "a1"))  # untaught
+    taught(ctx, "car", "a1", T0)
+    assert not rules.reviewed(ctx.fold().card("car", "a1"))
+    review(ctx, "car", "a1", T0 + 60_000, 2)  # Hard does not count
+    assert not rules.reviewed(ctx.fold().card("car", "a1"))
+    review(ctx, "car", "a1", T0 + H, 3)  # Good 1 h later: no gap needed
+    assert rules.reviewed(ctx.fold().card("car", "a1"))
+    assert not rules.good(ctx.fold().card("car", "a1"))  # the 20 h stat
+    review(ctx, "car", "a1", T0 + 2 * H, 1)  # a later Again keeps it
+    assert rules.reviewed(ctx.fold().card("car", "a1"))
+    taught(ctx, "car", "a1", T0 + 3 * H, 7)  # re-taught: reviews start over
+    assert not rules.reviewed(ctx.fold().card("car", "a1"))
+
+
+def test_advance_completes_a_reviewed_module_without_a_gap(tmp_path: Path) -> None:
+    ctx, _, _ = _setup(tmp_path)
+    for i, cid in enumerate(("a1", "a2")):
+        taught(ctx, "car", cid, T0 + i, i)
+    view = _view(ctx)
+    assert rules.advance_statuses(view, ctx.fold()) == []  # taught, not reviewed
+    review(ctx, "car", "a1", T0 + H, 3)
+    assert rules.advance_statuses(view, ctx.fold()) == []  # a2 still unreviewed
+    review(ctx, "car", "a2", T0 + H + 1, 4)
+    assert rules.advance_statuses(view, ctx.fold()) == ["b"]
+    assert [m.status for m in view.plan.modules] == ["mastered", "generating", "locked"]
+    assert view.plan.modules[0].recall == 0.0  # display stat keeps the 20 h rule
+
+
+def test_reviewed_module_skips_flagged_and_suspended_but_not_empty(
+    tmp_path: Path,
+) -> None:
+    ctx, plan, found = _setup(tmp_path)
+    found["a2"].suspended = True
+    view = rules.View("car", plan, found)
+    assert not rules.module_reviewed(view, "a", ctx.fold())
+    taught(ctx, "car", "a1", T0)
+    review(ctx, "car", "a1", T0 + 1, 3)
+    assert rules.module_reviewed(view, "a", ctx.fold())  # a2 suspended: skipped
+    assert not rules.module_reviewed(view, "zzz", ctx.fold())  # no cards: never
+    found["a2"].suspended = False
+    assert not rules.module_reviewed(view, "a", ctx.fold())
+    ctx.log.append(
+        [
+            {
+                "dev": "p",
+                "eid": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+                "k": "flag",
+                "s": "car",
+                "c": "a2",
+                "at": T0,
+                "rev": 1,
+            }
+        ]
+    )
+    assert rules.module_reviewed(view, "a", ctx.fold())  # a2 flagged: skipped

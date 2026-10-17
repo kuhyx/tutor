@@ -20,7 +20,7 @@ from typing import Any, Final
 
 from tutor.curriculum.fold import fold
 from tutor.curriculum.ids import ulid
-from tutor.curriculum.rules import good
+from tutor.curriculum.rules import good, reviewed
 
 OUT: Final = Path(
     os.environ.get("TUTOR_VECTORS_OUT")
@@ -126,6 +126,28 @@ CASES: Final[dict[str, Spec]] = {
         ],
         {"x": 1, "y": 1},
     ),
+    "reviewed: Good 1 h after taught, no gap (not good)": (
+        [("taught", "x", 0, A, {}), ("review", "x", H, B, {"r": 3})],
+        {"x": 1},
+    ),
+    "reviewed survives a later Again; Hard alone is not": (
+        [
+            ("taught", "x", 0, A, {}),
+            ("review", "x", H, A, {"r": 4}),
+            ("review", "x", 2 * H, A, {"r": 1}),
+            ("taught", "y", 0, B, {}),
+            ("review", "y", H, B, {"r": 2}),
+        ],
+        {"x": 1, "y": 1},
+    ),
+    "re-taught clears reviewed": (
+        [
+            ("taught", "x", 0, A, {}),
+            ("review", "x", H, A, {"r": 3}),
+            ("taught", "x", 2 * H, A, {}),
+        ],
+        {"x": 1},
+    ),
 }
 
 
@@ -165,6 +187,7 @@ def case(name: str, spec: Spec) -> dict[str, Any]:
             "state": memory.get("state"),
             "flagged": state.flagged(rev),
             "good": good(state),
+            "reviewed": reviewed(state),
         }
     return {
         "name": name,

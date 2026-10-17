@@ -11,7 +11,7 @@ from tutor.curriculum import handlers as cur
 from tutor.curriculum.eventlog import worker_event
 from tutor.relay import cli
 from tutor.relay.curriculum_sync import CurriculumSync
-from tutor.tests._cur import subject
+from tutor.tests._cur import card, module, subject
 from tutor.tests._fake_rtdb import FakeRtdb
 from tutor.tests._fakes import turn
 from tutor.tests._relay_support import PHONE, WORKER, engine, wiring
@@ -144,6 +144,34 @@ def test_startup_and_sync_queue_generation(
         asyncio.run(go())
     assert made[:2] == [("car", "b"), ("car", "c")]
     assert "generating car/c failed: model down" in caplog.text
+
+
+def test_a_phone_review_unlocks_the_next_module_on_the_next_sync(
+    tmp_path: Path,
+) -> None:
+    """A review synced from the app is enough: no other event is needed.
+
+    ``sync`` runs every minute (``Relay._refresh``) and around each request.
+    """
+    eng, fake, sync = rig(tmp_path)
+    found = {"a-1": card("a", 1), "b-1": card("b", 1)}
+    mods = [module("a", status="ready"), module("b", "a", pregenerated=True)]
+    subject(eng.ctx, "car", modules=mods, found=found)
+    own = worker_event("taught", ("car", "a-1"), dev=WORKER, at=T, session="s")
+    eng.ctx.log.append([own])
+
+    async def go() -> None:
+        await sync.startup()
+        assert fake.get("tutor/v1/subjects/car/plan/modules")[1]["status"] == "locked"
+        catalog = fake.get("tutor/v1/rev/catalog")
+        fake.set(f"tutor/v1/log/{PHONE}/{EID}", {**review(EID), "at": T + 60_000})
+        await sync.sync()
+        assert fake.get("tutor/v1/rev/catalog") == catalog + 1
+        await sync.w.rtdb.aclose()
+
+    asyncio.run(go())
+    statuses = [m["status"] for m in fake.get("tutor/v1/subjects/car/plan/modules")]
+    assert statuses == ["mastered", "ready"]
 
 
 def test_publish_subjects_for_the_migration(tmp_path: Path) -> None:
