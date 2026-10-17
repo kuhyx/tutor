@@ -62,6 +62,9 @@ session_of() {
     curl -s -m 5 "http://127.0.0.1:$1/api/state" | jq -r '.session_id // empty' || true
 }
 
+# Only today's newest session survives a restart (engine.resume_latest).
+resumable() { [[ "$1" == "$(date +%Y%m%d)-"* ]] && printf '%s\n' "$1" || true; }
+
 # Start a scratch server from $1 on port $2 in its own systemd unit; log to $3.
 launch() {
     "$REPO/scripts/tutor_launch.sh" "$1" "$2" "$3"
@@ -214,7 +217,7 @@ main() {
     copy_release "$release"
     echo "Release copied: $release"
 
-    before="$(session_of "$PORT")"
+    before="$(resumable "$(session_of "$PORT")")"
     smoke_test "$release" "$before"
 
     wait_idle
