@@ -2,7 +2,8 @@
 // contract/fsrs_vectors.json at the repo root, written by
 // `python -m tutor.curriculum.fsrs_vectors`.
 //
-// Format: [{"name", "events": [{"dev","eid","k","s","c","at","r"?,"rev"?,...}],
+// Format: [{"name", "events": [{"dev","eid","k","s","c","at",
+//                              "r"?,"rev"?,"src"?,...}],
 //           "cards": {"x": {"rev": 1}},
 //           "expect": {"x": {"taught","due","stability","difficulty",
 //                            "state","flagged","good","reviewed"?}},

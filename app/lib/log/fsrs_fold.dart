@@ -54,9 +54,9 @@ class FoldResult {
   final Set<String> good;
 
   /// Keys whose card is `reviewed` (the module unlock): taught, and at
-  /// least one review since the latest `taught` rated Good or Easy, with
-  /// no time gap. Sticky: a later Again does not clear it; only a new
-  /// `taught` or an `untaught` does.
+  /// least one app review (never a PC drill pick, [isDrill]) since the
+  /// latest `taught` rated Good or Easy, with no time gap. Sticky: a later
+  /// Again does not clear it; only a new `taught` or an `untaught` does.
   final Set<String> reviewed;
 }
 
@@ -103,6 +103,19 @@ List<LoggedEvent> mergeEvents(Iterable<LoggedEvent> events) {
   return kept;
 }
 
+/// Devices that wrote a `taught`/`untaught`: the PC worker(s), whose only
+/// reviews are drill picks (older ones carry no `src`).
+Set<String> workerDevices(Iterable<LoggedEvent> events) => {
+  for (final e in events)
+    if (e.event is TaughtEvent || e.event is UntaughtEvent) e.dev,
+};
+
+/// A drill pick (curriculum §6): `src: "drill"`, or a review by a worker.
+bool isDrill(LoggedEvent e, Set<String> workers) {
+  final event = e.event;
+  return event is ReviewEvent && (event.isDrill || workers.contains(e.dev));
+}
+
 /// Folds [events] against [cards] (keyed `subject/card`).
 FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
   final scheduled = <String, FsrsCard>{};
@@ -110,7 +123,10 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
   final taughtAt = <String, int>{};
   final latest = <String, ReviewEvent>{};
   final reviewed = <String>{};
-  for (final e in mergeEvents(events)) {
+  final all = events.toList();
+  // The whole log first, so event order cannot change who is a worker.
+  final workers = workerDevices(all);
+  for (final e in mergeEvents(all)) {
     final event = e.event;
     final key = event.key;
     switch (event) {
@@ -130,7 +146,10 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         if (card == null) continue; // a review of an untaught card
         scheduled[key] = scheduler.review(card, grade, _utc(at));
         latest[key] = event;
-        if (grade.value >= Grade.good.value) reviewed.add(key);
+        // A drill pick schedules, but only an app rating marks `reviewed`.
+        if (grade.value >= Grade.good.value && !isDrill(e, workers)) {
+          reviewed.add(key);
+        }
       case FlagEvent(:final rev):
         if (cards[key]?.rev == rev) flagged.add(key);
     }

@@ -99,8 +99,9 @@ seeder once to give the tutor its own refresh token.
 - `drill_answer` `{"prompt_id":ulid,"choice":int}` -> `{"correct",
   "answer_index","back","excerpt","source","minute_credited","today"}`. One
   prompt is open; answered, replaced or lost on restart -> `unknown_prompt`.
-  A pick appends one `review` (`r` 3 / 1, `rev`, `dur_ms`, the worker's dev)
-  that the sync pushes to `log/{worker}`. Shown -> pick is a learner gap on
+  A pick appends one `review` (`r` 3 / 1, `rev`, `dur_ms`, `"src":"drill"`,
+  the worker's dev) that the sync pushes to `log/{worker}`. It schedules
+  (FSRS) and feeds `good` but never makes a card `reviewed` (curriculum §6). Shown -> pick is a learner gap on
   the tutor's clock (right or wrong, within `REPLY_TIMEOUT`, none under 3 s);
   minutes go through `credit_units` as session `drill-<id>` (one per day),
   daily cap only. Its log: `drill/<session>.jsonl`, not `sessions/`.

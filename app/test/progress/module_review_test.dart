@@ -53,13 +53,16 @@ SubjectData _subject({ModuleStatus aStatus = ModuleStatus.ready}) =>
     );
 
 int _n = 0;
-LoggedEvent _e(LogEvent event) => LoggedEvent(
-  dev: 'd',
+LoggedEvent _e(LogEvent event, {String dev = 'd'}) => LoggedEvent(
+  dev: dev,
   eid: 'E${(_n++).toString().padLeft(6, '0')}',
   event: event,
 );
-LoggedEvent _taught(String c) =>
-    _e(TaughtEvent(subject: 'car', card: c, at: _t0));
+// Taught by the worker: its own reviews would be drill picks (curriculum §6).
+LoggedEvent _taught(String c) => _e(
+  TaughtEvent(subject: 'car', card: c, at: _t0),
+  dev: 'pc',
+);
 LoggedEvent _review(String c, Grade g) =>
     _e(ReviewEvent(subject: 'car', card: c, at: _t0 + 1000, grade: g, rev: 1));
 LoggedEvent _flag(String c) =>

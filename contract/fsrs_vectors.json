@@ -3,7 +3,7 @@
   "name": "taught only",
   "events": [
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0JP4Q85YFGVG3HKS5",
     "k": "taught",
     "s": "car",
@@ -45,7 +45,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0PTJ05DBW3X5RS54K",
     "k": "taught",
     "s": "car",
@@ -87,7 +87,7 @@
     "r": 1
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG080QX0PSYG32PDEJT",
     "k": "taught",
     "s": "car",
@@ -129,7 +129,7 @@
     "r": 2
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0NFEM835C4QG83M32",
     "k": "taught",
     "s": "car",
@@ -171,7 +171,7 @@
     "r": 4
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0HN0K1X9VP7B460WA",
     "k": "taught",
     "s": "car",
@@ -243,7 +243,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG03KV3HWWDRCC684AG",
     "k": "taught",
     "s": "car",
@@ -295,7 +295,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0P3VJHEZZ7J5CKBK6",
     "k": "taught",
     "s": "car",
@@ -349,7 +349,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG048H2MV672JPD9CH7",
     "k": "taught",
     "s": "car",
@@ -401,7 +401,7 @@
     "r": 1
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG08XNB608CWX0KRJZP",
     "k": "taught",
     "s": "car",
@@ -443,7 +443,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4WYDXG07GB8F8PM8HF30AYE",
     "k": "untaught",
     "s": "car",
@@ -461,7 +461,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0S6M23WAZSJP6JN34",
     "k": "taught",
     "s": "car",
@@ -541,7 +541,7 @@
     "reason": "wrong"
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0VWGPWC5KZ2BD02RN",
     "k": "taught",
     "s": "car",
@@ -583,7 +583,7 @@
     "reason": "wrong"
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG02JPS0VMB707FE19P",
     "k": "taught",
     "s": "car",
@@ -615,7 +615,7 @@
   "name": "second taught resets FSRS",
   "events": [
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M5HHKNG0WP6K0934TXT6KP56",
     "k": "taught",
     "s": "car",
@@ -633,7 +633,7 @@
     "r": 4
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0YC0JY6RHKT4HPPMF",
     "k": "taught",
     "s": "car",
@@ -675,7 +675,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0M0WY3MQZ9G99AQ75",
     "k": "taught",
     "s": "car",
@@ -717,7 +717,7 @@
     "r": 2
    },
    {
-    "dev": "dev-b",
+    "dev": "dev-pc",
     "eid": "01M4QX2B40CA1ZG2JCFXRECGTH",
     "k": "taught",
     "s": "car",
@@ -735,7 +735,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0ERXG72915RHGTNVY",
     "k": "taught",
     "s": "car",
@@ -790,7 +790,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0S43RE626K75BG8H0",
     "k": "taught",
     "s": "car",
@@ -832,7 +832,7 @@
     "r": 2
    },
    {
-    "dev": "dev-b",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0VQBW9XBNE6T35R34",
     "k": "taught",
     "s": "car",
@@ -860,7 +860,7 @@
     "r": 4
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0V2RF80KAPS8XR0TN",
     "k": "taught",
     "s": "car",
@@ -905,7 +905,7 @@
   "name": "re-taught clears reviewed",
   "events": [
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4R0G6R0H8BB5WCV9TYYW3NJ",
     "k": "taught",
     "s": "car",
@@ -923,7 +923,7 @@
     "r": 3
    },
    {
-    "dev": "dev-a",
+    "dev": "dev-pc",
     "eid": "01M4QSMFG0MCMVN2HTBDDJ7F9B",
     "k": "taught",
     "s": "car",
@@ -946,6 +946,187 @@
     "flagged": false,
     "good": false,
     "reviewed": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "drill Good (src) 20 h on: scheduled and good, not reviewed",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4SY9R00ZYBSEE86GX2W86GN",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791872000000,
+    "rev": 1,
+    "r": 3,
+    "src": "drill"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG04KMBRHTNHHH4NCMT",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792044800000,
+    "stability": 2.3065,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": true,
+    "reviewed": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "old drill pick (no src, the worker's dev): not reviewed",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4TC16G00Y45ABFSBPPB4D75",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 4
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0RDFXNB956H4B8PRA",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792923200000,
+    "stability": 11.687482913582336,
+    "difficulty": 1.0,
+    "state": "review",
+    "flagged": false,
+    "good": true,
+    "reviewed": false
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "drill Good, then an app Good: reviewed",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4R0G6R00WE7TK9PCX7BYT9S",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791807200000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QX2B40SF3EW90W0TNM5KD7",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 3,
+    "src": "drill"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0MD7SE9GHWFV07MSQ",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791980000000,
+    "stability": 2.3065,
+    "difficulty": 2.1043313908464483,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": true
+   }
+  },
+  "dropped": [],
+  "ignored": []
+ },
+ {
+  "name": "unknown src is no drill: reviewed",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4QX2B40CN64GETWHZKSQ09H",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 3,
+    "src": "elsewhere"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG01QEEM2JB51F8JDXA",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791976400000,
+    "stability": 2.3065,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": true
    }
   },
   "dropped": [],

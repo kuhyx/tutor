@@ -7,7 +7,13 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor.curriculum.eventlog import EventLog, parse, worker_event
+from tutor.curriculum.eventlog import (
+    DRILL,
+    EventLog,
+    parse,
+    review_event,
+    worker_event,
+)
 from tutor.curriculum.ids import ulid
 
 if TYPE_CHECKING:
@@ -60,6 +66,23 @@ def test_parse_keeps_contract_fields_only() -> None:
     assert "session" not in (
         parse("d", EID, {**BASE, "k": "untaught", "session": "s"}) or {}
     )
+
+
+def test_parse_keeps_a_drill_source_only() -> None:
+    raw = {**BASE, "k": "review", "r": 3}
+    assert _clean({**raw, "src": "drill"})["src"] == "drill"
+    assert "src" not in _clean({**raw, "src": "app"})  # untrusted: drill only
+    assert "src" not in _clean({**BASE, "src": "drill"})  # reviews only
+
+
+def test_a_drill_review_keeps_its_source_on_disk(tmp_path: Path) -> None:
+    log = EventLog(tmp_path)
+    ref, span = ("car", "x"), (1000, 2000)
+    plain = review_event(ref, 3, dev="pc", span=span, rev=1)
+    assert "src" not in plain
+    event = {**plain, "src": DRILL}
+    assert log.append([event]) == [event]
+    assert log.read() == [event]
 
 
 def test_append_is_idempotent_and_mirror_tags_device(tmp_path: Path) -> None:

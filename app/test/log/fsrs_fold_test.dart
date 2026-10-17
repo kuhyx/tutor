@@ -5,6 +5,7 @@ import 'package:tutor/model/log_event.dart';
 
 const _a = 'dev-a';
 const _b = 'dev-b';
+const _pc = 'dev-pc'; // the worker: writes taught/untaught (and drill picks)
 const int _day = 24 * 3600 * 1000;
 const _t0 = 1791731346000;
 
@@ -140,7 +141,7 @@ void main() {
 
   test('reviewed: any Good/Easy review after the latest taught, no gap', () {
     bool rev(List<LoggedEvent> es) => fold(es, _cards).reviewed.contains('s/x');
-    final taught = _e(_a, _taught(_t0));
+    final taught = _e(_pc, _taught(_t0));
     expect(rev([taught]), isFalse);
     expect(rev([taught, _e(_a, _rev(_t0 + 1, Grade.good))]), isTrue);
     expect(rev([taught, _e(_a, _rev(_t0 + 1, Grade.easy))]), isTrue);
@@ -154,17 +155,52 @@ void main() {
     expect(rev(later), isTrue);
     expect(fold(later, _cards).good, isEmpty);
     // Re-taught or untaught clears it; a review before teaching is ignored.
-    expect(rev([...later, _e(_a, _taught(_t0 + 3))]), isFalse);
+    expect(rev([...later, _e(_pc, _taught(_t0 + 3))]), isFalse);
     expect(
       rev([
         ...later,
-        _e(_a, const UntaughtEvent(subject: 's', card: 'x', at: _t0 + 3)),
+        _e(_pc, const UntaughtEvent(subject: 's', card: 'x', at: _t0 + 3)),
       ]),
       isFalse,
     );
     expect(
-      rev([_e(_a, _rev(_t0, Grade.good)), _e(_a, _taught(_t0 + 1))]),
+      rev([_e(_a, _rev(_t0, Grade.good)), _e(_pc, _taught(_t0 + 1))]),
       isFalse,
     );
+  });
+
+  test('a PC drill pick schedules and counts as good, never as reviewed', () {
+    const drill = ReviewEvent(
+      subject: 's',
+      card: 'x',
+      at: _t0 + 20 * 3600 * 1000,
+      grade: Grade.good,
+      rev: 1,
+      src: drillSource,
+    );
+    final taught = _e(_pc, _taught(_t0));
+    final tagged = fold([taught, _e(_a, drill)], _cards);
+    expect(tagged.reviewed, isEmpty);
+    expect(tagged.good, {'s/x'}); // the 20 h stat is unchanged
+    expect(
+      tagged.scheduled['s/x']!.stability,
+      fold([
+        taught,
+        _e(_a, _rev(drill.at, Grade.good)),
+      ], _cards).scheduled['s/x']!.stability,
+    ); // FSRS sees it like any review
+    // An older pick has no `src`: it is the worker's (it wrote `taught`),
+    // whichever order the events come in.
+    final old = _e(_pc, _rev(_t0 + 1, Grade.easy));
+    expect(fold([old, taught], _cards).reviewed, isEmpty);
+    expect(isDrill(old, {_pc}), isTrue);
+    expect(isDrill(taught, {_pc}), isFalse); // not a review at all
+    // An app rating after a drill pick does count.
+    final then = fold([
+      taught,
+      _e(_a, drill),
+      _e(_b, _rev(drill.at + 3600 * 1000, Grade.good)),
+    ], _cards);
+    expect(then.reviewed, {'s/x'});
   });
 }

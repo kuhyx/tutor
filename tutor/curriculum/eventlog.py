@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 KINDS: Final = frozenset({"review", "flag", "taught", "untaught"})
 MAX_REASON: Final = 500
 RATINGS: Final = frozenset({1, 2, 3, 4})
+DRILL: Final = "drill"  # review ``src``: a PC drill pick (never counts as reviewed)
 _LOCK: Final = threading.Lock()
 _logger = logging.getLogger(__name__)
 
@@ -62,6 +63,8 @@ def parse(dev: str, eid: str, raw: object) -> dict[str, Any] | None:
         event["rev"] = rev or 1
         if (dur := _int(raw.get("dur_ms"))) is not None:
             event["dur_ms"] = dur
+        if raw.get("src") == DRILL:  # untrusted: the one known source only
+            event["src"] = DRILL
     elif kind == "flag":
         event["rev"] = rev or 1
         reason = raw.get("reason")
@@ -141,7 +144,8 @@ def review_event(
 ) -> dict[str, Any]:
     """A ``review`` of ``ref`` in the app's shape (``log_event.dart``), fresh eid.
 
-    ``span`` is (shown, answered) in unix ms: ``at`` is the answer.
+    ``span`` is (shown, answered) in unix ms: ``at`` is the answer. The app
+    sends no ``src``; the drill adds ``"src": DRILL`` to its own.
     """
     subject, card = ref
     shown, at = span

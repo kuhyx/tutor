@@ -2,9 +2,10 @@
 """Unlock, mastery, recall, the daily new-card cap and the next-card pick.
 
 ``DOCS-contract-curriculum.md`` §6, read from the folded log (never from FSRS
-state): a card is *reviewed* once some review since it was last taught is
-Good or Easy (no time gap); a ``ready`` module whose counted cards (neither
-flagged nor suspended, at least one) are all reviewed becomes ``mastered``
+state): a card is *reviewed* once some app review since it was last taught
+is Good or Easy (no time gap; a PC drill pick never counts,
+``fold.is_drill``); a ``ready`` module whose counted cards (neither flagged
+nor suspended, at least one) are all reviewed becomes ``mastered``
 (and stays so); a module unlocks when the plan is approved and every module
 it requires is mastered. *Good* (the latest review is Good or Easy, 20 h or
 more after the teaching) and a module's *recall* (its good share) are shown
@@ -55,8 +56,8 @@ def good(state: CardFold) -> bool:
 
 
 def reviewed(state: CardFold) -> bool:
-    """Taught, and some review since then is >= Good (no time gap)."""
-    return state.taught and any(r >= GOOD_RATING for _, r in state.reviews)
+    """Taught, and some app (not drill) review since then is >= Good, no gap."""
+    return state.taught and state.app_good
 
 
 def counted(view: View, module_id: str, fold: Fold) -> list[tuple[str, CardFold]]:

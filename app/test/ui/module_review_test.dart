@@ -4,21 +4,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/app/services.dart';
+import 'package:tutor/log/event_log.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/review_screen.dart';
+import 'package:tutor/util/ulid.dart';
 
 import '../support/fake_stream.dart';
 import '../support/ui.dart';
 
-/// Teaches [cards] of the fixture's `car` just now (nothing is due).
+/// The PC worker's device id: it writes `taught` (curriculum §4).
+const _pcDev = '7c1e9a52-3b4d-4f60-8a1b-2c3d4e5f6a70';
+
+/// Teaches [cards] of the fixture's `car` just now (nothing is due), as the
+/// worker does: its own log, which the app pulls. (A `taught` in the app's
+/// own log would make the app's ratings look like drill picks, §6.)
 Future<TutorServices> _taught(List<String> cards) async {
   final s = await fixtureServices(fixtureDb(), FakeStream());
+  final pc = EventLog(
+    client: s.client,
+    kv: MemoryKv(),
+    dev: _pcDev,
+    ulid: UlidGenerator(),
+  );
   for (final c in cards) {
-    await s.events.record(TaughtEvent(subject: 'car', card: c, at: fixtureNow));
+    await pc.record(TaughtEvent(subject: 'car', card: c, at: fixtureNow));
   }
+  await pc.flush();
+  await s.events.pull();
   return s;
 }
 

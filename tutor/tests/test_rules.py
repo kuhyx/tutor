@@ -187,6 +187,20 @@ def test_reviewed_needs_one_good_or_easy_after_taught_no_gap(tmp_path: Path) -> 
     assert not rules.reviewed(ctx.fold().card("car", "a1"))
 
 
+def test_drill_reviews_feed_good_but_never_reviewed(tmp_path: Path) -> None:
+    ctx, _, _ = _setup(tmp_path)
+    taught(ctx, "car", "a1", T0)
+    review(ctx, "car", "a1", T0 + 20 * H, 3, src="drill")  # a PC drill pick
+    state = ctx.fold().card("car", "a1")
+    assert rules.good(state)  # the 20 h stat (and FSRS) still see it
+    assert not rules.reviewed(state)
+    # An old drill pick: no ``src``, but by the device that writes ``taught``.
+    review(ctx, "car", "a1", T0 + 21 * H, 4, dev=ctx.device)
+    assert not rules.reviewed(ctx.fold().card("car", "a1"))
+    review(ctx, "car", "a1", T0 + 22 * H, 3)  # a Review rating in the app
+    assert rules.reviewed(ctx.fold().card("car", "a1"))
+
+
 def test_advance_completes_a_reviewed_module_without_a_gap(tmp_path: Path) -> None:
     ctx, _, _ = _setup(tmp_path)
     for i, cid in enumerate(("a1", "a2")):

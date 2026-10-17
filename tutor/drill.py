@@ -30,7 +30,7 @@ import uuid
 from tutor import credit, unavailable, unit_credit
 from tutor.clock import EngagementClock
 from tutor.curriculum.errors import RequestError
-from tutor.curriculum.eventlog import review_event
+from tutor.curriculum.eventlog import DRILL, review_event
 from tutor.curriculum.ids import ulid
 from tutor.curriculum.source import DEFAULT_SUBJECT, source_for
 from tutor.distractors import options_for
@@ -148,6 +148,7 @@ class Drill:
         event = review_event(
             ref, rating, dev=self.ctx.device, span=span, rev=prompt.rev
         )
+        event["src"] = DRILL  # a pick never makes a card ``reviewed`` (§6)
         self.ctx.log.append([event])
         self._answered[ref] = span[1]
         rows = self._accrue(run, prompt, at)

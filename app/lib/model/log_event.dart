@@ -29,6 +29,9 @@ enum Grade {
   );
 }
 
+/// `src` of a review the PC drill wrote (`tutor/drill.py`).
+const String drillSource = 'drill';
+
 /// One log event. [subject] and [card] say which card; [at] is the device
 /// wall clock when it happened (ms).
 sealed class LogEvent {
@@ -48,6 +51,7 @@ sealed class LogEvent {
         grade: Grade.parse(integer(j, 'r')),
         rev: integer(j, 'rev'),
         durMs: intOr(j, 'dur_ms'),
+        src: strOr(j, 'src'),
       ),
       'flag' => FlagEvent(
         subject: s,
@@ -93,6 +97,7 @@ class ReviewEvent extends LogEvent {
     required this.grade,
     required this.rev,
     this.durMs,
+    this.src,
   });
 
   /// Rating.
@@ -104,6 +109,14 @@ class ReviewEvent extends LogEvent {
   /// Time to answer.
   final int? durMs;
 
+  /// Where it came from: [drillSource] for a PC drill pick; the app sends
+  /// none (a Review rating).
+  final String? src;
+
+  /// A pick in the PC's multiple-choice drill: it schedules like any
+  /// review but never makes a card `reviewed` (curriculum §6).
+  bool get isDrill => src == drillSource;
+
   @override
   Json toJson() => compact({
     'k': 'review',
@@ -113,6 +126,7 @@ class ReviewEvent extends LogEvent {
     'at': at,
     'rev': rev,
     'dur_ms': durMs,
+    'src': src,
   });
 }
 

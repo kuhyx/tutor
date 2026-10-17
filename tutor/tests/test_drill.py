@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tutor import credit, distractors, drill, unavailable
+from tutor.curriculum import rules
 from tutor.curriculum.fold import fold
 from tutor.curriculum.source import source_for
 from tutor.store import Store
@@ -82,6 +83,8 @@ def test_answers_log_reviews_and_credit_like_the_tutor(tmp_path: Path) -> None:
         ("a1", drill.AGAIN, 30_000, "dev-pc"),
     ]
     assert fold(ctx.log.read()).card("car", "a2").reviews == [(reviews[0]["at"], 3)]
+    assert [e.get("src") for e in reviews] == ["drill", "drill"]
+    assert not rules.reviewed(fold(ctx.log.read()).card("car", "a2"))  # app only
     rows = json.loads((tmp_path / "data/ledger.json").read_text())["entries"]
     assert run._run is not None
     assert [r["entry_id"] for r in rows] == [f"{run._run.session_id}-m1"]

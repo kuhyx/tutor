@@ -142,12 +142,22 @@ void main() {
       'rev': 1,
       'dur_ms': 5400,
     },
+    // A PC drill pick (curriculum §4): `src` survives the round trip.
+    {
+      'k': 'review',
+      's': 'car',
+      'c': 'eng',
+      'r': 3,
+      'at': 1,
+      'rev': 1,
+      'src': 'drill',
+    },
     {'k': 'flag', 's': 'car', 'c': 'eng', 'rev': 1, 'reason': 'wrong', 'at': 2},
     {'k': 'taught', 's': 'car', 'c': 'eng', 'at': 3, 'session': 'x'},
     {'k': 'untaught', 's': 'car', 'c': 'eng', 'at': 4},
   ]) {
     _roundTrip(
-      'event ${event['k']}',
+      'event ${event['k']} ${event['src'] ?? ''}'.trim(),
       event,
       (j) => LogEvent.fromJson(j).toJson(),
     );

@@ -110,13 +110,13 @@ def subject(
 
 
 def taught(ctx: Context, subj: str, cid: str, at: int, eid_n: int = 0) -> None:
-    """Append a taught event."""
+    """Append a taught event, by the worker (``ctx.device``) as in real logs."""
     from tutor.curriculum.ids import ulid
 
     ctx.log.append(
         [
             {
-                "dev": "d1",
+                "dev": ctx.device,
                 "eid": ulid(at, bytes([eid_n] * 10)),
                 "k": "taught",
                 "s": subj,
@@ -128,9 +128,16 @@ def taught(ctx: Context, subj: str, cid: str, at: int, eid_n: int = 0) -> None:
 
 
 def review(
-    ctx: Context, subj: str, cid: str, at: int, r: int, *, dev: str = "d1"
+    ctx: Context,
+    subj: str,
+    cid: str,
+    at: int,
+    r: int,
+    *,
+    dev: str = "d1",
+    src: str | None = None,
 ) -> None:
-    """Append a review event."""
+    """Append a review event (by a phone ``d1``; ``src="drill"``: a drill pick)."""
     from tutor.curriculum.ids import ulid
 
     ctx.log.append(
@@ -144,6 +151,7 @@ def review(
                 "at": at,
                 "r": r,
                 "rev": 1,
+                **({"src": src} if src else {}),
             }
         ]
     )

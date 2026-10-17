@@ -12,7 +12,10 @@
    ``review`` on an untaught card is ignored;
 4. a review applies whatever its ``rev`` (knowledge, not wording);
 5. ``flag`` events are remembered by ``rev``; a card is flagged while one
-   matches its current rev, so an edit (rev + 1) clears its flags.
+   matches its current rev, so an edit (rev + 1) clears its flags;
+6. a drill review (``src: "drill"``, or any review by a device that wrote a
+   ``taught``/``untaught``: the worker, whose only reviews are drill picks)
+   schedules like any other but never sets ``app_good`` (§6 ``reviewed``).
 
 ``contract/fsrs_vectors.json`` (``fsrs_vectors.py``) pins the results.
 """
@@ -25,10 +28,13 @@ from typing import TYPE_CHECKING, Any, Final
 
 import fsrs
 
+from tutor.curriculum.eventlog import DRILL
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
 DEDUPE_MS: Final = 60_000
+WORKER_KINDS: Final = frozenset({"taught", "untaught"})
 EPOCH: Final = datetime(1970, 1, 1, tzinfo=UTC)
 _MS: Final = timedelta(milliseconds=1)
 SCHEDULER: Final = fsrs.Scheduler(
@@ -61,6 +67,7 @@ class CardFold:
     reviews: list[tuple[int, int]] = field(default_factory=list)  # since taught
     flag_revs: set[int] = field(default_factory=set)
     new_at: list[int] = field(default_factory=list)  # taught while untaught
+    app_good: bool = False  # a non-drill review >= Good since taught
 
     @property
     def taught(self) -> bool:
@@ -101,11 +108,22 @@ class Fold:
         return {c for (s, c), f in self.cards.items() if s == subject and f.taught}
 
 
-def _review(state: CardFold, at: int, rating: int) -> None:
+def _review(state: CardFold, at: int, rating: int, *, drill: bool = False) -> None:
     # None only right after ``_teach`` cleared it: a new card, due at once.
     memory = state.memory or fsrs.Card(card_id=1, due=to_dt(at))
     state.memory, _ = SCHEDULER.review_card(memory, fsrs.Rating(rating), to_dt(at))
     state.reviews.append((at, rating))
+    state.app_good = state.app_good or (not drill and rating >= fsrs.Rating.Good)
+
+
+def workers(events: Iterable[dict[str, Any]]) -> set[str]:
+    """Devices that wrote a ``taught``/``untaught``: the PC worker(s)."""
+    return {e["dev"] for e in events if e["k"] in WORKER_KINDS}
+
+
+def is_drill(event: dict[str, Any], worker_devs: set[str]) -> bool:
+    """A drill pick: tagged ``src: drill``, or (older picks) by a worker."""
+    return event.get("src") == DRILL or event["dev"] in worker_devs
 
 
 def _teach(state: CardFold, event: dict[str, Any]) -> None:
@@ -115,7 +133,7 @@ def _teach(state: CardFold, event: dict[str, Any]) -> None:
     state.taught_at, state.session = at, str(event.get("session", ""))
     state.memory, state.reviews = None, []
     _review(state, at, int(fsrs.Rating.Good))
-    state.reviews = []  # the Good-at-taught is not a recall review
+    state.reviews, state.app_good = [], False  # Good-at-taught is no recall
 
 
 def _duplicate(recent: list[dict[str, Any]], event: dict[str, Any]) -> bool:
@@ -129,6 +147,8 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
     """Fold clean events (``eventlog.parse`` output) into per-card state."""
     out = Fold()
     recent: dict[Ref, list[dict[str, Any]]] = {}
+    events = list(events)
+    worker_devs = workers(events)  # the whole log first: order cannot matter
     for event in sorted(events, key=lambda e: (e["at"], e["eid"])):
         ref: Ref = (event["s"], event["c"])
         state = out.cards.setdefault(ref, CardFold())
@@ -144,11 +164,13 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
                 *(k for k in recent.get(ref, []) if event["at"] - k["at"] < DEDUPE_MS),
                 event,
             ]
-            _review(state, event["at"], event["r"])
+            drill = is_drill(event, worker_devs)
+            _review(state, event["at"], event["r"], drill=drill)
         elif kind == "taught":
             _teach(state, event)
         elif kind == "untaught":
             state.taught_at, state.memory, state.reviews = None, None, []
+            state.app_good = False
         else:
             state.flag_revs.add(int(event["rev"]))
         out.kept.append(event)
