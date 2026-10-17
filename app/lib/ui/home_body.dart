@@ -5,14 +5,14 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/home/home_loader.dart';
-import 'package:tutor/model/subject.dart';
 import 'package:tutor/presence/presence_watcher.dart';
-import 'package:tutor/progress/progress.dart';
+import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
+import 'package:tutor/ui/subject_tile.dart';
 
 /// Home's body.
 class HomeBody extends StatelessWidget {
@@ -29,8 +29,12 @@ class HomeBody extends StatelessWidget {
     required this.onPick,
     required this.onNewSubject,
     required this.onFinish,
+    this.onReviewModule,
     super.key,
   });
+
+  /// Starts a done module's review.
+  final ValueChanged<ModuleRef>? onReviewModule;
 
   /// Snapshot.
   final HomeSnapshot data;
@@ -142,8 +146,10 @@ class HomeBody extends StatelessWidget {
             message: 'Say what you want to learn below.',
           ),
         for (final s in data.subjects)
-          _SubjectTile(
+          SubjectTile(
             entry: s,
+            toReview: data.toReview[s.id],
+            onReviewModule: onReviewModule,
             current: s.id == data.currentSubject,
             onPlan: () => onPlan(s.id),
             onEdit: () => onEdit(s.id),
@@ -154,94 +160,6 @@ class HomeBody extends StatelessWidget {
         const SectionHeader('New subject'),
         NewSubjectField(runner: runner, onSubmit: onNewSubject),
       ],
-    );
-  }
-}
-
-class _SubjectTile extends StatelessWidget {
-  const new({
-    required this.entry,
-    required this.current,
-    required this.onPlan,
-    required this.onEdit,
-    required this.onPick,
-    required this.onFinish,
-    required this.onRetry,
-  });
-
-  final SubjectEntry entry;
-  final bool current;
-  final VoidCallback onPlan;
-  final VoidCallback onEdit;
-  final VoidCallback onPick;
-  final ValueChanged<bool> onFinish;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = entry.meta.status;
-    final data = entry.data;
-    final (mastered, total) = data == null ? (0, 0) : masteredOf(data);
-    final teaching =
-        status == SubjectStatus.active || status == SubjectStatus.completed;
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ListTile(
-            leading: Icon(
-              current ? Icons.radio_button_checked : Icons.radio_button_off,
-            ),
-            title: Text(entry.meta.title),
-            subtitle: Text(
-              [
-                status.wire.replaceAll('_', ' '),
-                if (total > 0) '$mastered/$total modules mastered',
-                if (current) 'new material from here',
-                ?entry.meta.error,
-              ].join(' · '),
-            ),
-            onTap: teaching && !current ? onPick : onPlan,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              0,
-              AppSpacing.md,
-              AppSpacing.sm,
-            ),
-            child: Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                TextButton(onPressed: onPlan, child: const Text('Plan')),
-                if (data != null && data.cards.isNotEmpty)
-                  TextButton(onPressed: onEdit, child: const Text('Cards')),
-                if (teaching && !current)
-                  TextButton(
-                    onPressed: onPick,
-                    child: const Text('Learn this next'),
-                  ),
-                if (status == SubjectStatus.failed &&
-                    entry.meta.goal.isNotEmpty)
-                  TextButton(
-                    onPressed: onRetry,
-                    child: const Text('Try again'),
-                  ),
-                if (status == SubjectStatus.completed) ...[
-                  TextButton(
-                    onPressed: () => onFinish(true),
-                    child: const Text('Go deeper'),
-                  ),
-                  TextButton(
-                    onPressed: () => onFinish(false),
-                    child: const Text('Review only'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/drill/drill_models.dart';
+import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
@@ -71,16 +72,23 @@ Future<void> openEditor(
 }) => _push(context, EditorScreen(services: s, subject: subject));
 
 /// Opens Review; [drill] starts in Drill mode (pick-an-answer, no model),
-/// with [unavailable] as the "Claude limit" banner.
+/// with [unavailable] as the "Claude limit" banner; [module] reviews that
+/// module's taught cards instead of the due queue.
 Future<void> openReview(
   BuildContext context,
   TutorServices s, {
   bool drill = false,
   Unavailable? unavailable,
+  ModuleRef? module,
   bool replace = false,
 }) => _push(
   context,
-  ReviewScreen(services: s, drill: drill, unavailable: unavailable),
+  ReviewScreen(
+    services: s,
+    drill: drill,
+    unavailable: unavailable,
+    module: module,
+  ),
   replace: replace,
 );
 

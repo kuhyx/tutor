@@ -14,10 +14,12 @@ import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_view.dart';
 import 'package:tutor/ui/flag_dialog.dart';
+import 'package:tutor/ui/review_end.dart';
 
 /// The Review screen.
 class ReviewScreen extends StatefulWidget {
@@ -27,12 +29,17 @@ class ReviewScreen extends StatefulWidget {
     this.drill = false,
     this.unavailable,
     this.anki,
+    this.module,
     this.now,
     super.key,
   });
 
   /// Services.
   final TutorServices services;
+
+  /// Reviews this module (every taught card, Again/Hard requeued) instead
+  /// of the due queue.
+  final ModuleRef? module;
 
   /// Opens in Drill mode.
   final bool drill;
@@ -57,14 +64,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Future<ReviewSession> _start() async {
     final now = widget.now ?? DateTime.now;
-    final items = await dueItems(
-      catalog: widget.services.catalog,
-      events: widget.services.events,
-      now: now().toUtc(),
-    );
+    final s = widget.services;
+    final module = widget.module;
+    final items = module == null
+        ? await dueItems(
+            catalog: s.catalog,
+            events: s.events,
+            now: now().toUtc(),
+          )
+        : await moduleItems(
+            catalog: s.catalog,
+            events: s.events,
+            module: module,
+          );
     return ReviewSession(
       items: items,
-      events: widget.services.events,
+      events: s.events,
+      requeue: module != null,
       now: now,
     );
   }
@@ -85,7 +101,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(_drill ? 'Drill' : 'Review'),
+      title: Text(
+        _drill
+            ? 'Drill'
+            : widget.module == null
+            ? 'Review'
+            : 'Review: ${widget.module!.title}',
+      ),
       actions: [
         TextButton(
           onPressed: () => setState(() => _drill = !_drill),
@@ -142,26 +164,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget _body(BuildContext context, ReviewSession run) {
     final item = run.current;
     final text = Theme.of(context).textTheme;
-    if (item == null) {
-      return PageList(
-        children: [
-          EmptyState(
-            icon: Icons.check_circle_outline,
-            title: run.items.isEmpty ? 'Nothing due' : 'All done',
-            message: run.items.isEmpty
-                ? 'Cards come back here when they are due.'
-                : 'Reviewed ${run.done} cards. Reviews sync when online.',
-          ),
-        ],
-      );
-    }
+    if (item == null) return ReviewEnd(run, module: widget.module != null);
     final card = item.card;
     return PageList(
       children: [
-        Text(
-          '${item.subjectTitle} · ${run.items.length - run.done} left',
-          style: text.bodySmall,
-        ),
+        Text('${item.subjectTitle} · ${run.left} left', style: text.bodySmall),
         const SizedBox(height: AppSpacing.md),
         Card(
           child: Padding(

@@ -12,6 +12,7 @@ import 'package:tutor/log/event_log.dart';
 import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/progress/card_progress.dart';
 
 /// One card to review.
 class ReviewItem {
@@ -56,6 +57,26 @@ Future<List<ReviewItem>> dueItems({
   return [for (final due in queue) ?_item(subjects, due.key)];
 }
 
+/// Every taught card of [module], due or not, in module order (the module
+/// review); flagged and suspended cards are left out, as in [dueItems].
+Future<List<ReviewItem>> moduleItems({
+  required Catalog catalog,
+  required EventLog events,
+  required ModuleRef module,
+}) async {
+  final subjects = await catalog.cached();
+  final s = subjects[module.subject];
+  if (s == null) return const [];
+  final folded = fold(await events.all(), cardInfos(subjects.values));
+  return [
+    for (final MapEntry(key: id, value: card) in s.cardsOf(module.module))
+      if (!card.suspended &&
+          folded.scheduled.containsKey('${s.id}/$id') &&
+          !folded.flagged.contains('${s.id}/$id'))
+        ?_item(subjects, '${s.id}/$id'),
+  ];
+}
+
 ReviewItem? _item(Map<String, SubjectData> subjects, String key) {
   final slash = key.indexOf('/');
   final s = subjects[key.substring(0, slash)];
@@ -71,27 +92,45 @@ ReviewItem? _item(Map<String, SubjectData> subjects, String key) {
 
 /// A review run over a fixed list of items.
 class ReviewSession extends ChangeNotifier {
-  /// Creates the run; [now] is injectable for tests.
-  new({required this.items, required this.events, DateTime Function()? now})
-    : _now = now ?? DateTime.now {
+  /// Creates the run; [now] is injectable for tests. With [requeue] (the
+  /// module review) a card rated Again or Hard comes back at the end of
+  /// the run until it gets Good or Easy; the due queue does not requeue.
+  new({
+    required this.items,
+    required this.events,
+    this.requeue = false,
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now,
+       _queue = [...items] {
     _shownAt = _now();
   }
 
-  /// The queue, fixed at start.
+  /// The items the run started with.
   final List<ReviewItem> items;
 
   /// Where answers go.
   final EventLog events;
+
+  /// Again/Hard put the card back at the end.
+  final bool requeue;
   final DateTime Function() _now;
+  final List<ReviewItem> _queue;
+  final Set<String> _finished = {};
   late DateTime _shownAt;
   int _index = 0;
   bool _revealed = false;
 
-  /// Answered or flagged so far.
+  /// Answered or flagged so far (a requeued card counts each time).
   int get done => _index;
 
+  /// Cards finished: rated (Good/Easy when requeuing) or flagged.
+  int get cardsDone => _finished.length;
+
+  /// Cards still to show, requeued ones included.
+  int get left => _queue.length - _index;
+
   /// The card on screen; null when the queue is finished.
-  ReviewItem? get current => _index < items.length ? items[_index] : null;
+  ReviewItem? get current => _index < _queue.length ? _queue[_index] : null;
 
   /// Whether the back is showing.
   bool get revealed => _revealed;
@@ -118,6 +157,11 @@ class ReviewSession extends ChangeNotifier {
         durMs: at.difference(_shownAt).inMilliseconds,
       ),
     );
+    if (requeue && grade.value < Grade.good.value) {
+      _queue.add(item);
+    } else {
+      _finished.add('${item.subject}/${item.cardId}');
+    }
     await _advance();
   }
 
@@ -135,6 +179,9 @@ class ReviewSession extends ChangeNotifier {
         reason: reason.trim(),
       ),
     );
+    // A requeued card has no later copy (it goes back only when rated), so
+    // a flag takes it out of the run for good.
+    _finished.add('${item.subject}/${item.cardId}');
     await _advance();
   }
 

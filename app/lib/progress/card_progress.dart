@@ -87,7 +87,12 @@ class Tally {
 /// One subject's progress.
 class SubjectProgress {
   /// Creates the record.
-  const new({required this.cards, required this.modules, required this.total});
+  const new({
+    required this.cards,
+    required this.modules,
+    required this.total,
+    this.review = const {},
+  });
 
   /// Card id -> state (suspended cards absent).
   final Map<String, CardProgress> cards;
@@ -97,6 +102,41 @@ class SubjectProgress {
 
   /// The whole subject.
   final Tally total;
+
+  /// Module id -> review state, every module of the plan.
+  final Map<String, ModuleReview> review;
+}
+
+/// Where a module stands for its review (the "module Anki"). Only cards
+/// that are neither suspended nor flagged count.
+enum ModuleReview {
+  /// A card is not taught yet (or the module has no card to review).
+  open,
+
+  /// Every card taught; not every card got Good/Easy in a review yet.
+  done,
+
+  /// Every card got Good or Easy in a review: the next module opens.
+  reviewed,
+}
+
+/// A module to review, as Home, Plan and the no-card state name it.
+class ModuleRef {
+  /// Creates the reference.
+  const new({required this.subject, required this.module, required this.title});
+
+  /// [m] of subject [subject].
+  factory of(String subject, Module m) =>
+      ModuleRef(subject: subject, module: m.id, title: m.title);
+
+  /// Subject id.
+  final String subject;
+
+  /// Module id.
+  final String module;
+
+  /// Module title (for the button and the Review title).
+  final String title;
 }
 
 /// The fold's card info (rev for flags, suspended) for [subjects].
@@ -115,13 +155,21 @@ SubjectProgress subjectProgress(SubjectData s, FoldResult fold, DateTime now) {
   final cards = <String, CardProgress>{};
   final modules = <String, Tally>{};
   var total = const Tally();
+  final review = <String, ModuleReview>{};
   for (final m in s.plan?.modules ?? const <Module>[]) {
     var tally = const Tally();
+    // The module review counts only cards that can be reviewed.
+    var (open, taught, reviewed) = (0, 0, 0);
     for (final MapEntry(key: id, value: card) in s.cardsOf(m.id)) {
       if (card.suspended) continue;
       final key = '${s.id}/$id';
       final fsrs = fold.scheduled[key];
       final flagged = fold.flagged.contains(key);
+      if (!flagged) {
+        open++;
+        if (fsrs != null) taught++;
+        if (fold.reviewed.contains(key)) reviewed++;
+      }
       final p = CardProgress(
         taught: fsrs != null,
         mastered: fold.good.contains(key),
@@ -138,6 +186,28 @@ SubjectProgress subjectProgress(SubjectData s, FoldResult fold, DateTime now) {
     }
     modules[m.id] = tally;
     total += tally;
+    review[m.id] = open == 0 || taught < open
+        ? ModuleReview.open
+        : reviewed < open
+        ? ModuleReview.done
+        : ModuleReview.reviewed;
   }
-  return SubjectProgress(cards: cards, modules: modules, total: total);
+  return SubjectProgress(
+    cards: cards,
+    modules: modules,
+    total: total,
+    review: review,
+  );
+}
+
+/// The first module of [s] that is done but not reviewed and that the PC
+/// has not marked `mastered` (the unlock already happened), or null.
+ModuleRef? moduleToReview(SubjectData s, SubjectProgress p) {
+  for (final m in s.plan?.modules ?? const <Module>[]) {
+    if (p.review[m.id] == ModuleReview.done &&
+        m.status != ModuleStatus.mastered) {
+      return ModuleRef.of(s.id, m);
+    }
+  }
+  return null;
 }

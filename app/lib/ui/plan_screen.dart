@@ -19,6 +19,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/module_tile.dart';
+import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/plan_editor.dart';
 import 'package:tutor/util/refresher.dart';
 
@@ -152,6 +153,9 @@ class _PlanScreenState extends State<PlanScreen> {
       _editorKey = key;
       _editorDirty = false;
     }
+    final progress = _fold == null
+        ? null
+        : subjectProgress(data, _fold!, DateTime.now());
     return PageList(
       children: [
         if (_data.hasPending)
@@ -226,10 +230,14 @@ class _PlanScreenState extends State<PlanScreen> {
           for (final m in plan.modules)
             ModuleProgressTile(
               module: m,
-              tally: _fold == null
-                  ? null
-                  : subjectProgress(data, _fold!, DateTime.now()).modules[m.id],
+              tally: progress?.modules[m.id],
+              review: progress?.review[m.id],
               onRetry: () => _send(RequestBody.planApprove(data.id, plan.rev)),
+              onReview: () => openReview(
+                context,
+                widget.services,
+                module: ModuleRef.of(data.id, m),
+              ).then((_) => _refold()), // the tile shows the result
             ),
         ],
         if (plan != null && plan.history.isNotEmpty) ...[

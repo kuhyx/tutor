@@ -17,6 +17,7 @@ import 'package:tutor/model/json.dart';
 import 'package:tutor/model/root.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/model/subject.dart';
+import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 
@@ -51,7 +52,11 @@ class HomeSnapshot {
     this.today,
     this.currentSubject,
     this.live,
+    this.toReview = const {},
   });
+
+  /// Subject id -> its first module that is done but not reviewed.
+  final Map<String, ModuleRef> toReview;
 
   /// Subjects, by title.
   final List<SubjectEntry> subjects;
@@ -151,6 +156,7 @@ class HomeLoader {
       today: today,
       currentSubject: current,
       live: live,
+      toReview: snap.toReview,
     );
   }
 
@@ -208,12 +214,18 @@ class HomeLoader {
     }
     entries.sort((a, b) => a.meta.title.compareTo(b.meta.title));
     final folded = fold(await events.all(), cards);
-    final due = reviewQueue(folded, cards, _now().toUtc()).length;
+    final now = _now().toUtc();
+    final due = reviewQueue(folded, cards, now).length;
     return HomeSnapshot(
       subjects: entries,
       due: due,
       offline: offline,
       today: today,
+      toReview: {
+        for (final e in entries)
+          if (e.data case final d?)
+            e.id: ?moduleToReview(d, subjectProgress(d, folded, now)),
+      },
     );
   }
 }
