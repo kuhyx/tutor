@@ -140,3 +140,18 @@ def test_asked_reads_old_messages_without_questions() -> None:
     assert asked({"text": "hi"}) == []
     assert asked({"questions": None, "check": None}) == []
     assert asked({"check": {"question": "", "concept": "x"}}) == []
+
+
+def test_from_json_splits_two_questions_and_keeps_choices_aligned() -> None:
+    three, other = ["a", "b", "c"], ["x", "y", "z"]
+    parsed = TutorTurn.from_json(
+        raw_turn(
+            questions=["First?", "Why X? And what is Y?", "Last?"],
+            choices=[three, ["p", "q", "r"], other],
+            check={"question": "What is X? And Y?", "concept": "x"},
+        )
+    )
+    assert parsed.questions == ("First?", "Why X?", "And what is Y?", "Last?")
+    assert [sorted(c) for c in parsed.choices] == [three, [], [], other]
+    assert parsed.check is not None
+    assert parsed.check["question"] == "What is X? And Y?"  # never split

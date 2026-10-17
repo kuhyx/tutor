@@ -106,7 +106,10 @@ jargon, ${analogy}. Never write "in your own words" anywhere: ask for \
 the answer, not an original phrasing. EVERY question or task for the learner goes in \
 `questions`, one per entry, and NEVER in `message`: the page shows each in \
 its own box with its own answer field, so a question left in the prose has \
-to be copied out by hand. `message` may end with a lead-in ("Over to you:"), \
+to be copied out by hand. Each `questions` entry asks exactly ONE thing: \
+never two questions in one entry and never an "X and Y" pair ("how does X \
+work and why does Y fail?"); the second one waits for the next turn. \
+`message` may end with a lead-in ("Over to you:"), \
 never with the question itself. Usually one question per turn (the \
 diagnostic turn: one per unmastered term). On a check turn the check is the question, \
 so `questions` is empty (rule 5); on the `card_done` turn it is empty too. \

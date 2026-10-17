@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Rules that build on what the learner holds instead of asking it again.
+"""Rule wording pinned by live failures, rendered for every kind of profile.
 
 2026-10-17: the tutor wrote "Masz już opanowane m.in. DNS, rekord A i CNAME"
 and then asked what CNAME does, four cards in a row. Rule 1 asked about
@@ -63,3 +63,13 @@ def test_resume_never_re_asks_a_mastered_concept(profile: profiles.Profile) -> N
 @PROFILES
 def test_style_counts_only_unmastered_terms(profile: profiles.Profile) -> None:
     assert "one per unmastered term" in _rule(system_prompt(CARD, [], profile), 10)
+
+
+# 2026-10-17: one box asked two things at once ("how does X differ from Y?
+# what happens when Y changes?"), so one answer field had to carry both.
+@PROFILES
+def test_style_asks_one_thing_per_question(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 10)
+    assert "Each `questions` entry asks exactly ONE thing" in rule
+    assert "never two questions in one entry" in rule
+    assert '"X and Y"' in rule

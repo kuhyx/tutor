@@ -6,8 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Final
 
+from tutor import asks, wording
 from tutor import choices as choices_mod
-from tutor import wording
 
 ELEMENT_KINDS: Final = (
     "dc_source",
@@ -230,7 +230,7 @@ class TutorTurn:
             msg = "check_result.passed must be a boolean"
             raise TurnError(msg)
         said = [wording.scrub(str(q)) for q in raw["questions"]]
-        questions, choices = choices_mod.pair(said, raw.get("choices"))
+        questions, choices = choices_mod.pair(*asks.split(said, raw.get("choices")))
         return cls(
             message=wording.scrub(raw["message"]).strip(),
             low_effort=raw["low_effort"],
