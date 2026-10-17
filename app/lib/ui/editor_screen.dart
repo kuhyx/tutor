@@ -1,7 +1,7 @@
 /// Editor (curriculum §8): subject -> module -> cards; edit or add a card
 /// (`card_edit`, validated by the worker against its source), flag one
-/// (a `flag` event, offline OK), undo the tutor's edits: Restore a card
-/// it removed (`card_restore`), Remove one it added (`card_remove`).
+/// (a `flag` event, offline OK), Restore a removed card (`card_restore`),
+/// Remove one the tutor added (`card_remove`).
 library;
 
 import 'dart:async';
@@ -131,10 +131,16 @@ class _EditorScreenState extends State<EditorScreen> {
   Widget _actions(SubjectData s, MapEntry<String, StudyCard> c) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      if (c.value.removedByTutor)
-        TextButton(
-          onPressed: () => _undo(RequestBody.cardRestore(s.id, c.key)),
-          child: const Text('Restore'),
+      if (c.value.restorable)
+        Tooltip(
+          message: c.value.removedUnrecorded
+              ? 'Removed before the Editor kept a record: only un-suspends '
+                    'it, prerequisites are not restored'
+              : 'Puts the card and its prerequisites back',
+          child: TextButton(
+            onPressed: () => _undo(RequestBody.cardRestore(s.id, c.key)),
+            child: const Text('Restore'),
+          ),
         ),
       if (c.value.addedByTutor)
         IconButton(
@@ -237,6 +243,8 @@ String _cards(int n) => '$n card${n == 1 ? '' : 's'}';
 
 String _state(StudyCard card, CardProgress? p) => card.removedByTutor
     ? 'Removed by tutor'
+    : card.restorable
+    ? 'Removed'
     : card.suspended
     ? 'suspended'
     : p?.label ?? '';

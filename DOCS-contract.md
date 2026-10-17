@@ -118,7 +118,7 @@ Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked
 | `plan_approve` | `{"subject","plan_rev":4}` | `{}` | build |
 | `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
 | `module_pregenerate` | `{"subject","modules":["b",...]\|"all"}` draft locked modules' cards ahead; study still waits for `requires` (curriculum §2) | `{"queued":["b"]}` | build |
-| `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}`; also `card_restore` / `card_remove` `{"subject","card"}`: the Editor's undo of a tutor remove / add (curriculum §3) | `{"card":"ld-x","rev":2}` (undo: `{"card"}`) | build |
+| `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}`; also `card_restore` / `card_remove` `{"subject","card"}`: the Editor's Restore of a tutor- or Editor-removed card (puts its `requires` back; an older unrecorded Editor removal is only un-suspended) and Remove of a tutor-added one (curriculum §3) | `{"card":"ld-x","rev":2}` (undo: `{"card"}`) | build |
 | `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?}` (null card = next open; `device` as for `message`, shapes the opening turn) | `{"session":sid}` | chat |
 | `session_resume` | `{"session":sid,"device"?}` (device validated only: no model turn) | `{"session":sid}` | chat |
 | `message` | `{"session":sid,"text":"...","device":"phone"\|"desktop"?}` <=8000 ch; no device = desktop, other values `bad_request`; phone: typos ignored, short answers, one question (prompt rule 13); text `Hint` gets a hint, never credit | `{"msg":"m0012"}` | chat |

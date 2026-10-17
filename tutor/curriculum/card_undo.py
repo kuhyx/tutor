@@ -1,9 +1,11 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """The Editor's undo of the tutor's card edits (build lane, like ``card_edit``).
 
-- ``card_restore``: a card the tutor removed comes back: un-suspended, and
-  its id put back where it stood in the ``requires`` of the cards it was
-  dropped from (recorded at removal, ``card_ops.remove``).
+- ``card_restore``: a card the tutor or the Editor removed comes back:
+  un-suspended, and its id put back where it stood in the ``requires`` of the
+  cards it was dropped from (recorded at removal, ``card_ops.remove``). A
+  tutor-added card the Editor suspended before that was recorded has no
+  record: it is only un-suspended.
 - ``card_remove``: a card the tutor added is suspended (never deleted), with
   ``card_ops.remove``'s rules: refused below 3 live cards in its module.
 
@@ -39,8 +41,15 @@ def _refuse(message: str) -> RequestError:
     return RequestError(EDIT_REFUSED, message)
 
 
+def _restorable(rec: CardRec) -> bool:
+    """Suspended with a removal record, or a tutor-added card (older Remove)."""
+    if not rec.suspended:
+        return False
+    return any(k in rec.tutor for k in ("removed", "editor_removed", "added"))
+
+
 def restore(ctx: Context, subject: str, cid: str) -> CardRec:
-    """Un-suspend a tutor-removed ``cid`` and put back its ``requires`` edges."""
+    """Un-suspend a removed ``cid`` and put back its ``requires`` edges."""
     with LOCK:
         meta = ctx.subjects.need_meta(subject)
         plan = ctx.subjects.plan(subject)
@@ -49,8 +58,10 @@ def restore(ctx: Context, subject: str, cid: str) -> CardRec:
         if plan is None or rec is None:
             msg = f"unknown card {cid!r} in {subject}"
             raise _refuse(msg)
-        if not (rec.suspended and "removed" in rec.tutor):
-            msg = f"{cid} was not removed by the tutor; nothing to restore"
+        if not _restorable(rec):
+            msg = (
+                f"{cid} was not removed by the tutor or the Editor; nothing to restore"
+            )
             raise _refuse(msg)
         for other, at in dict(rec.tutor.get("requires_of") or {}).items():
             dep = cards.get(other)

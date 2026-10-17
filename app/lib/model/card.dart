@@ -73,12 +73,26 @@ class StudyCard {
   /// Hidden from teaching and review.
   final bool suspended;
 
-  /// The tutor's mark: `{"added": ms}`, `{"removed": ms,
+  /// The tutor's mark: `{"added": ms}`, `{"removed" | "editor_removed": ms,
   /// "requires_of": {...}}` (curriculum §3); null = untouched.
   final Json? tutor;
 
   /// Suspended by the tutor: the Editor offers Restore.
   bool get removedByTutor => suspended && tutor?['removed'] != null;
+
+  /// Suspended by the Editor's Remove, with the `requires` positions kept.
+  bool get removedByEditor => suspended && tutor?['editor_removed'] != null;
+
+  /// A tutor-added card the Editor suspended before it kept a record: Restore
+  /// only un-suspends it.
+  bool get removedUnrecorded =>
+      suspended &&
+      tutor?['added'] != null &&
+      tutor?['removed'] == null &&
+      tutor?['editor_removed'] == null;
+
+  /// The Editor offers Restore.
+  bool get restorable => removedByTutor || removedByEditor || removedUnrecorded;
 
   /// Added by the tutor and live: the Editor offers Remove.
   bool get addedByTutor => !suspended && tutor?['added'] != null;

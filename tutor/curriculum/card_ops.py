@@ -12,7 +12,8 @@
 Every refusal is ``edit_refused`` with the reason, and nothing is written.
 
 The card's ``tutor`` mark ({} = none, left out of its JSON) records
-``{"added": ms}`` and ``{"removed": ms, "requires_of": {card: index}}``.
+``{"added": ms}`` and ``{"removed" | "editor_removed": ms, "requires_of":
+{card: index}}`` (the Editor's Remove writes the latter).
 """
 
 from __future__ import annotations
@@ -144,8 +145,9 @@ def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
 def remove(ctx: Context, subject: str, cid: str, *, by_tutor: bool = True) -> CardRec:
     """Suspend ``cid``; returns the suspended card.
 
-    ``by_tutor``: marked ``removed`` with where its id stood in other cards'
-    ``requires``, so the Editor's Restore is exact (``card_undo``).
+    Marked with where its id stood in other cards' ``requires`` so the
+    Editor's Restore is exact (``card_undo``): ``removed`` when ``by_tutor``,
+    else ``editor_removed`` (the Editor's own Remove).
     """
     with LOCK:
         meta = ctx.subjects.need_meta(subject)
@@ -169,8 +171,8 @@ def remove(ctx: Context, subject: str, cid: str, *, by_tutor: bool = True) -> Ca
         was = {k: c.requires.index(cid) for k, c in cards.items() if cid in c.requires}
         for other in cards.values():  # no rev bump: a rev bump clears flags
             other.requires = [r for r in other.requires if r != cid]
-        if by_tutor:
-            rec.tutor = {**rec.tutor, "removed": ctx.clock(), "requires_of": was}
+        mark = "removed" if by_tutor else "editor_removed"
+        rec.tutor = {**rec.tutor, mark: ctx.clock(), "requires_of": was}
         for module in plan.modules:
             if module.id == rec.module:
                 module.cards = live - 1

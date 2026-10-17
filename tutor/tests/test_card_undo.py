@@ -62,7 +62,7 @@ def test_restore_puts_the_card_and_its_requires_back(
     plan = ctx.subjects.plan("car")
     assert plan is not None
     assert plan.modules[0].cards == 4
-    assert "removed by the tutor" in _refused("card_restore", ctx, "a1")
+    assert "nothing to restore" in _refused("card_restore", ctx, "a1")
 
 
 def test_restore_skips_a_dependent_that_already_has_it(
@@ -86,7 +86,7 @@ def _cards(found: dict[str, CardRec]) -> Any:
 def test_restore_refusals(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     assert "unknown card" in _refused("card_restore", ctx, "zz")
-    assert "removed by the tutor" in _refused("card_restore", ctx, "a2")
+    assert "nothing to restore" in _refused("card_restore", ctx, "a2")
     with pytest.raises(RequestError) as err:
         BUILD_HANDLERS["card_restore"]({"subject": "car", "card": "Bad Id"}, ctx)
     assert err.value.code == "bad_request"
@@ -102,8 +102,65 @@ def test_a_tutor_added_card_is_removed_from_the_editor(
     assert out == {"card": cid}
     gone = ctx.subjects.cards("car")[cid]
     assert gone.suspended
-    assert gone.tutor == {"added": T0}  # no Restore: the Editor removed it
+    assert gone.tutor == {"added": T0, "editor_removed": T0, "requires_of": {}}
     assert "already removed" in _refused("card_remove", ctx, cid)
+
+
+def test_an_editor_removal_restores_requires_exactly(
+    car: tuple[Context, Fakes],
+) -> None:
+    ctx, _ = car
+    found = ctx.subjects.cards("car")
+    found["a1"].tutor = {"added": T0}  # only tutor-added cards get Remove
+    ctx.subjects.commit("car", ctx.subjects.need_meta("car"), _cards(found))
+    BUILD_HANDLERS["card_remove"]({"subject": "car", "card": "a1"}, ctx)
+    gone = ctx.subjects.cards("car")
+    assert gone["a1"].suspended
+    assert gone["a1"].tutor == {
+        "added": T0,
+        "editor_removed": T0,
+        "requires_of": {"b1": 0, "b2": 1},
+    }
+    assert (gone["b1"].requires, gone["b2"].requires) == ([], ["a2"])
+    out = BUILD_HANDLERS["card_restore"]({"subject": "car", "card": "a1"}, ctx)
+    assert out == {"card": "a1"}
+    back = ctx.subjects.cards("car")
+    assert not back["a1"].suspended
+    assert back["a1"].tutor == {"added": T0}  # Remove is offered again
+    assert (back["b1"].requires, back["b2"].requires) == (["a1"], ["a2", "a1"])
+    plan = ctx.subjects.plan("car")
+    assert plan is not None
+    assert plan.modules[0].cards == 4
+
+
+def test_restore_of_an_older_editor_removal_only_unsuspends(
+    car: tuple[Context, Fakes],
+) -> None:
+    ctx, _ = car
+    found = ctx.subjects.cards("car")
+    # Removed before the Editor recorded anything: suspended, tutor-added.
+    found["a1"].tutor = {"added": T0}
+    found["a1"].suspended = True
+    found["b1"].requires = []
+    ctx.subjects.commit("car", ctx.subjects.need_meta("car"), _cards(found))
+    BUILD_HANDLERS["card_restore"]({"subject": "car", "card": "a1"}, ctx)
+    back = ctx.subjects.cards("car")
+    assert not back["a1"].suspended
+    assert back["a1"].tutor == {"added": T0}
+    assert back["b1"].requires == []  # no record, so no requires to put back
+    plan = ctx.subjects.plan("car")
+    assert plan is not None
+    assert plan.modules[0].cards == 4
+
+
+def test_restore_still_refuses_a_card_nobody_removed_by_hand(
+    car: tuple[Context, Fakes],
+) -> None:
+    ctx, _ = car
+    found = ctx.subjects.cards("car")
+    found["a2"].suspended = True  # e.g. a regen suspend: no mark at all
+    ctx.subjects.commit("car", ctx.subjects.need_meta("car"), _cards(found))
+    assert "nothing to restore" in _refused("card_restore", ctx, "a2")
 
 
 def test_the_editor_removes_only_tutor_cards_and_keeps_three(

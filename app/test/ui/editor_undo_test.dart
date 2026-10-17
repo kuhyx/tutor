@@ -1,6 +1,8 @@
-// Undo of the tutor's card edits in the Editor: a card the tutor removed
-// shows "Removed by tutor" with Restore (`card_restore`); a card the tutor
-// added can be removed (`card_remove`, suspended, never deleted).
+// Undo of card edits in the Editor: a card the tutor removed shows "Removed
+// by tutor" with Restore (`card_restore`); a card the Editor removed shows
+// "Removed" with Restore too (older ones, with no record, say Restore only
+// un-suspends); a card the tutor added can be removed (`card_remove`,
+// suspended, never deleted).
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/sync/json_tree.dart';
@@ -71,5 +73,55 @@ void main() {
     final remove = await answer(t, db, stream, data: {'card': 'eng-new'});
     expect(remove['kind'], 'card_remove');
     expect(remove['body'], {'subject': 'car', 'card': 'eng-new'});
+  });
+
+  testWidgets('Restore a card the Editor removed, with or without a record', (
+    t,
+  ) async {
+    final db = fixtureDb();
+    const cards = 'tutor/v1/subjects/car/cards';
+    db.root = setAt(
+      db.root,
+      '$cards/eng-mine',
+      _card(4, 'What is a piston?', {
+        'added': 1,
+        'editor_removed': 2,
+        'requires_of': {'eng-crank': 0},
+      }, suspended: true),
+    );
+    db.root = setAt(
+      db.root,
+      '$cards/eng-old',
+      _card(5, 'What does a piston do?', {'added': 1}, suspended: true),
+    );
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    await pumpScreen(
+      t,
+      EditorScreen(services: s, subject: 'car'),
+      size: const Size(800, 1600),
+    );
+    await t.tap(find.text('The four-stroke engine'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Removed by tutor'), findsNothing);
+    expect(find.textContaining('· Removed'), findsNWidgets(2));
+    expect(find.widgetWithText(TextButton, 'Restore'), findsNWidgets(2));
+    expect(
+      find.byTooltip('Puts the card and its prerequisites back'),
+      findsOneWidget,
+    );
+    expect(
+      find.byTooltip(
+        'Removed before the Editor kept a record: only un-suspends it, '
+        'prerequisites are not restored',
+      ),
+      findsOneWidget,
+    );
+
+    await t.tap(find.widgetWithText(TextButton, 'Restore').first);
+    await sent(t);
+    final restore = await answer(t, db, stream, data: {'card': 'eng-mine'});
+    expect(restore['kind'], 'card_restore');
+    expect(restore['body'], {'subject': 'car', 'card': 'eng-mine'});
   });
 }
