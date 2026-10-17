@@ -1,8 +1,8 @@
 /// The answer composer (`static/questions.js`): a box per question of the
-/// latest tutor message plus "Your own comment", sent as ONE message; else a
-/// plain box. Boxes get the question's choices as chips plus "Hint" (sends
-/// "Hint"). Drafts survive a reload; Ctrl+Enter sends. Phone: one question
-/// at a time (1/3, Back, Next / Send), no comment box, no Ctrl+Enter hint.
+/// latest tutor message, sent as ONE message; else a plain box. Boxes get
+/// the question's choices as chips plus "Hint" (sends "Hint"). Drafts
+/// survive a reload; Ctrl+Enter sends. Phone: one question at a time (1/3,
+/// Back, Next / Send), no Ctrl+Enter hint.
 library;
 
 import 'dart:async';
@@ -99,7 +99,7 @@ class _ComposerState extends State<Composer> {
       b.dispose();
     }
     _boxes = [
-      for (var i = 0; i < (_asked.isEmpty ? 1 : _asked.length + 1); i++)
+      for (var i = 0; i < (_asked.isEmpty ? 1 : _asked.length); i++)
         TextEditingController()..addListener(_save),
     ];
     final key = _key;
@@ -213,7 +213,6 @@ class _ComposerState extends State<Composer> {
       _chips(i),
       _box(i, 'Your answer'),
     ],
-    _box(_asked.length, 'Your own comment'),
     SendRow(canSend: canSend, onSend: _send, hint: 'Ctrl+Enter to send'),
   ];
 

@@ -1,5 +1,5 @@
 // The answer composer on the phone (one question at a time, chips, Hint, the
-// keyboard-open layout) and on the desktop (all boxes, comment, Ctrl+Enter).
+// keyboard-open layout) and on the desktop (all boxes, Ctrl+Enter).
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -114,11 +114,10 @@ void main() {
     expect(next['body'], {'session': fixtureLiveSid, 'device': 'phone'});
   });
 
-  testWidgets('desktop: all boxes, comment, Ctrl+Enter, chips, device', (
-    t,
-  ) async {
+  testWidgets('desktop: all boxes, Ctrl+Enter, chips, device', (t) async {
     final (db, stream) = await openComposer(t, phone: false);
-    expect(find.text('Your own comment'), findsOneWidget);
+    expect(find.text('Your own comment'), findsNothing);
+    expect(find.byType(TextField), findsNWidgets(3)); // one per question
     expect(find.text('Ctrl+Enter to send'), findsOneWidget);
     expect(find.text('1/3'), findsNothing);
     expect(find.text('Hint'), findsNWidgets(3)); // above each answer box
@@ -137,7 +136,7 @@ void main() {
       t.widget<TextField>(boxes.at(2)).controller!.text,
       'The camshaft lobe',
     );
-    await t.enterText(boxes.at(3), 'thanks');
+    await t.enterText(boxes.at(0), 'thanks');
     await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await t.sendKeyEvent(LogicalKeyboardKey.enter);
     await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
@@ -149,7 +148,29 @@ void main() {
       body['text'],
       allOf(contains('Q3: What closes'), contains('A: The camshaft lobe')),
     );
-    expect(body['text'], endsWith('Comment: thanks'));
+    expect(body['text'], contains('A: thanks\n'));
+    expect(body['text'], isNot(contains('Comment:')));
+  });
+
+  testWidgets('desktop: an old draft with a comment entry loads harmlessly', (
+    t,
+  ) async {
+    final (db, stream) = await openComposer(
+      t,
+      phone: false,
+      draft: ['one', 'two', 'three', 'old comment'],
+    );
+    final boxes = find.byType(TextField);
+    expect(boxes, findsNWidgets(3));
+    expect(t.widget<TextField>(boxes.at(2)).controller!.text, 'three');
+    expect(find.text('old comment'), findsNothing);
+    await t.ensureVisible(find.text('Send'));
+    await t.tap(find.text('Send'));
+    await sent(t);
+    final msg = await answer(t, db, stream, data: {'msg': 'm0006'});
+    final text = (msg['body'] as Map)['text'] as String;
+    expect(text, endsWith('A: three'));
+    expect(text, isNot(contains('old comment')));
   });
 
   test('lastLineOf: the last non-blank line', () {

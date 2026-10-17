@@ -26,15 +26,16 @@ void main() {
     expect(askedOf(const Message(role: 'tutor', text: '')), isEmpty);
   });
 
-  test('compose: skipped, comment, trailing space only cut', () {
+  test('compose: skipped, trailing space only cut, no comment', () {
     final asked = askedOf(m);
     expect(composeAnswers(asked, ['', ' ', '', '']), '');
+    // An old draft's extra comment entry is ignored, never sent.
+    expect(composeAnswers(asked, ['', '', '', 'stale comment']), '');
     expect(
       composeAnswers(asked, ['  indented  ', '', 'x', 'thanks ']),
       'Q1: Why?\nA:   indented\n\n'
       'Q2: How?\nA: (skipped)\n\n'
-      'Q3: What is a rung?\nA: x\n\n'
-      'Comment: thanks',
+      'Q3: What is a rung?\nA: x',
     );
     expect(
       composeAnswers(asked, ['a']),
@@ -84,10 +85,9 @@ void main() {
     );
     final asked = askedOf(tapped);
     expect(
-      composeAnswers(asked, ['a ', 'one line', 'a']),
+      composeAnswers(asked, ['a ', 'one line']),
       'Q1: Why?\nA: a $pickedMarker\n\n'
-      'Q2: What is a rung?\nA: one line $pickedMarker\n\n'
-      'Comment: a', // the comment box has no choices
+      'Q2: What is a rung?\nA: one line $pickedMarker',
     );
     expect(
       composeAnswers(asked, ['ab', 'one line, I think']),
