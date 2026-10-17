@@ -24,6 +24,7 @@ MAX_ID: Final = 48
 SLUG_CHARS: Final = "a-z0-9ąćęłńóśźż"
 _ID: Final = re.compile(rf"[{SLUG_CHARS}]+(?:-[{SLUG_CHARS}]+)*")
 _NON_SLUG: Final = re.compile(rf"[^{SLUG_CHARS}]+")
+_WORD: Final = re.compile(rf"[{SLUG_CHARS}]+")
 _CROCKFORD: Final = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 _ULID: Final = re.compile(r"[0-9A-HJKMNP-TV-Z]{26}")
 _MAX_RAND: Final = (1 << 80) - 1
@@ -38,6 +39,16 @@ def valid_id(value: object) -> bool:
         and len(value) <= MAX_ID
         and _ID.fullmatch(value) is not None
     )
+
+
+def tokenize(text: str) -> list[str]:
+    """Lowercase words of ``text``: runs of the slug characters, NFC first.
+
+    The one word tokenizer for matching and search, so a Polish word such as
+    "pojęcia" stays whole instead of splitting at "ę", whichever way the
+    letter was composed.
+    """
+    return _WORD.findall(unicodedata.normalize("NFC", text.lower()))
 
 
 def valid_eid(value: object) -> bool:

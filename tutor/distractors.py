@@ -13,14 +13,14 @@ is out.
 from __future__ import annotations
 
 import hashlib
-import re
 from typing import TYPE_CHECKING, Final
+
+from tutor.curriculum.ids import tokenize
 
 if TYPE_CHECKING:
     from tutor.cards import Card
 
 OPTIONS: Final = 4
-_WORD: Final = re.compile(r"[a-z0-9]+")
 _MIN_LEN: Final = 4  # drops "the", "and", "a", "is" without a long stoplist
 _STOP: Final = frozenset({
     "what", "which", "when", "where", "does", "that", "this", "with", "from",
@@ -31,9 +31,7 @@ _STOP: Final = frozenset({
 
 def _words(card: Card) -> frozenset[str]:
     text = f"{card.front} {card.back}".lower()
-    return frozenset(
-        w for w in _WORD.findall(text) if len(w) >= _MIN_LEN and w not in _STOP
-    )
+    return frozenset(w for w in tokenize(text) if len(w) >= _MIN_LEN and w not in _STOP)
 
 
 def _overlap(left: frozenset[str], right: frozenset[str]) -> float:

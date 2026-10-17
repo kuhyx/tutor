@@ -14,6 +14,8 @@ from typing import Any, Final
 import urllib.parse
 import urllib.request
 
+from tutor.curriculum.ids import tokenize
+
 API: Final = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT: Final = "tutor/0.1 (https://github.com/kuhyx/tutor; local study tool)"
 MIMES: Final = ("image/jpeg", "image/png", "image/svg+xml", "image/webp")
@@ -26,7 +28,6 @@ _HOSTS: Final = frozenset(f"{h}.wikimedia.org" for h in ("commons", "upload", "t
 _STOP: Final = frozenset(
     {"a", "an", "and", "of", "the", "in", "on", "for", "to", "with"}
 )
-_WORD: Final = re.compile(r"[a-z0-9]+")
 _SLASHED: Final = re.compile(r"\b([a-z])/([a-z])\b", re.IGNORECASE)
 _PLURAL_MIN: Final = 4  # "ms" and "mas" are not plurals
 
@@ -71,7 +72,7 @@ def tokens(text: str) -> set[str]:
     """Lowercase words (plural 's' folded away from words of 4+ letters)."""
     return {
         w.removesuffix("s") if len(w) >= _PLURAL_MIN else w
-        for w in _WORD.findall(_squash(text).lower())
+        for w in tokenize(_squash(text))
         if w not in _STOP
     }
 

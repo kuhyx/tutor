@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 from typing import Final
+import unicodedata
 import urllib.request
 
 CACHE_DIR: Final = Path(
@@ -72,10 +73,10 @@ class _TextExtractor(HTMLParser):
 
 
 def normalise(text: str) -> str:
-    """Fold typography, footnote markers, case and whitespace for comparison."""
-    text = unescape(text).translate(_TYPOGRAPHY)
+    """Fold typography, footnote markers, case, whitespace and NFC/NFD."""
+    text = unicodedata.normalize("NFC", unescape(text)).translate(_TYPOGRAPHY)
     text = _FOOTNOTE.sub("", text)
-    return _SPACE.sub(" ", text).strip().casefold()
+    return unicodedata.normalize("NFC", _SPACE.sub(" ", text).strip().casefold())
 
 
 def html_text(html: str) -> str:

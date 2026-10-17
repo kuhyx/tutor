@@ -11,8 +11,9 @@ canonical article the plan or the model named) are kept and come first.
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Final
+
+from tutor.curriculum.ids import tokenize
 
 if TYPE_CHECKING:
     from tutor.curriculum.records import Meta, Module
@@ -34,7 +35,7 @@ _STOP: Final = frozenset(_FILLER.split())
 def terms(text: str) -> set[str]:
     """Content words, lowercased, crudely stemmed (plural ``s``, 6 letters)."""
     out = set()
-    for word in re.findall(r"[a-z0-9]+", text.lower()):
+    for word in tokenize(text):
         if word in _STOP:
             continue
         stem = word[:-1] if len(word) >= _PLURAL and word.endswith("s") else word
@@ -73,9 +74,9 @@ def query(module: Module, extra: int = 3) -> str:
     """A search query: the module title plus its summary's first new words."""
     have = terms(module.title)
     added: list[str] = []
-    for word in re.findall(r"[A-Za-z0-9]+", module.summary):
+    for word in tokenize(module.summary):
         key = terms(word)
         if key and not key & have and len(added) < extra:
-            added.append(word.lower())
+            added.append(word)
             have |= key
     return " ".join([module.title, *added])

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Final
+import unicodedata
 
 # Normalised (see normalise) replies that carry no engagement on their own.
 # fmt: off
@@ -31,7 +32,8 @@ _SPACE: Final = re.compile(r"\s+")
 
 def normalise(text: str) -> str:
     """Lowercase, drop punctuation but ``?``, squeeze runs ("okkk"/"hmmm"/"??")."""
-    stripped = _STRIP.sub("", text.lower()).replace("_", "")
+    composed = unicodedata.normalize("NFC", text.lower())
+    stripped = _STRIP.sub("", composed).replace("_", "")
     squeezed = _REPEAT.sub(r"\1", stripped)
     return _SPACE.sub(" ", squeezed).strip()
 
