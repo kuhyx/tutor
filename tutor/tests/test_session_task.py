@@ -93,8 +93,8 @@ def test_close_without_a_started_task_is_a_noop(
     assert fake_client.instances == []
 
 
-def test_sandbox_dir_is_under_the_redirected_home(tutor_sandbox: Path) -> None:
-    assert sandbox_dir() == (tutor_sandbox / "home/.local/share/tutor/sandbox")
+def test_sandbox_dir_is_under_the_redirected_data_dir(tutor_sandbox: Path) -> None:
+    assert sandbox_dir() == tutor_sandbox / "data/sandbox"
 
 
 def test_isolated_options_structured_by_default(tutor_sandbox: Path) -> None:
@@ -111,7 +111,7 @@ def test_isolated_options_structured_by_default(tutor_sandbox: Path) -> None:
     assert opts.output_format == {"type": "json_schema", "schema": TURN_SCHEMA}
     assert opts.cwd == sandbox_dir()
     assert sandbox_dir().is_dir()
-    assert str(sandbox_dir()).startswith(str(tutor_sandbox / "home"))
+    assert str(sandbox_dir()).startswith(str(tutor_sandbox / "data"))
     assert opts.extra_args == {
         "disable-slash-commands": None,
         "no-session-persistence": None,
@@ -159,3 +159,11 @@ def test_a_cli_that_fails_to_start_fails_the_caller_fast(
 
     assert asyncio.run(scenario()) == "second try"
     assert FakeClient.instances[-1].prompts == ["two"]
+
+
+def test_sandbox_dir_follows_tutor_data(
+    tutor_sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tutor_sandbox / "elsewhere"
+    monkeypatch.setenv("TUTOR_DATA", str(data))
+    assert sandbox_dir() == data / "sandbox"

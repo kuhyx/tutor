@@ -14,7 +14,6 @@ import asyncio
 from dataclasses import dataclass
 import json
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, Literal
 
 from claude_agent_sdk import (
@@ -26,9 +25,11 @@ from claude_agent_sdk import (
 
 from tutor import outage
 from tutor.models import TURN_SCHEMA, TurnError, TutorTurn
+from tutor.store import data_dir
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from pathlib import Path
 
 # A user message: plain text, or content blocks (text + base64 images).
 Prompt = str | list[dict[str, Any]]
@@ -46,8 +47,8 @@ class SessionError(RuntimeError):
 
 
 def sandbox_dir() -> Path:
-    """The model's empty working directory (resolved at call time)."""
-    return Path.home() / ".local" / "share" / "tutor" / "sandbox"
+    """The model's empty working directory, under the data dir (``TUTOR_DATA``)."""
+    return data_dir() / "sandbox"
 
 
 def isolated_options(

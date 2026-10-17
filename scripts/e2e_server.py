@@ -10,8 +10,8 @@ migration does (``publish-all``: every transcript, archived flag and
 subject), plus every device's log events from the data dir copy and
 ``prefs.current_subject``, then serves the e2e web build
 (``$TUTOR_WEBAPP_DIR``) and the relay in one process, as ``tutor.service``
-does. The model's working dir moves into the sandbox too
-(``tutor.session.sandbox_dir`` is hard-coded under the real data dir).
+does. The model's working dir follows ``TUTOR_DATA`` into the sandbox
+(``tutor.session.sandbox_dir``).
 
 Run by ``scripts/e2e_sandbox.sh up``; refuses the real data dir and :8778.
 """
@@ -32,7 +32,6 @@ from urllib.parse import urlsplit
 
 import uvicorn
 
-from tutor import session
 from tutor.engine import Engine
 from tutor.relay import cli, phases
 from tutor.relay.context import Wiring
@@ -162,12 +161,6 @@ def main() -> int:
     args = parser.parse_args()
     data = Path(os.environ.get("TUTOR_DATA", REAL_DATA))
     check_sandbox(data, args.port)
-    cwd = data / "model-cwd"
-
-    def sandbox_dir() -> Path:
-        return cwd
-
-    session.sandbox_dir = sandbox_dir
     asyncio.run(seed(args.db, args.subject))
     serve(args.db, args.port)
     return 0
