@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/review_answer.dart';
 
 /// The screen once [run] has no card left (or never had one).
 class ReviewEnd extends StatelessWidget {
@@ -35,6 +36,8 @@ class ReviewEnd extends StatelessWidget {
               : 'Reviewed $n card${n == 1 ? '' : 's'}. '
                     'Reviews sync when online.',
         ),
+        // A mistaken rating on the last card is fixed from here.
+        Center(child: ReviewBack(run)),
       ],
     );
   }

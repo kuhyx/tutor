@@ -1,7 +1,7 @@
 /// Review (curriculum §5): offline FSRS queue across all subjects (or one
 /// subject's, from a Review inside that subject). Front ->
 /// reveal back + excerpt + source link -> Again/Hard/Good/Easy, or Flag.
-/// Keys: Space reveals, 1-4 rate, F flags. The app bar switches to Drill
+/// Keys: Space reveals, 1-4 rate, F flags, Backspace / Ctrl+Z go Back. The app bar switches to Drill
 /// (`drill_view.dart`): pick-an-answer cards from the PC, no model.
 library;
 
@@ -20,6 +20,7 @@ import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_view.dart';
 import 'package:tutor/ui/flag_dialog.dart';
+import 'package:tutor/ui/review_answer.dart';
 import 'package:tutor/ui/review_end.dart';
 
 /// The Review screen.
@@ -152,9 +153,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
           bindings: {
             const SingleActivator(LogicalKeyboardKey.space): run.reveal,
             for (final g in Grade.values)
-              SingleActivator(_digit(g.value)): () => unawaited(run.rate(g)),
+              SingleActivator(gradeKey(g)): () => unawaited(run.rate(g)),
             const SingleActivator(LogicalKeyboardKey.keyF): () =>
                 unawaited(_flag(run)),
+            for (final k in backKeys) k: () => unawaited(run.back()),
           },
           child: Focus(
             focusNode: _focus,
@@ -165,13 +167,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
       );
     },
   );
-
-  static LogicalKeyboardKey _digit(int n) => switch (n) {
-    1 => LogicalKeyboardKey.digit1,
-    2 => LogicalKeyboardKey.digit2,
-    3 => LogicalKeyboardKey.digit3,
-    _ => LogicalKeyboardKey.digit4,
-  };
 
   Widget _body(BuildContext context, ReviewSession run) {
     final item = run.current;
@@ -207,40 +202,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        if (!run.revealed)
-          FilledButton(
-            onPressed: run.reveal,
-            child: const Text('Show answer (Space)'),
-          )
-        else
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            alignment: WrapAlignment.center,
-            children: [
-              for (final g in Grade.values)
-                (g == Grade.good ? FilledButton.new : OutlinedButton.new)(
-                  onPressed: () => run.rate(g),
-                  child: Text('${g.value} ${_label(g)}'),
-                ),
-            ],
-          ),
-        const SizedBox(height: AppSpacing.sm),
-        Align(
-          child: TextButton.icon(
-            onPressed: () => _flag(run),
-            icon: const Icon(Icons.flag_outlined),
-            label: const Text('Flag (F)'),
-          ),
-        ),
+        AnswerBar(run, onFlag: () => _flag(run)),
       ],
     );
   }
-
-  static String _label(Grade g) => switch (g) {
-    Grade.again => 'Again',
-    Grade.hard => 'Hard',
-    Grade.good => 'Good',
-    Grade.easy => 'Easy',
-  };
 }

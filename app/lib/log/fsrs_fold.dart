@@ -74,13 +74,25 @@ class DueCard {
 
 DateTime _utc(int ms) => DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
 
-/// Merges every device's events, sorted by `(at, eid)`, minus double taps.
+/// Merges every device's events, sorted by `(at, eid)`, minus double taps
+/// and minus every review a `review_undo` names (and the undos): an undone
+/// review is ignored entirely, also by the double-tap check.
 List<LoggedEvent> mergeEvents(Iterable<LoggedEvent> events) {
-  final sorted = events.toList()
-    ..sort((a, b) {
-      final byAt = a.event.at.compareTo(b.event.at);
-      return byAt != 0 ? byAt : a.eid.compareTo(b.eid);
-    });
+  final all = events.toList();
+  final undone = {
+    for (final e in all)
+      if (e.event case ReviewUndoEvent(:final of)) of,
+  };
+  final sorted =
+      [
+        for (final e in all)
+          if (e.event is! ReviewUndoEvent &&
+              !(e.event is ReviewEvent && undone.contains(e.eid)))
+            e,
+      ]..sort((a, b) {
+        final byAt = a.event.at.compareTo(b.event.at);
+        return byAt != 0 ? byAt : a.eid.compareTo(b.eid);
+      });
   final kept = <LoggedEvent>[];
   final reviews = <String, List<LoggedEvent>>{};
   // A review of an untaught card is ignored by the fold and never counts
@@ -152,6 +164,8 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         }
       case FlagEvent(:final rev):
         if (cards[key]?.rev == rev) flagged.add(key);
+      case ReviewUndoEvent():
+        break; // applied in mergeEvents
     }
   }
   return FoldResult(

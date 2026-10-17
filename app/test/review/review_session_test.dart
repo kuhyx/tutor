@@ -125,4 +125,44 @@ void main() {
     expect(await events.pending(), 1);
     expect(ReviewSession(items: const [], events: events).current, isNull);
   });
+
+  test('Back re-shows the last rated card; re-rating replaces it', () async {
+    final items = await dueItems(
+      catalog: catalog,
+      events: events,
+      now: _t0.add(const Duration(days: 30)),
+      subject: 'car',
+    );
+    final run = ReviewSession(items: items, events: events)..reveal();
+    await run.rate(Grade.good); // a
+    run.reveal();
+    await run.rate(Grade.easy); // b
+    expect(run.current, isNull);
+    await run.back();
+    expect((run.current!.cardId, run.revealed), ('b', true));
+    expect(run.undoneGrade, Grade.easy);
+    await run.back();
+    expect(run.current!.cardId, 'a');
+    expect(run.undoneGrade, Grade.good);
+    expect(run.canBack, isFalse);
+    await run.back(); // nothing before: no-op
+    expect(run.current!.cardId, 'a');
+    await run.rate(Grade.again);
+    expect(run.undoneGrade, isNull);
+    expect(run.current!.cardId, 'b');
+    final all = await events.all();
+    final reviews = {
+      for (final e in all)
+        if (e.event is ReviewEvent) e.eid: e,
+    };
+    final undone = [
+      for (final e in all)
+        if (e.event case ReviewUndoEvent(:final of)) of,
+    ];
+    expect(undone, hasLength(2));
+    expect(undone.every(reviews.containsKey), isTrue);
+    // A flag cannot be undone, so Back never steps across one.
+    await run.flag('x');
+    expect(run.canBack, isFalse);
+  });
 }

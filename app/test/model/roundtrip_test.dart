@@ -155,6 +155,7 @@ void main() {
     {'k': 'flag', 's': 'car', 'c': 'eng', 'rev': 1, 'reason': 'wrong', 'at': 2},
     {'k': 'taught', 's': 'car', 'c': 'eng', 'at': 3, 'session': 'x'},
     {'k': 'untaught', 's': 'car', 'c': 'eng', 'at': 4},
+    {'k': 'review_undo', 's': 'car', 'c': 'eng', 'of': '01JX', 'at': 5},
   ]) {
     _roundTrip(
       'event ${event['k']} ${event['src'] ?? ''}'.trim(),

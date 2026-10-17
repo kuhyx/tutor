@@ -130,4 +130,38 @@ void main() {
     expect(run.current, isNull);
     expect(run.done, 3);
   });
+
+  test('Back: undoing a Good on a requeued card puts it back', () async {
+    final items = await moduleItems(
+      catalog: catalog,
+      events: events,
+      module: _ref,
+    );
+    final run = ReviewSession(
+      items: items.take(1).toList(),
+      events: events,
+      requeue: true,
+    );
+    expect(run.canBack, isFalse);
+    run.reveal();
+    await run.rate(Grade.again); // a -> end
+    run.reveal();
+    await run.rate(Grade.good); // a done: the run ends
+    expect(run.current, isNull);
+    expect(run.cardsDone, 1);
+    await run.back();
+    expect(run.current!.cardId, 'a');
+    expect(run.revealed, isTrue);
+    expect(run.undoneGrade, Grade.good);
+    expect(run.cardsDone, 0);
+    expect(run.left, 1);
+    await run.back(); // the first Again too: its requeued copy goes
+    expect(run.undoneGrade, Grade.again);
+    expect(run.left, 1);
+    expect(run.canBack, isFalse);
+    await run.rate(Grade.good);
+    expect(run.current, isNull);
+    final logged = (await events.all()).map((e) => e.event).toList();
+    expect(logged.whereType<ReviewUndoEvent>(), hasLength(2));
+  });
 }

@@ -1,100 +1,18 @@
 /// Offline FSRS review (curriculum §5): the due queue from the folded event
 /// log, then front -> reveal -> Again/Hard/Good/Easy or Flag. Every answer
 /// is an event queued locally first, so a phone with no network still
-/// reviews; the queue is flushed best-effort after each answer.
+/// reviews; the queue is flushed best-effort after each answer. Back undoes
+/// the last rating (a `review_undo` event) and shows that card again.
 library;
 
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
-import 'package:tutor/home/catalog.dart';
 import 'package:tutor/log/event_log.dart';
-import 'package:tutor/log/fsrs_fold.dart';
-import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
-import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/review/review_items.dart';
 
-/// One card to review.
-class ReviewItem {
-  /// Creates the item.
-  const new({
-    required this.subject,
-    required this.subjectTitle,
-    required this.cardId,
-    required this.card,
-  });
-
-  /// Subject id.
-  final String subject;
-
-  /// Subject title.
-  final String subjectTitle;
-
-  /// Card id.
-  final String cardId;
-
-  /// The card as shown.
-  final StudyCard card;
-}
-
-/// Builds the due queue across all subjects, or only [subject]'s (a
-/// Review button inside a subject never mixes in another subject's cards).
-Future<List<ReviewItem>> dueItems({
-  required Catalog catalog,
-  required EventLog events,
-  required DateTime now,
-  String? subject,
-}) async {
-  final subjects = await catalog.cached();
-  final infos = <String, CardInfo>{};
-  for (final s in subjects.values) {
-    for (final MapEntry(:key, :value) in s.cards.entries) {
-      infos['${s.id}/$key'] = CardInfo(
-        rev: value.rev,
-        suspended: value.suspended,
-      );
-    }
-  }
-  final queue = reviewQueue(fold(await events.all(), infos), infos, now);
-  return [
-    for (final due in queue)
-      if (subject == null || due.key.startsWith('$subject/'))
-        ?_item(subjects, due.key),
-  ];
-}
-
-/// Every taught card of [module], due or not, in module order (the module
-/// review); flagged and suspended cards are left out, as in [dueItems].
-Future<List<ReviewItem>> moduleItems({
-  required Catalog catalog,
-  required EventLog events,
-  required ModuleRef module,
-}) async {
-  final subjects = await catalog.cached();
-  final s = subjects[module.subject];
-  if (s == null) return const [];
-  final folded = fold(await events.all(), cardInfos(subjects.values));
-  return [
-    for (final MapEntry(key: id, value: card) in s.cardsOf(module.module))
-      if (!card.suspended &&
-          folded.scheduled.containsKey('${s.id}/$id') &&
-          !folded.flagged.contains('${s.id}/$id'))
-        ?_item(subjects, '${s.id}/$id'),
-  ];
-}
-
-ReviewItem? _item(Map<String, SubjectData> subjects, String key) {
-  final slash = key.indexOf('/');
-  final s = subjects[key.substring(0, slash)];
-  final card = s?.cards[key.substring(slash + 1)];
-  if (s == null || card == null) return null;
-  return ReviewItem(
-    subject: s.id,
-    subjectTitle: s.meta.title,
-    cardId: key.substring(slash + 1),
-    card: card,
-  );
-}
+export 'package:tutor/review/review_items.dart';
 
 /// A review run over a fixed list of items.
 class ReviewSession extends ChangeNotifier {
@@ -125,6 +43,15 @@ class ReviewSession extends ChangeNotifier {
   late DateTime _shownAt;
   int _index = 0;
   bool _revealed = false;
+  final List<_Step> _steps = [];
+  Grade? _undone;
+
+  /// Back can step to the previously rated card (never across a flag:
+  /// a flag has no undo).
+  bool get canBack => _steps.isNotEmpty;
+
+  /// The rating Back took away from the card on screen (highlighted).
+  Grade? get undoneGrade => _undone;
 
   /// Answered or flagged so far (a requeued card counts each time).
   int get done => _index;
@@ -153,7 +80,7 @@ class ReviewSession extends ChangeNotifier {
     final item = current;
     if (item == null || !_revealed) return;
     final at = _now();
-    await events.record(
+    final logged = await events.record(
       ReviewEvent(
         subject: item.subject,
         card: item.cardId,
@@ -163,12 +90,35 @@ class ReviewSession extends ChangeNotifier {
         durMs: at.difference(_shownAt).inMilliseconds,
       ),
     );
-    if (requeue && grade.value < Grade.good.value) {
-      _queue.add(item);
-    } else {
-      _finished.add('${item.subject}/${item.cardId}');
-    }
+    final again = requeue && grade.value < Grade.good.value;
+    final key = '${item.subject}/${item.cardId}';
+    final finished = !again && _finished.add(key);
+    if (again) _queue.add(item);
+    _steps.add(
+      _Step(_index, logged.eid, grade, requeued: again, finished: finished),
+    );
     await _advance();
+  }
+
+  /// Back: undoes the last rating (a `review_undo` naming its eid) and
+  /// shows that card again, revealed, so a new rating replaces it. Steps
+  /// are undone last-first, so a requeued copy is still the queue's last.
+  Future<void> back() async {
+    if (_steps.isEmpty) return;
+    final step = _steps.removeLast();
+    final item = _queue[step.index];
+    await events.record(
+      ReviewUndoEvent(
+        subject: item.subject,
+        card: item.cardId,
+        at: _now().millisecondsSinceEpoch,
+        of: step.eid,
+      ),
+    );
+    if (step.requeued) _queue.removeLast();
+    if (step.finished) _finished.remove('${item.subject}/${item.cardId}');
+    _index = step.index;
+    await _advance(to: step.grade);
   }
 
   /// Flags the current card (wrong / unclear); it leaves the queue until
@@ -188,12 +138,15 @@ class ReviewSession extends ChangeNotifier {
     // A requeued card has no later copy (it goes back only when rated), so
     // a flag takes it out of the run for good.
     _finished.add('${item.subject}/${item.cardId}');
+    _steps.clear();
     await _advance();
   }
 
-  Future<void> _advance() async {
-    _index++;
-    _revealed = false;
+  // Next card; [to] = Back re-showing a card rated [to] (revealed).
+  Future<void> _advance({Grade? to}) async {
+    if (to == null) _index++;
+    _revealed = to != null;
+    _undone = to;
     _shownAt = _now();
     notifyListeners();
     try {
@@ -204,4 +157,21 @@ class ReviewSession extends ChangeNotifier {
       log('review flush failed; kept queued', level: 800, error: error);
     }
   }
+}
+
+/// One rating, as Back undoes it.
+class _Step {
+  const new(
+    this.index,
+    this.eid,
+    this.grade, {
+    required this.requeued,
+    required this.finished,
+  });
+
+  final int index;
+  final String eid;
+  final Grade grade;
+  final bool requeued;
+  final bool finished;
 }

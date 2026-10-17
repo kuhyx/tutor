@@ -37,37 +37,46 @@ const String drillSource = 'drill';
 sealed class LogEvent {
   const new({required this.subject, required this.card, required this.at});
 
-  /// Parses an event by its `k`.
+  /// Parses an event by its `k` first: a kind may carry no card (`new_cap`
+  /// from Settings), so `s`/`c` are read per kind. Unknown kinds throw, and
+  /// the log skips them (an older app meets a newer event).
   factory fromJson(Object? v) {
     final j = asJson(v, 'event');
-    final s = str(j, 's');
-    final c = str(j, 'c');
+    final k = str(j, 'k');
     final at = integer(j, 'at');
-    return switch (str(j, 'k')) {
+    String s() => str(j, 's');
+    String c() => str(j, 'c');
+    return switch (k) {
       'review' => ReviewEvent(
-        subject: s,
-        card: c,
+        subject: s(),
+        card: c(),
         at: at,
         grade: Grade.parse(integer(j, 'r')),
         rev: integer(j, 'rev'),
         durMs: intOr(j, 'dur_ms'),
         src: strOr(j, 'src'),
       ),
+      'review_undo' => ReviewUndoEvent(
+        subject: s(),
+        card: c(),
+        at: at,
+        of: str(j, 'of'),
+      ),
       'flag' => FlagEvent(
-        subject: s,
-        card: c,
+        subject: s(),
+        card: c(),
         at: at,
         rev: integer(j, 'rev'),
         reason: strOr(j, 'reason') ?? '',
       ),
       'taught' => TaughtEvent(
-        subject: s,
-        card: c,
+        subject: s(),
+        card: c(),
         at: at,
         session: strOr(j, 'session'),
       ),
-      'untaught' => UntaughtEvent(subject: s, card: c, at: at),
-      final k => throw FormatException('unknown event kind "$k"'),
+      'untaught' => UntaughtEvent(subject: s(), card: c(), at: at),
+      _ => throw FormatException('unknown event kind "$k"'),
     };
   }
 
@@ -128,6 +137,30 @@ class ReviewEvent extends LogEvent {
     'dur_ms': durMs,
     'src': src,
   });
+}
+
+/// Review's Back: the review whose eid is [of] is ignored entirely by the
+/// fold (FSRS, good, reviewed); an unknown [of] is a no-op.
+class ReviewUndoEvent extends LogEvent {
+  /// Creates the event.
+  const new({
+    required super.subject,
+    required super.card,
+    required super.at,
+    required this.of,
+  });
+
+  /// eid of the undone review.
+  final String of;
+
+  @override
+  Json toJson() => {
+    'k': 'review_undo',
+    's': subject,
+    'c': card,
+    'of': of,
+    'at': at,
+  };
 }
 
 /// "This card is wrong" (counts only while the card's rev is unchanged).
