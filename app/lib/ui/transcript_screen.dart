@@ -15,6 +15,7 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/blocked_panel.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/util/device.dart';
 
@@ -133,7 +134,23 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                 ),
               ],
             ),
-            RequestStatusLine(_runner),
+            // A blocked Repeat (locked, cap) shows its call to action.
+            ValueListenableBuilder<RelayStatus?>(
+              valueListenable: _runner.status,
+              builder: (context, st, _) => st is RelayFailed && st.blocks
+                  ? BlockedPanel(
+                      services: _s,
+                      blocked: st.blocked!,
+                      text: st.text,
+                      subject: subject,
+                      lastBody: _runner.lastBody,
+                      onRun: (body) async {
+                        await _toSession(body);
+                        return _runner.status.value!;
+                      },
+                    )
+                  : RequestStatusLine(_runner),
+            ),
             if (row != null && subject != null)
               for (final c in row.cards)
                 CheckboxListTile(
