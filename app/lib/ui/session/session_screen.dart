@@ -20,6 +20,7 @@ import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/session_actions.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_side.dart';
+import 'package:tutor/ui/session/session_subjects.dart';
 import 'package:tutor/util/device.dart';
 
 /// Width from which the side panel sits beside the chat.
@@ -71,7 +72,8 @@ class _SessionScreenState extends State<SessionScreen> {
   late final AppLifecycleListener _lifecycle;
   late final VoidCallback _unwatch;
   final _scroll = ScrollController();
-  Map<String, SubjectData> _subjects = const {};
+  late final SessionSubjects _subjectFeed = SessionSubjects(_s, _feed);
+  Map<String, SubjectData> get _subjects => _subjectFeed.subjects.value;
 
   TutorServices get _s => widget.services;
 
@@ -91,17 +93,14 @@ class _SessionScreenState extends State<SessionScreen> {
       onHide: () => unawaited(_feed.stop()),
     );
     if (widget.resume) unawaited(_run(_continue()));
-    unawaited(
-      _s.catalog.cached().then((c) {
-        if (mounted) setState(() => _subjects = c);
-      }),
-    );
+    _subjectFeed.start();
   }
 
   @override
   void dispose() {
     _unwatch();
     _lifecycle.dispose();
+    unawaited(_subjectFeed.dispose());
     unawaited(_feed.dispose());
     unawaited(_runner.dispose());
     unawaited(_today.dispose());
@@ -156,6 +155,7 @@ class _SessionScreenState extends State<SessionScreen> {
       _feed.loaded,
       _runner.status,
       _today.today,
+      _subjectFeed.subjects,
     ]),
     builder: (context, _) {
       final view = _feed.view.value;
