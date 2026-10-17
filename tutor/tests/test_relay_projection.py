@@ -195,3 +195,13 @@ def test_publisher_skips_missing_and_migrates_archived(tmp_path: Path) -> None:
         await w.rtdb.aclose()
 
     asyncio.run(go())
+
+
+def test_card_edit_notices_reach_the_tutor_message(tmp_path: Path) -> None:
+    eng = studied(tmp_path)
+    conv = eng._conv
+    assert conv is not None
+    conv.messages[-1]["notices"] = ["Card removed: What is a coil?"]
+    got = views.messages(conv, [], src(eng))
+    assert got[-1]["notices"] == ["Card removed: What is a coil?"]
+    assert "notices" not in got[0]

@@ -73,3 +73,20 @@ def test_style_asks_one_thing_per_question(profile: profiles.Profile) -> None:
     assert "Each `questions` entry asks exactly ONE thing" in rule
     assert "never two questions in one entry" in rule
     assert '"X and Y"' in rule
+
+
+# 2026-10-17: the tutor may fix the deck itself (kuhy): on the learner's
+# criticism and on its own initiative, applied at once with a chat notice.
+@PROFILES
+def test_card_edits_rule(profile: profiles.Profile) -> None:
+    text = system_prompt(CARD, [], profile)
+    rule = _rule(text, 15)
+    assert "`card_edits`" in rule
+    for op in ('"edit"', '"add"', '"remove"'):
+        assert op in rule
+    assert "on your own initiative" in rule
+    assert "the app quotes" in rule
+    assert "next engine note" in rule
+    assert "ends this session" in rule
+    assert "from the card's next session" in rule
+    assert "`card_edits` (usually [], rule 15)" in text.split("# Output", 1)[1]

@@ -41,6 +41,8 @@ class Context:
     model: ModelFn = modelcall.ask_model
     fetch: Callable[[str], bytes] = wiki.http_get
     check: CheckFn = sources.check_excerpt
+    # A source's plain text (fetched once, cached): what an added card quotes.
+    text: Callable[[str], str] = sources.page_text
     device: str = field(default="")
 
     def __post_init__(self) -> None:

@@ -37,7 +37,7 @@ _TUTOR_KEYS: Final = (
     "check",
     "check_result",
 )
-_TUTOR_FLAGS: Final = ("mastered_new", "card_done")
+_TUTOR_FLAGS: Final = ("mastered_new", "card_done", "notices")
 _logger = logging.getLogger(__name__)
 
 

@@ -118,7 +118,7 @@ pass the same vectors.
 - `card_edit` validates like the old page's deck editor did (fields, word limits,
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else
-  slug of `front`.
+  slug of `front`. The tutor's own edits (rule 15): `tutor/edit_flow.py`.
 - Concepts: `subjects/{subj}/concepts` (array, appended by worker only) =
   `[{"name":"normally closed contact","at":ms,"card":"ld-x","session":sid}]`.
 

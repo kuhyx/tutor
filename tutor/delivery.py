@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Final
 
+from tutor.clock import reply_time
+
 DESKTOP: Final = "desktop"
 PHONE: Final = "phone"
 DEVICES: Final = frozenset({DESKTOP, PHONE})
@@ -42,6 +44,10 @@ class Delivery:
     sent_at: float | None = None
     received: float | None = None
     device: str = DESKTOP
+
+    def learner_at(self, now: float) -> float:
+        """When the learner acted: ``received`` (else ``now``), or the Send press."""
+        return reply_time(now if self.received is None else self.received, self.sent_at)
 
 
 def note_lines(name: str) -> list[str]:

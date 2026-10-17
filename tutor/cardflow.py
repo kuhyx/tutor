@@ -68,7 +68,7 @@ class CardFlow:
         start: Callable[..., Awaitable[dict[str, Any]]]
         resume_path: Callable[[Path], bool]
         _live: Callable[[], tuple[TutorSession, Conversation, cards_mod.Card]]
-        _turn: Callable[..., Awaitable[None]]
+        _turn: Callable[..., Awaitable[str]]
 
     @property
     def minutes_today(self) -> int:

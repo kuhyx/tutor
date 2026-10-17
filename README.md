@@ -54,7 +54,9 @@ a link to its source. `tutor.sources` fetches each source once into
 
 Cards are edited in the app's **Edit cards** screen (`card_edit` over the
 relay, `DOCS-contract-curriculum.md`): the same card checks, and nothing is
-written if one fails. Ids are never editable and nothing is deleted. The repo
+written if one fails. The tutor itself may also fix, add or remove (suspend)
+a card mid-session, with a notice line in the chat (`DOCS-contract-curriculum.md`
+§3). Ids are never editable and nothing is deleted. The repo
 deck JSON is edited by hand (the old page's deck editor was retired
 2026-10-12 with the page).
 

@@ -7,17 +7,28 @@ The rules themselves (and the pedagogy they come from) are in
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
+from tutor import picked
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
+from tutor.delivery import note_lines
 from tutor.prompt_rules import render_system
 
 if TYPE_CHECKING:
     from tutor.cards import Card
+    from tutor.conversation import Conversation
     from tutor.curriculum.profiles import Profile
 
 CHECK_EVERY_SECONDS: Final = 600.0
+
+
+class Asked(NamedTuple):
+    """One user message: its engine note, the whole text, a tapped choice."""
+
+    note: str
+    text: str
+    tap: bool
 
 
 def system_prompt(
@@ -124,3 +135,22 @@ def wrap_learner(text: str) -> str:
     A closing tag inside the words is broken up, so it cannot end the fence.
     """
     return f"<learner>\n{text.replace('</learner', '< /learner')}\n</learner>"
+
+
+def turn_prompt(
+    conv: Conversation, prompt_text: str, learner_text: str | None, device: str
+) -> Asked:
+    """What the model is sent this turn (``Asked``)."""
+    active = conv.clock.active_seconds
+    tap = conv.check.open and picked.tapped(learner_text or "")
+    note = engine_note(
+        active,
+        active - conv.check.mark,
+        check_open=conv.check.open,
+        notes=[*conv.notes, *note_lines(device), *picked.note(tap=tap)],
+        attempt=conv.check.attempt or 1,
+    )
+    body = wrap_learner(prompt_text) if learner_text else prompt_text
+    if conv.resumed.note:
+        body = f"{conv.resumed.note}\n{body}"
+    return Asked(note, f"{note}\n{body}", tap=tap)

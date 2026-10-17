@@ -14,25 +14,27 @@ import time
 from typing import TYPE_CHECKING, Any
 import uuid
 
-from tutor import backfill, gating, media, picked, repair, resume, unit_credit
 from tutor import cards as cards_mod
+from tutor import gating, media, resume, unit_credit
 from tutor.cardflow import CardFlow
-from tutor.clock import EngagementClock, reply_time
+from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
 from tutor.curriculum.source import CardSource, source_for
-from tutor.delivery import DESKTOP, Delivery, learner_message, note_lines
-from tutor.prompt import engine_note, system_prompt, wrap_learner
+from tutor.delivery import DESKTOP, Delivery, learner_message
+from tutor.edit_flow import EditFlow
+from tutor.prompt import system_prompt, turn_prompt
 from tutor.session import TutorSession, isolated_options
 from tutor.store import Store
+from tutor.upkeep import Upkeep
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from pathlib import Path
 
     from tutor.clock import BlockReady
 
 
-class Engine(CardFlow):
+class Engine(CardFlow, EditFlow, Upkeep):
     """One study session at a time, for one learner."""
 
     def __init__(
@@ -100,40 +102,31 @@ class Engine(CardFlow):
         ``ValueError`` (``RequestError``) before the live session is touched.
         """
         async with self._lock:
-            src = self._source_for(subject)
-            card = src.pick(card_id)  # raises before anything changes
-            self.source = src
-            if self._session is not None:
-                await self._session.close()
-            self.card = card
-            sid = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
-            self._conv = Conversation(sid, card.id, EngagementClock(self.time()))
-            self._session = self._factory(self._prompt(card))
-            start = {"type": "start", "card": card.id, "subject": self.source.subject}
-            self.store.log(self.session_id, {**start, "device": device})
-            await self._turn("Begin the session.", learner_text=None, device=device)
+            await self._open(self._source_for(subject), card_id, device)
         return self.state()
 
-    def repair_done_cards(self) -> list[tuple[str, str]]:
-        """Run the one-off card_done repair (see ``repair``)."""
-        return repair.repair_done_cards(self.store)
-
-    def backfill_today(self) -> None:
-        """Credit minutes today's transcripts earned but never got paid (idempotent)."""
-        paid = backfill.backfill_day(
-            self.store.root / "sessions",
-            time.strftime("%Y%m%d"),
-            self._credit,
-            self.store.log,
+    async def _open(
+        self,
+        src: CardSource,
+        card_id: str | None,
+        device: str,
+        notices: Sequence[str] = (),
+    ) -> None:
+        """Start a session on ``src`` (lock held); ``notices`` go on its first turn."""
+        card = src.pick(card_id)  # raises before anything changes
+        self.source = src
+        if self._session is not None:
+            await self._session.close()
+        self.card = card
+        sid = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
+        self._conv = Conversation(sid, card.id, EngagementClock(self.time()))
+        self._session = self._factory(self._prompt(card))
+        start = {"type": "start", "card": card.id, "subject": self.source.subject}
+        self.store.log(self.session_id, {**start, "device": device})
+        opening = Delivery(device=device)
+        await self._turn(
+            "Begin the session.", learner_text=None, via=opening, notices=notices
         )
-        self._set_today(max(self.minutes_today, paid))
-
-    def resume_latest(self) -> bool:
-        """Pick today's newest session back up after a restart (see ``resume_path``)."""
-        path = resume.latest_today(
-            self.store.root / "sessions", time.strftime("%Y%m%d")
-        )
-        return self.resume_path(path) if path else False
 
     def resume_path(self, path: Path) -> bool:
         """Resume ``path``; the model starts primed on next reply (``False``: none)."""
@@ -175,12 +168,9 @@ class Engine(CardFlow):
                 return self.state()
             if self.simulated:
                 self._offset += max(0.0, advance_s)
-            got = self.time() if via.received is None else via.received
-            t = reply_time(got, via.sent_at)
-            await self._turn(
-                text, learner_text=text, msg_id=msg_id, t_learner=t, device=via.device
-            )
+            gone = await self._turn(text, learner_text=text, msg_id=msg_id, via=via)
             conv.resumed.answered_id = msg_id
+            await self._leave_removed(conv, gone, via.device)
         return self.state()
 
     async def close(self) -> None:
@@ -207,39 +197,31 @@ class Engine(CardFlow):
         *,
         learner_text: str | None,
         msg_id: str = "",
-        t_learner: float | None = None,
-        device: str = DESKTOP,
-    ) -> None:
+        via: Delivery | None = None,
+        notices: Sequence[str] = (),
+    ) -> str:
+        """One model turn; returns the notice when it removed the live card."""
         session, conv = self._live()[:2]
         resume.reprime(conv, session.restarts)
-        t_learner = self.time() if t_learner is None else t_learner
-        active = conv.clock.active_seconds
-        tap = conv.check.open and picked.tapped(learner_text or "")
-        note = engine_note(
-            active,
-            active - conv.check.mark,
-            check_open=conv.check.open,
-            notes=[*conv.notes, *note_lines(device), *picked.note(tap=tap)],
-            attempt=conv.check.attempt or 1,
-        )
-        body = wrap_learner(prompt_text) if learner_text else prompt_text
-        if conv.resumed.note:
-            body = f"{conv.resumed.note}\n{body}"
+        via = via or Delivery()
+        t_learner = via.learner_at(self.time())
+        asked = turn_prompt(conv, prompt_text, learner_text, via.device)
         if learner_text is not None:
             self.store.log(
                 self.session_id,
-                {"type": "learner", "text": learner_text, "note": note}
-                | {"t": t_learner, "msg_id": msg_id, "device": device},
+                {"type": "learner", "text": learner_text, "note": asked.note}
+                | {"t": t_learner, "msg_id": msg_id, "device": via.device},
             )
-        turn, _ = await session.ask(f"{note}\n{body}")
+        turn, _ = await session.ask(asked.text)
         if not self.source.profile.diagrams:  # schemdraw draws circuits only
             turn = replace(turn, diagram=None)
         # Only now: a failed ask leaves no learner bubble (the page keeps the
         # text for a retry) and keeps the notes and primer for that retry.
         conv.notes, conv.resumed.note = [], ""
         if learner_text is not None:
-            conv.messages.append(learner_message(learner_text, device))
+            conv.messages.append(learner_message(learner_text, via.device))
         message = media.page_message(turn)
+        gone = await self._edit_cards(conv, turn, message, notices)
         await media.attach(media.Turn(session, conv, self.store), turn, message)
         # Stamped when the final message (after any image check) is ready, so
         # the check's model call never eats into the learner's reply window.
@@ -247,4 +229,5 @@ class Engine(CardFlow):
         if learner_text is not None:
             conv.clock.user_reply(t_learner, learner_text, low_effort=turn.low_effort)
         conv.clock.tutor_message(t_tutor)
-        self._apply(turn, t_tutor, message, tap=tap)
+        self._apply(turn, t_tutor, message, tap=asked.tap)
+        return gone

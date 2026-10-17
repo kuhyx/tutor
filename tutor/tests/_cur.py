@@ -27,6 +27,7 @@ class Fakes:
     prompts: list[tuple[str, str]] = field(default_factory=list)
     pages: dict[str, bytes] = field(default_factory=dict)
     bad_excerpts: set[str] = field(default_factory=set)
+    texts: dict[str, str] = field(default_factory=dict)
     now: list[int] = field(default_factory=lambda: [T0])
 
     def model(self, system: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
@@ -48,6 +49,12 @@ class Fakes:
             return sources.Mismatch(cid, url, "excerpt not found in the page text")
         return None
 
+    def text(self, url: str) -> str:
+        if url not in self.texts:
+            msg = f"no text for {url}"
+            raise OSError(msg)
+        return self.texts[url]
+
     def clock(self) -> int:
         return self.now[0]
 
@@ -61,6 +68,7 @@ def make_ctx(root: Path, fakes: Fakes | None = None) -> tuple[Context, Fakes]:
         model=fakes.model,
         fetch=fakes.fetch,
         check=fakes.check,
+        text=fakes.text,
         device="dev-pc",
     )
     return ctx, fakes

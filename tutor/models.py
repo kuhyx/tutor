@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Final
 
-from tutor import asks, newlines, wording
+from tutor import asks, card_requests, newlines, wording
 from tutor import choices as choices_mod
 
 ELEMENT_KINDS: Final = (
@@ -147,8 +147,10 @@ TURN_SCHEMA: Final = {
         ),
         "concepts_mastered": {"type": "array", "items": _STR},
         "card_done": {"type": "boolean"},
+        # Deck changes (``tutor.edit_flow``); like ``choices``, optional to parse.
+        "card_edits": card_requests.SCHEMA,
     },
-    "required": [*REQUIRED_FIELDS, "choices"],
+    "required": [*REQUIRED_FIELDS, "choices", "card_edits"],
     "additionalProperties": False,
 }
 
@@ -202,6 +204,7 @@ class TutorTurn:
     diagram: dict[str, Any] | None = None
     concepts_mastered: tuple[str, ...] = ()
     card_done: bool = False
+    card_edits: tuple[card_requests.CardEdit, ...] = ()
     extras: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -242,4 +245,5 @@ class TutorTurn:
             diagram=raw["diagram"],
             concepts_mastered=tuple(str(x) for x in raw["concepts_mastered"]),
             card_done=bool(raw["card_done"]),
+            card_edits=card_requests.parse(raw.get("card_edits")),
         )
