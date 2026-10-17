@@ -136,7 +136,8 @@ pass the same vectors.
   only (tutor's `card_done`, or the manual `card_done` request).
 - `review_undo` (any device, Review's "Back"; `of` = a review eid): fold step 6.
   `new_cap` (Settings; `n` int 1..200) and `cap_lift` (worker; `day` a real
-  `YYYY-MM-DD`) carry no `s`/`c` (§6). Malformed ones are dropped at parse.
+  `YYYY-MM-DD`) carry no `s`/`c` (§6). Malformed ones (`n` outside 1..200 too)
+  are dropped at parse, by both sides; the app skips `cap_lift` (an unknown kind).
 - `r`: 1 Again, 2 Hard, 3 Good, 4 Easy. `at` = device wall clock when answered.
   `rev` = card rev shown. `src` (optional): `"drill"` = a PC drill pick (`tutor/drill.py`);
   the app's ratings send none; the worker drops any other value.

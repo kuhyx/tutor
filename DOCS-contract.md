@@ -107,7 +107,7 @@ rid. Requests may queue while the PC is offline; served when it is back.
 
 Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
 `daily_new_cap` (+`subject_title`, `new_today`, `new_cap`, `module`, `module_title`, `due_in_subject`, `next: "lift_cap"`), `no_card_left` (+`subject_title`, `due_in_subject`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
-`worker_error` (`DOCS-relay.md`). `error` is shown; tracebacks stay in the log.
+`worker_error` (`DOCS-relay.md`). `error` is shown, except for `locked`/`daily_new_cap`/`no_card_left`: the app builds a call to action from the fields (a `next: lift_cap` = "Learn more anyway"). Tracebacks stay in the log.
 
 | kind | body | result `data` | lane |
 |---|---|---|---|

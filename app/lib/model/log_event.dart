@@ -53,7 +53,7 @@ sealed class LogEvent {
         session: strOr(j, 'session'),
       ),
       'untaught' => UntaughtEvent(subject: s(), card: c(), at: at),
-      'new_cap' => NewCapEvent(n: integer(j, 'n'), at: at),
+      'new_cap' => NewCapEvent(n: _capN(integer(j, 'n')), at: at),
       _ => throw FormatException('unknown event kind "$k"'),
     };
   }
@@ -228,3 +228,14 @@ class LoggedEvent {
   /// The event.
   final LogEvent event;
 }
+
+/// The range Settings accepts (and the worker keeps).
+const minNewCap = 1;
+
+/// The range Settings accepts (and the worker keeps).
+const maxNewCap = 200;
+
+/// `new_cap`'s `n` in 1..200 (the worker drops any other at parse too).
+int _capN(int n) => n >= minNewCap && n <= maxNewCap
+    ? n
+    : throw FormatException('new_cap n $n not in $minNewCap..$maxNewCap');

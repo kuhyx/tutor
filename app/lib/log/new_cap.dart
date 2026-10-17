@@ -6,14 +6,10 @@ library;
 
 import 'package:tutor/model/log_event.dart';
 
+export 'package:tutor/model/log_event.dart' show maxNewCap, minNewCap;
+
 /// The cap without any `new_cap` event.
 const defaultNewCap = 25;
-
-/// The range Settings accepts.
-const minNewCap = 1;
-
-/// The range Settings accepts.
-const maxNewCap = 200;
 
 /// The effective cap in [events].
 int effectiveNewCap(Iterable<LoggedEvent> events) {

@@ -21,6 +21,20 @@ void main() {
     );
   });
 
+  test('new_cap outside 1..200 is dropped at parse, as the worker does', () {
+    for (final n in [0, -3, 201]) {
+      expect(
+        () => LogEvent.fromJson({'k': 'new_cap', 'n': n, 'at': 1}),
+        throwsFormatException,
+        reason: 'n=$n',
+      );
+    }
+    expect(
+      (LogEvent.fromJson({'k': 'new_cap', 'n': 200, 'at': 1}) as NewCapEvent).n,
+      200,
+    );
+  });
+
   test('effective cap: latest by at, else 25', () {
     expect(effectiveNewCap(const []), 25);
     expect(defaultNewCap, 25);
