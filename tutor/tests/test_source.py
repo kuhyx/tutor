@@ -65,7 +65,7 @@ def test_migrated_automation_teaches_the_same_first_card(tmp_path: Path) -> None
 def test_daily_cap_and_subject_switch_without_diagrams(tmp_path: Path) -> None:
     clock = ManualClock(1_800_000_000.0)
     ctx, _ = make_ctx(tmp_path)
-    many = {f"c{i}": card("a", i) for i in range(12)}
+    many = {f"c{i}": card("a", i) for i in range(27)}
     subject(
         ctx,
         modules=[module("a", status="ready"), module("b", "a"), module("c", "b")],
@@ -82,7 +82,7 @@ def test_daily_cap_and_subject_switch_without_diagrams(tmp_path: Path) -> None:
                 "c": f"c{i}",
                 "at": now - i,
             }
-            for i in range(10)
+            for i in range(25)
         ]
     )
     fake = FakeSession(turn("hi", diagram=DIAGRAM), turn("x"))
@@ -96,7 +96,7 @@ def test_daily_cap_and_subject_switch_without_diagrams(tmp_path: Path) -> None:
     assert engine.source.profile.diagrams is False
     assert "industrial automation" not in fake_prompt(engine)
     clock.advance(2 * 86400)
-    assert asyncio.run(engine.next_card())["card"]["id"] == "c10"
+    assert asyncio.run(engine.next_card())["card"]["id"] == "c25"
 
 
 def fake_prompt(engine: Engine) -> str:

@@ -167,6 +167,17 @@ def test_daily_cap_is_shared_with_tutor_session_minutes(tmp_path: Path) -> None:
     assert ledger_pay.minutes_between(paid, lo, hi) == ledger_pay.DAILY_CAP_MINUTES
 
 
+def test_an_undone_review_is_never_paid() -> None:
+    wrong = rev(PHONE, at(15, 10, 0, 0), 60_000)
+    redo = rev(PHONE, at(15, 10, 0, 40), 30_000)
+    undo = {**rev(PHONE, at(15, 10, 0, 30), None, "review_undo"), "of": wrong["eid"]}
+    assert review_credit.units_by_session([wrong, redo], WORKER, NOW)
+    assert review_credit.units_by_session([wrong, undo, redo], WORKER, NOW) == {}
+    stray = {**undo, "of": "01M4RBCX52MMHCK7K73E6K9999"}  # unknown eid: no-op
+    paid = review_credit.units_by_session([wrong, stray, redo], WORKER, NOW)
+    assert len(paid[f"review-20261015-{PHONE}"]) == 1
+
+
 def test_without_own_device_nothing_is_paid(tmp_path: Path) -> None:
     """Fail closed: drill reviews cannot be told apart, so none are credited."""
     assert review_credit.credit_pass(log_of(tmp_path, fake_log()), "", NOW) == []

@@ -153,6 +153,8 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "card": _opt_slug,
             "resume": _opt_bool,
             "device": delivery.device,
+            # "Learn more anyway": lift today's daily new cap first (``cap``).
+            "lift_cap": _opt_bool,
         },
     ),
     "session_resume": (CHAT, {"session": _session, "device": delivery.device}),

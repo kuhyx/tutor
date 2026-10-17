@@ -15,7 +15,12 @@
    matches its current rev, so an edit (rev + 1) clears its flags;
 6. a drill review (``src: "drill"``, or any review by a device that wrote a
    ``taught``/``untaught``: the worker, whose only reviews are drill picks)
-   schedules like any other but never sets ``app_good`` (§6 ``reviewed``).
+   schedules like any other but never sets ``app_good`` (§6 ``reviewed``);
+7. a ``review`` whose eid some ``review_undo`` names in ``of`` (found over
+   the whole log, so order cannot matter) is skipped before step 2: no FSRS,
+   no dedupe, no ``app_good``, not ``kept`` (listed in ``undone``). An undo
+   naming an unknown or non-review eid does nothing;
+8. ``cap_lift`` days and the latest ``new_cap`` (§6) are folded log-wide.
 
 ``contract/fsrs_vectors.json`` (``fsrs_vectors.py``) pins the results.
 """
@@ -28,7 +33,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 import fsrs
 
-from tutor.curriculum.eventlog import DRILL
+from tutor.curriculum.eventlog import CAP_LIFT, DRILL, GLOBAL_KINDS, REVIEW_UNDO
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -98,6 +103,9 @@ class Fold:
     kept: list[dict[str, Any]] = field(default_factory=list)
     dropped: list[str] = field(default_factory=list)  # cross-device duplicates
     ignored: list[str] = field(default_factory=list)  # reviews of untaught cards
+    undone: list[str] = field(default_factory=list)  # reviews a review_undo names
+    lifted_days: set[str] = field(default_factory=set)  # cap_lift days (local)
+    new_cap: int | None = None  # the latest new_cap's n; None: the default
 
     def card(self, subject: str, card: str) -> CardFold:
         """The card's fold (an empty, untaught one if it never appeared)."""
@@ -143,16 +151,40 @@ def _duplicate(recent: list[dict[str, Any]], event: dict[str, Any]) -> bool:
     )
 
 
+def undone_eids(events: Iterable[dict[str, Any]]) -> set[str]:
+    """Eids named by a ``review_undo`` ``of`` (any device, any time)."""
+    return {str(e["of"]) for e in events if e["k"] == REVIEW_UNDO}
+
+
+def _global(out: Fold, event: dict[str, Any]) -> None:
+    """``cap_lift`` / ``new_cap`` (events in ``(at, eid)`` order: latest wins)."""
+    if event["k"] == CAP_LIFT:
+        out.lifted_days.add(str(event["day"]))
+    else:
+        out.new_cap = int(event["n"])
+    out.kept.append(event)
+
+
 def fold(events: Iterable[dict[str, Any]]) -> Fold:
     """Fold clean events (``eventlog.parse`` output) into per-card state."""
     out = Fold()
     recent: dict[Ref, list[dict[str, Any]]] = {}
     events = list(events)
     worker_devs = workers(events)  # the whole log first: order cannot matter
+    undone = undone_eids(events)
     for event in sorted(events, key=lambda e: (e["at"], e["eid"])):
+        kind = event["k"]
+        if kind in GLOBAL_KINDS:
+            _global(out, event)
+            continue
+        if kind == REVIEW_UNDO:  # its work is done: ``undone`` above
+            out.kept.append(event)
+            continue
+        if kind == "review" and event["eid"] in undone:
+            out.undone.append(event["eid"])  # never happened: no FSRS, no dedupe
+            continue
         ref: Ref = (event["s"], event["c"])
         state = out.cards.setdefault(ref, CardFold())
-        kind = event["k"]
         if kind == "review":
             if not state.taught:
                 out.ignored.append(event["eid"])

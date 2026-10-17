@@ -1,7 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """The ``stats`` node (``DOCS-contract-curriculum.md`` §7).
 
-``{"today": {"day","credited_minutes","active_minutes","target","new","new_cap"},
+``{"today": {"day","credited_minutes","active_minutes","target","new","new_cap",
+"new_cap_lifted"},
 "days": {day: {"minutes","taught","reviews"}}}``. Minutes are the verified
 ledger's (``progress.ledger_minutes_by_day``, the rows the earner pays);
 ``taught`` counts cards newly taught that day and ``reviews`` the reviews the
@@ -18,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 from tutor import history, progress, resume
 from tutor.cardflow import TARGET_MINUTES
 from tutor.credit import local_day, target_minutes
-from tutor.curriculum.rules import NEW_CAP, new_today
+from tutor.curriculum.cap import effective_cap, lifted_today, new_today
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -62,7 +63,8 @@ def stats(ctx: Context, minutes: dict[str, int] | None = None) -> dict[str, Any]
             "active_minutes": active_minutes(ctx.data_dir / "sessions", today),
             "target": target_minutes(now / 1000),
             "new": new_today(folded, now),
-            "new_cap": NEW_CAP,
+            "new_cap": effective_cap(folded),
+            "new_cap_lifted": lifted_today(folded, now),
         },
         "days": days,
     }

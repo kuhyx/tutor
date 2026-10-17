@@ -10,6 +10,7 @@ import pytest
 from tutor.curriculum.eventlog import (
     DRILL,
     EventLog,
+    cap_lift_event,
     parse,
     review_event,
     worker_event,
@@ -95,6 +96,55 @@ def test_append_is_idempotent_and_mirror_tags_device(tmp_path: Path) -> None:
     with log.path.open("a", encoding="utf-8") as handle:
         handle.write('\n[1]\n{"dev": "x", "eid": "bad"}\n')
     assert [e["dev"] for e in log.read()] == ["phone"]
+
+
+UNDO: dict[str, Any] = {"k": "review_undo", "s": "car", "c": "x", "at": 1000}
+
+
+def test_parse_review_undo_needs_card_and_a_valid_of() -> None:
+    assert _clean({**UNDO, "of": EID, "r": 3, "junk": 1}) == {
+        "dev": "d",
+        "eid": EID,
+        **UNDO,
+        "of": EID,
+    }
+    for bad in (None, "nope", 5, EID.lower() + "x"):
+        assert parse("d", EID, {**UNDO, "of": bad}) is None
+    assert parse("d", EID, {**UNDO, "of": EID, "c": None}) is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "kept"),
+    [
+        ({"k": "cap_lift", "day": "2026-10-17", "at": 1000}, True),
+        ({"k": "cap_lift", "day": "2026-10-17", "at": 1000, "s": "Bad!"}, True),
+        ({"k": "cap_lift", "day": "2026-02-30", "at": 1000}, False),
+        ({"k": "cap_lift", "day": "17.10.2026", "at": 1000}, False),
+        ({"k": "cap_lift", "day": 20261017, "at": 1000}, False),
+        ({"k": "cap_lift", "at": 1000}, False),
+        ({"k": "cap_lift", "day": "2026-10-17"}, False),
+        ({"k": "new_cap", "n": 1, "at": 1000}, True),
+        ({"k": "new_cap", "n": 200, "at": 1000}, True),
+        ({"k": "new_cap", "n": 0, "at": 1000}, False),
+        ({"k": "new_cap", "n": 201, "at": 1000}, False),
+        ({"k": "new_cap", "n": True, "at": 1000}, False),
+        ({"k": "new_cap", "n": "25", "at": 1000}, False),
+        ({"k": "new_cap", "at": 1000}, False),
+    ],
+)
+def test_parse_global_events_need_no_card(raw: dict[str, Any], kept: bool) -> None:
+    got = parse("d", EID, raw)
+    assert (got is not None) == kept
+    if got is not None:
+        assert "s" not in got
+        assert "c" not in got
+        assert got == {"dev": "d", "eid": EID, **{k: raw[k] for k in raw if k != "s"}}
+
+
+def test_cap_lift_event() -> None:
+    event = cap_lift_event("2026-10-17", dev="pc", at=5)
+    assert event["k"] == "cap_lift"
+    assert parse("pc", event["eid"], event) == event
 
 
 def test_worker_event() -> None:

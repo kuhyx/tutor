@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor.curriculum import cardgen, handlers, judge, rules, wiki
+from tutor.curriculum import cap, cardgen, handlers, judge, rules, wiki
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.records import Module, Plan, plan_json
 from tutor.curriculum.source import SubjectSource
@@ -115,7 +115,7 @@ def test_pregenerated_module_has_cards_but_stays_locked(
     with pytest.raises(RequestError) as err:
         rules.pick(view(ctx), ctx.fold(), None, ctx.clock())
     assert err.value.code == "no_card_left"
-    assert rules.new_today(ctx.fold(), ctx.clock()) == 3  # a's only
+    assert cap.new_today(ctx.fold(), ctx.clock()) == 3  # a's only
     # A manual "card done" cannot teach it either (it would open the module).
     source = SubjectSource(Store(tmp_path / "store"), ctx, "car")
     with pytest.raises(RequestError) as err:

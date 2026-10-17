@@ -17,6 +17,7 @@ from weakref import WeakKeyDictionary
 
 from tutor import anki, anki_collection, history, outage, resume
 from tutor.clock import reply_time
+from tutor.curriculum import cap
 from tutor.delivery import Delivery
 from tutor.drill import Drill
 from tutor.relay.errors import RequestError
@@ -67,8 +68,12 @@ async def session_start(ctx: RequestContext) -> dict[str, Any]:
     No ``subject``: Home's pick, else the live one (curriculum contract §6).
     ``resume`` without a card: the subject's open session first (Continue).
     ``device`` shapes the new session's opening turn; a Continue has none.
+    ``lift_cap`` first lifts today's daily new cap for every device (a
+    ``cap_lift`` event, once per day; ``curriculum.cap``).
     """
     engine, body = ctx.engine, ctx.body
+    if body["lift_cap"]:
+        await asyncio.to_thread(cap.lift, engine.ctx)
     subject = body["subject"] or await _home_pick(ctx)
     wants_open = body["resume"] and body["card"] is None
     if wants_open and await engine.continue_subject(subject):

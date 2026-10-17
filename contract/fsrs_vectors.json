@@ -29,7 +29,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "good after 3 days",
@@ -71,7 +72,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "again after 1 day",
@@ -113,7 +115,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "hard after 2 days",
@@ -155,7 +158,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "easy after 5 days",
@@ -197,7 +201,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "chain good good again good",
@@ -269,7 +274,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "cross-device within 60 s: second dropped",
@@ -323,7 +329,8 @@
   "dropped": [
    "01M4TC23SGKKBFBA6EWW1YZAX7"
   ],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "cross-device exactly 60 s apart: both kept",
@@ -375,7 +382,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "same device within 60 s: both kept",
@@ -427,7 +435,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "untaught clears, later review ignored",
@@ -489,7 +498,8 @@
   "dropped": [],
   "ignored": [
    "01M4ZGTMG0F19B25X3SBPWX9SG"
-  ]
+  ],
+  "undone": []
  },
  {
   "name": "review of a never-taught card ignored",
@@ -525,7 +535,8 @@
   "dropped": [],
   "ignored": [
    "01M4TC16G05WRTR8C55MFGGZYX"
-  ]
+  ],
+  "undone": []
  },
  {
   "name": "flag on the current rev",
@@ -567,7 +578,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "flag cleared by an edit (rev bump)",
@@ -609,7 +621,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "second taught resets FSRS",
@@ -659,7 +672,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "good needs 20 h: 19 h is not",
@@ -701,7 +715,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "good at exactly 20 h; two cards",
@@ -774,7 +789,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "reviewed: Good 1 h after taught, no gap (not good)",
@@ -816,7 +832,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "reviewed survives a later Again; Hard alone is not",
@@ -899,7 +916,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "re-taught clears reviewed",
@@ -949,7 +967,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "drill Good (src) 20 h on: scheduled and good, not reviewed",
@@ -992,7 +1011,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "old drill pick (no src, the worker's dev): not reviewed",
@@ -1034,7 +1054,8 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "drill Good, then an app Good: reviewed",
@@ -1087,7 +1108,124 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "review then undo then re-rate: only the re-rate counts",
+  "events": [
+   {
+    "dev": "dev-b",
+    "eid": "01M4ZGTX98964D8Z6TWQX8RJZZ",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792059209000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4ZGTSC8C41YD4AWT0DPHPVH",
+    "k": "review_undo",
+    "s": "car",
+    "c": "x",
+    "at": 1792059205000,
+    "of": "01M4ZGTMG08SNDQDWBKCE1SH85"
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4ZGTMG08SNDQDWBKCE1SH85",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792059200000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0RT4VSNY4SQKNNAD5",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792145609000,
+    "stability": 0.6368506992409603,
+    "difficulty": 7.394502741279718,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": [
+   "01M4ZGTMG08SNDQDWBKCE1SH85"
+  ]
+ },
+ {
+  "name": "undo of an unknown eid: no-op",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4ZGTSC87VZTCTZ325FP7DYV",
+    "k": "review_undo",
+    "s": "car",
+    "c": "x",
+    "at": 1792059205000,
+    "of": "01M4RBCX52MMHCK7K73E6KV999"
+   },
+   {
+    "dev": "dev-a",
+    "eid": "01M4ZGTMG08GWYJCR0H68E5HSG",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1792059200000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG00KWKYQVYYYX04R8M",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1793268800000,
+    "stability": 13.826903694354568,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": true,
+    "reviewed": true
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
  },
  {
   "name": "unknown src is no drill: reviewed",
@@ -1130,6 +1268,7 @@
    }
   },
   "dropped": [],
-  "ignored": []
+  "ignored": [],
+  "undone": []
  }
 ]

@@ -11,7 +11,14 @@ from typing import TYPE_CHECKING
 import fsrs
 
 from tutor.curriculum import fsrs_vectors
-from tutor.curriculum.fold import SCHEDULER, CardFold, fold, to_dt, to_ms
+from tutor.curriculum.fold import (
+    SCHEDULER,
+    CardFold,
+    fold,
+    to_dt,
+    to_ms,
+    undone_eids,
+)
 from tutor.curriculum.ids import ulid
 from tutor.tests._cur import T0, D
 
@@ -98,6 +105,62 @@ def test_flags_match_by_rev() -> None:
     state = fold([_ev("flag", T0, rev=2, reason="")]).card("car", "x")
     assert state.flagged(2)
     assert not state.flagged(3)
+
+
+def test_an_undone_review_is_ignored_entirely() -> None:
+    taught = _ev("taught", T0, "pc")
+    wrong = _ev("review", T0 + D, "a", 1, r=3)
+    undo = _ev("review_undo", T0 + D + 5_000, "a", 2, of=wrong["eid"])
+    again = _ev("review", T0 + D + 10_000, "b", 3, r=1)  # the re-rate, other phone
+    folded = fold([again, undo, wrong, taught])
+    plain = fold([taught, again])
+    state = folded.card("car", "x")
+    assert state.reviews == [(T0 + D + 10_000, 1)]
+    assert state.fsrs_state() == plain.card("car", "x").fsrs_state()
+    assert not state.app_good  # the undone Good never counted
+    assert folded.undone == [wrong["eid"]]
+    assert folded.dropped == []  # an undone review never dedupes the re-rate
+    assert wrong not in folded.kept
+    assert undo in folded.kept
+
+
+def test_an_undo_of_an_unknown_or_non_review_eid_is_a_no_op() -> None:
+    taught = _ev("taught", T0, "pc")
+    good = _ev("review", T0 + D, "a", 1, r=3)
+    events = [
+        taught,
+        good,
+        _ev("review_undo", T0 + D + 1, "a", 2, of=ulid(T0, b"\x09" * 10)),
+        _ev("review_undo", T0 + D + 2, "a", 3, of=taught["eid"]),
+    ]
+    folded = fold(events)
+    assert folded.card("car", "x").taught
+    assert folded.card("car", "x").app_good
+    assert (
+        folded.card("car", "x").fsrs_state()
+        == fold(events[:2]).card("car", "x").fsrs_state()
+    )
+    assert folded.undone == []
+
+
+def test_global_events_fold_into_the_cap_and_lifted_days() -> None:
+    def glob(kind: str, at: int, seq: int, **extra: object) -> dict[str, object]:
+        eid = ulid(at, bytes([seq] * 10))
+        return {"dev": "a", "eid": eid, "k": kind, "at": at, **extra}
+
+    folded = fold(
+        [
+            glob("new_cap", T0 + 2, 1, n=40),
+            glob("new_cap", T0 + 1, 2, n=12),
+            glob("cap_lift", T0, 3, day="2027-01-15"),
+            glob("cap_lift", T0 + D, 4, day="2027-01-16"),
+        ]
+    )
+    assert folded.new_cap == 40  # the latest by ``at``
+    assert folded.lifted_days == {"2027-01-15", "2027-01-16"}
+    assert folded.cards == {}
+    assert fold([]).new_cap is None
+    assert undone_eids([_ev("review_undo", T0, of="E1"), _ev("review", T0)]) == {"E1"}
 
 
 def test_vectors_file_matches_the_generator() -> None:

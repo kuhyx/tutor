@@ -105,9 +105,8 @@ Client: after PUT, stream `requests/{rid}` until `result`, show phase. On
 network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
-Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked`,
-`daily_new_cap`, `no_card_left` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`;
-`DOCS-relay.md`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
+Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
+`daily_new_cap` (+`subject_title`, `new_today`, `new_cap`, `module`, `module_title`, `due_in_subject`, `next: "lift_cap"`), `no_card_left` (+`subject_title`, `due_in_subject`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
 `worker_error` (`DOCS-relay.md`). `error` is shown; tracebacks stay in the log.
 
 | kind | body | result `data` | lane |
@@ -119,7 +118,7 @@ Error codes: `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked
 | `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
 | `module_pregenerate` | `{"subject","modules":["b",...]\|"all"}` draft locked modules' cards ahead; study still waits for `requires` (curriculum §2) | `{"queued":["b"]}` | build |
 | `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}`; also `card_restore` / `card_remove` `{"subject","card"}`: the Editor's Restore of a tutor- or Editor-removed card (puts its `requires` back; an older unrecorded Editor removal is only un-suspended) and Remove of a tutor-added one (curriculum §3) | `{"card":"ld-x","rev":2}` (undo: `{"card"}`) | build |
-| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?}` (null card = next open; `device` as for `message`, shapes the opening turn) | `{"session":sid}` | chat |
+| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?,"lift_cap":bool?}` (null card = next open; `device` as for `message`, shapes the opening turn; `lift_cap:true` = "Learn more anyway": first lifts today's daily new cap on every device, a worker `cap_lift` event written once per day, curriculum §6) | `{"session":sid}` | chat |
 | `session_resume` | `{"session":sid,"device"?}` (device validated only: no model turn) | `{"session":sid}` | chat |
 | `message` | `{"session":sid,"text":"...","device":"phone"\|"desktop"?}` <=8000 ch; no device = desktop, other values `bad_request`; phone: typos ignored, short answers, one question (prompt rule 13); text `Hint` gets a hint, never credit | `{"msg":"m0012"}` | chat |
 | `next` | `{"session":sid,"device"?}` (next_card+stop, starts new on `device`) | `{"session":newsid}` | chat |

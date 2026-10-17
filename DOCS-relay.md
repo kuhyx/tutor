@@ -58,7 +58,27 @@ seeder once to give the tutor its own refresh token.
 - HTTP turns (`tutor.scripted` runs) are picked up by a 30 s refresh of the live
   session.
 
-## Curriculum (`tutor.curriculum.handlers`, `DOCS-contract-curriculum.md` §9)
+## Curriculum (`tutor.curriculum.handlers`; was `DOCS-contract-curriculum.md` §9)
+- `Context(data_dir, clock=ms, model=, fetch=, check=, device=)`; defaults are
+  the real ones (device = `$TUTOR_DATA/device_id`, the crdt_sync format).
+- `BUILD_HANDLERS[kind](body, ctx) -> data` for `subject_new`, `plan_revise`,
+  `plan_edit`, `plan_approve`, `subject_finish`, `module_pregenerate`,
+  `card_edit`. Blocking: call via `asyncio.to_thread`. Refusals raise
+  `RequestError(code, message)` (`.result(at)` = the `result` node).
+- `fold_and_advance(ctx) -> {"changed":[subj],"generate":[[subj,module]]}`
+  after every log change and before each request; then
+  `generate(ctx, subj, module)` per pending module on the build lane
+  (`pending(ctx)` lists them again after a restart).
+- `ctx.log.mirror(dev, {eid: event})` stores one device's RTDB subtree
+  (idempotent, untrusted input cleaned); the worker's own `taught`/`untaught`/
+  `cap_lift` events are in `ctx.log.read()` with `dev == ctx.device`, to be PUT
+  to `log/{dev}/{eid}`. `stats(ctx)` builds the `stats` node.
+- Engine: `Engine.start(card_id, subject=None)` (subject switch; raises
+  `RequestError` `daily_new_cap`/`locked`/`unknown_card`/`no_card_left`);
+  `engine.source.subject` is the live subject (a refused start keeps the
+  old one); `set_card_done(card, done=, subject=)` marks any subject's card;
+  `resume_latest()` resumes in the transcript's subject. Until `python -m tutor migrate`
+  ran on the data dir the engine keeps the old deck + `progress.json`.
 - Build kinds: `BUILD_HANDLERS[kind](body, engine.ctx)` in a thread
   (`hooks.py`), under the build lock. Their `RequestError` (`.code`,
   `.message`) becomes the error result.
@@ -75,7 +95,18 @@ seeder once to give the tutor its own refresh token.
   `reviews_due` (+`due_at` ms: earliest FSRS due of a taught, unflagged,
   unsuspended card), else `none`. `error` = the subject's title (never the
   slug) + that step, e.g. `Hosting WWW — all cards of “DNS i CNAME” are
-  taught. Review them to open the next module.`
+  taught. Review them to open the next module.` Plus `due_in_subject`: the
+  subject's due reviews counted as the app's queue does (taught, `due <= now`,
+  not flagged, not suspended).
+- `locked` (an explicit card) carries `subject_title` and `next`:
+  `review_module` (+`module`, `module_title`: the first required module, plan
+  order, not mastered, when it is `ready`), else `none` (card-level requires,
+  unapproved plan, or the blocker is not reviewable yet).
+- `daily_new_cap` carries `subject_title`, `new_today`, `new_cap` (the
+  effective cap), `module` + `module_title` (where the next new card is),
+  `due_in_subject` and `next: "lift_cap"`; `error` e.g. `You learned 25 new
+  cards today (the daily limit). “vhost-apache” is open.` The one-tap fix is
+  `session_start` again with `lift_cap: true` (curriculum §6).
 - Stats node: `handlers.stats(engine.ctx)`. `session_start` / `card_done` pass
   `subject`; `live.subject` = `engine.source.subject`.
 

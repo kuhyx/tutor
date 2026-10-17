@@ -63,7 +63,7 @@ def test_stats_counts_days(tmp_path: Path) -> None:
     out = stats(ctx, minutes={"2000-01-01": 5})
     today = out["today"]
     want = target_minutes((T0 + D) / 1000)  # the day's weekday quota
-    assert (today["new"], today["new_cap"], today["target"]) == (0, 10, want)
+    assert (today["new"], today["new_cap"], today["target"]) == (0, 25, want)
     assert today["credited_minutes"] == 0
     assert out["days"]["2000-01-01"] == {"minutes": 5, "taught": 0, "reviews": 0}
     assert sum(d["taught"] for d in out["days"].values()) == 1

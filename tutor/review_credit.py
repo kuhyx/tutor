@@ -8,7 +8,9 @@ ledger's: every verified credit row of the day counts against it).
 
 **What earns.** Per review: ``min(dur_ms, 60 s)``; a review under
 :data:`MIN_REVIEW_SECONDS` (the drill's quick-pick rule) or without a
-duration earns nothing. One credited minute per 60 s of a (local day,
+duration earns nothing, nor does a review a ``review_undo`` names (the
+Review's Back; a minute already paid before the undo synced stays paid,
+since rows are never taken back). One credited minute per 60 s of a (local day,
 device)'s summed time, in ``at`` order. Minute ``n`` "ended" at the review
 that took the running total past ``n`` minutes -- anchored to the review,
 never to when it synced -- so a row never spans local midnight.
@@ -33,6 +35,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor import credit, unit_credit
 from tutor.clock import UNIT_SECONDS, BlockReady
+from tutor.curriculum.fold import undone_eids
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -86,9 +89,13 @@ def units_by_session(
     since = start
     for _ in range(_DAYS_BACK):
         since = credit.local_day(since - 1)[1]
+    events = list(events)
+    undone = undone_eids(events)
     sessions: dict[str, list[dict[str, Any]]] = {}
     for event in events:
         if event.get("k") != "review" or event.get("dev") == own_dev:
+            continue
+        if event["eid"] in undone:  # taken back with the Review's Back
             continue
         moment = event["at"] / 1000
         if not since <= moment < end:

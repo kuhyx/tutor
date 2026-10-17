@@ -1,11 +1,13 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The ``no_card_left`` refusal: the subject's title and the next step.
+"""The ``no_card_left`` and ``locked`` refusals: the title and the next step.
 
 ``DOCS-contract.md`` §4: the shown ``error`` names the subject by its title
 (never its slug) and says what to do; the result node also carries
 ``subject_title`` and ``next`` (``review_module`` with ``module`` and
 ``module_title``, ``reviews_due`` with ``due_at`` in ms, or ``none``) so
-the app can offer the step itself. ``rules.pick`` decides which one.
+the app can offer the step itself; ``no_card_left`` adds
+``due_in_subject``. ``rules.pick`` decides which one (``daily_new_cap``
+lives in ``cap``).
 """
 
 from __future__ import annotations
@@ -13,10 +15,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Final
 
-from tutor.curriculum.errors import NO_CARD_LEFT, RequestError
+from tutor.curriculum.errors import LOCKED, NO_CARD_LEFT, RequestError
 
 if TYPE_CHECKING:
+    from tutor.curriculum.fold import Fold
     from tutor.curriculum.records import Module
+    from tutor.curriculum.rules import View
 
 REVIEW_MODULE: Final = "review_module"
 REVIEWS_DUE: Final = "reviews_due"
@@ -33,6 +37,21 @@ def _when(ms: int) -> str:
     )
 
 
+def due_in_subject(view: View, fold: Fold, now_ms: int) -> int:
+    """The subject's due reviews, as the app's queue counts them (§5).
+
+    Taught, ``due <= now``, not flagged at the card's rev, not suspended.
+    """
+    count = 0
+    for cid, card in view.cards.items():
+        state = fold.card(view.subject, cid)
+        memory = state.fsrs_state()
+        if memory is None or card.suspended or state.flagged(card.rev):
+            continue
+        count += memory["due"] <= now_ms
+    return count
+
+
 def no_card_left(
     title: str,
     *,
@@ -46,6 +65,7 @@ def no_card_left(
     ``module``: an open module fully taught but not yet reviewed (first
     choice); ``due_at``: the earliest review due among its taught cards;
     ``writing``: a module's cards are being generated right now.
+    ``rules`` adds ``due_in_subject`` (the subject's due reviews).
     """
     name = title or "This subject"
     extra: dict[str, object] = {"subject_title": title}
@@ -69,3 +89,22 @@ def no_card_left(
         extra["next"] = NONE
         msg = f"{name} — no card is open right now{tail}."
     return RequestError(NO_CARD_LEFT, msg, extra=extra)
+
+
+def locked(
+    title: str, card_id: str, *, module: Module | None, need: Module | None
+) -> RequestError:
+    """The error for an explicit card that cannot be taught yet.
+
+    ``need``: the required module to review first (``review_module``), when
+    reviewing it is what opens ``module``; else ``next`` is ``none``.
+    """
+    extra: dict[str, object] = {"subject_title": title, "next": NONE}
+    if module is not None and need is not None:
+        extra |= {"next": REVIEW_MODULE, "module": need.id}
+        extra["module_title"] = need.title
+        name = title or "This subject"
+        msg = f"{name} — “{module.title}” opens once “{need.title}” is reviewed."
+    else:
+        msg = f"{card_id} is locked: its module or required cards are not done"
+    return RequestError(LOCKED, msg, extra=extra)

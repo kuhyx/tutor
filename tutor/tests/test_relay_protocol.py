@@ -43,6 +43,13 @@ def test_valid_message_drops_unknown_fields() -> None:
     assert got.body == {"session": SID, "text": "hello", "device": "desktop"}
 
 
+def test_session_start_lift_cap_defaults_to_false() -> None:
+    plain = protocol.validate(RID, req("session_start", subject=None, card=None))
+    assert plain.body["lift_cap"] is False
+    lift = req("session_start", subject=None, card=None, lift_cap=True)
+    assert protocol.validate(RID, lift).body["lift_cap"] is True
+
+
 def test_polish_ids_pass_and_nfd_ids_fail() -> None:
     ok = protocol.validate(RID, req("session_start", subject="łódź", card="pojęcia"))
     assert ok.body["subject"] == "łódź"
@@ -98,6 +105,7 @@ def test_every_kind_has_a_lane_and_validates() -> None:
         req(session=SID, text="x" * 8001),
         req("session_start", subject="Car", card=None),
         req("session_start", subject=None, card="a" * 49),
+        req("session_start", subject=None, card=None, lift_cap="yes"),
         req("plan_approve", subject="car", plan_rev=False),
         req("subject_finish", subject="car", choice="later"),
         req("card_edit", subject="car", card=None, module="m", front=1),

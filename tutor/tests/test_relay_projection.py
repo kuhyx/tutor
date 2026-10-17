@@ -122,7 +122,7 @@ def test_publisher_startup_republishes_stale_and_tracks_live(tmp_path: Path) -> 
         assert meta["n"] == 3
         assert fake.get("tutor/v1/live")["session"] == sid
         assert fake.get("tutor/v1/rev/stats") == 1
-        assert fake.get("tutor/v1/stats/today/new_cap") == 10
+        assert fake.get("tutor/v1/stats/today/new_cap") == 25
         assert await pub.startup() == 0  # up to date
         fake.set("tutor/v1/session_index/" + sid + "/rev", "junk")
         assert await pub.startup() == 1

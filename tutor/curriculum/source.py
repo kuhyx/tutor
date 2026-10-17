@@ -3,7 +3,7 @@
 
 :class:`SubjectSource` serves a migrated / generated subject: the next card is
 the curriculum pick (``rules.pick``: unlocked + ready modules, card gating,
-the daily cap of 10 new cards), ``card_done`` appends a ``taught`` event, and
+the daily new-card cap, ``cap``), ``card_done`` appends a ``taught`` event, and
 concepts go to the subject's ``concepts.json``. :class:`DeckSource` is the
 pre-curriculum behaviour (``deck/*.json`` + ``progress.json``), used while a
 data dir has not been migrated. Both keep ``progress.json`` ``cards_done`` in

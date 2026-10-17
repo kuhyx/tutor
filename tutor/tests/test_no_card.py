@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""no_card_left: the subject title and the next step, never the slug."""
+"""no_card_left and locked: the subject title and the next step, never the slug."""
 
 from __future__ import annotations
 
@@ -46,6 +46,7 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "next": "review_module",
         "module": "dns-slug",
         "module_title": "DNS i CNAME",
+        "due_in_subject": 0,
     }
     assert err.result(5)["next"] == "review_module"
     review(ctx, "hosting-slug", "a1", T0 + H, 3)
@@ -62,6 +63,7 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "subject_title": "Hosting WWW",
         "next": "reviews_due",
         "due_at": due,
+        "due_in_subject": 1,
     }
     assert "are due now" in err.message
     assert "still being written" in err.message
@@ -73,10 +75,56 @@ def test_no_card_left_with_nothing_taught_is_none(tmp_path: Path) -> None:
     plan = subject(ctx, "hosting-slug", modules=[module("a", status="generating")])
     view = rules.View("hosting-slug", plan, {}, title="Hosting WWW")
     err = _no_card(view, ctx, T0)
-    assert err.extra == {"subject_title": "Hosting WWW", "next": "none"}
+    assert err.extra == {
+        "subject_title": "Hosting WWW",
+        "next": "none",
+        "due_in_subject": 0,
+    }
     plan.modules[0].status = "locked"
     assert "no card is open" in _no_card(view, ctx, T0).message
     untitled = rules.View("hosting-slug", plan, {})
     with pytest.raises(RequestError) as caught:
         rules.pick(untitled, ctx.fold(), None, T0)
     assert caught.value.message.startswith("This subject — ")
+
+
+def test_locked_names_the_module_to_review_first(tmp_path: Path) -> None:
+    ctx, _ = make_ctx(tmp_path)
+    found = {"a1": card("a", 1), "a2": card("a", 2, "a1"), "b1": card("b", 1)}
+    plan = subject(ctx, found=found)
+    view = rules.View("car", plan, found, title="Cars")
+    with pytest.raises(RequestError) as err:
+        rules.pick(view, ctx.fold(), "b1", T0)
+    assert err.value.code == "locked"
+    assert err.value.extra == {
+        "subject_title": "Cars",
+        "next": "review_module",
+        "module": "a",
+        "module_title": "A",
+    }
+    assert err.value.message == "Cars — “B” opens once “A” is reviewed."
+    with pytest.raises(RequestError) as err:
+        rules.pick(view, ctx.fold(), "a2", T0)  # a card-level requires
+    assert err.value.extra == {"subject_title": "Cars", "next": "none"}
+    assert "is locked" in err.value.message
+
+
+def test_locked_behind_a_module_not_ready_has_no_step(tmp_path: Path) -> None:
+    ctx, _ = make_ctx(tmp_path)
+    found = {"c1": card("c", 1)}
+    mods = [module("a", status="ready"), module("b", "a"), module("c", "b")]
+    plan = subject(ctx, modules=mods, found=found)
+    view = rules.View("car", plan, found, title="Cars")
+    none = {"subject_title": "Cars", "next": "none"}
+    with pytest.raises(RequestError) as err:
+        rules.pick(view, ctx.fold(), "c1", T0)  # b is still locked
+    assert err.value.extra == none
+    plan.status = "draft"
+    mods[1].status = "ready"
+    with pytest.raises(RequestError) as err:
+        rules.pick(view, ctx.fold(), "c1", T0)  # unapproved: nothing to review
+    assert err.value.extra == none
+    found["c1"].module = "gone"  # a card whose module left the plan
+    with pytest.raises(RequestError) as err:
+        rules.pick(view, ctx.fold(), "c1", T0)
+    assert (err.value.code, err.value.extra) == ("locked", none)

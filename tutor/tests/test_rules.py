@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tutor.curriculum import rules
+from tutor.curriculum import cap, rules
 from tutor.curriculum.errors import RequestError
 from tutor.tests._cur import T0, D, H, card, make_ctx, module, review, subject, taught
 
@@ -157,18 +157,18 @@ def test_pick_skips_flagged_and_suspended(tmp_path: Path) -> None:
 
 def test_daily_cap_counts_new_cards_on_the_local_day(tmp_path: Path) -> None:
     ctx, _ = make_ctx(tmp_path)
-    many = {f"c{i}": card("a", i) for i in range(12)}
+    many = {f"c{i}": card("a", i) for i in range(27)}
     subject(ctx, found=many)
     view = _view(ctx)
-    for i in range(10):
+    for i in range(25):
         taught(ctx, "car", f"c{i}", T0 + i, i)
-    taught(ctx, "car", "c0", T0 + 20, 99)  # re-teach: not new
-    assert rules.new_today(ctx.fold(), T0 + 100) == 10
+    taught(ctx, "car", "c0", T0 + 30, 99)  # re-teach: not new
+    assert cap.new_today(ctx.fold(), T0 + 100) == 25
     with pytest.raises(RequestError) as err:
         rules.pick(view, ctx.fold(), None, T0 + 100)
     assert err.value.code == "daily_new_cap"
     assert rules.pick(view, ctx.fold(), "c3", T0 + 100) == "c3"
-    assert rules.pick(view, ctx.fold(), None, T0 + 2 * D) == "c10"
+    assert rules.pick(view, ctx.fold(), None, T0 + 2 * D) == "c25"
 
 
 def test_reviewed_needs_one_good_or_easy_after_taught_no_gap(tmp_path: Path) -> None:

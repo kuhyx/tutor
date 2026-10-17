@@ -9,7 +9,7 @@ queues card generation, and pays new app-review minutes
 (:mod:`tutor.review_credit`; a failure there is logged, never blocks the
 rest). Generation (minutes of model time) runs one
 module at a time under the build lane's lock, so it never overlaps a build
-request (``DOCS-contract-curriculum.md`` §9).
+request (``DOCS-relay.md`` "Curriculum").
 """
 
 from __future__ import annotations
