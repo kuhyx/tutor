@@ -88,7 +88,6 @@ class Meta:
         if status not in SUBJECT_STATUS:
             msg = f"unknown subject status {status!r}"
             raise bad(msg)
-        error = raw.get("error")
         return cls(
             title=text(raw, "title", MAX_TITLE),
             goal=text(raw, "goal", MAX_GOAL),
@@ -97,7 +96,7 @@ class Meta:
             plan_rev=_int(raw, "plan_rev"),
             rev=_int(raw, "rev"),
             origin=str(raw.get("origin", "generated")),
-            error=error if isinstance(error, str) else None,
+            error=e if isinstance(e := raw.get("error"), str) else None,
         )
 
 
@@ -222,6 +221,7 @@ class CardRec:
     origin: str = "generated"
     created: int = 0
     suspended: bool = False
+    tutor: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_json(cls, raw: dict[str, Any]) -> CardRec:
@@ -231,7 +231,7 @@ class CardRec:
 
     def to_json(self) -> dict[str, Any]:
         """The contract shape; refuses a card over the 2 KB budget."""
-        out = asdict(self)
+        out = {k: v for k, v in asdict(self).items() if v or k != "tutor"}
         if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_CARD_BYTES:
             msg = f"card is over {MAX_CARD_BYTES} bytes"
             raise bad(msg)

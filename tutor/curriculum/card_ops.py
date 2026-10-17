@@ -10,6 +10,9 @@
   ``requires``; refused when the module would keep fewer than 3 live cards.
 
 Every refusal is ``edit_refused`` with the reason, and nothing is written.
+
+The card's ``tutor`` mark ({} = none, left out of its JSON) records
+``{"added": ms}`` and ``{"removed": ms, "requires_of": {card: index}}``.
 """
 
 from __future__ import annotations
@@ -131,11 +134,19 @@ def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
         "requires": [],
     }
     cid = str(card_edit(body, ctx)["card"])
-    return cid, _card(ctx, subject, cid)
+    with LOCK:  # the mark the Editor's Remove keys on
+        meta, cards = ctx.subjects.need_meta(subject), ctx.subjects.cards(subject)
+        cards[cid].tutor = {"added": ctx.clock()}
+        ctx.subjects.commit(subject, meta, Change(cards=cards))
+    return cid, cards[cid]
 
 
-def remove(ctx: Context, subject: str, cid: str) -> CardRec:
-    """Suspend ``cid``; returns the suspended card."""
+def remove(ctx: Context, subject: str, cid: str, *, by_tutor: bool = True) -> CardRec:
+    """Suspend ``cid``; returns the suspended card.
+
+    ``by_tutor``: marked ``removed`` with where its id stood in other cards'
+    ``requires``, so the Editor's Restore is exact (``card_undo``).
+    """
     with LOCK:
         meta = ctx.subjects.need_meta(subject)
         plan = _plan(ctx, subject)
@@ -155,8 +166,11 @@ def remove(ctx: Context, subject: str, cid: str) -> CardRec:
             )
             raise _refuse(msg)
         rec.suspended = True
+        was = {k: c.requires.index(cid) for k, c in cards.items() if cid in c.requires}
         for other in cards.values():  # no rev bump: a rev bump clears flags
             other.requires = [r for r in other.requires if r != cid]
+        if by_tutor:
+            rec.tutor = {**rec.tutor, "removed": ctx.clock(), "requires_of": was}
         for module in plan.modules:
             if module.id == rec.module:
                 module.cards = live - 1

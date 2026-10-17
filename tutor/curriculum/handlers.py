@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor.curriculum.advance import fold_and_advance, pending
 from tutor.curriculum.card_edit import card_edit
+from tutor.curriculum.card_undo import card_remove, card_restore
 from tutor.curriculum.cardgen import generate
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
@@ -46,6 +47,8 @@ BUILD_HANDLERS: Final[dict[str, Handler]] = {
     "plan_approve": plan_approve,
     "subject_finish": subject_finish,
     "card_edit": card_edit,
+    "card_restore": card_restore,
+    "card_remove": card_remove,
     "module_pregenerate": module_pregenerate,
 }
 

@@ -154,3 +154,28 @@ def test_apply_edits_adds_to_the_live_cards_topic(tmp_path: Path) -> None:
     assert done.removed_live == ""
     added = [c for c in ctx.subjects.cards("car").values() if c.source == url]
     assert [c.module for c in added] == ["b"]
+
+
+def test_the_tutor_removes_another_card_of_the_topic(tmp_path: Path) -> None:
+    _car(tmp_path)
+    prompts: list[str] = []
+    other = CardEdit("remove", card="c2", reason="duplicates c1")
+    fake = FakeSession(turn(), turn("c2 repeated c1; removed.", card_edits=(other,)))
+
+    def factory(prompt: str) -> FakeSession:
+        prompts.append(prompt)
+        return fake
+
+    engine = Engine(
+        store=Store(tmp_path), now=ManualClock(CLOCK_S), session_factory=factory
+    )
+    asyncio.run(engine.start(subject="car"))
+    sid = engine.session_id
+    assert "# Cards of this topic" in prompts[0]
+    assert "- c2: What is thing 2 of a?\n" in prompts[0]
+    assert "- c0: What is thing 0 of a? (the target card)\n" in prompts[0]
+    asyncio.run(engine.reply("c2 is the same as c1"))
+    assert engine.ctx.subjects.cards("car")["c2"].suspended
+    assert (engine.session_id, engine.card and engine.card.id) == (sid, "c0")
+    assert engine.messages[-1]["notices"] == ["Card removed: What is thing 2 of a?"]
+    assert len(prompts) == 1  # no new session

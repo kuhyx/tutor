@@ -142,6 +142,9 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "requires": _requires,
         },
     ),
+    # The Editor's undo of the tutor's edits (``curriculum.card_undo``).
+    "card_restore": (BUILD, {"subject": _slug, "card": _slug}),
+    "card_remove": (BUILD, {"subject": _slug, "card": _slug}),
     # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).
     "session_start": (
         CHAT,

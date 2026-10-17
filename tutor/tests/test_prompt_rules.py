@@ -85,6 +85,7 @@ def test_card_edits_rule(profile: profiles.Profile) -> None:
     for op in ('"edit"', '"add"', '"remove"'):
         assert op in rule
     assert "on your own initiative" in rule
+    assert '`card` is an id from "Cards of this topic"' in rule
     assert "the app quotes" in rule
     assert "`quote`: the words you expect in that sentence" in rule
     assert "next engine note" in rule

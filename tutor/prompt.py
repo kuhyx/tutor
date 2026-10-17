@@ -16,6 +16,8 @@ from tutor.delivery import note_lines
 from tutor.prompt_rules import render_system
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from tutor.cards import Card
     from tutor.conversation import Conversation
     from tutor.curriculum.profiles import Profile
@@ -32,20 +34,30 @@ class Asked(NamedTuple):
 
 
 def system_prompt(
-    card: Card, mastered: list[str], profile: Profile | None = None
+    card: Card,
+    mastered: list[str],
+    profile: Profile | None = None,
+    deck: Sequence[tuple[str, str]] = (),
 ) -> str:
     """The full system prompt for a session aimed at one card.
 
-    ``profile`` is the subject's (default: automation, the PLC wording).
+    ``profile`` is the subject's (default: automation, the PLC wording);
+    ``deck``: the topic's live cards as (id, front), the ids ``card_edits``
+    may name (rule 15).
     """
     done = ", ".join(mastered) if mastered else "(none yet)"
+    listed = "".join(
+        f"- {cid}: {front}{' (the target card)' if cid == card.id else ''}\n"
+        for cid, front in deck
+    )
+    cards = f"# Cards of this topic\n{listed}\n" if listed else ""
     rules = render_system(profile or profiles.automation())
     return (
         f"{rules}\n# Target card\n"
         f"topic: {card.topic.title}\nid: {card.id}\n"
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
         f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n\n"
-        f"# Already mastered concepts\n{done}\n"
+        f"{cards}# Already mastered concepts\n{done}\n"
     )
 
 

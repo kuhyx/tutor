@@ -68,7 +68,7 @@ pass the same vectors.
 ```json
 {"module":"engine-basics","order":3,"front":"<=25 words","back":"<=30 words",
  "source":"https://...","excerpt":"6-40 words, verbatim from source",
- "requires":[],"rev":1,"origin":"generated","created":ms,"suspended":false}
+ "requires":[],"rev":1,"origin":"generated","created":ms,"suspended":false,"tutor"?}
 ```
 - Rules as `plc_lab.cards` today: https source; excerpt verified verbatim in
   the fetched page text (`sources.check_excerpt`, normalised); `requires` are
@@ -117,8 +117,8 @@ pass the same vectors.
   `failed` carries one; the fold clears a stale one on `ready`/`mastered`).
 - `card_edit` validates like the old page's deck editor did (fields, word limits,
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
-  reason; success -> `rev`+1, `origin:"edited"`. New card id = given one, else
-  slug of `front`. The tutor's own edits (rule 15): `tutor/edit_flow.py`.
+  reason; success -> `rev`+1, `origin:"edited"`. New id = given one, else slug of
+  `front`. Tutor edits (rule 15): `tutor/edit_flow.py`; undo: `curriculum/card_undo.py`.
 - Concepts: `subjects/{subj}/concepts` (array, appended by worker only) =
   `[{"name":"normally closed contact","at":ms,"card":"ld-x","session":sid}]`.
 

@@ -182,7 +182,8 @@ class Engine(CardFlow, EditFlow, Upkeep):
     def _prompt(self, card: cards_mod.Card) -> str:
         """The subject's system prompt for ``card``."""
         src = self.source
-        return system_prompt(card, src.mastered(), src.profile)
+        deck = [(c.id, c.front) for c in src.cards() if c.topic == card.topic]
+        return system_prompt(card, src.mastered(), src.profile, deck)
 
     def _live(self) -> tuple[TutorSession, Conversation, cards_mod.Card]:
         """The running session, or RuntimeError before any start."""
