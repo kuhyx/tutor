@@ -47,6 +47,7 @@ const Map<String, Object> tutorMessage = {
     {'title': 'd', 'svg': '<svg/>'},
   ],
   'mastered_new': ['normally closed contact'],
+  'notices': ['Card removed: What is a coil?'],
   'card_done': true,
   'at': 5000,
 };

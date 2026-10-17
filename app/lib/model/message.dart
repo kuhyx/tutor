@@ -53,6 +53,7 @@ class Message {
     this.images = const [],
     this.diagrams = const [],
     this.masteredNew = const [],
+    this.notices = const [],
     this.cardDone = false,
     this.rid,
     this.dev,
@@ -72,6 +73,7 @@ class Message {
     images: listOf(j, 'images', Img.fromJson),
     diagrams: listOf(j, 'diagrams', Dgm.fromJson),
     masteredNew: strings(j, 'mastered_new'),
+    notices: strings(j, 'notices'),
     cardDone: flag(j, 'card_done'),
     rid: strOr(j, 'rid'),
     dev: strOr(j, 'dev'),
@@ -119,6 +121,9 @@ class Message {
   /// Concepts newly mastered in this turn.
   final List<String> masteredNew;
 
+  /// Cards the tutor edited in this turn (`Card removed: <front>`).
+  final List<String> notices;
+
   /// The card was finished in this turn.
   final bool cardDone;
 
@@ -145,6 +150,7 @@ class Message {
         ? null
         : [for (final d in diagrams) d.toJson()],
     'mastered_new': masteredNew.isEmpty ? null : masteredNew,
+    'notices': notices.isEmpty ? null : notices,
     'card_done': cardDone ? true : null,
     'at': at,
     'rid': rid,

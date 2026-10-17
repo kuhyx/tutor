@@ -1,6 +1,7 @@
 /// One chat message, as `static/app.js` renderMessage draws it: tutor
 /// (tag, ⚑ Report on live messages, markdown, pictures, diagrams, check
-/// result, read-only questions, Card done), learner, or a card divider.
+/// result, read-only questions, card edit notices, Card done), learner,
+/// or a card divider.
 library;
 
 import 'package:design_system/design_system.dart';
@@ -113,6 +114,7 @@ class MessageTile extends StatelessWidget {
                   style: text.bodySmall,
                 ),
               ),
+            for (final n in m.notices) Text(n, style: text.labelMedium),
             if (m.cardDone) const _Banner('Card done ✓', ok: true),
           ],
         ),
