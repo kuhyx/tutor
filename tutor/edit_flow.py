@@ -134,7 +134,10 @@ class EditFlow:
         return gone
 
     async def _leave_removed(self, conv: Conversation, gone: str, device: str) -> None:
-        """The live card was removed (``gone``): open the next card, or stop."""
+        """The live card was removed (``gone``): open the next card, or stop.
+
+        No card left: the session stops and the pick's error is raised.
+        """
         if not gone:
             return
         sid = conv.session_id
@@ -145,7 +148,10 @@ class EditFlow:
             self.store.log(sid, {"type": "stop"})
             await self.close()
             self._conv, self.card = None, None
-            return
+            # The reply fails with the pick's refusal (no_card_left: the next
+            # step, e.g. "Review <module>"); the notice is on the session's
+            # last message, which stays on screen.
+            raise
         self.store.log(sid, {"type": "next_card", "card": nxt.id})
         self.store.log(sid, {"type": "stop"})
         await self._open(self.source, nxt.id, device, [gone])

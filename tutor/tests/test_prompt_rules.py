@@ -92,3 +92,28 @@ def test_card_edits_rule(profile: profiles.Profile) -> None:
     assert "ends this session" in rule
     assert "from the card's next session" in rule
     assert "`card_edits` (usually [], rule 15)" in text.split("# Output", 1)[1]
+
+
+# 2026-10-17 sandbox: after removing the card the tutor said "the next card
+# opens in a moment" while none was left. The app shows what comes next.
+@PROFILES
+def test_card_removal_promises_nothing(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 15)
+    assert "confirm the removal only" in rule
+    assert "never promise what comes next" in rule
+    assert "and opens the next card" not in rule
+
+
+# 2026-10-17 sandbox, real model: one "?" but two asks: "na co CNAME może
+# wskazywać..., a na co nie może? Jeśli masz przypuszczenie, napisz też,
+# dlaczego" and "...a czego nie można? Uzasadnij."
+@PROFILES
+def test_style_bans_compound_and_tacked_on_why(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 10)
+    assert '"X, a Y?"' in rule
+    assert "no tacked-on" in rule
+    for tail in ('"and why?"', '"uzasadnij"', '"dlaczego"', '"explain why"'):
+        assert tail in rule
+    assert "in a LATER turn" in rule
+    assert "Bad:" in rule
+    assert "Good:" in rule

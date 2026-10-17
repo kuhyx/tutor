@@ -7,18 +7,20 @@ import asyncio
 import json
 from typing import TYPE_CHECKING, Any
 
+import pytest
+
 from tutor import edit_flow, resume
 from tutor.card_requests import CardEdit
 from tutor.curriculum import card_rules
+from tutor.curriculum.errors import RequestError
 from tutor.engine import Engine
+from tutor.relay.errors import classify, result_of
 from tutor.store import Store
 from tutor.tests._cur import T0, card, make_ctx, module, subject, taught
 from tutor.tests._fakes import FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
 CLOCK_S = T0 / 1000
 REMOVE = CardEdit("remove", reason="the learner says it is bad")
@@ -106,7 +108,11 @@ def test_rewrite_of_the_live_card_waits_for_the_next_session(
     assert engine.messages[-1]["notices"] == ["Card updated: What is thing 0 of a?"]
 
 
-def test_removing_the_last_open_card_stops_the_session(tmp_path: Path) -> None:
+def test_removing_the_last_open_card_shows_the_next_step(tmp_path: Path) -> None:
+    # 2026-10-17 sandbox: the session stopped silently and the notice lived
+    # only in the transcript. Now the reply fails as no_card_left, with the
+    # payload the app turns into "Review <module>", and the notice is on the
+    # last message of the session left on screen.
     _car(tmp_path, n=4)
     ctx, _ = make_ctx(tmp_path)
     for i in (1, 2, 3):
@@ -115,10 +121,17 @@ def test_removing_the_last_open_card_stops_the_session(tmp_path: Path) -> None:
     engine = _engine(tmp_path, fake)
     asyncio.run(engine.start(subject="car"))
     sid = engine.session_id
-    asyncio.run(engine.reply("remove it"))
+    with pytest.raises(RequestError) as err:
+        asyncio.run(engine.reply("remove it"))
+    result = result_of(classify(err.value))
+    assert result["code"] == "no_card_left"
+    assert (result["next"], result["module"]) == ("review_module", "a")
+    assert result["subject_title"] == "Cars"
     assert engine.session_id == ""
     assert engine.ctx.subjects.cards("car")["c0"].suspended
-    assert _events(tmp_path, sid)[-1]["type"] == "stop"
+    events = _events(tmp_path, sid)
+    assert events[-1]["type"] == "stop"
+    assert events[-2]["ui"]["notices"] == ["Card removed: What is thing 0 of a?"]
 
 
 def test_the_unmigrated_deck_is_never_edited(tmp_path: Path) -> None:
