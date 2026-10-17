@@ -153,7 +153,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
 "msgs/m0007": {"role":"tutor","text":"markdown","questions":["...","..."],"choices":[[],["a","b","c"]],"low_effort":false,
   "check":{"question":"...","concept":"...","choices":["a","b","c"]},"check_result":{"passed":true,"feedback":"..."},
-  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"card_done":false,"at":ms}
+  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"notices":["Card removed: <front>"],"card_done":false,"at":ms}
 "msgs/m0008": {"role":"learner","text":"...","at":ms,"rid":"...","dev":"..."}
 "msgs/m0009": {"role":"card","text":"<front>","card_id":"ld-y"}
 "receipts/r0003": {"entry_id":"<sid>-m6","recorded":true,"minutes":1,"minutes_today":23,"error":null,"at":ms}

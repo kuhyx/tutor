@@ -55,12 +55,16 @@ def _card(ctx: Context, subject: str, cid: str) -> CardRec:
 def rewrite(ctx: Context, subject: str, cid: str, *, front: str, back: str) -> CardRec:
     """``cid`` with a new front and/or back (empty: kept); returns the card."""
     old = _card(ctx, subject, cid)
+    new = (" ".join(front.split()) or old.front, " ".join(back.split()) or old.back)
+    if new == (old.front, old.back):  # a rev bump would clear the learner's flags
+        msg = f"the edit of {cid} changes nothing"
+        raise _refuse(msg)
     body = {
         "subject": subject,
         "card": cid,
         "module": old.module,
-        "front": front.strip() or old.front,
-        "back": back.strip() or old.back,
+        "front": new[0],
+        "back": new[1],
         "source": old.source,
         "excerpt": old.excerpt,
         "requires": list(old.requires),
@@ -104,13 +108,15 @@ class Draft:
     front: str
     back: str
     source: str
+    quote: str = ""  # words the supporting sentence holds (``quote``)
 
 
 def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
     """A new card from ``draft``; returns its id and card."""
     module = _module(_plan(ctx, subject), draft.topic)
     source = draft.source.strip()
-    excerpt = quote.supporting(_page(ctx, source), draft.back, draft.front)
+    page = _page(ctx, source)
+    excerpt = quote.supporting(page, draft.back, draft.front, draft.quote)
     if excerpt is None:
         msg = f"no sentence of {source} supports that answer"
         raise _refuse(msg)

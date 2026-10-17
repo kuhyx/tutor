@@ -67,7 +67,7 @@ def _one(ctx: Context, subject: str, live: str, edit: CardEdit) -> tuple[str, bo
         topic = edit.topic or getattr(
             ctx.subjects.cards(subject).get(live), "module", ""
         )
-        draft = card_ops.Draft(topic, edit.front, edit.back, edit.source)
+        draft = card_ops.Draft(topic, edit.front, edit.back, edit.source, edit.quote)
         _, rec = card_ops.add(ctx, subject, draft)
         return f"Card added: {rec.front}", False
     rec = card_ops.rewrite(ctx, subject, cid, front=edit.front, back=edit.back)

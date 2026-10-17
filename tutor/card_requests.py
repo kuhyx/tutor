@@ -14,7 +14,7 @@ from typing import Final
 
 OPS: Final = ("edit", "add", "remove")
 _STR: Final = {"type": "string"}
-_FIELDS: Final = ("card", "topic", "front", "back", "source", "reason")
+_FIELDS: Final = ("card", "topic", "front", "back", "source", "quote", "reason")
 ITEM_SCHEMA: Final = {
     "type": "object",
     "properties": {
@@ -26,7 +26,9 @@ ITEM_SCHEMA: Final = {
 }
 DOC: Final = (
     "Usually []. One entry per change to the deck: op edit (card, front, "
-    "back), add (topic, front, back, source URL) or remove (card); empty "
+    "back), add (topic, front, back, source URL, quote) or remove (card); "
+    "`quote`: words of the page's supporting sentence, in the page's "
+    "language (searched for, never copied); empty "
     "card = the target card, empty topic = its topic, an empty field keeps "
     "the old text. `reason`: why, in a few words."
 )
@@ -43,6 +45,7 @@ class CardEdit:
     front: str = ""
     back: str = ""
     source: str = ""
+    quote: str = ""
     reason: str = ""
 
 

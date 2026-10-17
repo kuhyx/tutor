@@ -89,13 +89,16 @@ def _windows(sentence: str) -> list[str]:
     return [" ".join(words[i : i + MAX_WORDS]) for i in starts]
 
 
-def supporting(text: str, back: str, front: str = "") -> str | None:
+def supporting(text: str, back: str, front: str = "", hint: str = "") -> str | None:
     """The best supporting excerpt of ``text`` for the answer ``back``, or None.
 
     Scored by the answer's content words it contains (ties: the front's, then
-    the earlier one); footnote markers are dropped.
+    the earlier one); footnote markers are dropped. ``hint``, the words the
+    tutor expects in the sentence (in the page's language: a card in another
+    language shares no word with it), replaces the answer's words.
     """
-    answer, question = content_words(back), content_words(front)
+    answer = content_words(hint) or content_words(back)
+    question = content_words(f"{front} {back}")
     need = max(MIN_SHARED, math.ceil(len(answer) / 3))
     best: tuple[int, int] = (0, 0)
     chosen = None

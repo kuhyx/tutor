@@ -86,6 +86,7 @@ def test_card_edits_rule(profile: profiles.Profile) -> None:
         assert op in rule
     assert "on your own initiative" in rule
     assert "the app quotes" in rule
+    assert "`quote`: the words you expect in that sentence" in rule
     assert "next engine note" in rule
     assert "ends this session" in rule
     assert "from the card's next session" in rule

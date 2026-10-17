@@ -197,3 +197,30 @@ def test_add_refused_without_a_plan(tmp_path: Path) -> None:
         lambda: card_ops.add(ctx, "car", card_ops.Draft("a", FRONT, BACK, PISTON))
     )
     assert "no plan" in err.message
+
+
+def test_an_edit_that_changes_nothing_is_refused(car: tuple[Context, Fakes]) -> None:
+    ctx, _ = car
+    old = ctx.subjects.cards("car")["a1"]
+    for front, back in (("", ""), (old.front, f" {old.back} ")):
+        err = _refused(
+            lambda f=front, b=back: card_ops.rewrite(ctx, "car", "a1", front=f, back=b)
+        )
+        assert "changes nothing" in err.message
+    assert ctx.subjects.cards("car")["a1"].rev == 1  # the learner's flags stay
+
+
+def test_a_quote_hint_finds_the_sentence_across_languages(
+    car: tuple[Context, Fakes],
+) -> None:
+    # A Polish card from an English page: the back shares no word with it.
+    ctx, _ = car
+    front, back = (
+        "Co robi tłok w silniku?",
+        "Porusza się w cylindrze, pchany przez gaz.",
+    )
+    pl = card_ops.Draft("a", front, back, PISTON)
+    assert "no sentence" in _refused(lambda: card_ops.add(ctx, "car", pl)).message
+    hint = "the piston slides up and down in the cylinder pushed by gas"
+    _, rec = card_ops.add(ctx, "car", card_ops.Draft("a", front, back, PISTON, hint))
+    assert rec.excerpt.startswith("It slides up and down inside the cylinder")

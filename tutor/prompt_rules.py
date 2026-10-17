@@ -158,7 +158,9 @@ old text; source and excerpt stay); "add" proposes a new card in `topic` \
 with `front` (at most 25 words), `back` (at most 30 words) and `source`, \
 the https URL of a page you are sure states the answer, best a Wikipedia \
 article: the app quotes the page's supporting sentence itself, so give no \
-excerpt; "remove" takes `card` out of the deck. An empty `card` is the \
+excerpt, only `quote`: the words you expect in that sentence, in the \
+page's language (it is searched for, never copied); "remove" takes `card` \
+out of the deck. An empty `card` is the \
 target card, an empty `topic` its topic. Put the why in `reason` and say \
 in `message` what you changed. The app applies each edit at once and shows \
 it in the chat; one it refuses comes back in the next engine note: tell \
