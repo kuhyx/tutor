@@ -14,7 +14,7 @@ from __future__ import annotations
 import secrets
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import wording
+from tutor import newlines, wording
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -56,7 +56,7 @@ def repair_check(raw: object) -> dict[str, Any] | None:
         return None
     question = raw.get("question")
     if isinstance(question, str):
-        raw = {**raw, "question": wording.scrub(question)}
+        raw = {**raw, "question": wording.scrub(newlines.unescape(question))}
     return {**raw, "choices": []}
 
 

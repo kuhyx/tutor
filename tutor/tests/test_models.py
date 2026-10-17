@@ -155,3 +155,17 @@ def test_from_json_splits_two_questions_and_keeps_choices_aligned() -> None:
     assert [sorted(c) for c in parsed.choices] == [three, [], [], other]
     assert parsed.check is not None
     assert parsed.check["question"] == "What is X? And Y?"  # never split
+
+
+def test_from_json_turns_literal_backslash_n_into_newlines() -> None:
+    parsed = TutorTurn.from_json(
+        raw_turn(
+            message='so here is the setup.\\n\\n"CI"\\nRun `printf("a\\n")`.',
+            questions=["A?\\nB?", "Why `a\\nb`?"],
+            check={"question": "Line one\\nline two?", "concept": "x"},
+        )
+    )
+    assert parsed.message == 'so here is the setup.\n\n"CI"\nRun `printf("a\\n")`.'
+    assert parsed.questions == ("A?", "B?", "Why `a\\nb`?")
+    assert parsed.check is not None
+    assert parsed.check["question"] == "Line one\nline two?"

@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Final
 
-from tutor import asks, wording
+from tutor import asks, newlines, wording
 from tutor import choices as choices_mod
 
 ELEMENT_KINDS: Final = (
@@ -229,10 +229,10 @@ class TutorTurn:
         ):
             msg = "check_result.passed must be a boolean"
             raise TurnError(msg)
-        said = [wording.scrub(str(q)) for q in raw["questions"]]
+        said = [wording.scrub(newlines.unescape(str(q))) for q in raw["questions"]]
         questions, choices = choices_mod.pair(*asks.split(said, raw.get("choices")))
         return cls(
-            message=wording.scrub(raw["message"]).strip(),
+            message=wording.scrub(newlines.unescape(raw["message"])).strip(),
             low_effort=raw["low_effort"],
             questions=questions,
             choices=choices,
