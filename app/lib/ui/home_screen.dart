@@ -18,6 +18,7 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/new_cap_dialog.dart';
 import 'package:tutor/util/refresher.dart';
 
 /// Home screen.
@@ -156,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'editor' => _go(() => openEditor(context, _s)),
             'report' => showReport(context, _s, route: '/'),
             'display' => showDisplaySize(context),
+            'newcap' => showNewCap(context, _s.events),
             _ => _signOut(),
           },
           itemBuilder: (_) => [
@@ -163,6 +165,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const PopupMenuItem(value: 'progress', child: Text('Progress')),
             const PopupMenuItem(value: 'editor', child: Text('Edit cards')),
             const PopupMenuItem(value: 'display', child: Text('Display size')),
+            const PopupMenuItem(
+              value: 'newcap',
+              child: Text('New cards per day'),
+            ),
             const PopupMenuItem(
               value: 'report',
               child: Text('Report a problem'),

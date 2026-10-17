@@ -1,33 +1,10 @@
 /// `log/{dev}/{eid}` events (curriculum §4): append-only, immutable.
 library;
 
+import 'package:tutor/model/grade.dart';
 import 'package:tutor/model/json.dart';
 
-/// FSRS rating.
-enum Grade {
-  /// Forgot.
-  again(1),
-
-  /// Recalled with effort.
-  hard(2),
-
-  /// Recalled.
-  good(3),
-
-  /// Trivial.
-  easy(4);
-
-  new(this.value);
-
-  /// Wire value 1..4.
-  final int value;
-
-  /// Parses 1..4.
-  static Grade parse(int v) => values.firstWhere(
-    (g) => g.value == v,
-    orElse: () => throw FormatException('rating $v not in 1..4'),
-  );
-}
+export 'package:tutor/model/grade.dart';
 
 /// `src` of a review the PC drill wrote (`tutor/drill.py`).
 const String drillSource = 'drill';
@@ -76,6 +53,7 @@ sealed class LogEvent {
         session: strOr(j, 'session'),
       ),
       'untaught' => UntaughtEvent(subject: s(), card: c(), at: at),
+      'new_cap' => NewCapEvent(n: integer(j, 'n'), at: at),
       _ => throw FormatException('unknown event kind "$k"'),
     };
   }
@@ -221,6 +199,19 @@ class UntaughtEvent extends LogEvent {
 
   @override
   Json toJson() => {'k': 'untaught', 's': subject, 'c': card, 'at': at};
+}
+
+/// Settings' "New cards per day" = [n] (no card; the latest by `at` wins).
+class NewCapEvent extends LogEvent {
+  /// Creates the event.
+  const new({required this.n, required super.at})
+    : super(subject: '', card: '');
+
+  /// New cards per day.
+  final int n;
+
+  @override
+  Json toJson() => {'k': 'new_cap', 'n': n, 'at': at};
 }
 
 /// An event with its log identity: `log/{dev}/{eid}`.

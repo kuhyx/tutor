@@ -166,6 +166,8 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         if (cards[key]?.rev == rev) flagged.add(key);
       case ReviewUndoEvent():
         break; // applied in mergeEvents
+      case NewCapEvent():
+        break; // a setting, not a card
     }
   }
   return FoldResult(
