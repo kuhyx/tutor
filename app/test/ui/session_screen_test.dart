@@ -93,6 +93,35 @@ void main() {
     );
   });
 
+  testWidgets('Copy session id: clipboard + snackbar', (t) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    final copied = <String>[];
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied.add((call.arguments as Map)['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await pumpScreen(t, SessionScreen(services: s), settle: false);
+    await _feed(t, db, stream);
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('Copy session id'));
+    await t.pump();
+    expect(copied, [fixtureLiveSid]);
+    expect(find.text('Session id copied'), findsOneWidget);
+  });
+
   testWidgets('phone: side panel in the drawer; mark done, switch, not_live', (
     t,
   ) async {

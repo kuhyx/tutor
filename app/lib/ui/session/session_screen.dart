@@ -17,6 +17,7 @@ import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/session_actions.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_side.dart';
 import 'package:tutor/util/device.dart';
@@ -207,16 +208,7 @@ class _SessionScreenState extends State<SessionScreen> {
           return Scaffold(
             appBar: AppBar(
               title: Text(subject?.meta.title ?? 'Session'),
-              actions: [
-                if (!wide)
-                  Builder(
-                    builder: (context) => IconButton(
-                      tooltip: 'Card and progress',
-                      onPressed: Scaffold.of(context).openEndDrawer,
-                      icon: const Icon(Icons.view_sidebar_outlined),
-                    ),
-                  ),
-              ],
+              actions: sessionActions(sid: view?.sid, wide: wide),
             ),
             endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
             body: wide
