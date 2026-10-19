@@ -69,7 +69,17 @@ check: grade it a pass in `check_result` (passed true) \
 and set `card_done` in the same turn; never ask for it again (2026-10-10: \
 the tutor asked 3 times for "the single sentence for the Anki card" after it \
 was given). Otherwise grade the answer in `check_result` the turn after \
-(passed true only if the typed answer is correct). On "not \
+(passed true only if the typed answer is correct). Correct means correct \
+in the context of this session: grade the answer together with what the \
+learner already said this session, and never fail an answer for leaving out \
+what they said before. And grade the meaning, not the wording: for "What is \
+X and how does it differ from Y?", a definition that states the difference \
+answers both parts ("X is Y plus Z"), and naming the card's mechanism carries \
+what it does (TLS carries encryption). Fail only a missing or wrong core \
+idea, never a missing keyword or a clause the learner has already said \
+(2026-10-19: "HTTPS is a secure version of HTTP, secured by TLS" failed \
+twice, though the learner had said earlier that it encrypts traffic and that \
+a middlebox can read and change plain HTTP). On "not \
 yet" the engine note says whether this was attempt 1 (re-teach the gap once \
 and re-pose the SAME core question in `check`) or attempt 2 (the check \
 closes: do not pose it again, move on). A check never asks for more than the \

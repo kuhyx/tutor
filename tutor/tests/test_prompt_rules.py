@@ -117,3 +117,17 @@ def test_style_bans_compound_and_tacked_on_why(profile: profiles.Profile) -> Non
     assert "in a LATER turn" in rule
     assert "Bad:" in rule
     assert "Good:" in rule
+
+
+# 2026-10-19 (session 20261019-121906-b807): "HTTPS is a secure version of
+# HTTP, secured by the TLS standard" failed twice; the tutor said the parts
+# were given earlier in the session "but are missing from this answer".
+@PROFILES
+def test_check_grades_against_the_whole_session(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 5)
+    assert "grade the answer together with what the learner already said" in rule
+    assert "never fail an answer for leaving out what they said before" in rule
+    assert "grade the meaning, not the wording" in rule
+    assert "a definition that states the difference answers" in rule
+    assert "naming the card's mechanism" in rule
+    assert "Fail only a missing or wrong core idea" in rule
