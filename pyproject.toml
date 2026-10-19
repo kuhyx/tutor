@@ -18,7 +18,7 @@ dependencies = [
     "starlette==1.9.0",
     "uvicorn==0.54.0",
     "schemdraw==0.23",
-    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.15.0#subdirectory=earned_time",
+    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.16.0#subdirectory=earned_time",
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
     "httpx==0.28.1",
 ]
