@@ -165,8 +165,8 @@ class _Scripted(TutorSession):
         super().__init__(ClaudeAgentOptions())
         self.turns = list(turns)
 
-    async def ask(self, prompt: Prompt) -> tuple[TutorTurn, Any]:
-        del prompt
+    async def ask(self, prompt: Prompt, on_trace: Any = None) -> tuple[TutorTurn, Any]:
+        del prompt, on_trace
         return self.turns.pop(0), None
 
 

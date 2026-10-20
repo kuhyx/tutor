@@ -14,7 +14,7 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Any
 
-from tutor.relay import hooks
+from tutor.relay import hooks, live_trace
 from tutor.relay.chat import CHAT_HANDLERS
 from tutor.relay.claims import MAX_ATTEMPTS, Claim
 from tutor.relay.context import RequestContext
@@ -71,6 +71,7 @@ class Server:
         for sid in sorted(self.stale_busy):
             try:
                 await self.w.rtdb.patch(f"sessions/{sid}/meta", {"busy": None})
+                await self.w.rtdb.delete(live_trace.path(sid))
             except RtdbError as err:
                 _logger.warning("busy sweep on %s failed: %s", sid, err)
                 return
@@ -94,6 +95,10 @@ class Server:
             text = request.body.get("text")
             claim.busy_session = session
             claim.busy_text = text if isinstance(text, str) else None
+            every = live_trace.every_for(request.body)
+            claim.progress = live_trace.TracePublisher(
+                self.w.rtdb, session, claim.rid, every
+            )
         keeper = asyncio.create_task(claim.keep())
         try:
             result, touched = await self._handle(claim, request)

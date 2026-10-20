@@ -12,6 +12,7 @@ from tutor.session import Prompt, Reply, TutorSession
 
 if TYPE_CHECKING:
     from tutor.clock import BlockReady
+    from tutor.trace import Observer
 
 
 def turn(message: str = "What do you know about a coil?", **fields: Any) -> TutorTurn:
@@ -34,8 +35,11 @@ class FakeSession(TutorSession):
         self.prompts: list[Prompt] = []
         self.closed = 0
 
-    async def ask(self, prompt: Prompt) -> tuple[TutorTurn, Reply]:
-        """The next scripted reply."""
+    async def ask(
+        self, prompt: Prompt, on_trace: Observer | None = None
+    ) -> tuple[TutorTurn, Reply]:
+        """The next scripted reply (no trace)."""
+        del on_trace
         self.prompts.append(prompt)
         item = self.replies.pop(0)
         if isinstance(item, CliDiedError):
