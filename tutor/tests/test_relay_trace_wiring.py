@@ -7,7 +7,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from tutor.engine import Engine
-from tutor.relay import live_trace, phases
+from tutor.relay import claims, live_trace, phases
 from tutor.relay.chat import CHAT_HANDLERS
 from tutor.relay.claims import Claim
 from tutor.relay.live_trace import TracePublisher
@@ -170,3 +170,31 @@ def test_claim_without_progress_ignores_traces() -> None:
 
     asyncio.run(go())
     assert fake.log == []
+
+
+def test_a_bug_in_the_trace_writer_never_stops_the_lease(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    fake = FakeRtdb()
+    monkeypatch.setattr(claims, "RENEW_S", 0.01)
+
+    async def broken(self: TracePublisher) -> None:
+        del self
+        raise RuntimeError
+
+    monkeypatch.setattr(TracePublisher, "run", broken)
+
+    async def go() -> None:
+        db = fake.rtdb()
+        claim = Claim(db, RID, "w1", lambda: 1.0)
+        claim.busy_session = SID
+        claim.progress = TracePublisher(db, SID, RID, every=0.5)
+        assert await claim.take()
+        keeper = asyncio.create_task(claim.keep())
+        await asyncio.sleep(0.05)
+        assert not keeper.done()  # the lease is still renewed
+        keeper.cancel()
+        await db.aclose()
+
+    asyncio.run(go())
+    assert "live trace stopped" in caplog.text

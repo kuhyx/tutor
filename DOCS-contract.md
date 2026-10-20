@@ -201,7 +201,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 
 ## 9. Budgets (Spark: 10 GB/mo download, 1 GB stored, 100 conns, shared)
 Tutor target <=1 GB/month download, <=50 MB stored. Caps: message 8000 ch;
-tutor message <=24 KB incl. SVG; card <=2 KB; plan <=16 KB; feedback 4000 ch.
+tutor message <=24 KB incl. SVG (`trace` has its own caps, §6); card <=2 KB; plan <=16 KB; feedback 4000 ch.
 Client streams only while visible: `live`, `presence/workers`, `rev`,
 `sessions/{sid}/meta`, `sessions/{sid}/msgs`, `sessions/{sid}/progress`, `requests/{rid}`; never the
 `/tutor/v1`, `sessions`, `subjects` or `log` roots. Reconnect cost: msgs

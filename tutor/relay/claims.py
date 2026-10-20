@@ -134,7 +134,17 @@ class Claim:
         if self.progress is None:
             await self._keep_lease()
         else:
-            await asyncio.gather(self._keep_lease(), self.progress.run())
+            await asyncio.gather(self._keep_lease(), self._keep_trace(self.progress))
+
+    @staticmethod
+    async def _keep_trace(progress: TracePublisher) -> None:
+        """Write the trace; a bug in it never stops the lease or the reply.
+
+        gather, not try/except: whatever ``run`` raises is returned here (a
+        cancel of the keeper still cancels it).
+        """
+        (failed,) = await asyncio.gather(progress.run(), return_exceptions=True)
+        _logger.error("live trace stopped; the reply goes on: %r", failed)
 
     async def _keep_lease(self) -> None:
         """Renew the lease every minute and publish phase changes."""

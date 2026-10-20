@@ -177,3 +177,24 @@ def test_nothing_new_writes_nothing_and_a_failed_clear_is_reported(
 
     asyncio.run(go())
     assert "progress clear" in caplog.text
+
+
+def test_a_put_that_failed_may_have_landed_so_clear_deletes() -> None:
+    fake = FakeRtdb()
+    fake.fail[("PUT", f"/sessions/{SID}/progress")] = 503
+    sleeps = Sleeps()
+
+    async def go() -> None:
+        db = fake.rtdb()
+        pub = TracePublisher(db, SID, RID, every=0.5, sleep=sleeps)
+        runner = asyncio.create_task(pub.run())
+        t = Trace()
+        t.feed(delta("a"))
+        pub.update(t)
+        await _settle()
+        runner.cancel()
+        assert await pub.clear()
+        assert ("DELETE", f"/sessions/{SID}/progress") in fake.log
+        await db.aclose()
+
+    asyncio.run(go())

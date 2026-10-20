@@ -61,7 +61,8 @@ class TracePublisher:
         self._trace: Trace | None = None
         self._sent = 0  # chunks of ``_trace`` already written
         self._keys = 0  # step keys used so far (a retry's trace continues)
-        self._written = False
+        self._written = False  # the PUT landed: later writes PATCH steps
+        self._touched = False  # a write was sent: clear() must DELETE
         self._dirty = asyncio.Event()
 
     def update(self, trace: Trace) -> None:
@@ -94,18 +95,20 @@ class TracePublisher:
         if self._written:
             await self._rtdb.patch(f"{path(self.sid)}/steps", fresh)
         else:
+            # Marked first: a PUT cancelled in flight may still land.
+            self._touched = True
             await self._rtdb.put(path(self.sid), {"rid": self.rid, "steps": fresh})
             self._written = True
         self._sent, self._keys = end, self._keys + len(fresh)
 
     async def clear(self) -> bool:
         """Delete the node if this request wrote it (False: the delete failed)."""
-        if not self._written:
+        if not self._touched:
             return True
         try:
             await self._rtdb.delete(path(self.sid))
         except RtdbError as err:
             _logger.warning("progress clear on %s failed: %s", self.sid, err)
             return False
-        self._written = False
+        self._written = self._touched = False
         return True
