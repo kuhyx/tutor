@@ -78,9 +78,12 @@ abstract final class Paths {
   static String client(String dev) =>
       '$root/presence/clients/${_check(dev, isDeviceId, 'device id')}';
 
+  /// `requests` (streamed only ranged from a followed rid, §9).
+  static const requests = '$root/requests';
+
   /// `requests/{rid}`.
   static String request(String rid) =>
-      '$root/requests/${_check(rid, isUlid, 'rid')}';
+      '$requests/${_check(rid, isUlid, 'rid')}';
 
   /// `requests/{rid}/req`.
   static String requestReq(String rid) => '${request(rid)}/req';

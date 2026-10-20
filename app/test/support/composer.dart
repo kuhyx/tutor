@@ -59,7 +59,7 @@ Future<(FakeRtdb, FakeStream)> openComposer(
     '$composeBase/meta',
     '$composeBase/msgs',
   ]) {
-    stream.listens[path]?.add(RtdbPut('/', getAt(db.root, path)));
+    stream.emit(path, RtdbPut('/', getAt(db.root, path)));
     await t.pump();
   }
   await t.pumpAndSettle();

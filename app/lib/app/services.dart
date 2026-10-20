@@ -77,6 +77,12 @@ class TutorServices {
     final stream = RtdbStream(client);
     final ulid = UlidGenerator();
     final events = EventLog(client: client, kv: kvStore, dev: dev, ulid: ulid);
+    final relay = RequestRelay(
+      client: client,
+      stream: stream,
+      dev: dev,
+      ulid: ulid,
+    );
     return TutorServices(
       config: config,
       dev: dev,
@@ -84,9 +90,9 @@ class TutorServices {
       auth: auth,
       client: client,
       stream: stream,
-      relay: RequestRelay(client: client, stream: stream, dev: dev, ulid: ulid),
+      relay: relay,
       presence: PresenceWatcher(stream),
-      rev: RevWatcher(stream),
+      rev: RevWatcher(stream, yieldTo: relay.inFlight),
       events: events,
       home: HomeLoader(client: client, kv: kvStore, events: events),
       catalog: Catalog(client: client, kv: kvStore),

@@ -15,7 +15,7 @@ const _base = 'tutor/v1/sessions/$fixtureLiveSid';
 /// Feeds the screen's listens from [db] (live, meta, msgs).
 Future<void> _feed(WidgetTester t, FakeRtdb db, FakeStream stream) async {
   for (final path in ['tutor/v1/live', '$_base/meta', '$_base/msgs']) {
-    stream.listens[path]?.add(RtdbPut('/', getAt(db.root, path)));
+    stream.emit(path, RtdbPut('/', getAt(db.root, path)));
     await t.pump();
   }
   await t.pump();

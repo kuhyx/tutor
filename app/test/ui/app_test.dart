@@ -80,7 +80,7 @@ void main() {
       ..add(const RtdbPut('/', null));
     await tester.pumpAndSettle();
     expect(find.text('PC offline'), findsOneWidget);
-    stream.listens[Paths.workers]!.add(const RtdbPut('/w', {'beat': 1}));
+    stream.emit(Paths.workers, const RtdbPut('/w', {'beat': 1}));
     await tester.pumpAndSettle();
     expect(find.text('PC online'), findsOneWidget);
 

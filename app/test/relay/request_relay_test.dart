@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -10,34 +9,22 @@ import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_event.dart';
-import 'package:tutor/sync/rtdb_stream.dart';
 import 'package:tutor/util/ulid.dart';
 
+import '../support/fake_stream.dart';
+
 const _dev = '0b6f2c1e-8f2a-4c1d-9e3b-7a5d4c3b2a10';
-
-class _FakeStream implements RtdbStream {
-  final controllers = <String, StreamController<RtdbEvent>>{};
-
-  @override
-  RtdbClient get client => throw UnimplementedError();
-
-  @override
-  Stream<RtdbEvent> listen(
-    String path, {
-    Map<String, String> query = const {},
-  }) => (controllers[path] = StreamController<RtdbEvent>()).stream;
-}
 
 void main() {
   late List<http.Request> puts;
   late bool failPut;
-  late _FakeStream stream;
+  late FakeStream stream;
   late RequestRelay relay;
 
   setUp(() {
     puts = [];
     failPut = false;
-    stream = _FakeStream();
+    stream = FakeStream();
     final client = RtdbClient(
       databaseUrl: 'https://db',
       idToken: () async => 't',
@@ -59,6 +46,10 @@ void main() {
 
   Future<void> pump() => Future<void>.delayed(Duration.zero);
 
+  /// Delivers [event] for `requests/{rid}` (over the shared listen).
+  void feed(String rid, RtdbEvent event) =>
+      expect(stream.emit('tutor/v1/requests/$rid', event), isTrue);
+
   test('PUTs only req, then follows claim phases to the result', () async {
     final pending = relay.prepare(
       RequestBody.message('20261012-170448-5b71', 'hi'),
@@ -72,7 +63,7 @@ void main() {
     expect(body['sent_at'], pending.req.sentAt);
     expect(body['dev'], _dev);
 
-    final events = stream.controllers.values.single;
+    void events(RtdbEvent e) => feed(pending.rid, e);
     Map<String, Object> claim(String phase) => {
       'by': 'w',
       'lease_until': 9,
@@ -80,19 +71,18 @@ void main() {
       'phase': phase,
       'at': 1,
     };
-    events
-      ..add(const RtdbConnected())
-      ..add(RtdbPut('/', {'req': body}))
-      ..add(RtdbPut('/claim', claim('claimed')))
-      ..add(RtdbPut('/claim', claim('claimed'))) // duplicate: not re-emitted
-      ..add(const RtdbPatch('/claim', {'phase': 'thinking'}))
-      ..add(
-        const RtdbPut('/result', {
-          'ok': true,
-          'at': 2,
-          'data': {'msg': 'm0012'},
-        }),
-      );
+    events(const RtdbConnected());
+    events(RtdbPut('/', {'req': body}));
+    events(RtdbPut('/claim', claim('claimed')));
+    events(RtdbPut('/claim', claim('claimed'))); // duplicate: not re-emitted
+    events(const RtdbPatch('/claim', {'phase': 'thinking'}));
+    events(
+      const RtdbPut('/result', {
+        'ok': true,
+        'at': 2,
+        'data': {'msg': 'm0012'},
+      }),
+    );
     await done;
     expect(statuses.map((s) => s.runtimeType), [
       RelayQueued,
@@ -116,7 +106,8 @@ void main() {
       final statuses = <RelayStatus>[];
       final done = relay.resend(pending).listen(statuses.add).asFuture<void>();
       await pump();
-      stream.controllers.values.single.add(
+      feed(
+        pending.rid,
         const RtdbPut('/', {
           'result': {
             'ok': false,
@@ -146,7 +137,8 @@ void main() {
         .listen(statuses.add)
         .asFuture<void>();
     await pump();
-    stream.controllers.values.single.add(const RtdbPut('/result', {'ok': 1}));
+    final rid = puts.single.url.pathSegments[3];
+    feed(rid, const RtdbPut('/result', {'ok': 1}));
     await done;
     expect(
       (statuses.single as RelayFailed).text,

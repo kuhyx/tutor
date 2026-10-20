@@ -82,13 +82,15 @@ Future<Map<String, dynamic>> answer(
   bool settle = true,
 }) async {
   final (rid, req) = lastRequest(db);
-  stream.listens['tutor/v1/requests/$rid']!.add(
+  final heard = stream.emit(
+    'tutor/v1/requests/$rid',
     RtdbPut('/', {
       'result': code == null
           ? {'ok': true, 'at': 1, 'data': data}
           : {...extra, 'ok': false, 'at': 1, 'code': code, 'error': error},
     }),
   );
+  expect(heard, isTrue, reason: 'nothing follows request $rid');
   settle ? await tester.pumpAndSettle() : await sent(tester);
   return req;
 }

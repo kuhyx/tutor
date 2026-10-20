@@ -101,7 +101,9 @@ Worker streams `requests` (kept small by GC). Per rid, in key order:
 
 Lanes: `chat` (session kinds) and `build` (subject/plan/card kinds) are
 separate serial queues; within a lane a later rid never overtakes an earlier one. For `message`, `rid` is the engine's `msg_id`.
-Client: after PUT, stream `requests/{rid}` until `result`, show phase. On
+Client: after PUT, follow `requests/{rid}` until `result`, show phase (one
+`requests` listen ranged `orderBy="$key"&startAt="<oldest followed rid>"`
+serves every request in flight, §9). On
 network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
@@ -204,10 +206,18 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 Tutor target <=1 GB/month download, <=50 MB stored. Caps: message 8000 ch;
 tutor message <=24 KB incl. SVG (`trace` has its own caps, §6); card <=2 KB; plan <=16 KB; feedback 4000 ch.
 Client streams only while visible: `live`, `presence/workers`, `rev`,
-`sessions/{sid}/meta`, `sessions/{sid}/msgs`, `sessions/{sid}/progress`, `requests/{rid}`; never the
-`/tutor/v1`, `sessions`, `subjects` or `log` roots. Reconnect cost: msgs
-~30 x 2 KB = 60 KB: stream `orderBy="$key"&startAt="m<last+1>"` (**verified
-2026-10-12: SSE honours it**, 1st `put` only keys >= startAt); meta ~1 KB; presence ~0.3 KB; progress append-only, <=~12 KB/turn.
+`sessions/{sid}` (one listen: meta, msgs, progress), `requests` ranged from
+the oldest rid in flight; never the `/tutor/v1`, `sessions`, `subjects` or
+`log` roots. **At most 4 streams at once** (2026-10-20): RTDB answers over
+HTTP/1.1 only, a browser holds 6 connections per host and every stream keeps
+one, so a 6th stream left a Send's PUT no socket. `rev` closes while a
+request is followed (its reopening snapshot emits any move meanwhile), so a
+Session holds `presence/workers`, `live`, `sessions/{sid}` and `rev` or
+`requests`; `app/test/ui/stream_budget_test.dart` counts them per screen
+state. Reconnect cost: the whole session, msgs ~30 x 2 KB = 60 KB + meta
+~1 KB + progress append-only <=~12 KB/turn (the per-msgs `startAt` resume,
+verified 2026-10-12 to work on SSE, is given up for the connection);
+presence ~0.3 KB.
 Catalog: GET `subjects/{s}` only on a `rev.catalog` move (167 PLC cards ~90 KB
 once); `rev` = ONE shared listen, closed while hidden; Plan/Editor refetch per
 move, Home only on top. Log: GET `log/{dev}?orderBy="$key"&startAt="<last eid>"`

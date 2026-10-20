@@ -1,12 +1,15 @@
 /// The client half of the relay protocol (DOCS-contract §4).
 ///
-/// The client PUTs only `requests/{rid}/req` (so a retry never clobbers the
-/// worker's `claim`/`result`), then streams `requests/{rid}` until a result
-/// lands. A retry re-PUTs the very same `req`: same rid, same `sent_at` (the
-/// first Send press), never a new rid.
+/// The client PUTs only `requests/{rid}/req` (so a retry never clobbers
+/// the worker's `claim`/`result`), then follows `requests/{rid}` until a
+/// result lands, over the one `requests` listen every request shares
+/// (`request_hub.dart`). A retry re-PUTs the very same `req`: same rid,
+/// same `sent_at` (the first Send press), never a new rid.
 library;
 
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/model/ids.dart';
@@ -15,7 +18,7 @@ import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/blocked.dart';
 import 'package:tutor/relay/error_text.dart';
-import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/relay/request_hub.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
 import 'package:tutor/util/ulid.dart';
@@ -154,6 +157,12 @@ class RequestRelay {
   /// SSE transport.
   final RtdbStream stream;
 
+  late final RequestHub _hub = RequestHub(stream);
+
+  /// Requests being followed (the shared `rev` listen waits while any are,
+  /// so they never cost an extra connection).
+  ValueListenable<int> get inFlight => _hub.inFlight;
+
   /// This install's device id.
   final String dev;
 
@@ -189,15 +198,13 @@ class RequestRelay {
     yield* watch(pending.rid);
   }
 
-  /// Streams `requests/{rid}` until a result; emits each distinct status.
+  /// Follows `requests/{rid}` until a result; emits each distinct status.
   Stream<RelayStatus> watch(String rid) async* {
-    Object? tree;
     String? last;
-    await for (final event in stream.listen(Paths.request(rid))) {
-      tree = applyEvent(tree, event);
+    await for (final node in _hub.watch(rid)) {
       RelayStatus status;
       try {
-        status = statusOf(tree);
+        status = statusOf(node);
       } on FormatException catch (error) {
         // RTDB content is untrusted: a malformed claim/result ends the
         // follow loudly instead of spinning on "queued" forever.

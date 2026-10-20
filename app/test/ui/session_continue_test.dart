@@ -24,13 +24,14 @@ void main() {
       settle: false,
     );
     await sent(t);
-    stream.listens['tutor/v1/live']!.add(
+    stream.emit(
+      'tutor/v1/live',
       const RtdbPut('/', {'session': fixtureLiveSid, 'subject': 'car'}),
     );
     await t.pump();
     expect(
       stream.listens.keys,
-      isNot(contains('tutor/v1/sessions/$fixtureLiveSid/meta')),
+      isNot(contains('tutor/v1/sessions/$fixtureLiveSid')),
     );
     final start = await answer(
       t,
@@ -48,7 +49,7 @@ void main() {
     });
     expect(
       stream.listens.keys,
-      contains('tutor/v1/sessions/20261012-180000-aaaa/meta'),
+      contains('tutor/v1/sessions/20261012-180000-aaaa'),
     );
   });
 
@@ -61,20 +62,23 @@ void main() {
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     const next = '20261012-180000-aaaa';
-    stream.listens['tutor/v1/live']!.add(
+    stream.emit(
+      'tutor/v1/live',
       const RtdbPut('/', {'session': next, 'subject': 'car'}),
     );
     await t.pump();
     const base = 'tutor/v1/sessions/$next';
-    stream.listens['$base/meta']!.add(
-      RtdbPut('/', {
-        ...getAt(db.root, '$_live/meta')! as Map<String, dynamic>,
-        'busy': null,
-        'credited_minutes': 0,
-        'clock': {'active_seconds': 0.0, 'reply_timeout_s': 600},
-      }),
-    );
-    stream.listens['$base/msgs']!.add(const RtdbPut('/', null));
+    stream
+      ..emit(
+        '$base/meta',
+        RtdbPut('/', {
+          ...getAt(db.root, '$_live/meta')! as Map<String, dynamic>,
+          'busy': null,
+          'credited_minutes': 0,
+          'clock': {'active_seconds': 0.0, 'reply_timeout_s': 600},
+        }),
+      )
+      ..emit('$base/msgs', const RtdbPut('/', null));
     await t.pump();
     await t.pump();
     expect(find.text('The tutor is preparing this card...'), findsOneWidget);

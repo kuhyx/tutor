@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
@@ -32,7 +30,12 @@ void main() {
     );
   });
 
-  StreamController<RtdbEvent> lastListen() => stream.listens.values.last;
+  /// Delivers [event] for the latest request (over the shared listen).
+  void toLatest(RtdbEvent event) {
+    final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+    final rid = (reqs.keys.toList()..sort()).last;
+    expect(stream.emit('tutor/v1/requests/$rid', event), isTrue);
+  }
 
   test('run follows to done; busy while working', () async {
     expect(runner.busy, isFalse);
@@ -40,7 +43,7 @@ void main() {
     final done = runner.run(RequestBody.stop('20261012-170448-5b71'));
     await Future<void>.delayed(Duration.zero);
     expect(runner.busy, isTrue);
-    lastListen().add(
+    toLatest(
       const RtdbPut('/claim', {
         'by': _dev,
         'lease_until': 1,
@@ -52,7 +55,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(runner.status.value, isA<RelayWorking>());
     expect(runner.busy, isTrue);
-    lastListen().add(
+    toLatest(
       const RtdbPut('/result', {
         'ok': true,
         'at': 2,
@@ -76,7 +79,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     final rids = db.log.map((l) => l.split('/')[3]).toSet();
     expect(rids, hasLength(1));
-    lastListen().add(
+    toLatest(
       const RtdbPut('/result', {
         'ok': false,
         'at': 2,
@@ -97,7 +100,7 @@ void main() {
         .toSet();
     expect(sent, hasLength(1), reason: 'same sent_at');
     expect(db.log.length, greaterThan(sentAt));
-    lastListen().add(
+    toLatest(
       const RtdbPut('/result', {
         'ok': true,
         'at': 3,

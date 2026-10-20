@@ -175,7 +175,8 @@ void main() {
     expect(find.textContaining('Unreadable reply'), findsOne);
     await t.tap(find.text('Retry'));
     await sent(t);
-    unawaited(stream.listens.values.last.close()); // ends with no result
+    // The requests listen ends with no result.
+    unawaited(stream.listens['tutor/v1/requests']!.close());
     await t.pumpAndSettle();
     expect(find.text('The PC did not answer.'), findsOne);
     await t.tap(find.text('Retry'));

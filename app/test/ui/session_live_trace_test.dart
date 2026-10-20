@@ -1,5 +1,6 @@
-// The Session screen follows `sessions/{sid}/progress` while a turn is in
-// flight (only the busy request's), and the reply keeps its trace folded.
+// The Session screen shows `sessions/{sid}/progress` (from its one session
+// listen) while a turn is in flight (only the busy request's), and the
+// reply keeps its trace folded.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
@@ -19,18 +20,18 @@ void main() {
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     for (final path in ['tutor/v1/live', '$_base/meta', '$_base/msgs']) {
-      stream.listens[path]?.add(RtdbPut('/', getAt(db.root, path)));
+      stream.emit(path, RtdbPut('/', getAt(db.root, path)));
       await t.pump();
     }
-    final meta = stream.listens['$_base/meta']!;
-    final progress = stream.listens['$_base/progress']!;
-    meta.add(
+    void meta(RtdbEvent e) => stream.emit('$_base/meta', e);
+    void progress(RtdbEvent e) => stream.emit('$_base/progress', e);
+    meta(
       const RtdbPatch('/', {
         'busy': {'rid': _rid, 'phase': 'thinking', 'since': 1, 'text': 'hi'},
       }),
     );
     // Another request's leftovers are not this turn's.
-    progress.add(
+    progress(
       const RtdbPut('/', {
         'rid': 'OTHER',
         'steps': {
@@ -42,24 +43,19 @@ void main() {
     expect(find.text('Tutor is thinking...'), findsOneWidget);
     expect(find.text('Search: stale'), findsNothing);
 
-    progress
-      ..add(
-        const RtdbPut('/', {
-          'rid': _rid,
-          'steps': {
-            's0001': {'kind': 'thinking', 'text': 'Plan the next ask.'},
-          },
-        }),
-      )
-      ..add(
-        const RtdbPatch('/steps', {
-          's0002': {
-            'kind': 'tool',
-            'name': 'WebSearch',
-            'input': 'four stroke',
-          },
-        }),
-      );
+    progress(
+      const RtdbPut('/', {
+        'rid': _rid,
+        'steps': {
+          's0001': {'kind': 'thinking', 'text': 'Plan the next ask.'},
+        },
+      }),
+    );
+    progress(
+      const RtdbPatch('/steps', {
+        's0002': {'kind': 'tool', 'name': 'WebSearch', 'input': 'four stroke'},
+      }),
+    );
     await t.pump();
     expect(find.text('Researching...'), findsOneWidget);
     expect(find.text('Search: four stroke'), findsOneWidget);
@@ -69,9 +65,10 @@ void main() {
     expect(find.text('Plan the next ask.'), findsOneWidget);
 
     // The reply lands: busy and progress go, the bubble has it folded.
-    meta.add(const RtdbPatch('/', {'busy': null}));
-    progress.add(const RtdbPut('/', null));
-    stream.listens['$_base/msgs']!.add(
+    meta(const RtdbPatch('/', {'busy': null}));
+    progress(const RtdbPut('/', null));
+    stream.emit(
+      '$_base/msgs',
       const RtdbPatch('/', {
         'm0005': {
           'role': 'tutor',
@@ -95,23 +92,31 @@ void main() {
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     for (final path in ['tutor/v1/live', '$_base/meta', '$_base/msgs']) {
-      stream.listens[path]?.add(RtdbPut('/', getAt(db.root, path)));
+      stream.emit(path, RtdbPut('/', getAt(db.root, path)));
       await t.pump();
     }
-    stream.listens['$_base/meta']!.add(
-      const RtdbPatch('/', {
-        'card_done': true,
-        'busy': {'rid': _rid, 'phase': 'thinking', 'since': 1, 'text': 'why?'},
-      }),
-    );
-    stream.listens['$_base/progress']!.add(
-      const RtdbPut('/', {
-        'rid': _rid,
-        'steps': {
-          's0001': {'kind': 'tool', 'name': 'WebSearch', 'input': 'why coil'},
-        },
-      }),
-    );
+    stream
+      ..emit(
+        '$_base/meta',
+        const RtdbPatch('/', {
+          'card_done': true,
+          'busy': {
+            'rid': _rid,
+            'phase': 'thinking',
+            'since': 1,
+            'text': 'why?',
+          },
+        }),
+      )
+      ..emit(
+        '$_base/progress',
+        const RtdbPut('/', {
+          'rid': _rid,
+          'steps': {
+            's0001': {'kind': 'tool', 'name': 'WebSearch', 'input': 'why coil'},
+          },
+        }),
+      );
     await t.pump();
     expect(find.text('Next card'), findsOneWidget);
     expect(find.text('Researching...'), findsOneWidget);

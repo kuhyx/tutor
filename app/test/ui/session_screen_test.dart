@@ -18,7 +18,7 @@ const _rev = 'tutor/v1/rev';
 /// Feeds the screen's listens from [db] (live, meta, msgs).
 Future<void> _feed(WidgetTester t, FakeRtdb db, FakeStream stream) async {
   for (final path in ['tutor/v1/live', '$_base/meta', '$_base/msgs']) {
-    stream.listens[path]?.add(RtdbPut('/', getAt(db.root, path)));
+    stream.emit(path, RtdbPut('/', getAt(db.root, path)));
     await t.pump();
   }
   await t.pump();
@@ -91,7 +91,7 @@ void main() {
     expect(next['body'], {'session': fixtureLiveSid, 'device': 'desktop'});
     expect(
       stream.listens.keys,
-      contains('tutor/v1/sessions/20261012-180000-aaaa/meta'),
+      contains('tutor/v1/sessions/20261012-180000-aaaa'),
     );
   });
 
@@ -144,7 +144,7 @@ void main() {
     await t.pumpAndSettle();
     final next = (getAt(db.root, '$_rev/catalog')! as int) + 1;
     db.root = setAt(db.root, '$_rev/catalog', next);
-    stream.listens[_rev]!.add(RtdbPut('/catalog', next));
+    stream.emit(_rev, RtdbPut('/catalog', next));
     await t.pumpAndSettle();
     expect(find.text('• valve timing'), findsOneWidget);
   });
@@ -226,7 +226,7 @@ void main() {
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, SessionScreen(services: s), settle: false);
-    stream.listens['tutor/v1/live']!.add(const RtdbPut('/', null));
+    stream.emit('tutor/v1/live', const RtdbPut('/', null));
     await t.pumpAndSettle();
     expect(find.text('No session yet'), findsOneWidget);
     await t.tap(find.text('Start session'));

@@ -110,7 +110,7 @@ void main() {
     );
     const base = 'tutor/v1/sessions/$fixtureLiveSid';
     for (final path in ['tutor/v1/live', '$base/meta', '$base/msgs']) {
-      stream.listens[path]?.add(RtdbPut('/', getAt(db.root, path)));
+      stream.emit(path, RtdbPut('/', getAt(db.root, path)));
       await t.pump();
     }
     await t.pumpAndSettle();

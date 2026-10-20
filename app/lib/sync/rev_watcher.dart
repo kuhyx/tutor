@@ -5,6 +5,11 @@
 /// it, so Home under Plan costs one connection, not two. The listen also
 /// pauses while the app is hidden and resumes when it is back in front.
 ///
+/// While a request is in flight ([RevWatcher.new]'s `yieldTo` above 0) the
+/// listen stays closed: RTDB speaks HTTP/1.1, every listen holds one of the
+/// browser's 6 connections, and the request's own listen takes this one.
+/// Nothing is lost: the snapshot on reopening emits any move made meanwhile.
+///
 /// Only real moves are emitted, `rev.catalog` on `catalogChanges` and
 /// `rev.stats` on `statsChanges`; the full snapshot every (re)connect
 /// resends while a value is unchanged is not a move. A snapshot whose value
@@ -13,6 +18,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:tutor/model/ids.dart';
 import 'package:tutor/sync/json_tree.dart';
@@ -40,11 +46,19 @@ bool? foregroundFor(AppLifecycleState? state) => switch (state) {
 
 /// Streams `rev` while someone listens and the app is in front.
 class RevWatcher {
-  /// Creates the watcher; `binding` (tests) reports the app lifecycle.
-  new(this._stream, {this._binding});
+  /// Creates the watcher; `binding` (tests) reports the app lifecycle;
+  /// while [yieldTo] is above 0 the listen is closed.
+  new(this._stream, {this._binding, this.yieldTo}) {
+    yieldTo?.addListener(_yield);
+  }
 
   final RtdbStream _stream;
   final WidgetsBinding? _binding;
+
+  /// Requests in flight (`RequestRelay.inFlight`).
+  final ValueListenable<int>? yieldTo;
+
+  bool get _yielding => (yieldTo?.value ?? 0) > 0;
 
   late final StreamController<int> _out = StreamController.broadcast(
     onListen: _open,
@@ -84,6 +98,7 @@ class RevWatcher {
 
   /// Closes the listen and the stream.
   Future<void> dispose() async {
+    yieldTo?.removeListener(_yield);
     await _out.close();
     await _statsOut.close();
     await _close();
@@ -114,8 +129,10 @@ class RevWatcher {
     await _disconnect();
   }
 
+  void _yield() => _yielding ? unawaited(_disconnect()) : _connect();
+
   void _connect() {
-    if (_sub != null || !_foreground || !_wanted) return;
+    if (_sub != null || !_foreground || !_wanted || _yielding) return;
     _tree = null;
     _sub = _stream.listen(Paths.rev).listen(_on, onDone: () => _sub = null);
   }

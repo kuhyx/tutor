@@ -7,9 +7,11 @@
 /// `cancel` (rules changed) ends the stream for good.
 ///
 /// RTDB speaks HTTP/1.1, so a browser holds at most 6 connections to it and
-/// every listen is one. A cancelled listen therefore aborts its request, even
-/// one still connecting: a leaked stream starved the next session's listens
-/// and the chat stayed empty after Next card (2026-10-12).
+/// every listen is one. The app keeps at most 4 open, leaving 2 for writes
+/// and reads (DOCS-contract §9, `stream_budget_test.dart`). A cancelled
+/// listen therefore aborts its request, even one still connecting: a leaked
+/// stream starved the next session's listens and the chat stayed empty after
+/// Next card (2026-10-12).
 library;
 
 import 'dart:async';

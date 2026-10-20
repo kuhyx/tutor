@@ -1,6 +1,9 @@
 /// The live session as the Session screen shows it: streams `live`, then
-/// `sessions/{sid}/meta`, `msgs` and `progress` of the session it names
-/// (DOCS-contract §6, §9: only these narrow paths, only while visible).
+/// `sessions/{sid}` of the session it names, ONE listen whose `put`/`patch`
+/// paths fold into `meta`, `msgs` and `progress` (DOCS-contract §6, §9: only
+/// while visible). RTDB speaks HTTP/1.1, so every listen holds one of the
+/// browser's 6 connections to it; three listens per session left none for
+/// a Send's PUT (2026-10-20). A reconnect resends the whole session.
 ///
 /// When `live` turns null (after Stop here) the last session stays on screen,
 /// read-only, as the web page keeps its hash on the stopped session.
@@ -17,7 +20,6 @@ import 'package:tutor/model/root.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/trace.dart';
 import 'package:tutor/sync/json_tree.dart';
-import 'package:tutor/sync/rtdb_client.dart' show keyRangeQuery;
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
 
@@ -104,14 +106,14 @@ class SessionFeed {
   /// The session on screen.
   final ValueNotifier<SessionView?> view = ValueNotifier(null);
 
-  final List<StreamSubscription<RtdbEvent>> _subs = [];
   // Cancelled in stop(); the lint cannot see across methods.
+  // ignore: cancel_subscriptions
+  StreamSubscription<RtdbEvent>? _sessionSub;
+  // Cancelled in stop(), as above.
   // ignore: cancel_subscriptions
   StreamSubscription<RtdbEvent>? _liveSub;
   Object? _liveTree;
-  Object? _meta;
-  Object? _msgs;
-  Object? _progress;
+  Object? _session;
 
   /// Starts streaming `live` (idempotent). After [stop], the session that
   /// was on screen is re-followed from a fresh snapshot.
@@ -134,84 +136,43 @@ class SessionFeed {
       }
     });
     final shown = view.value?.sid;
-    if (shown != null && _subs.isEmpty) _subscribe(shown);
+    if (shown != null && _sessionSub == null) _subscribe(shown);
   }
 
   bool _mine(Live live) => subject == null || live.subject == subject;
 
   /// Streams session [sid] (no-op when already on it).
   void follow(String sid) {
-    if (view.value?.sid == sid && _subs.isNotEmpty) return;
+    if (view.value?.sid == sid && _sessionSub != null) return;
     _cancelSession();
-    _meta = null;
-    _msgs = null;
-    _progress = null;
+    _session = null;
     view.value = SessionView(sid: sid);
     _subscribe(sid);
   }
 
-  /// `startAt` for a re-subscribe: the key after the last message already
-  /// held, so a resume downloads only what is new (DOCS-contract §9; RTDB
-  /// honours it on streams). Null when nothing is held.
-  String? _nextKey() {
-    final keys = parseMessages(_msgs).map((m) => m.key);
-    if (keys.isEmpty) return null;
-    return messageKey(int.parse(keys.last.substring(1)) + 1);
-  }
-
   void _subscribe(String sid) {
-    final next = _nextKey();
-    final base = Paths.session(sid);
-    _subs
-      ..add(
-        _stream.listen('$base/meta').listen((e) {
-          _meta = applyEvent(_meta, e);
-          _publish(sid);
-        }),
-      )
-      ..add(
-        _stream
-            .listen(
-              '$base/msgs',
-              query: next == null ? const {} : keyRangeQuery(next),
-            )
-            .listen((e) {
-              // A ranged snapshot holds only the new keys: merge it into
-              // what is held instead of replacing the node.
-              _msgs = next != null && e is RtdbPut && e.path == '/'
-                  ? _merge(_msgs, e.data)
-                  : applyEvent(_msgs, e);
-              _publish(sid);
-            }),
-      )
-      // The turn's thinking / research, live (DOCS-contract §6).
-      ..add(
-        _stream.listen('$base/progress').listen((e) {
-          _progress = applyEvent(_progress, e);
-          _publish(sid);
-        }),
-      );
+    _sessionSub = _stream.listen(Paths.session(sid)).listen((e) {
+      // `receipts` and `user` ride along; nothing here reads them.
+      _session = applyEvent(_session, e);
+      _publish(sid);
+    });
   }
-
-  static Object? _merge(Object? held, Object? fresh) => {
-    if (held is Map<String, dynamic>) ...held,
-    if (fresh is Map<String, dynamic>) ...fresh,
-  };
 
   void _publish(String sid) {
+    final tree = _session;
     view.value = SessionView(
       sid: sid,
-      meta: parseMeta(_meta),
-      messages: parseMessages(_msgs),
-      progress: LiveProgress.parse(_progress),
+      meta: parseMeta(getAt(tree, 'meta')),
+      messages: parseMessages(getAt(tree, 'msgs')),
+      // The turn's thinking / research, live (DOCS-contract §6).
+      progress: LiveProgress.parse(getAt(tree, 'progress')),
     );
   }
 
   void _cancelSession() {
-    for (final s in _subs) {
-      unawaited(s.cancel());
-    }
-    _subs.clear();
+    final sub = _sessionSub;
+    _sessionSub = null;
+    unawaited(sub?.cancel());
   }
 
   /// Stops every listen (screen hidden); the view is kept as last known.

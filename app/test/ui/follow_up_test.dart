@@ -50,7 +50,8 @@ void main() {
   ) async {
     final (db, stream) = await openComposer(t, phone: false, questions: false);
     db.root = setAt(db.root, '$composeBase/meta/card_done', true);
-    stream.listens['$composeBase/meta']!.add(
+    stream.emit(
+      '$composeBase/meta',
       RtdbPut('/', getAt(db.root, '$composeBase/meta')),
     );
     await t.pumpAndSettle();
@@ -76,7 +77,8 @@ void main() {
   testWidgets('phone, keyboard open: card end buttons and Send fit', (t) async {
     final (db, stream) = await openComposer(t, phone: true, questions: false);
     db.root = setAt(db.root, '$composeBase/meta/card_done', true);
-    stream.listens['$composeBase/meta']!.add(
+    stream.emit(
+      '$composeBase/meta',
       RtdbPut('/', getAt(db.root, '$composeBase/meta')),
     );
     t.view.viewInsets = const FakeViewPadding(bottom: 300);

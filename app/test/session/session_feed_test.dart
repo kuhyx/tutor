@@ -32,19 +32,35 @@ void main() {
     expect(feed.live.value!.session, _sid);
     expect(feed.view.value!.sid, _sid);
     expect(feed.view.value!.last, isNull);
-    stream.listens['$_base/meta']!.add(const RtdbPut('/', sessionMeta));
-    stream.listens['$_base/msgs']!
-      ..add(const RtdbPut('/', {'m0002': learnerMessage, 'x': 1}))
-      ..add(const RtdbPatch('/', {'m0001': tutorMessage, 'm0003': 5}));
+    // ONE listen on the session; its events' paths fold into the parts.
+    expect(stream.openPaths, ['tutor/v1/live', _base]);
+    final session = stream.listens[_base]!
+      ..add(const RtdbPut('/meta', sessionMeta))
+      ..add(const RtdbPut('/msgs', {'m0002': learnerMessage, 'x': 1}))
+      ..add(const RtdbPatch('/msgs', {'m0001': tutorMessage, 'm0003': 5}))
+      ..add(const RtdbPut('/receipts/r0001', {'minutes': 1}));
     await _tick();
     final view = feed.view.value!;
     expect(view.meta!.n, 14);
     expect(view.messages.map((m) => m.key), ['m0001', 'm0002']);
     expect(view.last!.message.role, 'learner');
+    expect(view.progress, isNull);
+    session.add(
+      const RtdbPatch('/', {
+        'progress': {
+          'rid': 'r',
+          'steps': {
+            's0001': {'kind': 'thinking', 'text': 'hm'},
+          },
+        },
+      }),
+    );
+    await _tick();
+    expect(feed.view.value!.progress!.steps, hasLength(1));
+    expect(feed.view.value!.meta!.n, 14);
     // Same session again: no resubscribe.
-    final meta = stream.listens['$_base/meta'];
     feed.follow(_sid);
-    expect(stream.listens['$_base/meta'], same(meta));
+    expect(stream.listens[_base], same(session));
     await feed.dispose();
   });
 
@@ -74,21 +90,29 @@ void main() {
     'stop keeps the view; start re-follows it from a fresh snapshot',
     () async {
       feed.follow(_sid);
-      expect(stream.queries['$_base/msgs'], isEmpty);
-      stream.listens['$_base/msgs']!.add(
-        const RtdbPut('/', {'m0001': tutorMessage, 'm0002': learnerMessage}),
+      stream.listens[_base]!.add(
+        const RtdbPut('/', {
+          'msgs': {'m0001': tutorMessage, 'm0002': learnerMessage},
+        }),
       );
       await _tick();
       await feed.stop();
+      expect(stream.openPaths, isEmpty);
       expect(feed.view.value!.sid, _sid);
-      stream.listens.clear();
       feed.start();
-      expect(stream.listens.keys, contains('$_base/meta'));
-      expect(stream.queries['$_base/msgs']!['startAt'], '"m0003"');
-      stream.listens['$_base/msgs']!
-        ..add(const RtdbPut('/', {'m0003': learnerMessage}))
-        ..add(const RtdbPut('/', null))
-        ..add(const RtdbPut('/m0004', learnerMessage));
+      expect(stream.openPaths, ['tutor/v1/live', _base]);
+      // A reconnect's snapshot is the whole session again.
+      stream.listens[_base]!
+        ..add(
+          const RtdbPut('/', {
+            'msgs': {
+              'm0001': tutorMessage,
+              'm0002': learnerMessage,
+              'm0003': learnerMessage,
+            },
+          }),
+        )
+        ..add(const RtdbPut('/msgs/m0004', learnerMessage));
       await _tick();
       expect(feed.view.value!.messages.map((m) => m.key), [
         'm0001',

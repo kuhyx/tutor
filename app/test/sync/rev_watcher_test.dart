@@ -175,4 +175,39 @@ void main() {
     expect(w.listening, isFalse);
     await w.dispose();
   });
+
+  test(
+    'closed while a request is in flight; a move meanwhile is emitted',
+    () async {
+      final s = _FakeStream();
+      final inFlight = ValueNotifier(0);
+      final w = RevWatcher(s, yieldTo: inFlight);
+      final seen = <int>[];
+      final sub = w.catalogChanges.listen(seen.add);
+      s.events!
+        ..add(const RtdbConnected())
+        ..add(const RtdbPut('/', {'catalog': 3}));
+      await Future<void>.delayed(Duration.zero);
+      inFlight.value = 1;
+      expect(w.listening, isFalse);
+      expect(s.events!.hasListener, isFalse);
+      inFlight.value = 2; // a second request: still closed, no new listen
+      expect(s.paths, hasLength(1));
+      // In front again mid-request: stays closed.
+      w.foreground(visible: true);
+      expect(w.listening, isFalse);
+      inFlight.value = 0;
+      expect(w.listening, isTrue);
+      expect(s.paths, hasLength(2));
+      s.events!
+        ..add(const RtdbConnected())
+        ..add(const RtdbPut('/', {'catalog': 4}));
+      await Future<void>.delayed(Duration.zero);
+      expect(seen, [4]);
+      await sub.cancel();
+      await w.dispose();
+      inFlight.value = 1; // no longer heard
+      expect(s.paths, hasLength(2));
+    },
+  );
 }

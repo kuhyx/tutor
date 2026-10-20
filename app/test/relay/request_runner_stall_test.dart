@@ -25,7 +25,12 @@ void main() {
     stream = FakeStream();
   });
 
-  StreamController<RtdbEvent> lastListen() => stream.listens.values.last;
+  /// Delivers [event] for the latest request (over the shared listen).
+  void toLatest(RtdbEvent event) {
+    final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+    final rid = (reqs.keys.toList()..sort()).last;
+    expect(stream.emit('tutor/v1/requests/$rid', event), isTrue);
+  }
 
   group('no reply from the PC', () {
     const sid = '20261012-170448-5b71';
@@ -82,7 +87,7 @@ void main() {
         async
           ..flushMicrotasks()
           ..elapse(const Duration(minutes: 2, seconds: 59));
-        lastListen().add(working);
+        toLatest(working);
         async
           ..flushMicrotasks()
           ..elapse(const Duration(minutes: 2, seconds: 59));
@@ -99,7 +104,7 @@ void main() {
           ..flushMicrotasks()
           ..elapse(const Duration(minutes: 4));
         expect(r.stalled.value, isTrue);
-        lastListen().add(result);
+        toLatest(result);
         async.flushMicrotasks();
         expect(r.busy, isFalse);
         expect(r.stalled.value, isFalse);
@@ -127,7 +132,7 @@ void main() {
         async.flushMicrotasks();
         expect(a, isNull, reason: 'the first caller is not settled early');
         // The reply that was only late arrives once, on the same rid.
-        lastListen().add(result);
+        toLatest(result);
         async.flushMicrotasks();
         expect(a, isA<RelayDone>());
         expect(b, isA<RelayDone>());
@@ -147,7 +152,7 @@ void main() {
         expect(lastRequest(db).$1, isNot(rid));
         expect(r.stalled.value, isFalse);
         // A late result for the abandoned rid changes nothing on screen.
-        stream.listens['tutor/v1/requests/$rid']!.add(result);
+        stream.emit('tutor/v1/requests/$rid', result);
         async.flushMicrotasks();
         expect(r.busy, isTrue);
       });

@@ -103,7 +103,8 @@ void main() {
   testWidgets('phone: Next card says device=phone too', (t) async {
     final (db, stream) = await openComposer(t, phone: true);
     db.root = setAt(db.root, '$composeBase/meta/card_done', true);
-    stream.listens['$composeBase/meta']!.add(
+    stream.emit(
+      '$composeBase/meta',
       RtdbPut('/', getAt(db.root, '$composeBase/meta')),
     );
     await t.pumpAndSettle();

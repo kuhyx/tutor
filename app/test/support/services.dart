@@ -60,6 +60,12 @@ TutorServices services(
   );
   final ulid = UlidGenerator();
   final events = EventLog(client: client, kv: store, dev: testDev, ulid: ulid);
+  final relay = RequestRelay(
+    client: client,
+    stream: stream,
+    dev: testDev,
+    ulid: ulid,
+  );
   return TutorServices(
     config: testConfig,
     dev: testDev,
@@ -67,14 +73,9 @@ TutorServices services(
     auth: auth,
     client: client,
     stream: stream,
-    relay: RequestRelay(
-      client: client,
-      stream: stream,
-      dev: testDev,
-      ulid: ulid,
-    ),
+    relay: relay,
     presence: PresenceWatcher(stream),
-    rev: RevWatcher(stream),
+    rev: RevWatcher(stream, yieldTo: relay.inFlight),
     events: events,
     home: HomeLoader(client: client, kv: store, events: events),
     catalog: Catalog(client: client, kv: store),
