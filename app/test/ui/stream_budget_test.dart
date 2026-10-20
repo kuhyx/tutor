@@ -106,6 +106,9 @@ Future<void> _send(WidgetTester t, String text) async {
     await t.tap(find.widgetWithText(FilledButton, 'Next'));
     await _settle(t);
   }
+  // The phone's caret handle can sit over Send: leave the box first.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await t.pump();
   await t.ensureVisible(send);
   await t.pump();
   await t.tap(send);
@@ -113,6 +116,8 @@ Future<void> _send(WidgetTester t, String text) async {
 }
 
 void main() {
+  // A tap that misses would leave a state unexercised and the count vacuous.
+  WidgetController.hitTestWarningShouldBeFatal = true;
   for (final size in [_wide, _phone]) {
     final label = size == _phone ? 'phone' : 'wide';
 
@@ -144,6 +149,7 @@ void main() {
       await _send(t, 'what if I forge it?');
       await _sync(t, db, stream);
       _within(stream, 'card end, follow-up in flight');
+      _holds(stream, {_workers, _live, _base, _requests});
     });
 
     testWidgets('$label: History, Ask a follow-up, then its Session', (
@@ -165,9 +171,11 @@ void main() {
       await t.tap(find.text('Ask'));
       await sent(t);
       _within(stream, 'follow_up_open in flight');
+      _holds(stream, {_workers, _requests});
       await answer(t, db, stream, data: {'session': _old}, settle: false);
       await sent(t);
       _within(stream, 'follow-up message in flight');
+      _holds(stream, {_workers, _requests});
       await answer(t, db, stream, data: {'msg': 'm0003'}, settle: false);
       await _settle(t);
       await _sync(t, db, stream);
