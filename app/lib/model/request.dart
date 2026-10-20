@@ -4,8 +4,7 @@ library;
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/root.dart';
 
-/// Serial queue a request runs in; a later rid never overtakes an earlier
-/// one within a lane.
+/// Serial queue a request runs in (a later rid never overtakes an earlier).
 enum Lane {
   /// Session kinds.
   chat,
@@ -55,6 +54,9 @@ enum RequestKind {
   /// Stop the session.
   stop('stop', Lane.chat),
 
+  /// Reopen a finished session for follow-up questions.
+  followUpOpen('follow_up_open', Lane.chat),
+
   /// Manual card-done override.
   cardDone('card_done', Lane.chat),
 
@@ -97,7 +99,6 @@ enum Phase {
   publishing;
 
   new([this._wire]);
-
   final String? _wire;
 
   /// Name on the wire.

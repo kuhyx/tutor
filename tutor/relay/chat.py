@@ -104,6 +104,20 @@ async def session_resume(ctx: RequestContext) -> dict[str, Any]:
     return {"session": engine.session_id}
 
 
+async def follow_up_open(ctx: RequestContext) -> dict[str, Any]:
+    """Reopen a finished session for follow-up questions (``tutor.follow_up``).
+
+    Refused (``session_live``) while another session is live.
+    """
+    engine, sid = ctx.engine, str(ctx.body["session"])
+    path = history.transcript_path(_sessions(engine), sid)
+    if path is None:
+        msg = f"no session {sid} to reopen"
+        raise RequestError(msg, code="bad_request")
+    await engine.follow_up_open(path)
+    return {"session": engine.session_id}
+
+
 async def message(ctx: RequestContext) -> dict[str, Any]:
     """The learner's message to the live session; ``rid`` is its ``msg_id``."""
     engine, req = ctx.engine, ctx.request
@@ -188,6 +202,7 @@ CHAT_HANDLERS: Final[
     "message": _needs_claude(message),
     "next": _needs_claude(next_card),
     "stop": stop,
+    "follow_up_open": _needs_claude(follow_up_open),
     "card_done": card_done,
     "drill_next": drill_next,
     "drill_answer": drill_answer,

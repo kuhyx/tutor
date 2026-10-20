@@ -15,7 +15,7 @@ from dataclasses import asdict
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import continuing, credit, gating, picked, unit_credit
+from tutor import continuing, credit, follow_up, gating, picked, unit_credit
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.source import source_for, transcript_subject
@@ -224,19 +224,18 @@ class CardFlow:
                 names, card.id, self.session_id
             )
         # Only a card_done reads progress.json: most turns end nothing.
-        done = bool(logged["card_done"])
+        done = bool(logged["card_done"]) and not conv.follow_up
         need = gating.missing(card, self.source.done()) if done else []
         if need:  # locked: logged as refused, so replay and repair skip it
             logged["card_done"], logged["card_done_refused"] = False, need
             conv.notes.append(gating.refused_note(card, need))
         elif done:  # the tutor's word is enough (b193: a gate dropped it)
-            if conv.mark_card_done():
-                self.source.mark(card.id, self.session_id, done=True)
+            conv.mark_card_done()  # the first time: a done card is a follow-up
+            self.source.mark(card.id, self.session_id, done=True)
             message["card_done"] = True
         conv.messages.append(message)
-        self.store.log(
-            self.session_id, {"type": "tutor", "turn": logged, "ui": message, "t": t}
-        )
+        event = {"type": "tutor", "turn": logged, "ui": message, "t": t}
+        self.store.log(self.session_id, event | follow_up.tag(conv))
         self._record(conv.clock.ready_blocks())
 
     def _record(self, units: list[BlockReady]) -> None:

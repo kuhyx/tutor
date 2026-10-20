@@ -126,6 +126,14 @@ class EngagementClock:
         if self._turn.tutor_at is not None:
             self._turn.restarted_at = t
 
+    def reopened(self, t: float) -> None:
+        """A stopped session reopened at ``t``: the idle gap before earns nothing.
+
+        Like a fresh tutor message at ``t``: the learner's next reply is timed
+        from the reopening, never from the last message before the stop.
+        """
+        self._turn = _Turn(tutor_at=t)
+
     def user_reply(
         self,
         t: float,

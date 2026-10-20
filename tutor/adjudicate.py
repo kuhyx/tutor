@@ -152,21 +152,32 @@ def verdicts(events: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
             f"recorded credit rows with checks_passed == 0: units {unchecked}",
         ),
         (
-            "h. card_done is followed by Next card or Stop here",
+            "h. card_done is followed by Next card, Stop here or a follow-up",
             _choice_follows_card_done(events),
-            "card_done turn, then a next_card or stop event",
+            "card_done turn, then a next_card, stop or follow-up event",
         ),
     ]
 
 
 def _choice_follows_card_done(events: list[dict[str, Any]]) -> bool:
-    """Some tutor turn has ``ui.card_done`` and each is followed by a choice."""
+    """Some tutor turn has ``ui.card_done`` and each is followed by a choice.
+
+    A choice is Next card, Stop here, or asking on: a follow-up message or a
+    reopen (``follow_up``). Follow-up turns are past card end, not a new one.
+    """
     done_at = [
         i
         for i, e in enumerate(events)
-        if e["type"] == "tutor" and e.get("ui", {}).get("card_done")
+        if e["type"] == "tutor"
+        and e.get("ui", {}).get("card_done")
+        and not e.get("follow_up")
     ]
-    choices = [i for i, e in enumerate(events) if e["type"] in {"next_card", "stop"}]
+    choices = [
+        i
+        for i, e in enumerate(events)
+        if e["type"] in {"next_card", "stop", "follow_up_open"}
+        or (e["type"] == "learner" and e.get("follow_up"))
+    ]
     return bool(done_at) and all(any(c > i for c in choices) for i in done_at)
 
 

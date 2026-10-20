@@ -15,13 +15,14 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from tutor import cards as cards_mod
-from tutor import gating, media, resume, unit_credit
+from tutor import follow_up, gating, media, resume, unit_credit
 from tutor.cardflow import CardFlow
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
 from tutor.curriculum.source import CardSource, source_for
 from tutor.delivery import DESKTOP, Delivery, learner_message
 from tutor.edit_flow import EditFlow
+from tutor.follow_up import FollowUpFlow
 from tutor.prompt import system_prompt, turn_prompt
 from tutor.session import TutorSession, isolated_options
 from tutor.store import Store
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
     from tutor.clock import BlockReady
 
 
-class Engine(CardFlow, EditFlow, Upkeep):
+class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
     """One study session at a time, for one learner."""
 
     def __init__(
@@ -168,6 +169,7 @@ class Engine(CardFlow, EditFlow, Upkeep):
                 return self.state()
             if self.simulated:
                 self._offset += max(0.0, advance_s)
+            follow_up.enter(conv)
             gone = await self._turn(text, learner_text=text, msg_id=msg_id, via=via)
             conv.resumed.answered_id = msg_id
             await self._leave_removed(conv, gone, via.device)
@@ -211,7 +213,8 @@ class Engine(CardFlow, EditFlow, Upkeep):
             self.store.log(
                 self.session_id,
                 {"type": "learner", "text": learner_text, "note": asked.note}
-                | {"t": t_learner, "msg_id": msg_id, "device": via.device},
+                | {"t": t_learner, "msg_id": msg_id, "device": via.device}
+                | follow_up.tag(conv),
             )
         turn, _ = await session.ask(asked.text)
         if not self.source.profile.diagrams:  # schemdraw draws circuits only

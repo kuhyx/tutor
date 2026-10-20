@@ -110,6 +110,11 @@ class RequestBody {
   factory stop(String session) =>
       RequestBody._(RequestKind.stop, {'session': session});
 
+  /// `follow_up_open`: reopen [session] (its card done there) for follow-up
+  /// questions; refused with `session_live` while another one is live.
+  factory followUpOpen(String session) =>
+      RequestBody._(RequestKind.followUpOpen, {'session': session});
+
   /// `card_done`: manual override.
   factory cardDone(String subject, String card, {bool done = true}) =>
       RequestBody._(RequestKind.cardDone, {

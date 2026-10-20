@@ -13,7 +13,7 @@ from tutor import picked
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
 from tutor.delivery import note_lines
-from tutor.prompt_rules import render_system
+from tutor.prompt_rules import FOLLOW_UP, render_system
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -130,8 +130,12 @@ def engine_note(
     notes: list[str],
     attempt: int = 1,
 ) -> str:
-    """The per-turn app note that precedes the learner's words."""
+    """The per-turn app note that precedes the learner's words.
+
+    A follow-up turn (``FOLLOW_UP`` in ``notes``) never has a check due.
+    """
     due = since_check_s >= CHECK_EVERY_SECONDS and not check_open
+    due = due and FOLLOW_UP not in notes
     lines = [
         f"active_minutes: {active_s / 60:.1f}",
         f"minutes_since_last_check: {since_check_s / 60:.1f}",
@@ -159,7 +163,12 @@ def turn_prompt(
         active,
         active - conv.check.mark,
         check_open=conv.check.open,
-        notes=[*conv.notes, *note_lines(device), *picked.note(tap=tap)],
+        notes=[
+            *([FOLLOW_UP] if conv.follow_up else []),
+            *conv.notes,
+            *note_lines(device),
+            *picked.note(tap=tap),
+        ],
         attempt=conv.check.attempt or 1,
     )
     body = wrap_learner(prompt_text) if learner_text else prompt_text

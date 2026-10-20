@@ -151,3 +151,22 @@ phase: the line reads "No reply from PC — send again" and Send, Ctrl+Enter and
 Hint reopen (typed text is kept). The same text again re-PUTs the same rid, so
 a late result lands once (done-map, no second model call); other text is a new
 message under a new rid.
+
+## Follow-ups (`tutor/follow_up.py`)
+- At card end the client keeps the composer under Next card / Stop here; a
+  `message` there is a follow-up turn. From History, `follow_up_open` reopens
+  a session whose card was done in it (else `bad_request`: use Repeat),
+  refused with `session_live` while another session is live. It appends
+  `{"type":"follow_up_open","t"}` to the SAME transcript; replay makes the
+  session live again and a later `stop` ends it again.
+- Follow-up `learner` / `tutor` events carry `"follow_up": true`. The engine
+  note adds `prompt_rules.FOLLOW_UP` (general knowledge allowed, no check
+  due). The card never becomes not done: the tutor's `card_done` is ignored
+  (no second banner), a failed check changes nothing, and a manual "not
+  done" changes `progress.json` only, the session stays at card end. A
+  `card_edits` removal of the live card applies and then only stops the
+  session (no next card).
+- Credit: the reopened session is rebuilt by replay, so minutes continue the
+  session's own `-m<n>` numbering (the ledger dedupes any top-up); the clock
+  restarts at the reopen, so the idle time before it earns nothing. The
+  per-session cap (`MAX_UNITS` = 60) covers the follow-ups too.

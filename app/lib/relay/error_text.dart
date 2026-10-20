@@ -14,6 +14,7 @@ const claudeUnavailable = 'claude_unavailable';
 const Map<String, String> _headlines = {
   'bad_request': 'The PC could not read that request.',
   'not_live': 'That session is no longer live.',
+  'session_live': 'Another session is live.',
   'locked': 'That is locked until earlier modules are reviewed.',
   'daily_new_cap': "You reached today's limit of new cards.",
   'no_card_left': 'No card left to teach in this subject right now.',

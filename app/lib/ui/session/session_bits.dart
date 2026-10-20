@@ -29,11 +29,8 @@ class CardEnd extends StatelessWidget {
       const Expanded(child: Text('Card done ✓')),
       OutlinedButton(onPressed: onStop, child: const Text('Stop here')),
       const SizedBox(width: AppSpacing.sm),
-      FilledButton(
-        autofocus: true,
-        onPressed: onNext,
-        child: const Text('Next card'),
-      ),
+      // No autofocus: the follow-up composer below takes the keys.
+      FilledButton(onPressed: onNext, child: const Text('Next card')),
     ],
   );
 }

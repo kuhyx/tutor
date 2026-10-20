@@ -102,3 +102,27 @@ def test_refuses_the_real_data_dir_and_a_used_dst(
     (used / "x").write_text("")
     with pytest.raises(module.PrepareError):
         module.prepare(src, used)
+
+
+def test_as_of_cuts_a_kept_transcript_mid_session(src: Path, tmp_path: Path) -> None:
+    """A session at card end, before its Next card: F3's starting point."""
+    kept = src / "sessions/20261017-180000-aaaa.jsonl"
+
+    def at(clock: str) -> str:
+        shape = "%Y-%m-%d %H:%M:%S"
+        return datetime.strptime(f"2026-10-17 {clock}", shape).astimezone().isoformat()
+
+    events = [
+        {"type": "start", "logged_at": at("18:00:00")},
+        {"type": "tutor", "logged_at": at("18:05:10")},
+        {"type": "next_card", "logged_at": at("18:05:50")},
+        {"type": "stop", "logged_at": at("18:05:50")},
+    ]
+    kept.write_text("".join(json.dumps(e) + "\n" for e in events))
+    module = _module()
+    as_of = module.parse_as_of("2026-10-17 18:05:30")
+    module.prepare(src, tmp_path / "box", as_of=as_of)
+    cut = (tmp_path / "box/sessions/20261017-180000-aaaa.jsonl").read_text()
+    assert [json.loads(x)["type"] for x in cut.splitlines()] == ["start", "tutor"]
+    minute = datetime.strptime("2026-10-17 18:05", "%Y-%m-%d %H:%M").astimezone()
+    assert module.parse_as_of("2026-10-17 18:05") == minute

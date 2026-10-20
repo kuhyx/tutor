@@ -164,6 +164,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     ),
     "next": (CHAT, {"session": _session, "device": delivery.device}),
     "stop": (CHAT, {"session": _session}),
+    "follow_up_open": (CHAT, {"session": _session}),  # reopen (``follow_up``)
     "card_done": (CHAT, {"subject": _opt_slug, "card": _slug, "done": _bool}),
     # The model-free drill (``tutor.drill``): served while Claude is not.
     "drill_next": (CHAT, {"subject": _opt_slug}),

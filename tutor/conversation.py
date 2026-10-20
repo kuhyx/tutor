@@ -49,6 +49,9 @@ class Resumption:
     # Id of the last learner message answered; a resend after a dropped
     # connection (the page retries through a restart) is not asked twice.
     answered_id: str = ""
+    # Follow-up mode (``Conversation.follow_up``): replayed from its tags, and
+    # a reopened session's fresh process is primed for it.
+    follow_up: bool = False
 
 
 @dataclass
@@ -66,7 +69,8 @@ class Conversation:
     resumed: Resumption = field(default_factory=Resumption)
     # The card is finished and the learner's Next card / Stop here is pending.
     card_done: bool = False
-    # The learner chose Stop here: the session is over and is never resumed.
+    # The learner chose Stop here: the session is over and is never resumed
+    # (unless reopened for follow-up questions, ``reopen``).
     stopped: bool = False
     # Every card studied in this session, in order, and those finished.
     cards: list[str] = field(default_factory=list)
@@ -76,6 +80,18 @@ class Conversation:
         """The session starts on its first card."""
         if not self.cards:
             self.cards = [self.card_id]
+
+    @property
+    def follow_up(self) -> bool:
+        """Follow-up mode: the learner asks on after the card is done.
+
+        At card end, or reopened from History; ``card_done`` then stays true.
+        """
+        return self.resumed.follow_up
+
+    @follow_up.setter
+    def follow_up(self, on: bool) -> None:
+        self.resumed.follow_up = on
 
     def pose_check(self, t: float) -> None:
         """The tutor posed a comprehension check at ``t``."""
@@ -129,8 +145,20 @@ class Conversation:
         """A manual override for one of this session's cards (live and replay)."""
         if done and card_id in self.cards and card_id not in self.cards_done:
             self.cards_done.append(card_id)
-        if card_id == self.card_id:
+        # Follow-up mode keeps the session at card end (progress.json still
+        # takes the learner's override).
+        if card_id == self.card_id and (done or not self.follow_up):
             self.card_done = done
+
+    def reopen(self, t: float) -> None:
+        """A finished session reopened at ``t`` for follow-up questions.
+
+        Live and replay alike: live again, in follow-up mode, any old check
+        dropped, and the clock timed from now (the idle gap earns nothing).
+        """
+        self.stopped, self.resumed.follow_up = False, True
+        self.check.open, self.check.attempt = False, 0
+        self.clock.reopened(t)  # also closes the clock's open check
 
     def switch_card(self, card_id: str, front: str) -> dict[str, Any]:
         """Move to the next card of the same session; returns the page divider.

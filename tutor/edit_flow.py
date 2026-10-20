@@ -12,8 +12,10 @@ turn. Applied edits become ``notices`` lines on the turn's page message
 keep; refused ones go to the tutor in the next engine note. Removing the
 live card ends the session (``next_card`` + ``stop``, as Next card does) and
 opens the next card, whose first message carries the notice; with no card
-left the session stops. A rewrite of the live card reaches the model from
-the card's next session (the prompt is per session). Undo: the Editor.
+left the session stops. In follow-up mode (``follow_up``) it only stops: the
+card was done, and the learner was asking about it, not studying on. A
+rewrite of the live card reaches the model from the card's next session
+(the prompt is per session). Undo: the Editor.
 ``Engine`` mixes this in.
 """
 
@@ -141,6 +143,11 @@ class EditFlow:
         if not gone:
             return
         sid = conv.session_id
+        if conv.follow_up:  # a done card: no next card is pushed on the learner
+            self.store.log(sid, {"type": "stop"})
+            await self.close()
+            self._conv, self.card = None, None
+            return
         try:
             nxt = self.source.pick(None, skip=conv.card_id)
         except ValueError as err:
