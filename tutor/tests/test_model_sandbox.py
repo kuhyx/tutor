@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import tempfile
 
@@ -92,6 +93,37 @@ def test_private_paths_are_invisible(tutor_sandbox: Path, root: Path) -> None:
     run = inside(root, checks + " true")
     assert run.returncode == 0, run.stderr
     assert "SEEN" not in run.stdout
+
+
+def test_host_services_are_unreachable(root: Path) -> None:
+    """No route back to the host: its loopback (the tutor's :8778 API, which
+    mints credit) and its abstract unix sockets (the X server)."""
+    tcp = socket.socket()
+    tcp.bind(("127.0.0.1", 0))
+    tcp.listen()
+    port = tcp.getsockname()[1]
+    abstract = socket.socket(socket.AF_UNIX)
+    name = f"tutor-sandbox-test-{os.getpid()}"
+    abstract.bind("\0" + name)
+    abstract.listen()
+    script = (
+        "import socket\n"
+        "for family, address in ("
+        f"(socket.AF_INET, ('127.0.0.1', {port})), "
+        f"(socket.AF_UNIX, '\\0{name}')):\n"
+        "    s = socket.socket(family)\n"
+        "    s.settimeout(3)\n"
+        "    try:\n"
+        "        s.connect(address)\n"
+        "        print('REACHED', address)\n"
+        "    except OSError as err:\n"
+        "        print('refused', address, err)\n"
+    )
+    with tcp, abstract:
+        run = inside(root, f'python3 -c "{script}"')
+    assert run.returncode == 0, run.stderr
+    assert "REACHED" not in run.stdout
+    assert sum(ln.startswith("refused ") for ln in run.stdout.splitlines()) == 2
 
 
 def test_the_environment_is_an_allowlist(root: Path) -> None:

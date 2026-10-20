@@ -9,7 +9,11 @@
 #   - a scratch HOME ($TUTOR_MODEL_SANDBOX/home, same path inside and out)
 #     the model may install into, and a fresh working dir per process;
 #   - the real CLI binary alone, read-only, at /opt/claude/claude;
-#   - full network, a private /tmp, /proc of its own pid namespace.
+#   - the internet through pasta (passt) in a network namespace of its own,
+#     with no route back to the host: no loopback services (the tutor's :8778
+#     API, which drives the engine and mints credit), no forwarded ports, no
+#     abstract unix sockets (the X server); a private /tmp, /proc of its own
+#     pid namespace.
 # Nothing else of $HOME: no data dir, ledger, releases, repo or ~/.claude.
 # The CLI's login is a copy tutor.research writes into the scratch HOME
 # (access token only). The environment is cleared down to an allowlist, so
@@ -71,6 +75,7 @@ pass_env() {
 main() {
     [[ -x "$TUTOR_MODEL_CLI" ]] || die "not executable: $TUTOR_MODEL_CLI"
     command -v bwrap >/dev/null || die "bwrap (bubblewrap) is not installed"
+    command -v pasta >/dev/null || die "pasta (passt) is not installed"
     mkdir -p "$WORK_ROOT"
     # Per-process working dirs older than a day are left-overs: drop them.
     find "$WORK_ROOT" -mindepth 1 -maxdepth 1 -mmin +1440 -exec rm -rf {} + || true
@@ -79,6 +84,7 @@ main() {
 
     local -a args=(
         --unshare-all --share-net --die-with-parent --new-session
+        --uid "$(id -u)" --gid "$(id -g)"
         --clearenv
         --ro-bind /usr /usr
         --proc /proc --dev /dev --tmpfs /tmp --tmpfs /var/tmp --tmpfs /run
@@ -100,7 +106,10 @@ main() {
         --setenv NPM_CONFIG_PREFIX "${BOX_HOME}/.npm-global"
         --setenv PIP_BREAK_SYSTEM_PACKAGES 1
     )
-    exec bwrap "${args[@]}" -- "$CLI_INSIDE" "$@"
+    # pasta: a new user + network namespace, no port forwarding either way
+    # and the gateway not mapped to the host, so only the outside is reachable.
+    exec pasta --quiet --config-net -t none -u none -T none -U none --no-map-gw \
+        -- bwrap "${args[@]}" -- "$CLI_INSIDE" "$@"
 }
 
 main "$@"

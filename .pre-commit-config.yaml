@@ -80,7 +80,7 @@ repos:
       - id: codespell
         args:
           - --skip=*.json,*.lock,.git,__pycache__,.venv
-          - --ignore-words-list=nd,te,als,ans,ot
+          - --ignore-words-list=nd,te,als,ans,ot,passt
           - --uri-ignore-words-list=produkt
   - repo: local
     hooks:

@@ -15,7 +15,7 @@ no hook events, so ``tutor.isolation`` still counts 0):
   start the turn's research clock.
 - PreToolUse: :class:`ResearchBudget` denies every tool call once
   :data:`RESEARCH_SECONDS` of the turn have passed, so the tutor answers with
-  what it has. Bash calls are capped at 60 s by env; both keep a turn well
+  what it has. Bash calls are capped at 30 s by env; both keep a turn well
   under ``session._TURN_TIMEOUT``.
 """
 
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk import HookContext, HookInput, HookJSONOutput
 
 RESEARCH_SECONDS: Final = 90
-BASH_TIMEOUT_MS: Final = "60000"
+BASH_TIMEOUT_MS: Final = "30000"
 WRAPPER: Final = (
     Path(__file__).resolve().parents[1] / "scripts" / "tutor_model_sandbox.sh"
 )

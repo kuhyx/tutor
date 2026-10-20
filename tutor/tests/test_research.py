@@ -83,7 +83,7 @@ def test_research_options_run_every_tool_through_the_wrapper(
     root = research.sandbox_root()
     assert opts.env["TUTOR_MODEL_SANDBOX"] == str(root)
     assert Path(opts.env["TUTOR_MODEL_CLI"]).name.startswith("claude")
-    assert opts.env["BASH_MAX_TIMEOUT_MS"] == "60000"
+    assert opts.env["BASH_MAX_TIMEOUT_MS"] == "30000"
     assert opts.cwd is not None
     assert Path(opts.cwd) == root / "home" / "work"
     assert Path(opts.cwd).is_dir()
@@ -101,8 +101,10 @@ def test_free_text_research_options(tutor_sandbox: Path) -> None:
 
 def test_research_budget_is_bounded_by_the_turn_timeout() -> None:
     assert research.RESEARCH_SECONDS == 90
-    # Last tool call at the cap, a full Bash timeout, then the answer.
-    assert research.RESEARCH_SECONDS + 60 < session._TURN_TIMEOUT
+    # Last tool call at the cap, a full Bash timeout, then the answer: well
+    # inside the turn timeout and the app's 3 minute stall.
+    bash = int(research.BASH_TIMEOUT_MS) / 1000
+    assert research.RESEARCH_SECONDS + bash <= 120 < session._TURN_TIMEOUT
 
 
 # --- the turn hooks ----------------------------------------------------------
