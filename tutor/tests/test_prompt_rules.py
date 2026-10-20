@@ -12,6 +12,7 @@ import re
 
 import pytest
 
+from tutor import research
 from tutor.cards import Card, Topic
 from tutor.curriculum import profiles
 from tutor.prompt import system_prompt
@@ -131,3 +132,30 @@ def test_check_grades_against_the_whole_session(profile: profiles.Profile) -> No
     assert "a definition that states the difference answers" in rule
     assert "naming the card's mechanism" in rule
     assert "Fail only a missing or wrong core idea" in rule
+
+
+# 2026-10-20 (kuhy): the tutor may research beyond the card instead of being
+# confined to it; the card's source stays the authority for the card.
+@PROFILES
+def test_grounding_lets_the_tutor_research(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 9)
+    assert "authority for what the card says" in rule
+    assert profile.slots["specifics"] in rule
+    assert profile.slots["textbook"] in rule
+    assert "general knowledge" in rule
+    for tool in ("WebSearch", "WebFetch", "Bash", "Task"):
+        assert tool in rule
+    assert "whenever you are unsure" in rule
+    assert "inline markdown link" in rule
+    assert "never silently contradict" in rule
+    assert "disposable sandbox" in rule
+    assert f"{research.RESEARCH_SECONDS} seconds" in rule
+    assert "Do not invent numbers or standards." in rule
+
+
+@PROFILES
+def test_card_edits_may_swap_the_source(profile: profiles.Profile) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 15)
+    assert "source and excerpt stay" not in rule
+    assert "a new `source`" in rule
+    assert "better or newer" in rule

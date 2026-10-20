@@ -5,7 +5,8 @@
 # desktop web app on 127.0.0.1:8778/app/ plus the Firebase relay the phone
 # and that app talk to.
 # Enabled under default.target (linger is on), so it is back after every
-# reboot or curfew shutdown. Writes only under $HOME. Rerunnable.
+# reboot or curfew shutdown. Writes only under $HOME, except the pacman
+# install of the model sandbox's bwrap + pasta when missing. Rerunnable.
 #
 # It never restarts a running server (that is scripts/tutor_deploy.sh's job,
 # after a reply finishes), and never starts one while anything else holds the
@@ -29,6 +30,15 @@ ensure_venv() {
     if ! "$REPO/.venv/bin/python" -c 'import crdt_sync, httpx' 2>/dev/null; then
         log "setting up the venv"
         "$REPO/scripts/setup_dev.sh"
+    fi
+}
+
+# The tutor model's CLI runs in bubblewrap behind pasta
+# (scripts/tutor_model_sandbox.sh); without them every turn fails.
+ensure_sandbox_tools() {
+    if ! command -v bwrap >/dev/null || ! command -v pasta >/dev/null; then
+        log "installing bubblewrap and passt (the model sandbox)"
+        sudo pacman -S --needed --noconfirm bubblewrap passt
     fi
 }
 
@@ -57,6 +67,7 @@ start_unit() {
 main() {
     command -v systemctl >/dev/null || { log "systemctl is required"; exit 1; }
     ensure_venv
+    ensure_sandbox_tools
     install_unit
     start_unit
 }

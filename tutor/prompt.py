@@ -13,7 +13,8 @@ from tutor import picked
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
 from tutor.delivery import note_lines
-from tutor.prompt_rules import FOLLOW_UP, render_system
+from tutor.follow_up_rules import FOLLOW_UP
+from tutor.prompt_rules import render_system
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -132,7 +133,7 @@ def engine_note(
 ) -> str:
     """The per-turn app note that precedes the learner's words.
 
-    A follow-up turn (``FOLLOW_UP`` in ``notes``) never has a check due.
+    A follow-up turn (``follow_up_rules.FOLLOW_UP`` in ``notes``) never has a check due.
     """
     due = since_check_s >= CHECK_EVERY_SECONDS and not check_open
     due = due and FOLLOW_UP not in notes

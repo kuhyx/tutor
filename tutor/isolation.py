@@ -1,6 +1,9 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Prove the tutor session does not see kuhy's ~/.claude (canary test).
 
+The tutor side runs the options that go live (``research.research_options``:
+every tool, inside the bubblewrap sandbox).
+
 Writes a random-token rule file into ``~/.claude/rules/`` for a few seconds,
 asks a session with DEFAULT options (positive control: must report the token)
 and one with the tutor's isolated options (must report NONE), then deletes
@@ -16,7 +19,8 @@ import sys
 
 from claude_agent_sdk import ClaudeAgentOptions
 
-from tutor.session import MODEL, TutorSession, isolated_options
+from tutor.research import research_options
+from tutor.session import MODEL, TutorSession
 
 
 def canary_file() -> Path:
@@ -54,7 +58,7 @@ async def run_canary() -> int:
                 extra_args={"no-session-persistence": None},
             )
         )
-        tutor = await _ask(isolated_options("You are a test.", structured=False))
+        tutor = await _ask(research_options("You are a test.", structured=False))
     finally:
         canary.unlink(missing_ok=True)
     print(f"control (default options): {control[0]!r}  expect token {token}")

@@ -72,7 +72,8 @@ def _one(ctx: Context, subject: str, live: str, edit: CardEdit) -> tuple[str, bo
         draft = card_ops.Draft(topic, edit.front, edit.back, edit.source, edit.quote)
         _, rec = card_ops.add(ctx, subject, draft)
         return f"Card added: {rec.front}", False
-    rec = card_ops.rewrite(ctx, subject, cid, front=edit.front, back=edit.back)
+    change = card_ops.Rewrite(edit.front, edit.back, edit.source, edit.quote)
+    rec = card_ops.rewrite(ctx, subject, cid, change)
     return f"Card updated: {rec.front}", False
 
 

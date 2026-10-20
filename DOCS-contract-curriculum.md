@@ -119,6 +119,9 @@ pass the same vectors.
   prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New id = given one, else slug of
   `front`. Tutor edits (rule 15): `tutor/edit_flow.py`; undo: `curriculum/card_undo.py`.
+  A tutor `edit` may move a card to a new `source` its research found: code
+  quotes the new excerpt from that page (`card_ops.Rewrite`), and `card_edit`
+  checks it against the new URL.
 - Concepts: `subjects/{subj}/concepts` (array, appended by worker only) =
   `[{"name":"normally closed contact","at":ms,"card":"ld-x","session":sid}]`.
 

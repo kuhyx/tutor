@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import pytest
 
-from tutor import isolation, session
+from tutor import isolation, research, session
 from tutor.session import Reply, isolated_options
 from tutor.tests.test_session import FakeClient, result
 
@@ -78,6 +78,9 @@ def test_pass_when_control_sees_token_and_tutor_sees_none(
     assert fake.options[0].allowed_tools == []
     assert fake.options[0].max_turns == 1
     assert fake.options[1].setting_sources == []
+    # The canary runs the options that go live: the sandboxed, all-tools ones.
+    assert fake.options[1].permission_mode == "bypassPermissions"
+    assert fake.options[1].cli_path == research.WRAPPER
     assert not isolation.canary_file().exists()
 
 

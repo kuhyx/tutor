@@ -12,9 +12,9 @@ import pytest
 from tutor import resume
 from tutor.clock import EngagementClock
 from tutor.engine import Engine
+from tutor.follow_up_rules import FOLLOW_UP
 from tutor.ledger_io import default_paths
 from tutor.prompt import engine_note
-from tutor.prompt_rules import FOLLOW_UP
 from tutor.store import Store
 from tutor.tests._cur import T0
 from tutor.tests._fakes import FakeSession, ManualClock, turn

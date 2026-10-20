@@ -219,9 +219,8 @@ per device (shallow first), ~150 B/event. 1 h chat/day ~2-5 MB/device/day, <0.2 
 - All RTDB content is untrusted: worker validates kind, id regexes, types,
   sizes; ignores unknown fields; never builds a path/filename from an
   unvalidated id.
-- Model isolation unchanged (`isolated_options`: no tools, MCP, settings);
-  learner text wrapped (`wrap_learner`); fetched pages and RTDB text change
-  only text, never actions.
+- No MCP, settings or hooks for any model; tools only for the tutor, in
+  bubblewrap (`research.py`), else `isolated_options`; `wrap_learner`.
 - Client: markdown with raw HTML off; https links only; image host allowlist;
   SVG only from worker.
 - Credit unforgeable via RTDB: root-owned HMAC key stays on the PC; time

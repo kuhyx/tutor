@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from tutor.session import TutorSession, isolated_options
+from tutor import research
+from tutor.session import TutorSession
 from tutor.trace import traced
 
 if TYPE_CHECKING:
@@ -70,5 +71,9 @@ class PhasedSession(TutorSession):
 
 
 def session_factory(sink: PhaseSink) -> Callable[[str], TutorSession]:
-    """The engine's ``session_factory`` for a relay-enabled process."""
-    return lambda prompt: PhasedSession(traced(isolated_options(prompt)), sink)
+    """The engine's ``session_factory`` for a relay-enabled process.
+
+    Its sessions have the tutor's research tools (``tutor.research``) and a
+    visible, streamed trace (``tutor.trace``).
+    """
+    return lambda prompt: PhasedSession(traced(research.research_options(prompt)), sink)

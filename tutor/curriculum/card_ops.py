@@ -1,8 +1,10 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """The tutor's own card edits, applied to the data-dir subject (never the repo).
 
-- :func:`rewrite`: new front and/or back; source, excerpt and ``requires``
-  stay. Through ``card_edit``, so every deck rule and the excerpt check run.
+- :func:`rewrite`: new front and/or back, and optionally a new source (a
+  page the tutor's research found): code quotes the new excerpt from it
+  (``quote``), as for :func:`add`; ``requires`` stays. Through ``card_edit``,
+  so every deck rule and the excerpt check (against the new URL) run.
 - :func:`add`: a new card from front, back and a source URL. Code quotes the
   supporting sentence of the page (``quote``), then ``card_edit`` checks the
   card exactly as for any other edit.
@@ -56,21 +58,42 @@ def _card(ctx: Context, subject: str, cid: str) -> CardRec:
     return found
 
 
-def rewrite(ctx: Context, subject: str, cid: str, *, front: str, back: str) -> CardRec:
-    """``cid`` with a new front and/or back (empty: kept); returns the card."""
+@dataclass(frozen=True)
+class Rewrite:
+    """A change to a card's text and/or source; an empty field keeps the old."""
+
+    front: str = ""
+    back: str = ""
+    source: str = ""  # a new page: its excerpt is quoted by code
+    quote: str = ""  # words the new page's supporting sentence holds
+
+
+def rewrite(ctx: Context, subject: str, cid: str, change: Rewrite) -> CardRec:
+    """``cid`` with ``change`` applied; returns the card.
+
+    A ``source`` other than the card's moves it to that page: the excerpt is
+    re-quoted from the page by code (``quote``: words of the supporting
+    sentence), never taken from the model.
+    """
     old = _card(ctx, subject, cid)
-    new = (" ".join(front.split()) or old.front, " ".join(back.split()) or old.back)
-    if new == (old.front, old.back):  # a rev bump would clear the learner's flags
-        msg = f"the edit of {cid} changes nothing"
+    new = (
+        " ".join(change.front.split()) or old.front,
+        " ".join(change.back.split()) or old.back,
+    )
+    url, excerpt = change.source.strip() or old.source, old.excerpt
+    if new == (old.front, old.back) and url == old.source:
+        msg = f"the edit of {cid} changes nothing"  # a rev bump clears flags
         raise _refuse(msg)
+    if url != old.source:
+        excerpt = _quoted(ctx, url, new, change.quote)
     body = {
         "subject": subject,
         "card": cid,
         "module": old.module,
         "front": new[0],
         "back": new[1],
-        "source": old.source,
-        "excerpt": old.excerpt,
+        "source": url,
+        "excerpt": excerpt,
         "requires": list(old.requires),
     }
     card_edit(body, ctx)
@@ -104,6 +127,15 @@ def _page(ctx: Context, url: str) -> str:
         raise _refuse(msg) from err
 
 
+def _quoted(ctx: Context, url: str, card: tuple[str, str], hint: str) -> str:
+    """The sentence of ``url`` that supports ``card`` (front, back), by code."""
+    excerpt = quote.supporting(_page(ctx, url), card[1], card[0], hint)
+    if excerpt is None:
+        msg = f"no sentence of {url} supports that answer"
+        raise _refuse(msg)
+    return excerpt
+
+
 @dataclass(frozen=True)
 class Draft:
     """A card the tutor proposes: ``topic`` is a module id or title."""
@@ -119,11 +151,7 @@ def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
     """A new card from ``draft``; returns its id and card."""
     module = _module(_plan(ctx, subject), draft.topic)
     source = draft.source.strip()
-    page = _page(ctx, source)
-    excerpt = quote.supporting(page, draft.back, draft.front, draft.quote)
-    if excerpt is None:
-        msg = f"no sentence of {source} supports that answer"
-        raise _refuse(msg)
+    excerpt = _quoted(ctx, source, (draft.front, draft.back), draft.quote)
     body: dict[str, Any] = {
         "subject": subject,
         "card": None,

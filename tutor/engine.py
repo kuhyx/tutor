@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from tutor import cards as cards_mod
-from tutor import follow_up, gating, media, resume, unit_credit
+from tutor import follow_up, gating, media, research, resume, unit_credit
 from tutor.cardflow import CardFlow
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
@@ -24,7 +24,7 @@ from tutor.delivery import DESKTOP, Delivery, learner_message
 from tutor.edit_flow import EditFlow
 from tutor.follow_up import FollowUpFlow
 from tutor.prompt import system_prompt, turn_prompt
-from tutor.session import TutorSession, isolated_options
+from tutor.session import TutorSession
 from tutor.store import Store
 from tutor.trace import traced
 from tutor.upkeep import Upkeep
@@ -56,7 +56,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             lambda units, sid: unit_credit.credit_units(units, sid, now=self.time())
         )
         self._factory = session_factory or (
-            lambda prompt: TutorSession(traced(isolated_options(prompt)))
+            lambda prompt: TutorSession(traced(research.research_options(prompt)))
         )
         self.simulated = simulated_time
         self._offset = 0.0

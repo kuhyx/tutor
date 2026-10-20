@@ -8,7 +8,7 @@ transcript; replay then makes it live again (``Conversation.reopen``) and a
 later ``stop`` ends it again.
 
 In follow-up mode the learner and tutor events carry ``"follow_up": true``,
-the engine note says so (``prompt_rules.FOLLOW_UP``) and never asks for a
+the engine note says so (``follow_up_rules.FOLLOW_UP``) and never asks for a
 check, and the card never becomes "not done": the tutor's ``card_done`` is
 ignored, a failed check changes nothing, and the session's ``card_done``
 stays true (``Conversation.set_done``). Removing the live card ends the

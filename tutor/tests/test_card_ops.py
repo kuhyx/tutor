@@ -27,8 +27,8 @@ FRONT = "What does a piston do in an engine?"
 BACK = "It slides up and down in the cylinder, pushed by the expanding gas."
 
 
-@pytest.fixture
-def car(tmp_path: Path) -> tuple[Context, Fakes]:
+def car_subject(tmp_path: Path) -> tuple[Context, Fakes]:
+    """Subject ``car``: module a (a1-a4) and b (b1, b2), and the piston page."""
     ctx, fakes = make_ctx(tmp_path)
     found = {f"a{i}": card("a", i) for i in range(1, 5)}
     found["b1"] = card("b", 1, "a1")
@@ -42,7 +42,12 @@ def car(tmp_path: Path) -> tuple[Context, Fakes]:
     return ctx, fakes
 
 
-def _refused(call: object) -> RequestError:
+@pytest.fixture
+def car(tmp_path: Path) -> tuple[Context, Fakes]:
+    return car_subject(tmp_path)
+
+
+def refused(call: object) -> RequestError:
     assert callable(call)
     with pytest.raises(RequestError) as err:
         call()
@@ -53,7 +58,9 @@ def _refused(call: object) -> RequestError:
 def test_rewrite_keeps_source_and_excerpt(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     before = ctx.subjects.cards("car")["a1"]
-    rec = card_ops.rewrite(ctx, "car", "a1", front="What is thing one?", back="")
+    rec = card_ops.rewrite(
+        ctx, "car", "a1", card_ops.Rewrite(front="What is thing one?", back="")
+    )
     after = ctx.subjects.cards("car")["a1"]
     assert rec == after
     assert (after.front, after.back) == ("What is thing one?", before.back)
@@ -65,15 +72,19 @@ def test_rewrite_refusals(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     assert (
         "unknown card"
-        in _refused(
-            lambda: card_ops.rewrite(ctx, "car", "zz", front="x", back="y")
+        in refused(
+            lambda: card_ops.rewrite(
+                ctx, "car", "zz", card_ops.Rewrite(front="x", back="y")
+            )
         ).message
     )
     long = "word " * 31
     assert (
         "over 30 words"
-        in _refused(
-            lambda: card_ops.rewrite(ctx, "car", "a1", front="", back=long)
+        in refused(
+            lambda: card_ops.rewrite(
+                ctx, "car", "a1", card_ops.Rewrite(front="", back=long)
+            )
         ).message
     )
     assert ctx.subjects.cards("car")["a1"].rev == 1
@@ -104,7 +115,7 @@ def test_add_finds_the_module_by_title(car: tuple[Context, Fakes]) -> None:
 def test_add_refused_when_no_sentence_supports_it(car: tuple[Context, Fakes]) -> None:
     ctx, fakes = car
     fakes.texts[PISTON] = "Cats and dogs are popular pets in many households."
-    err = _refused(
+    err = refused(
         lambda: card_ops.add(ctx, "car", card_ops.Draft("a", FRONT, BACK, PISTON))
     )
     assert "no sentence" in err.message
@@ -115,7 +126,7 @@ def test_add_refused_when_no_sentence_supports_it(car: tuple[Context, Fakes]) ->
 def test_add_refused_when_the_page_cannot_be_read(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     url = "https://example.org/missing"
-    err = _refused(
+    err = refused(
         lambda: card_ops.add(ctx, "car", card_ops.Draft("a", FRONT, BACK, url))
     )
     assert "cannot read" in err.message
@@ -127,7 +138,7 @@ def test_add_still_runs_the_excerpt_check(car: tuple[Context, Fakes]) -> None:
         "It slides up and down inside the cylinder, pushed by the expanding gas "
         "of the burning fuel."
     )
-    err = _refused(
+    err = refused(
         lambda: card_ops.add(ctx, "car", card_ops.Draft("a", FRONT, BACK, PISTON))
     )
     assert "excerpt check failed" in err.message
@@ -137,13 +148,13 @@ def test_add_refusals(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     assert (
         "unknown topic"
-        in _refused(
+        in refused(
             lambda: card_ops.add(ctx, "car", card_ops.Draft("zz", FRONT, BACK, PISTON))
         ).message
     )
     assert (
         "https"
-        in _refused(
+        in refused(
             lambda: card_ops.add(ctx, "car", card_ops.Draft("a", FRONT, BACK, "ftp:x"))
         ).message
     )
@@ -166,7 +177,7 @@ def test_remove_suspends_and_drops_requires(car: tuple[Context, Fakes]) -> None:
 def test_remove_refused_below_three_live_cards(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     card_ops.remove(ctx, "car", "a1")
-    err = _refused(lambda: card_ops.remove(ctx, "car", "a2"))
+    err = refused(lambda: card_ops.remove(ctx, "car", "a2"))
     assert "3 live cards" in err.message
     assert not ctx.subjects.cards("car")["a2"].suspended
 
@@ -174,9 +185,9 @@ def test_remove_refused_below_three_live_cards(car: tuple[Context, Fakes]) -> No
 def test_remove_refusals(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     card_ops.remove(ctx, "car", "a4")
-    assert "unknown card" in _refused(lambda: card_ops.remove(ctx, "car", "z")).message
+    assert "unknown card" in refused(lambda: card_ops.remove(ctx, "car", "z")).message
     assert (
-        "already removed" in _refused(lambda: card_ops.remove(ctx, "car", "a4")).message
+        "already removed" in refused(lambda: card_ops.remove(ctx, "car", "a4")).message
     )
 
 
@@ -193,18 +204,20 @@ def test_add_refused_without_a_plan(tmp_path: Path) -> None:
     ctx, _ = make_ctx(tmp_path)
     subject(ctx)
     (tmp_path / "subjects" / "car" / "plan.json").unlink()
-    err = _refused(
+    err = refused(
         lambda: card_ops.add(ctx, "car", card_ops.Draft("a", FRONT, BACK, PISTON))
     )
     assert "no plan" in err.message
 
 
-def test_an_edit_that_changes_nothing_is_refused(car: tuple[Context, Fakes]) -> None:
+def test_an_edit_that_changes_nothing_isrefused(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     old = ctx.subjects.cards("car")["a1"]
     for front, back in (("", ""), (old.front, f" {old.back} ")):
-        err = _refused(
-            lambda f=front, b=back: card_ops.rewrite(ctx, "car", "a1", front=f, back=b)
+        err = refused(
+            lambda f=front, b=back: card_ops.rewrite(
+                ctx, "car", "a1", card_ops.Rewrite(front=f, back=b)
+            )
         )
         assert "changes nothing" in err.message
     assert ctx.subjects.cards("car")["a1"].rev == 1  # the learner's flags stay
@@ -220,7 +233,7 @@ def test_a_quote_hint_finds_the_sentence_across_languages(
         "Porusza się w cylindrze, pchany przez gaz.",
     )
     pl = card_ops.Draft("a", front, back, PISTON)
-    assert "no sentence" in _refused(lambda: card_ops.add(ctx, "car", pl)).message
+    assert "no sentence" in refused(lambda: card_ops.add(ctx, "car", pl)).message
     hint = "the piston slides up and down in the cylinder pushed by gas"
     _, rec = card_ops.add(ctx, "car", card_ops.Draft("a", front, back, PISTON, hint))
     assert rec.excerpt.startswith("It slides up and down inside the cylinder")
