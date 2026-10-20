@@ -1,22 +1,24 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The tutor conversation's tools: every Claude Code tool, inside bubblewrap.
+"""The tutor conversation's tools: Claude Code's local tools, inside bubblewrap.
 
 The tutor may research beyond its card (web search and fetch, running code,
 subagents). Its CLI runs through ``scripts/tutor_model_sandbox.sh`` (the SDK's
 ``cli_path``), which sees a scratch HOME and network, never the data dir, the
 ledger key, the repo or ``~/.claude``; so permissions are bypassed (nobody is
-there to approve). Settings, hooks, skills and MCP stay off as in
-:func:`session.isolated_options`, which every other model call keeps.
+there to approve). Tools that act through the claude.ai account
+(:data:`BLOCKED_TOOLS`, remote subagents) are off. Settings, hooks, skills
+and MCP stay off as in :func:`session.isolated_options`, which every other
+model call keeps.
 
 Two SDK hook callbacks (they run in this process, not the sandbox, and emit
 no hook events, so ``tutor.isolation`` still counts 0):
 
 - UserPromptSubmit (each turn): refresh the login copy (``model_login``) and
   start the turn's research clock.
-- PreToolUse: :class:`ResearchBudget` denies every tool call once
-  :data:`RESEARCH_SECONDS` of the turn have passed, so the tutor answers with
-  what it has. Bash calls are capped at 30 s by env; both keep a turn well
-  under ``session._TURN_TIMEOUT``.
+- PreToolUse: :class:`ResearchBudget` denies a remote subagent at any time,
+  and every tool call once :data:`RESEARCH_SECONDS` of the turn have passed,
+  so the tutor answers with what it has. Bash calls are capped at 30 s by
+  env; both keep a turn well under ``session._TURN_TIMEOUT``.
 """
 
 from __future__ import annotations
@@ -46,6 +48,28 @@ WRAPPER: Final = (
 )
 # The tool that carries the structured turn: never denied, or a late turn fails.
 _ANSWER_TOOL: Final = "StructuredOutput"
+# Tools that act through kuhy's claude.ai account or reach his other sessions,
+# not the sandbox (CLI 2.1.301's tool list): cloud routines, session crons and
+# wake-ups, messages to and the list of other local and cloud sessions,
+# workflows, pushes to his phone, design-system sync to the account.
+BLOCKED_TOOLS: Final = (
+    "RemoteTrigger",
+    "CronCreate",
+    "CronDelete",
+    "CronList",
+    "ScheduleWakeup",
+    "SendMessage",
+    "ListAgents",
+    "Workflow",
+    "PushNotification",
+    "DesignSync",
+)
+# A subagent with isolation "remote" runs in a cloud sandbox on the account.
+_SUBAGENT_TOOLS: Final = frozenset({"Task", "Agent"})
+_REMOTE: Final = (
+    "Remote subagents are off: research runs on this machine's sandbox only. "
+    'Run the subagent without isolation "remote".'
+)
 _DENY: Final = (
     "Research time is up: {seconds} seconds of this turn have passed. No more "
     "tool calls this turn; answer now with what you have, and say what you "
@@ -100,23 +124,38 @@ class ResearchBudget:
     async def pre_tool_use(
         self, data: HookInput, tool_use_id: str | None, context: HookContext
     ) -> HookJSONOutput:
-        """The PreToolUse hook: {} (no say) inside the budget, else deny."""
+        """The PreToolUse hook: {} (no say) inside the budget, else deny.
+
+        A remote subagent is denied at any time.
+        """
         del tool_use_id, context
+        tool = data.get("tool_name")
+        tool_input = data.get("tool_input")
+        if (
+            tool in _SUBAGENT_TOOLS
+            and isinstance(tool_input, dict)
+            and tool_input.get("isolation") == "remote"
+        ):
+            return _deny(_REMOTE)
         started = self._started
         if (
             started is None
-            or data.get("tool_name") == _ANSWER_TOOL
+            or tool == _ANSWER_TOOL
             or self._now() - started < self.seconds
         ):
             return {}
-        reason = _DENY.format(seconds=f"{self.seconds:g}")
-        return {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": reason,
-            }
+        return _deny(_DENY.format(seconds=f"{self.seconds:g}"))
+
+
+def _deny(reason: str) -> HookJSONOutput:
+    """A PreToolUse refusal the model reads as the tool's result."""
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
         }
+    }
 
 
 def research_options(
@@ -125,7 +164,7 @@ def research_options(
     structured: bool = True,
     budget: ResearchBudget | None = None,
 ) -> ClaudeAgentOptions:
-    """Every tool, permissions bypassed, inside the sandbox, on a budget."""
+    """Every local tool, permissions bypassed, inside the sandbox, on a budget."""
     root = sandbox_root()
     cwd = root / "home" / "work"
     cwd.mkdir(parents=True, exist_ok=True)
@@ -136,7 +175,7 @@ def research_options(
         system_prompt=system_prompt,
         tools={"type": "preset", "preset": "claude_code"},
         allowed_tools=[],
-        disallowed_tools=[],
+        disallowed_tools=list(BLOCKED_TOOLS),
         permission_mode="bypassPermissions",
         setting_sources=[],
         strict_mcp_config=True,
