@@ -1,5 +1,5 @@
 /// The live session as the Session screen shows it: streams `live`, then
-/// `sessions/{sid}/meta` and `sessions/{sid}/msgs` of the session it names
+/// `sessions/{sid}/meta`, `msgs` and `progress` of the session it names
 /// (DOCS-contract §6, §9: only these narrow paths, only while visible).
 ///
 /// When `live` turns null (after Stop here) the last session stays on screen,
@@ -15,6 +15,7 @@ import 'package:tutor/model/json.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/model/root.dart';
 import 'package:tutor/model/session.dart';
+import 'package:tutor/model/trace.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_client.dart' show keyRangeQuery;
 import 'package:tutor/sync/rtdb_event.dart';
@@ -35,7 +36,12 @@ class KeyedMessage {
 /// One session's projection.
 class SessionView {
   /// Creates the view.
-  const new({required this.sid, this.meta, this.messages = const []});
+  const new({
+    required this.sid,
+    this.meta,
+    this.messages = const [],
+    this.progress,
+  });
 
   /// Session id.
   final String sid;
@@ -45,6 +51,9 @@ class SessionView {
 
   /// Messages in key order.
   final List<KeyedMessage> messages;
+
+  /// `progress`: the trace of the request in flight, if any.
+  final LiveProgress? progress;
 
   /// The latest message, if any.
   KeyedMessage? get last => messages.isEmpty ? null : messages.last;
@@ -102,6 +111,7 @@ class SessionFeed {
   Object? _liveTree;
   Object? _meta;
   Object? _msgs;
+  Object? _progress;
 
   /// Starts streaming `live` (idempotent). After [stop], the session that
   /// was on screen is re-followed from a fresh snapshot.
@@ -135,6 +145,7 @@ class SessionFeed {
     _cancelSession();
     _meta = null;
     _msgs = null;
+    _progress = null;
     view.value = SessionView(sid: sid);
     _subscribe(sid);
   }
@@ -172,6 +183,13 @@ class SessionFeed {
                   : applyEvent(_msgs, e);
               _publish(sid);
             }),
+      )
+      // The turn's thinking / research, live (DOCS-contract §6).
+      ..add(
+        _stream.listen('$base/progress').listen((e) {
+          _progress = applyEvent(_progress, e);
+          _publish(sid);
+        }),
       );
   }
 
@@ -185,6 +203,7 @@ class SessionFeed {
       sid: sid,
       meta: parseMeta(_meta),
       messages: parseMessages(_msgs),
+      progress: LiveProgress.parse(_progress),
     );
   }
 

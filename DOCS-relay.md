@@ -42,6 +42,10 @@ seeder once to give the tutor its own refresh token.
   every refresh).
   `phases.py` reports `thinking`/`images`/`checking_images` from the
   engine's model session (an injected session factory, no engine hooks).
+  `live_trace.py` writes the tutor turn's thinking and tool calls to
+  `sessions/{sid}/progress` (append-only, from the claim's keeper task, at
+  most every 0.5 s for a desktop request / 2 s for a phone one; deleted
+  and swept with `busy`). The SDK read loop only records (`tutor.trace`).
 - `chat.py` the session kinds; `projection.py` + `views.py` +
   `media_out.py` the published nodes; `presence.py`, `feedback_drain.py`,
   `stats.py` (minimal until `tutor.curriculum.stats.build(engine)` exists).

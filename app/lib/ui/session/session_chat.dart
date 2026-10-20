@@ -9,7 +9,6 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/stats.dart';
-import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/answers.dart';
@@ -21,6 +20,7 @@ import 'package:tutor/ui/session/composer.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/ui/session/session_bits.dart';
 import 'package:tutor/ui/session/session_header.dart';
+import 'package:tutor/ui/session/thinking_panel.dart';
 
 /// The chat column.
 class SessionChat extends StatefulWidget {
@@ -157,7 +157,7 @@ class _SessionChatState extends State<SessionChat> {
                             message: Message(role: 'learner', text: busy.text!),
                             pending: true,
                           ),
-                        if (busy != null) Text(phaseText(busy.phase)),
+                        if (busy != null) liveTrace(busy, view.progress),
                       ].reversed.toList(),
                     ),
                   ),

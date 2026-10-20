@@ -1,6 +1,7 @@
 /// One chat message, as `static/app.js` renderMessage draws it: tutor
 /// (tag, ⚑ Report on live messages, markdown, pictures, diagrams, check
-/// result, read-only questions, card edit notices, Card done), learner,
+/// result, read-only questions, card edit notices, Card done, the folded
+/// Thinking panel), learner,
 /// or a card divider.
 library;
 
@@ -11,6 +12,7 @@ import 'package:tutor/progress/terms.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/ui/session/md_text.dart';
 import 'package:tutor/ui/session/media.dart';
+import 'package:tutor/ui/session/thinking_panel.dart';
 
 /// A message bubble.
 class MessageTile extends StatelessWidget {
@@ -116,6 +118,7 @@ class MessageTile extends StatelessWidget {
               ),
             for (final n in m.notices) Text(n, style: text.labelMedium),
             if (m.cardDone) const _Banner('Card done ✓', ok: true),
+            if (tutor && m.trace.isNotEmpty) ThinkingPanel(steps: m.trace),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import 'dart:math' show max;
 
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/media.dart';
+import 'package:tutor/model/trace.dart';
 
 export 'package:tutor/model/media.dart' show Dgm, Img;
 
@@ -55,6 +56,7 @@ class Message {
     this.masteredNew = const [],
     this.notices = const [],
     this.cardDone = false,
+    this.trace = const [],
     this.rid,
     this.dev,
     this.cardId,
@@ -75,6 +77,7 @@ class Message {
     masteredNew: strings(j, 'mastered_new'),
     notices: strings(j, 'notices'),
     cardDone: flag(j, 'card_done'),
+    trace: parseTrace(j['trace']),
     rid: strOr(j, 'rid'),
     dev: strOr(j, 'dev'),
     cardId: strOr(j, 'card_id'),
@@ -127,6 +130,9 @@ class Message {
   /// The card was finished in this turn.
   final bool cardDone;
 
+  /// The tutor's thinking and research for this turn (display only).
+  final List<TraceStep> trace;
+
   /// Learner messages: request id.
   final String? rid;
 
@@ -152,6 +158,7 @@ class Message {
     'mastered_new': masteredNew.isEmpty ? null : masteredNew,
     'notices': notices.isEmpty ? null : notices,
     'card_done': cardDone ? true : null,
+    'trace': trace.isEmpty ? null : [for (final s in trace) s.toJson()],
     'at': at,
     'rid': rid,
     'dev': dev,
