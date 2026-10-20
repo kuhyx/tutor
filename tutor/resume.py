@@ -8,7 +8,8 @@ receipts, and the engagement clock, which is replayed event by event at the
 logged times. The model process itself cannot be resumed, so the next model
 call is primed with the transcript since the last card switch (:func:`primer`).
 A ``stop`` event marks the session finished: it is replayed (history shows it)
-but never resumed.
+but never resumed, unless a later ``follow_up_open`` reopened it for follow-up
+questions (``tutor.follow_up``); a ``stop`` after that ends it again.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from tutor import choices
 from tutor.clock import BlockReady, EngagementClock
@@ -149,6 +150,7 @@ def replay(path: Path) -> Replayed | None:
         kind = event.get("type")
         if kind == "learner":
             pending = event
+            conv.follow_up |= bool(event.get("follow_up"))
         elif kind == "tutor":
             _replay_tutor(conv, event, pending)
             pending = None
@@ -157,6 +159,9 @@ def replay(path: Path) -> Replayed | None:
             _replay_next_card(conv, event)
         elif kind == "stop":
             conv.stopped, pending = True, None
+        elif kind == "follow_up_open":
+            pending = None
+            conv.reopen(_time(event))
         else:
             _replay_note(conv, event)
     if not conv.messages:
@@ -164,8 +169,17 @@ def replay(path: Path) -> Replayed | None:
     return Replayed(conv, conv.clock.ready_blocks())
 
 
-def primer(messages: list[dict[str, Any]]) -> str:
-    """The note that hands a fresh model process the conversation so far."""
+RESTARTED: Final = (
+    "[app] The tutor app restarted in the middle of this session, so you are "
+    "a fresh process."
+)
+
+
+def primer(messages: list[dict[str, Any]], head: str = RESTARTED) -> str:
+    """The note that hands a fresh model process the conversation so far.
+
+    ``head`` says why the process is fresh (a restart, or a reopened session).
+    """
     lines = []
     # Only the current card: the fresh process was never told about earlier ones.
     last = max(
@@ -184,8 +198,7 @@ def primer(messages: list[dict[str, Any]]) -> str:
             lines.append("TUTOR:\n" + text + (f"\nQuestions:{boxes}" if boxes else ""))
     transcript = "\n\n".join(lines)
     return (
-        "[app] The tutor app restarted in the middle of this session, so you are "
-        "a fresh process. Below is the whole conversation so far, oldest first. "
+        f"{head} Below is the whole conversation so far, oldest first. "
         "Carry on as the same tutor from the last TUTOR message: do not greet "
         "again, restart the card or re-ask questions already answered. The "
         "learner's newest message follows the transcript.\n"

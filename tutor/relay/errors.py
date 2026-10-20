@@ -21,6 +21,7 @@ CODES: Final = frozenset(
     {
         "bad_request",
         "not_live",
+        "session_live",
         "locked",
         "daily_new_cap",
         "no_card_left",
@@ -39,6 +40,7 @@ _VALUE_CODES: Final = (
     ("locked until", "locked"),
     ("unknown card", "unknown_card"),
     ("no unfinished card", "no_card_left"),
+    ("stop the current session first", "session_live"),
 )
 
 

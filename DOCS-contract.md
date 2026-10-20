@@ -105,7 +105,7 @@ Client: after PUT, stream `requests/{rid}` until `result`, show phase. On
 network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
-Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `locked` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
+Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `session_live` (stop the live session first), `locked` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
 `daily_new_cap` (+`subject_title`, `new_today`, `new_cap`, `module`, `module_title`, `due_in_subject`, `next: "lift_cap"`), `no_card_left` (+`subject_title`, `due_in_subject`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
 `worker_error` (`DOCS-relay.md`). `error` is shown, except for `locked`/`daily_new_cap`/`no_card_left`: the app builds a call to action from the fields (a `next: lift_cap` = "Learn more anyway"). Tracebacks stay in the log.
 
@@ -123,6 +123,7 @@ Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_reques
 | `message` | `{"session":sid,"text":"...","device":"phone"\|"desktop"?}` <=8000 ch; no device = desktop, other values `bad_request`; phone: typos ignored, short answers, one question (prompt rule 13); text `Hint` gets a hint, never credit | `{"msg":"m0012"}` | chat |
 | `next` | `{"session":sid,"device"?}` (next_card+stop, starts new on `device`) | `{"session":newsid}` | chat |
 | `stop` | `{"session":sid}` | `{}` | chat |
+| `follow_up_open` | `{"session":sid}` reopen a session whose card was done there, for follow-up questions (`DOCS-relay.md` "Follow-ups"); another live session -> `session_live` | `{"session":sid}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
 | `drill_next`, `drill_answer` | the model-free drill, `DOCS-relay.md` "Claude unavailable" | | chat |
 | `anki_status` | `{}` (credits new Anki reviews first; idempotent) | `{"credited_today_min","eligible_today_min","last_sync_at":s\|null,"unavailable":{"until":s,"reason"}\|null}` | chat |

@@ -174,6 +174,17 @@ def test_h_needs_a_choice_after_every_card_done() -> None:
     assert not results(second_done)["h"]
 
 
+def test_h_accepts_follow_ups_after_card_done() -> None:
+    asked = good()
+    del asked[5]  # no Next card / Stop here yet: the learner asks on
+    asked.append({"type": "learner", "text": "what if?", "follow_up": True})
+    follow = tutor_event("Then...", ui={"card_done": True})
+    asked.append({**follow, "follow_up": True})
+    assert results(asked)["h"]
+    reopened = [*good()[:5], {"type": "stop"}, {"type": "follow_up_open"}]
+    assert results(reopened)["h"]
+
+
 def write_jsonl(path: Path, events: list[dict[str, Any]]) -> Path:
     """Write a transcript, with a blank line the loader must skip."""
     body = "\n".join(json.dumps(e) for e in events) + "\n\n"

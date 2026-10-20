@@ -180,8 +180,8 @@ def test_low_effort_masters_nothing_and_the_tutors_card_done_stands(
     assert state["card_done"] is True
     done = engine.store.progress()["cards_done"]
     assert done[CARD]["session"] == engine.session_id
-    failed = asyncio.run(engine.reply(ANSWER))["messages"][-1]
-    assert failed["card_done"] is True
+    after = asyncio.run(engine.reply(ANSWER))  # a follow-up: no 2nd banner
+    assert ("card_done" in after["messages"][-1], after["card_done"]) == (False, True)
     assert engine.store.mastered() == []
     assert [e["type"] for e in events(engine)].count("learner") == 2
 
