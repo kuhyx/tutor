@@ -182,7 +182,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   `confirmed_on` unset). RTDB `receipts`/`stats` are display only; earned_time
   never reads RTDB.
 - An answer delayed by an offline phone earns only what `REPLY_TIMEOUT`
-  (600 s) allows from server receipt. A device cannot claim minutes.
+  (600 s) allows from server receipt. A device cannot claim minutes. A restart reopens the window (<= 1 h) only for an on-time reply still in flight; idle time across it earns nothing.
 - FSRS reviews earn no credit in v1; the drill credits active minutes only.
 
 ## 8. Media (no Firebase Storage, nothing binary in RTDB)

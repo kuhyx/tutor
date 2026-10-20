@@ -41,6 +41,9 @@ class Replayed:
     # Every unit (active minute) the replayed clock earned. Which of them the
     # ledger already pays is the ledger's to say (``credit_units`` asks it).
     unrecorded: list[BlockReady] = field(default_factory=list)
+    # When the trailing learner message with no tutor reply after it was sent
+    # (``None``: nothing in flight); a restart excuses only such a reply.
+    pending_at: float | None = None
 
 
 def latest_today(sessions_dir: Path, day_prefix: str) -> Path | None:
@@ -123,8 +126,10 @@ def _replay_note(conv: Conversation, event: dict[str, Any]) -> None:
     kind = event.get("type")
     if kind == "card_done_manual":
         conv.set_done(str(event.get("card", "")), done=bool(event.get("done")))
-    elif kind == "resume":
-        conv.clock.server_restarted(_time(event))
+    elif kind == "resume" and "pending_at" in event:
+        conv.clock.server_restarted(_time(event), pending_at=event["pending_at"])
+    elif kind == "resume":  # logged before 2026-10-20: every restart excused
+        conv.clock.excuse_restart(_time(event))
     elif kind == "credit":
         row = {k: v for k, v in event.items() if k not in {"type", "logged_at"}}
         conv.receipts.append(row)
@@ -166,7 +171,8 @@ def replay(path: Path) -> Replayed | None:
             _replay_note(conv, event)
     if not conv.messages:
         return None
-    return Replayed(conv, conv.clock.ready_blocks())
+    pending_at = _time(pending) if pending is not None else None
+    return Replayed(conv, conv.clock.ready_blocks(), pending_at)
 
 
 RESTARTED: Final = (

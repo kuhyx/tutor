@@ -178,7 +178,7 @@ def test_manual_not_done_keeps_the_follow_up_session_at_card_end(
 def test_clock_reopened_drops_the_idle_window() -> None:
     clock = EngagementClock(0.0)
     clock.tutor_message(0.0)
-    clock.server_restarted(3000.0)
+    clock.excuse_restart(3000.0)
     clock.reopened(3000.0)
     clock.user_reply(3100.0, "what if the name is forged?", low_effort=False)
     assert clock.active_seconds == pytest.approx(100.0)

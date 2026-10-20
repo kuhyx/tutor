@@ -144,8 +144,10 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         )
         self._session = self._factory(self._prompt(card))
         conv.resumed.note = resume.primer(conv.messages)
-        conv.clock.server_restarted(self.time())
-        self.store.log(self.session_id, {"type": "resume", "t": self.time()})
+        # Only a reply in flight is excused; replay reads the logged pending_at.
+        conv.clock.server_restarted(self.time(), pending_at=state.pending_at)
+        resumed = {"type": "resume", "t": self.time(), "pending_at": state.pending_at}
+        self.store.log(self.session_id, resumed)
         # Top-up: minutes no row paid yet; a span's entry id is deterministic,
         # so a retry rewrites the same row and never doubles.
         self._record(state.unrecorded)
