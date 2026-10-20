@@ -67,23 +67,33 @@ against the real engine and relay without touching live state. It copies
 throwaway key and a fresh device id; the live id is rewritten. The relay
 talks to a local Firebase RTDB emulator (the cached
 `firebase-database-emulator` jar), never the real database, and the server
-uses a free port, never :8778. The app build is `app/tool/e2e/main.dart`:
-the real services pointed at the emulator, with semantics on so the driver
-can find buttons by label. The driver (`scripts/e2e_drive.py`) runs Chromium
+uses a free port, never :8778. The app reaches the emulator through
+`scripts/e2e_h2proxy.go`, an HTTP/2 TLS proxy (Go, stdlib only): over the
+emulator's HTTP/1.1, Chrome's 6 connections per host are all held by the
+session screen's streams and a Send never leaves the page. The app build is
+`app/tool/e2e/main.dart`: the real services pointed at the emulator, with
+semantics on so the driver can find buttons by label. The driver (`scripts/e2e_drive.py`) runs Chromium
 over `--remote-debugging-pipe` on the Xvfb `:97`. It taps buttons, checks
 the outcome in the emulator (the request result, `live.card`, the first
-tutor message) and saves `app/build/screens/e2e_<flow>_*.png`. Model calls
-are real. Each command fits in 60 s:
+tutor message, F3's reply trace and Thinking panel) and saves
+`app/build/screens/e2e_<flow>_*.png`. Model calls are real, and a tutor turn
+(high effort, thinking, up to 90 s of research) can outlast 60 s, so F1, F3
+and F4 run as three calls: `send` (taps up to the request), `wait` (polls the
+emulator for up to 45 s; exit 75 = still pending, call it again) and `check`
+(reopens the app and asserts). Each command fits in 60 s:
 
 ```bash
 scripts/e2e_sandbox.sh build                                    # after app changes (~25 s)
 scripts/e2e_sandbox.sh up --as-of "2026-10-17 22:00"            # F1 sandbox
-scripts/e2e_sandbox.sh flow F1   # Continue learning -> E2E_CARD (vhost-what) + tutor message
+scripts/e2e_sandbox.sh flow F1 send   # Continue learning; then `flow F1 wait`, `flow F1 check`:
+                                        # E2E_CARD (vhost-what) + tutor message
 scripts/e2e_sandbox.sh up --new-cap 10 --as-of "2026-10-17 22:00"
 scripts/e2e_sandbox.sh flow F2   # daily cap -> "Learn more anyway" -> E2E_CARD
 scripts/e2e_sandbox.sh up --as-of "2026-10-20 17:24:30"         # E2E_SESSION at card end
-scripts/e2e_sandbox.sh flow F3   # card end: a follow-up is answered, credit goes on
-scripts/e2e_sandbox.sh flow F4   # Stop here, History -> "Ask a follow-up" -> answer
+scripts/e2e_sandbox.sh flow F3 send   # card end: a follow-up (then wait, check): answered,
+                                        # with a trace and Thinking panel; credit goes on
+scripts/e2e_sandbox.sh flow F4 send   # Stop here, History -> "Ask a follow-up" (then wait,
+                                        # check): answered
 scripts/e2e_sandbox.sh down
 ```
 

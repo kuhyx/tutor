@@ -69,6 +69,7 @@ class Browser:
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--password-store=basic",
+                "--ignore-certificate-errors",  # e2e_h2proxy.go's own certificate
                 "--window-position=0,0",
                 f"--window-size={size[0]},{size[1]}",
                 "--force-device-scale-factor=1",

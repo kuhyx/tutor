@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 # Call-to-action labels of the session screen's blocked panel.
 BLOCKED_CTAS = ("Learn more anyway", "Review this subject")
+# What a phased flow's send step hands its check step (JSON on disk).
+State = dict[str, Any]
 
 
 class FlowError(RuntimeError):
@@ -163,6 +165,27 @@ class Flow:
         msg = f"no {kind} result in {timeout:.0f} s"
         raise FlowError(msg)
 
+    def request(self, kind: str, since: set[str], timeout: float = 20) -> str:
+        """The id of the first new ``kind`` request after ``since`` (sent, any state).
+
+        A phased flow's send step ends here: the worker reads the request
+        from the emulator, so the browser may close before the reply.
+        """
+        self.step(f"the app sent a {kind} request")
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            for rid, node in sorted(self.db.node("requests").items()):
+                if rid not in since and (node.get("req") or {}).get("kind") == kind:
+                    print(f"  rid={rid}")
+                    return str(rid)
+            time.sleep(0.5)
+        msg = f"no {kind} request in {timeout:.0f} s"
+        raise FlowError(msg)
+
+    def result_of(self, rid: str) -> dict[str, Any]:
+        """Request ``rid``'s result (``{}`` while the worker is still on it)."""
+        return self.db.node(f"requests/{rid}/result")
+
     def type_into(self, label: str, text: str) -> None:
         """Focus the field labelled ``label`` and type ``text`` into it."""
         self.tap(label)
@@ -182,9 +205,13 @@ class Flow:
     def screen(self, route: str) -> None:
         """Open the app on ``route`` (``app/lib/ui/nav.dart``)."""
         self.step(f"open the app on {route}")
-        self.browser.open(f"{self.args.app}?db={self.args.db}&screen={route}")
+        self.browser.open(f"{self.args.app}?db={self._page_db()}&screen={route}")
+
+    def _page_db(self) -> str:
+        """The app's database: the h2 proxy (``--app-db``), else the emulator."""
+        return str(getattr(self.args, "app_db", None) or self.args.db)
 
     def home(self) -> None:
         """Open the app on Home."""
         self.step(f"open {self.args.app}")
-        self.browser.open(f"{self.args.app}?db={self.args.db}")
+        self.browser.open(f"{self.args.app}?db={self._page_db()}")

@@ -11,9 +11,14 @@ live at card end.
   composer; a follow-up gets a tutor reply, the card stays done, Next card /
   Stop here stay, the events are tagged, and the sandbox ledger's rows for
   the session are unique and never overlap (new minutes continue its
-  ``-m<n>`` numbering). Run it twice a minute apart to see a new row.
+  ``-m<n>`` numbering), and the reply's turn has a trace (stored and
+  published) whose Thinking panel is on screen. Run it twice a minute apart
+  to see a new row.
 * F4 History: the live session is stopped (Stop here), then History ->
   that session -> "Ask a follow-up" reopens it and the tutor answers.
+
+Each flow is a send step (``*_send``: taps up to the request, returns the
+state) and a check step (``*_check``); ``e2e_drive.py`` waits in between.
 """
 
 from __future__ import annotations
@@ -22,7 +27,7 @@ import itertools
 import json
 from typing import TYPE_CHECKING, Any
 
-from e2e_flow import Flow, FlowError
+from e2e_flow import Flow, FlowError, State
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -115,20 +120,50 @@ def _tagged(flow: Flow, sid: str, *kinds: str) -> None:
             raise FlowError(msg)
 
 
-def _ask(flow: Flow, sid: str, text: str) -> None:
-    """Type ``text`` in the composer, Send, and wait for the reply."""
+def _ask(flow: Flow, sid: str, text: str) -> State:
+    """Type ``text`` in the composer and Send; the state to check the reply."""
     count = len(flow.db.node(f"sessions/{sid}/msgs"))
     since = flow.rids()
     flow.type_into(COMPOSER, text)
     flow.tap("Send")
-    if not (result := flow.result("message", since)).get("ok"):
+    return {"sid": sid, "count": count, "rid": flow.request("message", since)}
+
+
+def _answered(flow: Flow, state: State) -> str:
+    """The message request succeeded and the tutor replied; the session id."""
+    sid = str(state["sid"])
+    flow.step("the follow-up's message result is ok")
+    if not (result := flow.result_of(str(state["rid"]))).get("ok"):
         msg = f"follow-up refused: {json.dumps(result)[:300]}"
         raise FlowError(msg)
-    _replied(flow, sid, count)
+    _replied(flow, sid, int(state["count"]))
+    return sid
 
 
-def f3(flow: Flow) -> None:
-    """Card end: a follow-up is answered; Next card / Stop here stay."""
+def _traced(flow: Flow, sid: str) -> None:
+    """The reply's turn has a trace, stored and published, and its panel shows."""
+    flow.step("the reply's turn carries a trace (transcript + emulator)")
+    events = _events(flow.args.data, sid)
+    tutor = next(e for e in reversed(events) if e["type"] == "tutor")
+    steps = (tutor.get("ui") or {}).get("trace") or []
+    msgs = [m for _, m in sorted(flow.db.node(f"sessions/{sid}/msgs").items())]
+    published = next(m for m in reversed(msgs) if m.get("role") == "tutor").get("trace")
+    kinds = [s.get("kind") for s in steps]
+    print(f"  trace: {len(steps)} steps {kinds[:12]}; published {len(published or [])}")
+    if not steps or not published:
+        msg = f"no trace on the reply (transcript {len(steps)}, msgs {published!r})"
+        raise FlowError(msg)
+    # The folded panel's header merges into the reply bubble's label
+    # ("Tutor\n<text>\nThinking ..."); no earlier turn of this session has one.
+    flow.step("the Thinking panel is on screen")
+    lines = flow.browser.page_text().splitlines()
+    if not any(line.startswith("Thinking") for line in lines):
+        msg = f"no Thinking panel; saw: {flow.browser.page_text()[-400:]!r}"
+        raise FlowError(msg)
+
+
+def f3_send(flow: Flow) -> State:
+    """Card end: Continue session, then ask a follow-up."""
     sid = flow.args.session
     flow.step(f"precondition: {sid} is live at card end")
     meta = flow.db.node(f"sessions/{sid}/meta")
@@ -140,15 +175,22 @@ def f3(flow: Flow) -> None:
     flow.tap("Continue session", timeout=30)
     flow.expect("Next card", "Stop here", "Send")
     flow.shot("card_end")
-    _ask(flow, sid, ASK_F3)
-    flow.expect("Next card", "Stop here", "Send")
+    return _ask(flow, sid, ASK_F3) | {"ledger": before}
+
+
+def f3_check(flow: Flow, state: State) -> None:
+    """The follow-up is answered with a trace; Next card / Stop here stay."""
+    sid = _answered(flow, state)
     _tagged(flow, sid, "learner", "tutor")
-    _credit(flow, sid, before)
+    _credit(flow, sid, state["ledger"])
+    flow.screen("/session")
+    flow.expect("Next card", "Stop here", "Send", timeout=30)
+    _traced(flow, sid)
     flow.shot("reply")
 
 
-def f4(flow: Flow) -> None:
-    """History: Ask a follow-up reopens a stopped session; the tutor answers."""
+def f4_send(flow: Flow) -> State:
+    """Stop here, then History -> the session -> Ask a follow-up."""
     sid = flow.args.session
     if flow.db.node("live").get("session") == sid:
         flow.screen("/session")
@@ -171,11 +213,16 @@ def f4(flow: Flow) -> None:
     flow.type_into("Ask a follow-up", ASK_F4)
     flow.shot("history")
     flow.tap("Ask")
-    for kind in ("follow_up_open", "message"):
-        if not (result := flow.result(kind, since)).get("ok"):
-            msg = f"{kind} refused: {json.dumps(result)[:300]}"
-            raise FlowError(msg)
-    _replied(flow, sid, count)
+    if not (result := flow.result("follow_up_open", since)).get("ok"):
+        msg = f"follow_up_open refused: {json.dumps(result)[:300]}"
+        raise FlowError(msg)
+    rid = flow.request("message", since)
+    return {"sid": sid, "count": count, "rid": rid, "ledger": before}
+
+
+def f4_check(flow: Flow, state: State) -> None:
+    """The reopened session is live and the tutor answered the follow-up."""
+    sid = _answered(flow, state)
     if flow.db.node("live").get("session") != sid:
         msg = f"live={flow.db.node('live')}, want {sid}"
         raise FlowError(msg)
@@ -183,6 +230,7 @@ def f4(flow: Flow) -> None:
         msg = "no follow_up_open event in the transcript"
         raise FlowError(msg)
     _tagged(flow, sid, "learner", "tutor")
-    _credit(flow, sid, before)
-    flow.expect("Next card", "Stop here", "Send", timeout=20)
+    _credit(flow, sid, state["ledger"])
+    flow.screen("/session")
+    flow.expect("Next card", "Stop here", "Send", timeout=30)
     flow.shot("answered")
