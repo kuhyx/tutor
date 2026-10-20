@@ -9,6 +9,8 @@
 // choices; `&phone=1` plays the Android app, `&keyboard=1` an open keyboard,
 // `&step=3` has the first two answers already typed (resumes on 3/3);
 // `&display=1366x768` sets the display the UI scale is computed for.
+// `&trace=1` gives the last tutor turn a Thinking trace, `&busy=1` puts a
+// researching turn in flight, `&open=1` opens the Thinking panels.
 //
 // Build: fvm flutter build web -t tool/fixture/main.dart \
 //   -o build/web_fixture --base-href /app/
@@ -34,6 +36,7 @@ import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/ui/app.dart';
+import 'package:tutor/ui/session/thinking_panel.dart' show debugThinkingOpen;
 import 'package:tutor/ui/ui_zoom.dart';
 import 'package:tutor/util/device.dart';
 import 'package:tutor/util/ulid.dart';
@@ -44,6 +47,7 @@ import 'fixture_data.dart';
 import 'fixture_live.dart';
 import 'fixture_sessions.dart' show fixtureLiveSid;
 import 'fixture_stream.dart';
+import 'fixture_trace.dart';
 import 'fixture_worker.dart';
 
 const _dev = '0b6f2c1e-8f2a-4c1d-9e3b-7a5d4c3b2a10';
@@ -68,6 +72,8 @@ Future<TutorServices> _open() async {
   });
   final kv = MemoryKv();
   final q = Uri.base.queryParameters;
+  if (q['trace'] == '1') db.root = fixtureWithTrace(db.root);
+  if (q['busy'] == '1') db.root = fixtureInFlight(db.root, now);
   if (q['compose'] == '1') {
     db.root = setAt(
       db.root,
@@ -160,6 +166,7 @@ void main() {
     debugDisplay ??= const Size(412, 915);
   }
   if (Uri.base.queryParameters['keyboard'] == '1') debugKeyboardInset = 300;
+  if (Uri.base.queryParameters['open'] == '1') debugThinkingOpen = true;
   runApp(
     TutorApp(
       config: _config,

@@ -26,6 +26,7 @@ from tutor.follow_up import FollowUpFlow
 from tutor.prompt import system_prompt, turn_prompt
 from tutor.session import TutorSession, isolated_options
 from tutor.store import Store
+from tutor.trace import traced
 from tutor.upkeep import Upkeep
 
 if TYPE_CHECKING:
@@ -55,7 +56,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             lambda units, sid: unit_credit.credit_units(units, sid, now=self.time())
         )
         self._factory = session_factory or (
-            lambda prompt: TutorSession(isolated_options(prompt))
+            lambda prompt: TutorSession(traced(isolated_options(prompt)))
         )
         self.simulated = simulated_time
         self._offset = 0.0
@@ -216,7 +217,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
                 | {"t": t_learner, "msg_id": msg_id, "device": via.device}
                 | follow_up.tag(conv),
             )
-        turn, _ = await session.ask(asked.text)
+        turn, reply = await session.ask(asked.text)
         if not self.source.profile.diagrams:  # schemdraw draws circuits only
             turn = replace(turn, diagram=None)
         # Only now: a failed ask leaves no learner bubble (the page keeps the
@@ -225,6 +226,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         if learner_text is not None:
             conv.messages.append(learner_message(learner_text, via.device))
         message = media.page_message(turn)
+        if reply.trace:  # display only: never sent back (resume.primer)
+            message["trace"] = reply.trace
         gone = await self._edit_cards(conv, turn, message, notices)
         await media.attach(media.Turn(session, conv, self.store), turn, message)
         # Stamped when the final message (after any image check) is ready, so

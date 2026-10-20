@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tutor.session import TutorSession, isolated_options
+from tutor.trace import traced
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from tutor.models import TutorTurn
     from tutor.relay.claims import Claim
     from tutor.session import Prompt, Reply
+    from tutor.trace import Observer, Trace
 
 
 class PhaseSink:
@@ -36,6 +38,11 @@ class PhaseSink:
         if self.claim is not None:
             self.claim.set_phase(phase)
 
+    def trace(self, trace: Trace) -> None:
+        """The tutor turn's thinking / tool calls grew (no claim: dropped)."""
+        if self.claim is not None:
+            self.claim.set_trace(trace)
+
 
 class PhasedSession(TutorSession):
     """A :class:`TutorSession` that reports its asks to a sink."""
@@ -45,11 +52,18 @@ class PhasedSession(TutorSession):
         super().__init__(options)
         self._sink = sink
 
-    async def ask(self, prompt: Prompt) -> tuple[TutorTurn, Reply]:
-        """Report the phase, then ask as usual."""
+    async def ask(
+        self, prompt: Prompt, on_trace: Observer | None = None
+    ) -> tuple[TutorTurn, Reply]:
+        """Report the phase, then ask as usual; the tutor turn's trace goes live.
+
+        The image check's own thinking is not the turn's: it is not shown.
+        """
         check = isinstance(prompt, list)
         self._sink("checking_images" if check else "thinking")
-        turn, reply = await super().ask(prompt)
+        if on_trace is None and not check:
+            on_trace = self._sink.trace
+        turn, reply = await super().ask(prompt, on_trace)
         if not check and (turn.images or turn.diagram is not None):
             self._sink("images")
         return turn, reply
@@ -57,4 +71,4 @@ class PhasedSession(TutorSession):
 
 def session_factory(sink: PhaseSink) -> Callable[[str], TutorSession]:
     """The engine's ``session_factory`` for a relay-enabled process."""
-    return lambda prompt: PhasedSession(isolated_options(prompt), sink)
+    return lambda prompt: PhasedSession(traced(isolated_options(prompt)), sink)

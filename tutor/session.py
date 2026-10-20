@@ -11,7 +11,7 @@ entered and left by the same task, and a web request is not that.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 import json
 import logging
 from typing import TYPE_CHECKING, Any, Final, Literal
@@ -24,12 +24,16 @@ from claude_agent_sdk import (
 )
 
 from tutor import outage
+from tutor.futures import settle
 from tutor.models import TURN_SCHEMA, TurnError, TutorTurn
 from tutor.store import data_dir
+from tutor.trace import read_turn
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
+
+    from tutor.trace import Observer
 
 # A user message: plain text, or content blocks (text + base64 images).
 Prompt = str | list[dict[str, Any]]
@@ -93,6 +97,10 @@ class Reply:
     init: dict[str, Any]
     hook_events: int
     cost_usd: float
+    trace: list[dict[str, str]] = field(default_factory=list)  # display only
+
+
+type _Item = tuple[Prompt, asyncio.Future[Reply], Observer | None]
 
 
 def _collect(client_msgs: list[Any]) -> Reply:
@@ -129,27 +137,27 @@ class TutorSession:
     def __init__(self, options: ClaudeAgentOptions) -> None:
         """Remember the options; nothing is spawned until :meth:`ask`."""
         self._options = options
-        self._queue: asyncio.Queue[tuple[Prompt, asyncio.Future[Reply]] | None] = (
-            asyncio.Queue()
-        )
+        self._queue: asyncio.Queue[_Item | None] = asyncio.Queue()
         self._task: asyncio.Task[None] | None = None
         self._inflight: asyncio.Future[Reply] | None = None
         self.last_init: dict[str, Any] = {}
         # CLI processes that ended: each makes the next ask a fresh, amnesic one.
         self.restarts = 0
 
-    async def ask_raw(self, prompt: Prompt) -> Reply:
+    async def ask_raw(self, prompt: Prompt, on_trace: Observer | None = None) -> Reply:
         """Send one user message (text or content blocks); return the raw reply."""
         if self._task is None:
             self._task = asyncio.create_task(self._run())
             self._task.add_done_callback(self._on_exit)
         fut: asyncio.Future[Reply] = asyncio.get_running_loop().create_future()
-        await self._queue.put((prompt, fut))
+        await self._queue.put((prompt, fut, on_trace))
         return await asyncio.wait_for(fut, _TURN_TIMEOUT)
 
-    async def ask(self, prompt: Prompt) -> tuple[TutorTurn, Reply]:
+    async def ask(
+        self, prompt: Prompt, on_trace: Observer | None = None
+    ) -> tuple[TutorTurn, Reply]:
         """Send one message and validate the structured turn."""
-        reply = await self.ask_raw(prompt)
+        reply = await self.ask_raw(prompt, on_trace)
         raw = reply.structured
         if raw is None:
             try:
@@ -182,7 +190,7 @@ class TutorSession:
         async with ClaudeSDKClient(self._options) as client:
             while (item := await self._queue.get()) is not None:
                 self._inflight = item[1]
-                await self._serve(client, *item)
+                await self._serve(client, item)
                 self._inflight = None
 
     def _on_exit(self, task: asyncio.Task[None]) -> None:
@@ -211,22 +219,21 @@ class TutorSession:
                 err = SessionError("the model session closed before replying")
             _logger.error("model process ended: %r; failing %d", err, len(waiting))
         for fut in waiting:
-            _settle(fut, err)
+            settle(fut, err)
 
-    async def _serve(
-        self, client: ClaudeSDKClient, prompt: Prompt, fut: asyncio.Future[Reply]
-    ) -> None:
+    async def _serve(self, client: ClaudeSDKClient, item: _Item) -> None:
         """One model call; a failed turn is relayed and the process kept.
 
         Only an error result (:class:`SessionError`) or an outage (retried once)
         is caught: the whole turn was read, so the stream is clean. Anything
         else (the CLI died, a line would not parse) ends :meth:`_run`.
         """
+        prompt, fut, on_trace = item
         try:
-            reply = await outage.retrying(lambda: _once(client, prompt))
+            reply = await outage.retrying(lambda: _once(client, prompt, on_trace))
         except (SessionError, outage.ClaudeUnavailableError) as err:
             _logger.warning("model turn failed; relayed to the caller: %s", err)
-            _settle(fut, err)
+            settle(fut, err)
             return
         if reply.init:
             self.last_init = reply.init
@@ -234,17 +241,10 @@ class TutorSession:
             fut.set_result(reply)
 
 
-async def _once(client: ClaudeSDKClient, prompt: Prompt) -> Reply:
-    """Send ``prompt``, read the whole turn (each try gets a fresh block stream)."""
+async def _once(
+    client: ClaudeSDKClient, prompt: Prompt, on_trace: Observer | None = None
+) -> Reply:
+    """Send ``prompt``, read the whole turn (each try: fresh blocks, fresh trace)."""
     await client.query(prompt if isinstance(prompt, str) else _blocks(prompt))
-    return _collect([m async for m in client.receive_response()])
-
-
-def _settle(fut: asyncio.Future[Reply], err: BaseException | None) -> None:
-    """Fail ``fut`` with ``err`` (cancel it when None), unless already done."""
-    if fut.done():
-        return
-    if err is None:
-        fut.cancel()
-    else:
-        fut.set_exception(err)
+    msgs, steps = await read_turn(client.receive_response(), on_trace)
+    return replace(_collect(msgs), trace=steps)

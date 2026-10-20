@@ -4,7 +4,9 @@
 One :class:`Claim` per request is the ONLY writer of ``requests/{rid}/claim``:
 it holds the current ETag, so phase changes and lease renewals never race
 each other into a 412 of our own making. Phases are mirrored to
-``sessions/{sid}/meta/busy`` for the session the request is about.
+``sessions/{sid}/meta/busy`` for the session the request is about, and the
+model's thinking and tool calls go to its ``progress`` node
+(``live_trace.TracePublisher``, written beside the lease in :meth:`keep`).
 """
 
 from __future__ import annotations
@@ -19,7 +21,9 @@ from tutor.relay.rtdb import ConflictError, RtdbError
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from tutor.relay.live_trace import TracePublisher
     from tutor.relay.rtdb import Rtdb
+    from tutor.trace import Trace
 
 LEASE_S: Final = 300.0
 RENEW_S: Final = 60.0
@@ -58,6 +62,8 @@ class Claim:
         # The session whose meta shows ``busy``, and the pending learner text.
         self.busy_session = ""
         self.busy_text: str | None = None
+        # Where the turn's trace goes (set with ``busy_session``), if anywhere.
+        self.progress: TracePublisher | None = None
         self._etag = ""
         self._since = now()
         self._changed = asyncio.Event()
@@ -118,8 +124,30 @@ class Claim:
         }
         await self._rtdb.patch(f"sessions/{self.busy_session}/meta", {"busy": node})
 
+    def set_trace(self, trace: Trace) -> None:
+        """The model's trace grew; written (throttled) by :meth:`keep`."""
+        if self.progress is not None:
+            self.progress.update(trace)
+
     async def keep(self) -> None:
-        """Renew the lease every minute and publish phase changes; until cancelled."""
+        """Renew the lease, publish phases and the trace; until cancelled."""
+        if self.progress is None:
+            await self._keep_lease()
+        else:
+            await asyncio.gather(self._keep_lease(), self._keep_trace(self.progress))
+
+    @staticmethod
+    async def _keep_trace(progress: TracePublisher) -> None:
+        """Write the trace; a bug in it never stops the lease or the reply.
+
+        gather, not try/except: whatever ``run`` raises is returned here (a
+        cancel of the keeper still cancels it).
+        """
+        (failed,) = await asyncio.gather(progress.run(), return_exceptions=True)
+        _logger.error("live trace stopped; the reply goes on: %r", failed)
+
+    async def _keep_lease(self) -> None:
+        """Renew the lease every minute and publish phase changes."""
         if self.busy_session:
             await self._guarded(self._mirror_busy())
         while True:
@@ -138,16 +166,17 @@ class Claim:
             _logger.warning("claim write failed: %s", err)
 
     async def clear_busy(self) -> bool:
-        """Remove ``busy`` whenever a session is named (False: the write failed).
+        """Remove ``busy`` (and ``progress``) of a named session (False: failed).
 
         Unconditional: a mirror PATCH can land and still fail or be cancelled
         here, and a previous process may have left the flag behind.
         """
         if not self.busy_session:
             return True
+        cleared = self.progress is None or await self.progress.clear()
         try:
             await self._rtdb.patch(f"sessions/{self.busy_session}/meta", {"busy": None})
         except RtdbError as err:
             _logger.warning("busy clear on %s failed: %s", self.busy_session, err)
             return False
-        return True
+        return cleared

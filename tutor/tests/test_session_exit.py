@@ -127,7 +127,7 @@ def test_callers_queued_behind_a_dead_process_fail_too(
         sess = TutorSession(ClaudeAgentOptions())
         fut = _waiter(asyncio.get_running_loop())
         await sess._queue.put(None)  # a sentinel left in the queue is skipped
-        await sess._queue.put(("queued", fut))
+        await sess._queue.put(("queued", fut, None))
         with pytest.raises(OSError, match="CLI not found"):
             await sess.ask_raw("one")
         with pytest.raises(OSError, match="CLI not found"):
@@ -145,7 +145,7 @@ def test_a_clean_exit_fails_callers_left_waiting(
         loop = asyncio.get_running_loop()
         inflight, queued = _waiter(loop), _waiter(loop)
         sess._inflight = inflight
-        await sess._queue.put(("queued", queued))
+        await sess._queue.put(("queued", queued, None))
         task = asyncio.create_task(asyncio.sleep(0))
         await task
         sess._on_exit(task)
@@ -161,7 +161,7 @@ def test_a_cancelled_task_cancels_its_callers() -> None:
     async def scenario() -> None:
         sess = TutorSession(ClaudeAgentOptions())
         fut = _waiter(asyncio.get_running_loop())
-        await sess._queue.put(("queued", fut))
+        await sess._queue.put(("queued", fut, None))
         task = asyncio.create_task(asyncio.sleep(10))
         sess._task = task
         await asyncio.sleep(0)
@@ -212,7 +212,7 @@ def test_close_when_on_exit_already_cleared_the_task(
         task = asyncio.create_task(sess._run())
         task.add_done_callback(sess._on_exit)
         sess._task = task
-        await sess._queue.put(("x", _waiter(asyncio.get_running_loop())))
+        await sess._queue.put(("x", _waiter(asyncio.get_running_loop()), None))
         await asyncio.wait({task})  # died; _on_exit is scheduled, not run yet
         await sess.close()
         assert sess._task is None

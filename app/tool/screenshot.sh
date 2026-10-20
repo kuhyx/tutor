@@ -7,7 +7,8 @@
 # Usage: tool/screenshot.sh <route|-> <WIDTHxHEIGHT> <out.png> [wait_s]
 #   route: e.g. /plan/garden (fixture builds take ?screen=<route>); - = Home
 # Env: SHOT_DISPLAY (default :97, an Xvfb you started), SHOT_BASE (default
-#      http://127.0.0.1:8791/app/), SHOT_PROFILE (scratch Chrome profile).
+#      http://127.0.0.1:8791/app/), SHOT_PROFILE (scratch Chrome profile),
+#      SHOT_UNIT (the Chrome unit; own one per display when shots run in parallel).
 # Needs: chromium (or google-chrome), ImageMagick `import`, systemd.
 # ============================================================================
 set -euo pipefail
@@ -17,7 +18,7 @@ readonly BASE="${SHOT_BASE:-http://127.0.0.1:8791/app/}"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly APP_DIR
 readonly PROFILE="${SHOT_PROFILE:-$APP_DIR/build/screens/profile}"
-readonly UNIT="tutor-shot-chrome"
+readonly UNIT="${SHOT_UNIT:-tutor-shot-chrome}"
 
 die() { echo "screenshot: $*" >&2; exit 1; }
 

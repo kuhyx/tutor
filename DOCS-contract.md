@@ -58,7 +58,7 @@ presence/workers/{dev}  heartbeat (§5)                                 worker
 presence/clients/{dev}  {"platform":"android","app":"1.0.0","seen":sv} client
 live                    {"session":sid,"subject":"automation","card":"ld-x","since":ms} | null
 requests/{rid}/req|claim|result                                        §4
-sessions/{sid}/meta|msgs/{m0001}|receipts/{r0001}|user                 §6
+sessions/{sid}/meta|msgs/{m0001}|receipts/{r0001}|user|progress        §6
 session_index/{sid}     history row (§6)                               worker
 subjects/{subj}/meta|plan|cards/{cid}|concepts                         curriculum doc
 log/{dev}/{eid}         append-only events                             curriculum doc
@@ -90,9 +90,9 @@ Worker streams `requests` (kept small by GC). Per rid, in key order:
 3. Lease 300 s (model turn <=240 s + image check); renew every 60 s via
    if-match PUT; `attempt` > 3 -> result `gave_up`.
 4. Phases (in `claim`, mirrored to `sessions/{sid}/meta.busy`):
-   `claimed -> thinking -> images -> checking_images -> publishing`. **No token
-   streaming**: image check + picture guard rewrite the draft, streaming would
-   show sentences later withdrawn.
+   `claimed -> thinking -> images -> checking_images -> publishing`. **The reply
+   never streams**: image check + picture guard rewrite the draft, streaming would
+   show sentences later withdrawn. The model's thinking and tool calls do: `progress` (§6).
 5. Commit locally (jsonl + done-map), publish projection, then PUT `result`:
    `{"ok":true,"at":ms,"data":{...}}` or
    `{"ok":false,"at":ms,"code":"not_live","error":"session is not live","retry":false}`.
@@ -153,14 +153,15 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
 "msgs/m0007": {"role":"tutor","text":"markdown","questions":["...","..."],"choices":[[],["a","b","c"]],"low_effort":false,
   "check":{"question":"...","concept":"...","choices":["a","b","c"]},"check_result":{"passed":true,"feedback":"..."},
-  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"notices":["Card removed: <front>"],"card_done":false,"at":ms}
+  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"notices":["Card removed: <front>"],"card_done":false,"at":ms,"trace":[STEP]}
 "msgs/m0008": {"role":"learner","text":"...","at":ms,"rid":"...","dev":"..."}
 "msgs/m0009": {"role":"card","text":"<front>","card_id":"ld-y"}
 "receipts/r0003": {"entry_id":"<sid>-m6","recorded":true,"minutes":1,"minutes_today":23,"error":null,"at":ms}
-"user": {"archived":true}
+"user": {"archived":true}, "progress": {"rid":"...","steps":{"s0001":STEP,"s0002":STEP}}
 ```
 - `busy` null when idle; `check`/`check_result` may be null. `user` is
   client-written; the live session can't be archived. `choices[i]` belongs to `questions[i]`, `check.choices` to the check: `[]` or 3 short answers (one right, unmarked). RTDB drops empty lists, so a client reads a missing `choices`, a missing index or null as `[]` (old transcripts have none). A box still holding a tapped choice, unedited, is sent as `A: <choice> (picked option)`; a tapped check answer never passes on its own (`tutor/picked.py`): the server takes back any pass, mastery and `card_done`, and a typed one-sentence why (check `choices` `[]`) is what passes.
+- `STEP` = `{"kind":"thinking","text"}` | `{"kind":"tool","name":"WebSearch","input":"<query/url/command, <=150 ch>"}`: the model's summarized thinking and research, in order; adjacent thinking steps concatenate. `trace` = the final list (thinking <=8000 ch, <=30 tools; absent when empty), stored with the turn (`ui.trace` in `sessions/<sid>.jsonl`); display only, never in the resume primer or any prompt. `progress` (worker): PUT on a request's first flush, then PATCH `progress/steps` with only the new keys, at most every 0.5 s (desktop request) / 2 s (`device: phone`); DELETEd with `busy`; clients show it only while `meta.busy.rid == progress.rid`.
 - Learner bubble appears only after the turn succeeds (as today); until then
   all devices show `busy.text` as a pending bubble. "Stalled" =
   `awaiting_since + 600 s < now` (client display only).
@@ -201,12 +202,12 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 
 ## 9. Budgets (Spark: 10 GB/mo download, 1 GB stored, 100 conns, shared)
 Tutor target <=1 GB/month download, <=50 MB stored. Caps: message 8000 ch;
-tutor message <=24 KB incl. SVG; card <=2 KB; plan <=16 KB; feedback 4000 ch.
+tutor message <=24 KB incl. SVG (`trace` has its own caps, §6); card <=2 KB; plan <=16 KB; feedback 4000 ch.
 Client streams only while visible: `live`, `presence/workers`, `rev`,
-`sessions/{sid}/meta`, `sessions/{sid}/msgs`, `requests/{rid}`; never the
+`sessions/{sid}/meta`, `sessions/{sid}/msgs`, `sessions/{sid}/progress`, `requests/{rid}`; never the
 `/tutor/v1`, `sessions`, `subjects` or `log` roots. Reconnect cost: msgs
 ~30 x 2 KB = 60 KB: stream `orderBy="$key"&startAt="m<last+1>"` (**verified
-2026-10-12: SSE honours it**, 1st `put` only keys >= startAt); meta ~1 KB; presence ~0.3 KB.
+2026-10-12: SSE honours it**, 1st `put` only keys >= startAt); meta ~1 KB; presence ~0.3 KB; progress append-only, <=~12 KB/turn.
 Catalog: GET `subjects/{s}` only on a `rev.catalog` move (167 PLC cards ~90 KB
 once); `rev` = ONE shared listen, closed while hidden; Plan/Editor refetch per
 move, Home only on top. Log: GET `log/{dev}?orderBy="$key"&startAt="<last eid>"`
@@ -228,23 +229,5 @@ per device (shallow first), ~150 B/event. 1 h chat/day ~2-5 MB/device/day, <0.2 
 - Tokens: Android keystore; `~/.config/tutor/` on PC. Transcripts/reviews in
   Google RTDB are personal, not secret.
 
-## 11. Migration (A2/B; one-off `python -m tutor migrate [--data DIR]`, idempotent)
-- Data dir `~/.local/share/automation_tutor` -> `~/.local/share/tutor`; old
-  kept read-only.
-- `deck/*.json` (7 topics, 167 cards) -> `subjects/automation/` seed: subject
-  `automation`, plan rev 1 `approved`; modules = `cards.TOPICS` in order,
-  keeping `prefixes`; module `requires` = topics named by cross-topic card
-  `requires` into EARLIER topics (forward ones, e.g. `fund-five-languages`,
-  stay card-level only); card `requires` kept; cards `origin:"seed"`, rev 1;
-  modules `ready`. Card-level gating (`gating.py`) kept.
-- `progress.json`: `cards_done` (14) -> `taught` events in the worker log (`at`
-  = recorded time, session); `mastered` (46) -> `subjects/automation/concepts`;
-  `archived` -> `sessions/{sid}/user`; `repairs` stays local. Modules with any
-  taught card are unlocked regardless of recall (grandfather).
-- `sessions/*.jsonl` (18) keep sids; projection published via replay
-  (`history.session_view`). Old images: resolve `url` from `page_url` via
-  Commons `imageinfo`, else attribution only. Old diagrams: inline SVG from the
-  tutor-diagrams cache by filename, else dropped.
-- No FSRS/Anki history imported; taught cards start FSRS at taught time.
-- Cutover only via the deploy script with the worker drained (no new claims,
-  leases finished).
+## 11. Migration
+The one-off A2/B migration (`python -m tutor migrate`): `DOCS-migration.md`.
