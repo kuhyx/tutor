@@ -224,6 +224,10 @@ class Browser:
                 **point,
             )
 
+    def type_text(self, text: str) -> None:
+        """Type ``text`` into the focused field (as an IME commit would)."""
+        self.call("Input.insertText", text=text)
+
     def scroll(self, dy: float) -> None:
         """A mouse-wheel scroll of ``dy`` px at the viewport's centre."""
         size = self.evaluate("[innerWidth, innerHeight]")

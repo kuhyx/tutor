@@ -7,12 +7,13 @@
 #
 # Usage:
 #   scripts/e2e_sandbox.sh build              # e2e web build (once per app change)
-#   scripts/e2e_sandbox.sh up [--new-cap N] [--as-of "YYYY-MM-DD HH:MM"]
+#   scripts/e2e_sandbox.sh up [--new-cap N] [--as-of "YYYY-MM-DD HH:MM[:SS]"]
 #                                    # fresh sandbox; N forces the daily limit,
 #                                    # --as-of rewinds the copy (e2e_prepare.py)
-#   scripts/e2e_sandbox.sh flow F1|F2         # drive one flow; exit 0 = PASS
+#   scripts/e2e_sandbox.sh flow F1|F2|F3|F4   # drive one flow; exit 0 = PASS
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
-# Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97).
+# Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
+# E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
 # Needs: java + the cached RTDB emulator jar (firebase-tools), chromium, an
 # Xvfb on E2E_DISPLAY, fvm.
 # ============================================================================
@@ -29,6 +30,7 @@ readonly WEB="$ROOT/app/build/web_e2e"
 readonly SRC_DATA="$HOME/.local/share/tutor"
 readonly SUBJECT="${E2E_SUBJECT:-chc-rozumie-poj-cia-z-maila-do-centrum}"
 readonly CARD="${E2E_CARD:-vhost-what}"
+readonly SESSION="${E2E_SESSION:-20261020-172115-3f84}"
 readonly DISPLAY_ID="${E2E_DISPLAY:-:97}"
 readonly DB_UNIT="tutor-e2e-db"
 readonly SERVER_UNIT="tutor-e2e-server"
@@ -122,12 +124,14 @@ cmd_up() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1|F2}" db port
+    local flow="${1:?flow F1|F2|F3|F4}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
+    sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
     "$PY" "$ROOT/scripts/e2e_drive.py" "$flow" --app "http://127.0.0.1:$port/app/" \
         --db "$db" --card "$CARD" --display "$DISPLAY_ID" \
+        --data "$sandbox/data" --session "$SESSION" \
         --out "$SCREENS/e2e_${flow,,}"
 }
 
@@ -139,7 +143,7 @@ main() {
         up) cmd_up "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] | flow F1|F2 | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] | flow F1|F2|F3|F4 | down" ;;
     esac
 }
 

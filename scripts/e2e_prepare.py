@@ -8,10 +8,11 @@ gets a fresh uuid4, and every mention of the live worker's id is rewritten
 to it, so nothing the sandbox writes can be mistaken for (or claim the
 requests of) the live ``tutor.service``. ``--new-cap N`` appends a Settings
 ``new_cap`` event from a fresh "app" device, as the app's Settings screen
-would, to force the daily new-card limit. ``--as-of "YYYY-MM-DD HH:MM"``
+would, to force the daily new-card limit. ``--as-of "YYYY-MM-DD HH:MM[:SS]"``
 (local time) rewinds the copy to that moment: later log events, session
-transcripts and drill logs are dropped, so a reported state can be replayed
-after kuhy has moved on.
+transcripts and drill logs are dropped, and so are the later events of a
+transcript started before it (a session at card end, before its Next card),
+so a reported state can be replayed after kuhy has moved on.
 
 Usage: e2e_prepare.py <src> <empty dst> [--new-cap N] [--as-of "YYYY-MM-DD HH:MM"]
 Prints the sandbox worker's device id.
@@ -80,6 +81,28 @@ def _started(path: Path) -> datetime | None:
     return datetime.strptime(stamp, "%Y%m%d-%H%M%S").astimezone()
 
 
+def parse_as_of(raw: str) -> datetime:
+    """``YYYY-MM-DD HH:MM[:SS]`` local time, as an aware datetime."""
+    shape = "%Y-%m-%d %H:%M" + (":%S" if raw.count(":") > 1 else "")
+    return datetime.strptime(raw, shape).astimezone()
+
+
+def _cut(path: Path, as_of: datetime) -> int:
+    """Drop the events of ``path`` logged at or after ``as_of``; how many.
+
+    An event with no ``logged_at`` stays (none is written without one).
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    stamps = [json.loads(line).get("logged_at") for line in lines]
+    kept = [
+        line
+        for line, at in zip(lines, stamps, strict=True)
+        if at is None or datetime.fromisoformat(at) < as_of
+    ]
+    path.write_text("".join(f"{line}\n" for line in kept), encoding="utf-8")
+    return len(lines) - len(kept)
+
+
 def rewind(root: Path, as_of: datetime) -> int:
     """Drop what happened at or after ``as_of``; returns how much was dropped."""
     cut = int(as_of.timestamp() * 1000)
@@ -93,6 +116,8 @@ def rewind(root: Path, as_of: datetime) -> int:
         if started is not None and started >= as_of:
             path.unlink()
             dropped += 1
+        elif started is not None and path.parent.name == "sessions":
+            dropped += _cut(path, as_of)
     return dropped
 
 
@@ -137,8 +162,8 @@ def main() -> int:
     parser.add_argument("--new-cap", type=int, choices=range(1, 201), metavar="1..200")
     parser.add_argument(
         "--as-of",
-        type=lambda raw: datetime.strptime(raw, "%Y-%m-%d %H:%M").astimezone(),
-        help='rewind the copy to this local time, "YYYY-MM-DD HH:MM"',
+        type=parse_as_of,
+        help='rewind the copy to this local time, "YYYY-MM-DD HH:MM[:SS]"',
     )
     args = parser.parse_args()
     print(prepare(args.src, args.dst, new_cap=args.new_cap, as_of=args.as_of))

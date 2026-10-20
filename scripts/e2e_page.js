@@ -16,7 +16,9 @@
       const r = e.getBoundingClientRect();
       return r.width * r.height;
     };
-    const rank = (e) => (e.getAttribute('role') === 'button' ? 0 : 1e12) + area(e);
+    // A disabled twin (aria-disabled) loses to the enabled one.
+    const off = (e) => (e.getAttribute('aria-disabled') === 'true' ? 2e12 : 0);
+    const rank = (e) => off(e) + (e.getAttribute('role') === 'button' ? 0 : 1e12) + area(e);
     const best = (list) => list.sort((a, b) => rank(a) - rank(b))[0];
     const all = this.nodes();
     const hit = best(all.filter((e) => this.label(e) === label))

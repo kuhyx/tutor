@@ -59,11 +59,15 @@ scripts/e2e_sandbox.sh up --as-of "2026-10-17 22:00"            # F1 sandbox
 scripts/e2e_sandbox.sh flow F1   # Continue learning -> E2E_CARD (vhost-what) + tutor message
 scripts/e2e_sandbox.sh up --new-cap 10 --as-of "2026-10-17 22:00"
 scripts/e2e_sandbox.sh flow F2   # daily cap -> "Learn more anyway" -> E2E_CARD
+scripts/e2e_sandbox.sh up --as-of "2026-10-20 17:24:30"         # E2E_SESSION at card end
+scripts/e2e_sandbox.sh flow F3   # card end: a follow-up is answered, credit goes on
+scripts/e2e_sandbox.sh flow F4   # Stop here, History -> "Ask a follow-up" -> answer
 scripts/e2e_sandbox.sh down
 ```
 
-`--as-of` rewinds the copy to a reported moment: later log events,
-transcripts and drill logs are dropped. `--new-cap N` adds a Settings
+`--as-of` (`HH:MM` or `HH:MM:SS`) rewinds the copy to a reported moment:
+later log events, transcripts and drill logs are dropped, and so are the
+later events of an earlier transcript. `--new-cap N` adds a Settings
 `new_cap` event. A flow exits 0 on PASS. Otherwise it prints
 `FAIL <flow> step N: ...`, the page's console errors and a `_fail.png`.
 
