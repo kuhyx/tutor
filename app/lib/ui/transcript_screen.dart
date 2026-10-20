@@ -1,6 +1,7 @@
 /// A past session, read-only (`static/session.js` showPast): its cards with
 /// Mark done / Mark not done, Archive / Unarchive, Repeat (a new session on
-/// its first card) and Continue (`session_resume`).
+/// its first card), Continue (`session_resume`) and, when its card was done
+/// in it, Ask a follow-up (`follow_up_box.dart`).
 library;
 
 import 'dart:async';
@@ -13,6 +14,7 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/follow_up_box.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
@@ -99,6 +101,9 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
         final row = entry?.row;
         final subject = row?.subject ?? t.view.meta?.subject;
         final first = row?.cards.firstOrNull?.id ?? t.view.meta?.card?.id;
+        final doneHere =
+            (row?.cards.any((c) => c.doneHere) ?? false) ||
+            (t.view.meta?.cardDone ?? false);
         final text = Theme.of(context).textTheme;
         return PageList(
           children: [
@@ -134,6 +139,14 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                 ),
               ],
             ),
+            if (doneHere) ...[
+              const SizedBox(height: AppSpacing.sm),
+              FollowUpBox(
+                sid: widget.sid,
+                runner: _runner,
+                onAsked: () => openSession(context, _s, replace: true),
+              ),
+            ],
             // A blocked Repeat (locked, cap) shows its call to action.
             ValueListenableBuilder<RelayStatus?>(
               valueListenable: _runner.status,

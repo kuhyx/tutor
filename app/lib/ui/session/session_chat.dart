@@ -1,6 +1,6 @@
 /// The Session's chat column: status line with paused/stalled pills, the
 /// messages, the pending learner bubble and busy phase, then Card done
-/// (Next card / Stop here), the composer, or Start.
+/// (Next card / Stop here) above the composer, or Start.
 library;
 
 import 'package:design_system/design_system.dart';
@@ -109,7 +109,6 @@ class _SessionChatState extends State<SessionChat> {
     final last = view?.last;
     final boxes =
         live &&
-        !meta.cardDone &&
         last != null &&
         last.message.role == 'tutor' &&
         askedOf(last.message).isNotEmpty;
@@ -178,12 +177,14 @@ class _SessionChatState extends State<SessionChat> {
                     subject: meta?.subject ?? widget.subject,
                     onRun: widget.onRun,
                   ),
+                  // Card done: Next card / Stop here, and the composer
+                  // stays for follow-up questions (kuhy, 2026-10-20).
                   if (live && meta.cardDone)
                     CardEnd(
                       onNext: () => widget.onRun(RequestBody.next(view!.sid)),
                       onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
-                    )
-                  else if (live)
+                    ),
+                  if (live)
                     Composer(
                       sid: view!.sid,
                       latest: last,
