@@ -129,7 +129,10 @@ def test_private_ranges_are_refused_at_once(root: Path) -> None:
 def test_the_fence_cannot_be_lifted_from_inside(root: Path) -> None:
     script = (
         "grep CapEff /proc/self/status; "
-        "nft flush ruleset && echo FLUSHED; " + connect_script(PRIVATE_TARGETS[:1])
+        "nft flush ruleset && echo FLUSHED; "
+        # A nested user namespace has no caps over pasta's netns either.
+        "unshare -Ur nft flush ruleset && echo FLUSHED; "
+        + connect_script(PRIVATE_TARGETS[:1])
     )
     run = inside(root, script)
     assert run.returncode == 0, run.stderr
