@@ -6,6 +6,7 @@ import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/ui/transcript_screen.dart';
+import 'package:tutor/util/device.dart';
 
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/composer.dart';
@@ -29,6 +30,8 @@ Future<(FakeRtdb, FakeStream)> _transcript(WidgetTester t, String sid) async {
 }
 
 void main() {
+  tearDown(() => debugPhone = false);
+
   test('follow_up_open is a chat kind with the session only', () {
     expect(RequestKind.parse('follow_up_open'), RequestKind.followUpOpen);
     expect(RequestKind.followUpOpen.lane, Lane.chat);
@@ -68,6 +71,20 @@ void main() {
     expect(msg['kind'], 'message');
     expect((msg['body'] as Map)['text'], 'what if I forge it?');
     expect((msg['body'] as Map)['session'], fixtureLiveSid);
+  });
+
+  testWidgets('phone, keyboard open: card end buttons and Send fit', (t) async {
+    final (db, stream) = await openComposer(t, phone: true, questions: false);
+    db.root = setAt(db.root, '$composeBase/meta/card_done', true);
+    stream.listens['$composeBase/meta']!.add(
+      RtdbPut('/', getAt(db.root, '$composeBase/meta')),
+    );
+    t.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(t.view.resetViewInsets);
+    await t.pumpAndSettle();
+    for (final label in ['Next card', 'Stop here', 'Send']) {
+      expect(find.text(label).hitTestable(), findsOneWidget, reason: label);
+    }
   });
 
   testWidgets('history: ask a follow-up reopens, sends, opens the session', (
