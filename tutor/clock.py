@@ -12,8 +12,10 @@ Time accrues in two kinds of gap:
   the reply arrives within :data:`REPLY_TIMEOUT` and is not low effort
   (tutor-flagged or deterministic filler); otherwise the gap earns nothing.
   It is measured from the *latest* tutor message; a reply with no unanswered
-  tutor message before it earns nothing. A server restart inside the window
-  restarts it (the outage was not the learner's), up to :data:`OUTAGE_CAP`.
+  tutor message before it earns nothing. A server restart while an on-time
+  reply was waiting on the tutor restarts the window (the outage was not the
+  learner's), up to :data:`OUTAGE_CAP`; a restart while the learner was idle
+  excuses nothing (2026-10-20: a deploy at card end minted 47 idle minutes).
 * **Tutor gap** -- a credited reply to the next tutor message, capped at
   :data:`GENERATION_CAP` so a hung model cannot farm time. A reply that earned
   nothing earns no tutor gap either ("ok" -> tutor -> "ok" accrues zero).
@@ -83,7 +85,7 @@ class _Turn:
     """Where the conversation stands: what is awaiting an answer."""
 
     tutor_at: float | None = None  # unanswered tutor message
-    restarted_at: float | None = None  # last server restart while it was open
+    restarted_at: float | None = None  # last excused server restart
     reply_at: float | None = None  # credited reply awaiting the tutor
     check_open: bool = False
 
@@ -121,8 +123,22 @@ class EngagementClock:
             self._turn.reply_at = None
         self._turn.tutor_at, self._turn.restarted_at = t, None
 
-    def server_restarted(self, t: float) -> None:
-        """The server came back at ``t``: an open reply window starts over."""
+    def server_restarted(self, t: float, *, pending_at: float | None) -> None:
+        """The server came back at ``t``; ``pending_at``: the reply in flight.
+
+        The open reply window starts over only if a learner reply sent at
+        ``pending_at`` was waiting on the tutor and was itself on time. With
+        none (``None``) the restart changes nothing: idle time stays idle.
+        """
+        if pending_at is not None and not self._late(pending_at):
+            self.excuse_restart(t)
+
+    def excuse_restart(self, t: float) -> None:
+        """Start an open reply window over at ``t``, unconditionally.
+
+        The pre-2026-10-20 rule, kept for replaying ``resume`` events logged
+        without ``pending_at``: the ledger already pays what it earned.
+        """
         if self._turn.tutor_at is not None:
             self._turn.restarted_at = t
 
