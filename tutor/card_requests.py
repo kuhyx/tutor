@@ -1,7 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """``card_edits``: the deck changes a tutor turn asks for (``tutor.edit_flow``).
 
-Each entry is one op: ``edit`` (new front/back of ``card``), ``add`` (a new
+Each entry is one op: ``edit`` (new front/back of ``card``, optionally a new
+``source`` page with ``quote``), ``add`` (a new
 card in ``topic`` from front, back and a ``source`` URL) or ``remove``
 (suspend ``card``). An empty ``card`` means the target card, an empty
 ``topic`` its topic. Read forgivingly: an entry without a known op is dropped.
@@ -26,7 +27,8 @@ ITEM_SCHEMA: Final = {
 }
 DOC: Final = (
     "Usually []. One entry per change to the deck: op edit (card, front, "
-    "back), add (topic, front, back, source URL, quote) or remove (card); "
+    "back; optionally a new source URL and quote), add (topic, front, back, "
+    "source URL, quote) or remove (card); "
     "`quote`: words of the page's supporting sentence, in the page's "
     "language (searched for, never copied); empty "
     "card = the target card, empty topic = its topic, an empty field keeps "
