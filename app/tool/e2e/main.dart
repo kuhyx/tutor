@@ -5,9 +5,10 @@
 // store. Never the compiled config, never the
 // wrapper's /app/sync-credentials.
 //
-// `?db=http://127.0.0.1:<port>` (or `https://`: its h2 proxy) names the
-// emulator (required; only a loopback URL is accepted). Semantics are always
-// on, so a driver finds buttons by their label in the DOM
+// `?db=http://127.0.0.1:<port>` names the emulator (required; only a
+// loopback URL is accepted). Plain HTTP/1.1, as the real database answers:
+// the app keeps at most 4 streams, so writes still get a connection. Semantics
+// are always on, so a driver finds buttons by their label in the DOM
 // (scripts/e2e_drive.py).
 //
 // Build: fvm flutter build web --release -t tool/e2e/main.dart \
@@ -27,14 +28,10 @@ import 'package:tutor/ui/ui_zoom.dart';
 const _loopback = {'127.0.0.1', 'localhost'};
 
 /// The emulator URL from `?db=`, or empty (the app then shows "not
-/// configured") when it is missing or not on this machine. `https` is the
-/// sandbox's HTTP/2 proxy in front of it (scripts/e2e_h2proxy.go).
+/// configured") when it is missing or not on this machine.
 String emulatorUrl(Uri page) {
   final db = Uri.tryParse(page.queryParameters['db'] ?? '');
-  final scheme = db?.scheme;
-  if (db == null ||
-      (scheme != 'http' && scheme != 'https') ||
-      !_loopback.contains(db.host)) {
+  if (db == null || db.scheme != 'http' || !_loopback.contains(db.host)) {
     return '';
   }
   return db.toString();

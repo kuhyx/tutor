@@ -67,10 +67,10 @@ against the real engine and relay without touching live state. It copies
 throwaway key and a fresh device id; the live id is rewritten. The relay
 talks to a local Firebase RTDB emulator (the cached
 `firebase-database-emulator` jar), never the real database, and the server
-uses a free port, never :8778. The app reaches the emulator through
-`scripts/e2e_h2proxy.go`, an HTTP/2 TLS proxy (Go, stdlib only): over the
-emulator's HTTP/1.1, Chrome's 6 connections per host are all held by the
-session screen's streams and a Send never leaves the page. The app build is
+uses a free port, never :8778. The app reaches the emulator over plain
+HTTP/1.1, as it reaches the real database (which never negotiates h2), so
+Chrome's 6 connections per host are the same budget as in production; the
+app holds at most 4 streams (DOCS-contract §9). The app build is
 `app/tool/e2e/main.dart`: the real services pointed at the emulator, with
 semantics on so the driver can find buttons by label. The driver (`scripts/e2e_drive.py`) runs Chromium
 over `--remote-debugging-pipe` on the Xvfb `:97`. It taps buttons, checks

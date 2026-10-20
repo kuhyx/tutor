@@ -161,7 +161,6 @@ def main() -> int:
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")
     parser.add_argument("--db", required=True, help="emulator http://127.0.0.1:N")
-    parser.add_argument("--app-db", help="the page's ?db= (default --db)")
     parser.add_argument("--card", required=True, help="the card that must start")
     parser.add_argument("--out", required=True, help="screenshot prefix")
     parser.add_argument("--state", required=True, help="send's state, for wait/check")

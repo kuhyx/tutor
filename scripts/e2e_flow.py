@@ -205,13 +205,9 @@ class Flow:
     def screen(self, route: str) -> None:
         """Open the app on ``route`` (``app/lib/ui/nav.dart``)."""
         self.step(f"open the app on {route}")
-        self.browser.open(f"{self.args.app}?db={self._page_db()}&screen={route}")
-
-    def _page_db(self) -> str:
-        """The app's database: the h2 proxy (``--app-db``), else the emulator."""
-        return str(getattr(self.args, "app_db", None) or self.args.db)
+        self.browser.open(f"{self.args.app}?db={self.args.db}&screen={route}")
 
     def home(self) -> None:
         """Open the app on Home."""
         self.step(f"open {self.args.app}")
-        self.browser.open(f"{self.args.app}?db={self._page_db()}")
+        self.browser.open(f"{self.args.app}?db={self.args.db}")

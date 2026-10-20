@@ -18,11 +18,11 @@
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
 # Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
 # E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
-# The app reaches the emulator through scripts/e2e_h2proxy.go (HTTP/2 over
-# TLS, as the real database): over the emulator's HTTP/1.1 Chrome's 6
-# connections per host are all held by the session screen's streams.
-# Needs: java + the cached RTDB emulator jar (firebase-tools), go, chromium,
-# an Xvfb on E2E_DISPLAY, fvm.
+# The app talks to the emulator over plain HTTP/1.1, as to the real database
+# (which never negotiates h2): Chrome's 6 connections per host are the real
+# budget, and the app keeps at most 4 streams (DOCS-contract §9).
+# Needs: java + the cached RTDB emulator jar (firebase-tools), chromium, an
+# Xvfb on E2E_DISPLAY, fvm.
 # ============================================================================
 set -euo pipefail
 
@@ -41,8 +41,6 @@ readonly SESSION="${E2E_SESSION:-20261020-172115-3f84}"
 readonly DISPLAY_ID="${E2E_DISPLAY:-:97}"
 readonly DB_UNIT="tutor-e2e-db"
 readonly SERVER_UNIT="tutor-e2e-server"
-readonly PROXY_UNIT="tutor-e2e-h2"
-readonly PROXY="$ROOT/build/e2e-sandbox/h2proxy"
 
 die() { echo "e2e_sandbox: $*" >&2; exit 1; }
 
@@ -84,7 +82,7 @@ cmd_build() {
 
 cmd_down() {
     local unit
-    for unit in "$SERVER_UNIT" "$PROXY_UNIT" "$DB_UNIT"; do  # one by one: a
+    for unit in "$SERVER_UNIT" "$DB_UNIT"; do  # one by one: a
         systemctl --user stop "$unit" 2>/dev/null || true    # missing unit fails all
     done
     if [[ -f "$STATE" ]]; then
@@ -103,28 +101,18 @@ cmd_down() {
 cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
-    local sandbox db_port port dev db h2_port
+    local sandbox db_port port dev db
     sandbox="$(mktemp -d "${TMPDIR:-/tmp}/tutor-e2e.XXXXXX")"
     dev="$("$PY" "$ROOT/scripts/e2e_prepare.py" "$SRC_DATA" "$sandbox/data" "$@")"
     head -c 32 /dev/urandom | base64 > "$sandbox/test.key"
     mkdir -p "$(dirname "$STATE")" "$sandbox/cache"
     db_port="$(free_port)"
     port="$(free_port)"
-    h2_port="$(free_port)"
     db="http://127.0.0.1:$db_port"
-    printf 'SANDBOX=%s\nDB=%s\nAPP_DB=%s\nPORT=%s\nDEV=%s\n' \
-        "$sandbox" "$db" "https://127.0.0.1:$h2_port" "$port" "$dev" > "$STATE"
-    [[ "$PROXY" -nt "$ROOT/scripts/e2e_h2proxy.go" ]] ||
-        "$HOME/.claude/scripts/capped.sh" go build -o "$PROXY" "$ROOT/scripts/e2e_h2proxy.go"
+    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\n' "$sandbox" "$db" "$port" "$dev" > "$STATE"
     systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
         java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
     wait_http "$db/.json" 40 || die "emulator did not start"
-    systemd-run --user --quiet --collect --unit="$PROXY_UNIT" -p RuntimeMaxSec=3600 \
-        "$PROXY" -listen "127.0.0.1:$h2_port" -target "$db"
-    for _ in {1..20}; do
-        curl -sfk -o /dev/null "https://127.0.0.1:$h2_port/.json" && break
-        sleep 0.25
-    done
     systemd-run --user --quiet --collect --unit="$SERVER_UNIT" -p RuntimeMaxSec=3600 \
         -p WorkingDirectory="$ROOT" \
         -p StandardOutput="file:$sandbox/server.log" -p StandardError="file:$sandbox/server.log" \
@@ -143,18 +131,17 @@ cmd_up() {
         sleep 0.5
     done
     grep 'e2e seed' "$sandbox/server.log" || true
-    echo "e2e sandbox up: app http://127.0.0.1:$port/app/?db=https://127.0.0.1:$h2_port worker $dev"
+    echo "e2e sandbox up: app http://127.0.0.1:$port/app/?db=$db worker $dev"
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1|F2|F3|F4}" phase="${2:-all}" db app_db port sandbox
+    local flow="${1:?flow F1|F2|F3|F4}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
-    app_db="$(sed -n 's/^APP_DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
     "$PY" "$ROOT/scripts/e2e_drive.py" "$flow" "$phase" --app "http://127.0.0.1:$port/app/" \
-        --db "$db" --app-db "$app_db" --card "$CARD" --display "$DISPLAY_ID" \
+        --db "$db" --card "$CARD" --display "$DISPLAY_ID" \
         --data "$sandbox/data" --session "$SESSION" \
         --state "$(dirname "$STATE")/${flow,,}.json" --out "$SCREENS/e2e_${flow,,}"
 }
