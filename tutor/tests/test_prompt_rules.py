@@ -145,6 +145,10 @@ def test_grounding_lets_the_tutor_research(profile: profiles.Profile) -> None:
     assert "general knowledge" in rule
     for tool in ("WebSearch", "WebFetch", "Bash", "Task"):
         assert tool in rule
+    # Only tools it has: none of the blocked account-wide ones, no "every".
+    assert "every Claude Code tool" not in rule
+    for blocked in research.BLOCKED_TOOLS:
+        assert blocked not in rule
     assert "whenever you are unsure" in rule
     assert "inline markdown link" in rule
     assert "never silently contradict" in rule

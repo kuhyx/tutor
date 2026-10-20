@@ -41,13 +41,19 @@ smoke-test server, in its own `systemd-run --user` unit.
 ## The model's sandbox
 
 The tutor conversation may research (web search and fetch, code, subagents):
-it has every Claude Code tool with permissions bypassed, so its CLI runs
+it has Claude Code's local tools with permissions bypassed (the ones that act
+through the claude.ai account, `research.BLOCKED_TOOLS`, and remote subagents
+are off), so its CLI runs
 inside bubblewrap (`scripts/tutor_model_sandbox.sh`, set as the SDK's
 `cli_path` by `tutor/research.py`). It sees `/usr`, a short list of `/etc`
 files and a scratch HOME it may install into; never the data dir, the
 ledger key, the releases, the repo or `~/.claude`. Its network is pasta's
 (`passt`): the internet, but nothing on this machine (no loopback services
-such as :8778, no X server socket). `install.sh` installs bwrap and pasta. Its login is a
+such as :8778, no X server socket) and no private network: an nftables fence
+inside pasta's namespace (`scripts/tutor_model_netfence.sh`) refuses RFC1918,
+the tailnet (100.64/10), link-local, IPv6 ULA and link-local and the host's
+own addresses, except port 53 to the resolvers in `/etc/resolv.conf`.
+`install.sh` installs bwrap, pasta and nftables. Its login is a
 copy of the Claude access token only (`tutor/model_login.py`), refreshed on
 the host before each turn. Each turn has 90 s of tool time; later calls are
 refused and the tutor answers with what it has. Card generation, drills and

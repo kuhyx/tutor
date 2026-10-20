@@ -26,8 +26,14 @@ class Canary:
     """Fake ``isolation._ask``: records options, reads the canary like a model."""
 
     def __init__(
-        self, tutor_text: str, tutor_hooks: int, *, control_sees: bool
+        self,
+        tutor_text: str,
+        tutor_hooks: int,
+        *,
+        control_sees: bool,
+        tools: tuple[str, ...] = ("Bash", "WebSearch"),
     ) -> None:
+        self.tools = list(tools)
         self.tutor_text = tutor_text
         self.tutor_hooks = tutor_hooks
         self.control_sees = control_sees
@@ -41,7 +47,7 @@ class Canary:
         if len(self.options) == 1:
             token = path.read_text(encoding="utf-8").split()[1]
             return (token if self.control_sees else "NONE"), {}, 3
-        init: dict[str, object] = {"tools": [], "claude_code_version": "9.9"}
+        init: dict[str, object] = {"tools": self.tools, "claude_code_version": "9.9"}
         token = path.read_text(encoding="utf-8").split()[1]
         return self.tutor_text.replace("TOKEN", token), init, self.tutor_hooks
 
@@ -104,6 +110,16 @@ def test_fail_cases(
     assert run_with(monkeypatch, fake) == 1
     assert "RESULT: FAIL" in capsys.readouterr().out
     assert not isolation.canary_file().exists()
+
+
+def test_fail_when_the_cli_loads_a_blocked_tool(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = Canary("NONE", 0, control_sees=True, tools=("Bash", "RemoteTrigger"))
+    assert run_with(monkeypatch, fake) == 1
+    out = capsys.readouterr().out
+    assert "blocked tools loaded: ['RemoteTrigger']" in out
+    assert "RESULT: FAIL" in out
 
 
 def test_canary_is_deleted_even_when_ask_raises(

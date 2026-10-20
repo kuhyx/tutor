@@ -2,7 +2,8 @@
 """Prove the tutor session does not see kuhy's ~/.claude (canary test).
 
 The tutor side runs the options that go live (``research.research_options``:
-every tool, inside the bubblewrap sandbox).
+the local tools, inside the bubblewrap sandbox); none of
+``research.BLOCKED_TOOLS`` may be among the tools its CLI loads.
 
 Writes a random-token rule file into ``~/.claude/rules/`` for a few seconds,
 asks a session with DEFAULT options (positive control: must report the token)
@@ -19,7 +20,7 @@ import sys
 
 from claude_agent_sdk import ClaudeAgentOptions
 
-from tutor.research import research_options
+from tutor.research import BLOCKED_TOOLS, research_options
 from tutor.session import MODEL, TutorSession
 
 
@@ -75,11 +76,15 @@ async def run_canary() -> int:
         print(f"  tutor init {key}: {init.get(key)}")
     print(f"  tutor hook events: {tutor[2]}  (control: {control[2]})")
     print(f"  cli: {init.get('claude_code_version')}")
+    loaded = init.get("tools")
+    blocked = [t for t in BLOCKED_TOOLS if isinstance(loaded, list) and t in loaded]
+    print(f"  blocked tools loaded: {blocked}  (expect [])")
     ok = (
         token in control[0]
         and token not in tutor[0]
         and "NONE" in tutor[0]
         and tutor[2] == 0
+        and not blocked
     )
     print("RESULT:", "PASS" if ok else "FAIL")
     return 0 if ok else 1

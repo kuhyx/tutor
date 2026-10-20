@@ -33,13 +33,18 @@ ensure_venv() {
     fi
 }
 
-# The tutor model's CLI runs in bubblewrap behind pasta
-# (scripts/tutor_model_sandbox.sh); without them every turn fails.
+# The tutor model's CLI runs in bubblewrap behind pasta and an nftables fence
+# (scripts/tutor_model_sandbox.sh, tutor_model_netfence.sh; ip and jq read
+# the host's addresses); without them every turn fails.
 ensure_sandbox_tools() {
-    if ! command -v bwrap >/dev/null || ! command -v pasta >/dev/null; then
-        log "installing bubblewrap and passt (the model sandbox)"
-        sudo pacman -S --needed --noconfirm bubblewrap passt
-    fi
+    local tool
+    for tool in bwrap pasta nft ip jq; do
+        if ! command -v "$tool" >/dev/null; then
+            log "installing bubblewrap, passt, nftables, iproute2, jq (the model sandbox)"
+            sudo pacman -S --needed --noconfirm bubblewrap passt nftables iproute2 jq
+            return
+        fi
+    done
 }
 
 install_unit() {

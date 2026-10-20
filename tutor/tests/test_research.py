@@ -75,7 +75,7 @@ def test_research_options_run_every_tool_through_the_wrapper(
     assert os.access(wrapper, os.X_OK)
     assert opts.permission_mode == "bypassPermissions"
     assert opts.tools == {"type": "preset", "preset": "claude_code"}
-    assert opts.disallowed_tools == []
+    assert opts.disallowed_tools == list(research.BLOCKED_TOOLS)
     # Still isolated from kuhy's CLAUDE.md, rules, hooks, skills and MCP.
     assert opts.setting_sources == []
     assert opts.strict_mcp_config is True
@@ -143,6 +143,44 @@ def test_the_structured_answer_is_never_denied() -> None:
     clock.t += 500
     assert decide(budget, "StructuredOutput") == {}
     assert denied(budget, "Task")
+
+
+# 2026-10-20 (kuhy): tools that act through the claude.ai account (cloud
+# routines, crons, other sessions, pushes to his phone) stay out of the box.
+def test_account_wide_tools_are_blocked() -> None:
+    assert set(research.BLOCKED_TOOLS) >= {
+        "RemoteTrigger",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "ScheduleWakeup",
+        "SendMessage",
+        "Workflow",
+        "PushNotification",
+        "ListAgents",
+        "DesignSync",
+    }
+    # The research tools stay.
+    for kept in ("WebSearch", "WebFetch", "Bash", "Task", "Read", "Write"):
+        assert kept not in research.BLOCKED_TOOLS
+
+
+def test_remote_subagents_are_denied_at_any_time() -> None:
+    clock = Clock()
+    budget = research.ResearchBudget(90, now=clock)
+    budget.start()
+    for tool in ("Task", "Agent"):
+        remote = {"tool_name": tool, "tool_input": {"isolation": "remote"}}
+        out: dict[str, Any] = dict(
+            asyncio.run(budget.pre_tool_use(cast("HookInput", remote), "i", CTX))
+        )
+        decision = out["hookSpecificOutput"]
+        assert decision["permissionDecision"] == "deny"
+        assert "this machine" in decision["permissionDecisionReason"]
+        local = {"tool_name": tool, "tool_input": {"isolation": "worktree"}}
+        assert (
+            asyncio.run(budget.pre_tool_use(cast("HookInput", local), "i", CTX)) == {}
+        )
 
 
 def test_each_prompt_refreshes_the_login_copy_first(tutor_sandbox: Path) -> None:
