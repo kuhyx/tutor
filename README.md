@@ -36,6 +36,20 @@ smoke-test server, in its own `systemd-run --user` unit.
 | earned-time ledger | `~/.local/share/tutor/ledger.json` |
 | server log | `~/.local/state/tutor/server.log` |
 | releases | `~/.local/lib/tutor-live` (fixed: `tutor.service` runs its `current`) |
+| the model's sandbox | `~/.cache/tutor/sandbox` (`TUTOR_MODEL_SANDBOX`; under `TUTOR_DATA` when that is set) |
+
+## The model's sandbox
+
+The tutor conversation may research (web search and fetch, code, subagents):
+it has every Claude Code tool with permissions bypassed, so its CLI runs
+inside bubblewrap (`scripts/tutor_model_sandbox.sh`, set as the SDK's
+`cli_path` by `tutor/research.py`). It sees `/usr`, a short list of `/etc`
+files, the network and a scratch HOME it may install into; never the data
+dir, the ledger key, the releases, the repo or `~/.claude`. Its login is a
+copy of the Claude access token only (`tutor/model_login.py`), refreshed on
+the host before each turn. Each turn has 90 s of tool time; later calls are
+refused and the tutor answers with what it has. Card generation, drills and
+the other model calls keep no tools (`session.isolated_options`).
 
 ## Agent E2E
 
