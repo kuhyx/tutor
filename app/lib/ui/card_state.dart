@@ -5,6 +5,7 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/model/card.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/terms.dart';
 
@@ -88,3 +89,22 @@ class CardStateIcon extends StatelessWidget {
     );
   }
 }
+
+/// The Editor's state word for [card]: how it was suspended, or its progress.
+String cardStateWord(StudyCard card, CardProgress? p) => card.removedBySplit
+    ? 'Split'
+    : card.removedByTutor
+    ? 'Removed by tutor'
+    : card.restorable
+    ? 'Removed'
+    : card.suspended
+    ? 'suspended'
+    : p?.label ?? '';
+
+/// What the Editor's Restore does for a [StudyCard.restorable] card.
+String restoreTip(StudyCard card) => card.removedBySplit
+    ? 'Undoes the split: the parts go, this card comes back'
+    : card.removedUnrecorded
+    ? 'Removed before the Editor kept a record: only un-suspends it, '
+          'prerequisites are not restored'
+    : 'Puts the card and its prerequisites back';

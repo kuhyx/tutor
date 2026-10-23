@@ -93,16 +93,21 @@ class StudyCard {
   /// Suspended by the Editor's Remove, with the `requires` positions kept.
   bool get removedByEditor => suspended && tutor?['editor_removed'] != null;
 
+  /// The original of a split (struggle §2): Restore reverts the whole split.
+  bool get removedBySplit => suspended && tutor?['split'] != null;
+
   /// A tutor-added card the Editor suspended before it kept a record: Restore
   /// only un-suspends it.
   bool get removedUnrecorded =>
       suspended &&
       tutor?['added'] != null &&
       tutor?['removed'] == null &&
-      tutor?['editor_removed'] == null;
+      tutor?['editor_removed'] == null &&
+      tutor?['split'] == null;
 
   /// The Editor offers Restore.
-  bool get restorable => removedByTutor || removedByEditor || removedUnrecorded;
+  bool get restorable =>
+      removedByTutor || removedByEditor || removedBySplit || removedUnrecorded;
 
   /// Added by the tutor and live: the Editor offers Remove.
   bool get addedByTutor => !suspended && tutor?['added'] != null;

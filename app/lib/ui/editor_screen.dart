@@ -1,7 +1,7 @@
 /// Editor (curriculum §8): subject -> module -> cards; edit or add a card
 /// (`card_edit`, validated by the worker against its source), flag one
-/// (a `flag` event, offline OK), Restore a removed card (`card_restore`),
-/// Remove one the tutor added (`card_remove`).
+/// (a `flag` event, offline OK), Restore a removed or split card
+/// (`card_restore`), Remove one the tutor added (`card_remove`).
 library;
 
 import 'dart:async';
@@ -133,10 +133,7 @@ class _EditorScreenState extends State<EditorScreen> {
     children: [
       if (c.value.restorable)
         Tooltip(
-          message: c.value.removedUnrecorded
-              ? 'Removed before the Editor kept a record: only un-suspends '
-                    'it, prerequisites are not restored'
-              : 'Puts the card and its prerequisites back',
+          message: restoreTip(c.value),
           child: TextButton(
             onPressed: () => _undo(RequestBody.cardRestore(s.id, c.key)),
             child: const Text('Restore'),
@@ -214,7 +211,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       title: Text(c.value.front),
                       subtitle: Text(
                         '${c.value.back}\n${hostOf(c.value.source)} · '
-                        '${_state(c.value, progress?.cards[c.key])}',
+                        '${cardStateWord(c.value, progress?.cards[c.key])}',
                       ),
                       isThreeLine: true,
                       onTap: () => _edit(s, m, c),
@@ -240,11 +237,3 @@ class _EditorScreenState extends State<EditorScreen> {
 }
 
 String _cards(int n) => '$n card${n == 1 ? '' : 's'}';
-
-String _state(StudyCard card, CardProgress? p) => card.removedByTutor
-    ? 'Removed by tutor'
-    : card.restorable
-    ? 'Removed'
-    : card.suspended
-    ? 'suspended'
-    : p?.label ?? '';
