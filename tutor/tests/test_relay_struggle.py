@@ -33,15 +33,15 @@ def test_struggle_needs_a_known_taught_card_and_skips_the_cap(tmp_path: Path) ->
         assert (got["ok"], got["code"]) == (False, "bad_request")
         got = await rig.send("session_start", {**HELP, "card": "zz"})
         assert (got["ok"], got["code"]) == (False, "unknown_card")
-        got = await rig.send("session_start", {**HELP, "card": "c27"})
-        assert got["ok"] is False
-        assert got["code"] in {"bad_request", "daily_new_cap"}
-        got = await rig.send("session_start", {**HELP, "lift_cap": True, "card": "c27"})
-        assert (got["ok"], got["code"]) == (False, "bad_request")
-        assert "not taught" in got["error"]
-        got = await rig.send("session_start", HELP)
+        for lift in (False, True):  # untaught: refused before the cap, never lifted
+            body = {**HELP, "lift_cap": lift, "card": "c27"}
+            got = await rig.send("session_start", body)
+            assert (got["ok"], got["code"]) == (False, "bad_request")
+            assert "not taught" in got["error"]
+        got = await rig.send("session_start", {**HELP, "lift_cap": True})
         assert got["ok"], got
         assert eng.card is not None
         assert eng.card.id == "c0"
+        assert [e["k"] for e in ctx.log.read()].count("cap_lift") == 0
 
     run(eng, script)

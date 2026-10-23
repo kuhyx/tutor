@@ -56,6 +56,10 @@ def test_the_brief_refuses_an_untaught_card_or_the_old_deck(tmp_path: Path) -> N
     with pytest.raises(RequestError) as err:
         struggle.brief(DeckSource(Store(tmp_path), []), "c0")
     assert err.value.code == "bad_request"
+    src = SubjectSource(Store(tmp_path), ctx, "car")
+    with pytest.raises(RequestError) as err:
+        struggle.open_card(src, None, struggling=True)
+    assert "needs the card" in err.value.message
 
 
 def test_the_prompt_gets_rule_16_and_the_reviews_only_in_struggle_mode() -> None:

@@ -76,7 +76,7 @@ async def session_start(ctx: RequestContext) -> dict[str, Any]:
     if body["struggle"] and body["card"] is None:
         msg = "help on a struggling card needs the card"
         raise RequestError(msg, code="bad_request")
-    if body["lift_cap"]:
+    if body["lift_cap"] and not body["struggle"]:  # a struggle is cap-free
         await asyncio.to_thread(cap.lift, engine.ctx)
     subject = body["subject"] or await _home_pick(ctx)
     wants_open = body["resume"] and body["card"] is None

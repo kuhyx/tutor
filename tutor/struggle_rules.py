@@ -25,6 +25,6 @@ and a `source` as for "add", empty = the card's own) or a re-teach from \
 first principles (rules 2-5). Apply only what the learner picked. After a \
 mnemonic, a rewrite or a re-teach, pose the check (rule 5) and set \
 `card_done` when it passes, as in any session; a split ends this session \
-by itself and the app opens the first new card. [Adapt to the learner; \
+by itself and the app moves on to the next card. [Adapt to the learner; \
 mentor not answer key]
 """

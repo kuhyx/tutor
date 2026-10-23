@@ -119,8 +119,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         struggling: bool = False,
     ) -> None:
         """Start a session on ``src`` (lock held); ``notices`` go on its first turn."""
-        card = src.pick(card_id)  # raises before anything changes
-        brief = struggle.brief(src, card.id) if struggling else None
+        # Raises before anything changes.
+        card, brief = struggle.open_card(src, card_id, struggling=struggling)
         self.source = src
         if self._session is not None:
             await self._session.close()

@@ -21,6 +21,7 @@ from tutor.curriculum.source import SubjectSource
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tutor.cards import Card
     from tutor.curriculum.source import CardSource
 
 LAST_REVIEWS: Final = 10
@@ -42,15 +43,42 @@ def _gather(src: SubjectSource, card_id: str) -> Brief:
     return Brief(count, tuple(state.reviews[-LAST_REVIEWS:]))
 
 
+def _untaught(card_id: str) -> RequestError:
+    msg = f"{card_id} is not taught yet: help is for a card already learned"
+    return RequestError(BAD_REQUEST, msg)
+
+
 def brief(src: CardSource, card_id: str) -> Brief:
     """The brief for ``card_id``; ``bad_request`` unless a taught curriculum card."""
     if not isinstance(src, SubjectSource):
         msg = "help on a struggling card needs a curriculum subject"
         raise RequestError(BAD_REQUEST, msg)
     if not src.ctx.fold().card(src.subject, card_id).taught:
-        msg = f"{card_id} is not taught yet: help is for a card already learned"
-        raise RequestError(BAD_REQUEST, msg)
+        raise _untaught(card_id)
     return _gather(src, card_id)
+
+
+def open_card(
+    src: CardSource, card_id: str | None, *, struggling: bool
+) -> tuple[Card, Brief | None]:
+    """The session's card (``src.pick``) and, ``struggling``, its brief.
+
+    A struggle needs a card; a known but untaught one is refused BEFORE the
+    pick, so the daily cap never answers for it (its ``lift_cap`` fix would
+    lift the cap and still teach nothing). An unknown or locked card gets the
+    pick's own ``unknown_card`` / ``locked``; a taught one is cap-free.
+    """
+    if not struggling:
+        return src.pick(card_id), None
+    if card_id is None:
+        msg = "help on a struggling card needs the card"
+        raise RequestError(BAD_REQUEST, msg)
+    if isinstance(src, SubjectSource) and card_id in src.ctx.subjects.cards(
+        src.subject
+    ):
+        brief(src, card_id)
+    card = src.pick(card_id)
+    return card, brief(src, card.id)
 
 
 def tag(found: Brief | None) -> dict[str, Any]:
