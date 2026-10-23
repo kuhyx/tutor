@@ -7,9 +7,9 @@ device's new ``log/{dev}`` events into the local log, re-folds
 PATCHes this worker's own ``taught``/``untaught`` events to ``log/{own}``,
 queues card generation, and pays new app-review minutes
 (:mod:`tutor.review_credit`; a failure there is logged, never blocks the
-rest). Generation (minutes of model time) runs one
-module at a time under the build lane's lock, so it never overlaps a build
-request (``DOCS-relay.md`` "Curriculum").
+rest), then tops up today's carry-over (:mod:`tutor.carry`). Generation
+(minutes of model time) runs one module at a time under the build lane's
+lock, so it never overlaps a build request (``DOCS-relay.md`` "Curriculum").
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import review_credit
+from tutor import carry, review_credit
 from tutor.curriculum import handlers as cur
 from tutor.curriculum.subject_store import read_json
 from tutor.relay import hooks
@@ -145,6 +145,8 @@ class CurriculumSync:
                 self._queued.add(key)
                 self.queue.put_nowait(key)
         await asyncio.to_thread(review_credit.credit_now, self.ctx, self.w.now())
+        # After it: yesterday's late reviews may have raised today's carry.
+        await asyncio.to_thread(carry.spend, now=self.w.now())
 
     async def generate_forever(self) -> None:
         """Generate queued modules' cards, one at a time, under the build lock."""

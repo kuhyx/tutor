@@ -2,13 +2,15 @@
 """The ``stats`` node (``DOCS-contract-curriculum.md`` §7).
 
 ``{"today": {"day","credited_minutes","active_minutes","target","new","new_cap",
-"new_cap_lifted"},
+"new_cap_lifted","banked","prepaid"},
 "days": {day: {"minutes","taught","reviews"}}}``. Minutes are the verified
 ledger's (``progress.ledger_minutes_by_day``, the rows the earner pays);
 ``taught`` counts cards newly taught that day and ``reviews`` the reviews the
 fold kept, both on the PC-local date. ``active_minutes`` sums the engaged
 time of the sessions started today (the Session header's day total: a new
-card is a new session, so its own clock starts at 0).
+card is a new session, so its own clock starts at 0). ``banked`` /
+``prepaid`` are the carry-over bank's (``DOCS-contract-carry.md``), read only:
+the worker spends before it builds this node.
 """
 
 from __future__ import annotations
@@ -16,7 +18,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import TYPE_CHECKING, Any
 
-from tutor import history, progress, resume
+from tutor import carry, history, progress, resume
 from tutor.cardflow import TARGET_MINUTES
 from tutor.credit import local_day, target_minutes
 from tutor.curriculum.cap import effective_cap, lifted_today, new_today
@@ -48,6 +50,7 @@ def stats(ctx: Context, minutes: dict[str, int] | None = None) -> dict[str, Any]
     taught = Counter(_day(at) for s in folded.cards.values() for at in s.new_at)
     reviews = Counter(_day(e["at"]) for e in folded.kept if e["k"] == "review")
     today = _day(now)
+    bank = carry.bank_now(now / 1000)
     days = {
         day: {
             "minutes": per_day.get(day, 0),
@@ -65,6 +68,8 @@ def stats(ctx: Context, minutes: dict[str, int] | None = None) -> dict[str, Any]
             "new": new_today(folded, now),
             "new_cap": effective_cap(folded),
             "new_cap_lifted": lifted_today(folded, now),
+            "banked": bank.banked,
+            "prepaid": bank.prepaid,
         },
         "days": days,
     }

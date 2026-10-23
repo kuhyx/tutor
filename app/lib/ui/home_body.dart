@@ -9,6 +9,7 @@ import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_entry.dart';
+import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
@@ -108,6 +109,7 @@ class HomeBody extends StatelessWidget {
                     ' · new cards ${today.newCards}/${today.newCap}'
                     '${today.newCapLifted ? ' (limit lifted)' : ''}',
                   ),
+                  if (bankNote(today) case final note?) Text(note),
                   const SizedBox(height: AppSpacing.sm),
                   LinearProgressIndicator(
                     value: today.target == 0

@@ -86,20 +86,21 @@ def test_same_entry_is_never_written_twice(sandbox: Paths) -> None:
 
 
 def test_row_that_crosses_the_cap_is_trimmed_and_resigned(sandbox: Paths) -> None:
-    assert credit_span(unit(50), 50, "morning", now=NOON).minutes == 50
+    # The cap is 160: earned_time's 60 plus the carry-over bank's 100.
+    assert credit_span(unit(150), 150, "morning", now=NOON).minutes == 150
     trimmed = credit_span(unit(30), 30, "evening", now=NOON)
-    assert trimmed == credit.CreditReceipt(True, 10, 60, "evening-m30", None)
+    assert trimmed == credit.CreditReceipt(True, 10, 160, "evening-m30", None)
     row = entries(sandbox)[1]
     assert row["detail"]["minutes"] == 10
     assert earned_time.verified(row, KEY)
     again = credit_span(unit(30), 30, "evening", now=NOON)
-    assert (again.recorded, again.minutes, again.minutes_today) == (True, 10, 60)
+    assert (again.recorded, again.minutes, again.minutes_today) == (True, 10, 160)
 
 
 def test_full_day_refuses_more(sandbox: Paths) -> None:
-    assert credit_span(unit(60), 60, "all", now=NOON).recorded
+    assert credit_span(unit(160), 160, "all", now=NOON).recorded
     refused = credit_span(unit(1), 1, "late", now=NOON)
-    assert refused == credit.CreditReceipt(False, 0, 60, "late-m1", DAILY_CAP_ERROR)
+    assert refused == credit.CreditReceipt(False, 0, 160, "late-m1", DAILY_CAP_ERROR)
     assert len(entries(sandbox)) == 1
 
 

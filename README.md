@@ -5,7 +5,9 @@ is the Flutter app in `app/` (phone, and on the PC the web build at
 `127.0.0.1:8778/app/`; `/` redirects there), talking to this server over a
 Firebase relay (`DOCS-relay.md`). The server walks one card at a time through a Claude conversation
 (claude-agent-sdk over the logged-in `claude` CLI, no API key), and writes a
-signed earned-time credit row for every active study block.
+signed earned-time credit row for every active study block. Minutes past a
+day's quota are banked (up to 100) and paid out on later days by the live
+worker as `carry-<day>` rows (`DOCS-contract-carry.md`).
 
 Extracted from [plc-lab](https://github.com/kuhyx/plc-lab) with its history.
 The only subject so far is `subjects/automation/`: the PLC / OT security deck.

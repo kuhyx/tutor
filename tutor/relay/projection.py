@@ -14,7 +14,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
-from tutor import history
+from tutor import carry, history
 from tutor.curriculum import handlers as cur
 from tutor.relay import commons_url, views
 from tutor.relay.claims import ms
@@ -112,6 +112,10 @@ class Publisher:
 
     async def stats(self) -> None:
         """Publish ``stats`` (and bump ``rev.stats``) when it changed."""
+        # Today's carry-over first, so the node shows it (DOCS-contract-carry.md).
+        # The node's own clock, so the spend and the node agree on "today".
+        now = self._engine.ctx.clock() / 1000
+        await asyncio.to_thread(carry.spend, now=now)
         node = await asyncio.to_thread(cur.stats, self._engine.ctx)
         if node == self._stats:
             return

@@ -35,6 +35,16 @@ void main() {
       headerLines(older, activeSeconds: 125, sessionCredited: 2).$1,
       'Today: credited 23/60 min',
     );
+    final carried = Today.fromJson({..._today, 'banked': 40, 'prepaid': 15});
+    expect(
+      headerLines(carried, activeSeconds: 0, sessionCredited: 0).$1,
+      'Today: 31 min active · credited 23/60 min · Banked 40 min · prepaid 15',
+    );
+    final empty = Today.fromJson({..._today, 'banked': 0, 'prepaid': 0});
+    expect(
+      headerLines(empty, activeSeconds: 0, sessionCredited: 0).$1,
+      'Today: 31 min active · credited 23/60 min',
+    );
     expect(headerLines(null, activeSeconds: 125, sessionCredited: 2), (
       'Today: …',
       'This card: 2 min · credited 2',

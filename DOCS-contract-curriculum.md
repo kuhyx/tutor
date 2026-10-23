@@ -227,6 +227,7 @@ quota (`tutor_quota_for`: 15 Tue-Thu, 30 Mon/Fri, 50 weekend; 60 before
 2026-10-12), the minutes the full reward takes. `active_minutes` = engaged time of
 the sessions started today: the Session header shows the DAY (a new card is
 a new session); that session's own minutes are secondary.
+`banked`/`prepaid` (the carry-over bank): `DOCS-contract-carry.md`.
 
 ## 8. Client screens (parity with the retired `static/*.js` page) and their data
 - **Home**: subjects with `status`/progress; "new subject" free text; due
