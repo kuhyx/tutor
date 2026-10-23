@@ -4,7 +4,8 @@
 The Dart fold (a port of py-fsrs 6.3.2's Scheduler) must reproduce every
 case: per card ``taught``, ``due`` (ms, exact), ``stability`` and
 ``difficulty`` (1e-6), ``state``, ``flagged``, ``good`` and ``reviewed``
-(§6: a drill pick never counts, ``fold.is_drill``), plus which
+(§6: a drill pick never counts, ``fold.is_drill``), ``struggle`` (step 7,
+``DOCS-contract-struggle.md`` §3; 0 when untaught), plus which
 review eids the fold ``dropped`` (cross-device duplicates), ``ignored``
 (card untaught) or found ``undone`` (named by a ``review_undo`` ``of``).
 Regenerate with ``python -m tutor.curriculum.fsrs_vectors``;
@@ -22,6 +23,7 @@ from typing import Any, Final
 
 from tutor.curriculum.fold import fold
 from tutor.curriculum.fsrs_cases import CASES, T0, Spec
+from tutor.curriculum.fsrs_struggle_cases import STRUGGLE_CASES
 from tutor.curriculum.ids import ulid
 from tutor.curriculum.rules import good, reviewed
 
@@ -29,6 +31,8 @@ OUT: Final = Path(
     os.environ.get("TUTOR_VECTORS_OUT")
     or Path(__file__).resolve().parents[2] / "contract" / "fsrs_vectors.json"
 )
+
+ALL: Final[dict[str, Spec]] = {**CASES, **STRUGGLE_CASES}
 
 
 def _events(name: str, spec: Spec) -> list[dict[str, Any]]:
@@ -71,6 +75,7 @@ def case(name: str, spec: Spec) -> dict[str, Any]:
             "flagged": state.flagged(rev),
             "good": good(state),
             "reviewed": reviewed(state),
+            "struggle": state.struggle(rev),
         }
     return {
         "name": name,
@@ -85,7 +90,7 @@ def case(name: str, spec: Spec) -> dict[str, Any]:
 
 def build() -> list[dict[str, Any]]:
     """Every case."""
-    return [case(name, spec) for name, spec in CASES.items()]
+    return [case(name, spec) for name, spec in ALL.items()]
 
 
 def render() -> str:
@@ -96,4 +101,4 @@ def render() -> str:
 if __name__ == "__main__":
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(render(), encoding="utf-8")
-    sys.stdout.write(f"wrote {len(CASES)} cases to {OUT}\n")
+    sys.stdout.write(f"wrote {len(ALL)} cases to {OUT}\n")
