@@ -61,8 +61,13 @@ def test_subject_reaches_start_and_card_done(
     seen: list[Any] = []
 
     async def start(
-        card_id: str | None = None, subject: str | None = None, *, device: str
+        card_id: str | None = None,
+        subject: str | None = None,
+        *,
+        device: str,
+        struggling: bool = False,
     ) -> Any:
+        assert not struggling
         seen.append(("start", card_id, subject, device))
         return {}
 

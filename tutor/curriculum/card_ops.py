@@ -10,6 +10,8 @@
   card exactly as for any other edit.
 - :func:`remove`: suspend (never delete) and drop the id from other cards'
   ``requires``; refused when the module would keep fewer than 3 live cards.
+- :func:`mnemonic`: set or clear (``""``) the card's memory aid, through
+  ``card_edit`` (rev + 1). Splits: ``card_split``.
 
 Every refusal is ``edit_refused`` with the reason, and nothing is written.
 
@@ -42,7 +44,8 @@ def _refuse(message: str) -> RequestError:
     return RequestError(EDIT_REFUSED, message)
 
 
-def _plan(ctx: Context, subject: str) -> Plan:
+def need_plan(ctx: Context, subject: str) -> Plan:
+    """The subject's plan, or ``edit_refused`` when it has none."""
     plan = ctx.subjects.plan(subject)
     if plan is None:
         msg = f"{subject} has no plan"
@@ -85,7 +88,7 @@ def rewrite(ctx: Context, subject: str, cid: str, change: Rewrite) -> CardRec:
         msg = f"the edit of {cid} changes nothing"  # a rev bump clears flags
         raise _refuse(msg)
     if url != old.source:
-        excerpt = _quoted(ctx, url, new, change.quote)
+        excerpt = quoted(ctx, url, new, change.quote)
     body = {
         "subject": subject,
         "card": cid,
@@ -95,6 +98,28 @@ def rewrite(ctx: Context, subject: str, cid: str, change: Rewrite) -> CardRec:
         "source": url,
         "excerpt": excerpt,
         "requires": list(old.requires),
+    }
+    card_edit(body, ctx)
+    return _card(ctx, subject, cid)
+
+
+def mnemonic(ctx: Context, subject: str, cid: str, text: str) -> CardRec:
+    """``cid`` with its memory aid set to ``text`` ("" clears it); returns the card."""
+    old = _card(ctx, subject, cid)
+    aid = " ".join(text.split())
+    if aid == old.mnemonic:
+        msg = f"the mnemonic of {cid} is already that"  # a rev bump clears flags
+        raise _refuse(msg)
+    body = {
+        "subject": subject,
+        "card": cid,
+        "module": old.module,
+        "front": old.front,
+        "back": old.back,
+        "source": old.source,
+        "excerpt": old.excerpt,
+        "requires": list(old.requires),
+        "mnemonic": aid,
     }
     card_edit(body, ctx)
     return _card(ctx, subject, cid)
@@ -127,7 +152,7 @@ def _page(ctx: Context, url: str) -> str:
         raise _refuse(msg) from err
 
 
-def _quoted(ctx: Context, url: str, card: tuple[str, str], hint: str) -> str:
+def quoted(ctx: Context, url: str, card: tuple[str, str], hint: str) -> str:
     """The sentence of ``url`` that supports ``card`` (front, back), by code."""
     excerpt = quote.supporting(_page(ctx, url), card[1], card[0], hint)
     if excerpt is None:
@@ -149,9 +174,9 @@ class Draft:
 
 def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
     """A new card from ``draft``; returns its id and card."""
-    module = _module(_plan(ctx, subject), draft.topic)
+    module = _module(need_plan(ctx, subject), draft.topic)
     source = draft.source.strip()
-    excerpt = _quoted(ctx, source, (draft.front, draft.back), draft.quote)
+    excerpt = quoted(ctx, source, (draft.front, draft.back), draft.quote)
     body: dict[str, Any] = {
         "subject": subject,
         "card": None,
@@ -179,7 +204,7 @@ def remove(ctx: Context, subject: str, cid: str, *, by_tutor: bool = True) -> Ca
     """
     with LOCK:
         meta = ctx.subjects.need_meta(subject)
-        plan = _plan(ctx, subject)
+        plan = need_plan(ctx, subject)
         cards = ctx.subjects.cards(subject)
         rec = cards.get(cid)
         if rec is None:

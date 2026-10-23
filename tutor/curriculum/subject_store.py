@@ -19,12 +19,13 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor.curriculum.errors import BAD_REQUEST, RequestError
 from tutor.curriculum.ids import valid_id
-from tutor.curriculum.records import CardRec, Meta, Plan, plan_json
+from tutor.curriculum.records import CardRec, Meta, Plan, bad
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 LOCK: Final = threading.RLock()
+MAX_PLAN_BYTES: Final = 16_000
 
 
 @dataclass
@@ -35,6 +36,18 @@ class Change:
     cards: dict[str, CardRec] | None = None
     concepts: list[dict[str, Any]] | None = None
     profile: dict[str, Any] | None = None
+
+
+def plan_json(plan: Plan) -> dict[str, Any]:
+    """The plan's contract shape (``pregenerated`` only when set); <= 16 KB."""
+    out = asdict(plan)
+    for module in out["modules"]:  # an unset flag keeps the old shape
+        if not module["pregenerated"]:
+            del module["pregenerated"]
+    if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_PLAN_BYTES:
+        msg = f"plan is over {MAX_PLAN_BYTES} bytes"
+        raise bad(msg)
+    return out
 
 
 def write_json(path: Path, data: object) -> None:

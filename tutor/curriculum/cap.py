@@ -53,9 +53,13 @@ def new_today(fold: Fold, now_ms: int) -> int:
 def check(view: View, fold: Fold, chosen: tuple[str, Module], now_ms: int) -> None:
     """Raise ``daily_new_cap`` if teaching ``chosen`` (card, module) passes the cap.
 
-    A taught card (re-teaching) is free; so is anything on a lifted day.
+    A taught card (re-teaching) is free, and so is a split's child
+    (``split_of``, ``DOCS-contract-struggle.md`` §2) and anything on a lifted day.
     """
     card, module = chosen
+    rec = view.cards.get(card)
+    if rec is not None and rec.split_of:
+        return
     if fold.card(view.subject, card).taught or lifted_today(fold, now_ms):
         return
     new, limit = new_today(fold, now_ms), effective_cap(fold)

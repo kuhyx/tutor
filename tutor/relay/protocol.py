@@ -50,8 +50,12 @@ def _session(value: object) -> str:
     raise ValueError
 
 
-def _text(limit: int, *, empty: bool = False) -> Callable[[object], str]:
-    def check(value: object) -> str:
+def _text(
+    limit: int, *, empty: bool = False, absent: bool = False
+) -> Callable[[object], str | None]:
+    def check(value: object) -> str | None:
+        if absent and value is None:
+            return None
         if isinstance(value, str) and (empty or value.strip()) and len(value) <= limit:
             return value
         raise ValueError
@@ -140,6 +144,8 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "source": _text(MAX_CARD_FIELD, empty=True),
             "excerpt": _text(MAX_CARD_FIELD, empty=True),
             "requires": _requires,
+            # Absent keeps the card's memory aid, "" clears it (``card_edit``).
+            "mnemonic": _text(MAX_CARD_FIELD, empty=True, absent=True),
         },
     ),
     # The Editor's undo of the tutor's edits (``curriculum.card_undo``).
@@ -155,6 +161,8 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "device": delivery.device,
             # "Learn more anyway": lift today's daily new cap first (``cap``).
             "lift_cap": _opt_bool,
+            # Help on a struggling taught card (``DOCS-contract-struggle.md`` §5).
+            "struggle": _opt_bool,
         },
     ),
     "session_resume": (CHAT, {"session": _session, "device": delivery.device}),
@@ -233,15 +241,8 @@ def validate(rid: str, req: object) -> Request:
     kind, dev = str(fields["kind"]), str(fields["dev"])
     sent = fields.get("sent_at")
     created_ms, sent_ms = int(fields["created"]), None if sent is None else int(sent)
-    return Request(
-        rid,
-        kind,
-        KINDS[kind][0],
-        dev,
-        created_ms,
-        sent_ms,
-        _body(kind, fields.get("body")),
-    )
+    body = _body(kind, fields.get("body"))
+    return Request(rid, kind, KINDS[kind][0], dev, created_ms, sent_ms, body)
 
 
 def valid_rid(rid: str) -> bool:

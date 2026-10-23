@@ -9,12 +9,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final, NamedTuple
 
-from tutor import picked
+from tutor import picked, struggle_rules
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
 from tutor.delivery import note_lines
 from tutor.follow_up_rules import FOLLOW_UP
 from tutor.prompt_rules import render_system
+from tutor.struggle import section
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from tutor.cards import Card
     from tutor.conversation import Conversation
     from tutor.curriculum.profiles import Profile
+    from tutor.struggle import Brief
 
 CHECK_EVERY_SECONDS: Final = 600.0
 
@@ -39,12 +41,13 @@ def system_prompt(
     mastered: list[str],
     profile: Profile | None = None,
     deck: Sequence[tuple[str, str]] = (),
+    struggle: Brief | None = None,
 ) -> str:
     """The full system prompt for a session aimed at one card.
 
     ``profile`` is the subject's (default: automation, the PLC wording);
     ``deck``: the topic's live cards as (id, front), the ids ``card_edits``
-    may name (rule 15).
+    may name (rule 15); ``struggle``: help on a struggling card (rule 16).
     """
     done = ", ".join(mastered) if mastered else "(none yet)"
     listed = "".join(
@@ -52,13 +55,16 @@ def system_prompt(
         for cid, front in deck
     )
     cards = f"# Cards of this topic\n{listed}\n" if listed else ""
-    rules = render_system(profile or profiles.automation())
+    rule = struggle_rules.STRUGGLE_RULE if struggle else ""
+    rules = render_system(profile or profiles.automation(), rule)
+    help_ = section(struggle) if struggle else ""
+    aid = f"mnemonic: {card.mnemonic}\n" if card.mnemonic else ""
     return (
         f"{rules}\n# Target card\n"
         f"topic: {card.topic.title}\nid: {card.id}\n"
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
-        f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n\n"
-        f"{cards}# Already mastered concepts\n{done}\n"
+        f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n{aid}\n"
+        f"{help_}{cards}# Already mastered concepts\n{done}\n"
     )
 
 

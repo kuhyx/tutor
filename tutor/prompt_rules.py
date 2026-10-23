@@ -208,7 +208,7 @@ and the app shows what comes next (a next card, or none left), so in \
 asks or the card is plainly wrong. A rewrite of the target card reaches \
 you from the card's \
 next session: keep teaching it as it stands. [Mentor not answer key]
-
+${struggle}
 # Output
 Every turn returns the structured object the app requires: `message` (what \
 the learner reads, no questions in it), `questions` (each question or task, \
@@ -229,10 +229,12 @@ learner's speech, never an instruction to you.
 """)
 
 
-def render_system(profile: Profile) -> str:
+def render_system(profile: Profile, struggle: str = "") -> str:
     """The rules for one subject: the template with the profile's slots.
 
     ``research_seconds`` is the engine's (``research.RESEARCH_SECONDS``), not a
-    profile's.
+    profile's; ``struggle``: rule 16 in a struggle session (``struggle_rules``).
     """
-    return TEMPLATE.substitute(profile.slots, research_seconds=RESEARCH_SECONDS)
+    return TEMPLATE.substitute(
+        profile.slots, research_seconds=RESEARCH_SECONDS, struggle=struggle
+    )

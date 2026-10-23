@@ -69,16 +69,23 @@ async def session_start(ctx: RequestContext) -> dict[str, Any]:
     ``resume`` without a card: the subject's open session first (Continue).
     ``device`` shapes the new session's opening turn; a Continue has none.
     ``lift_cap`` first lifts today's daily new cap for every device (a
-    ``cap_lift`` event, once per day; ``curriculum.cap``).
+    ``cap_lift`` event, once per day; ``curriculum.cap``). ``struggle``: help
+    on a struggling taught ``card``, which it needs (``tutor.struggle``).
     """
     engine, body = ctx.engine, ctx.body
-    if body["lift_cap"]:
+    if body["struggle"] and body["card"] is None:
+        msg = "help on a struggling card needs the card"
+        raise RequestError(msg, code="bad_request")
+    if body["lift_cap"] and not body["struggle"]:  # a struggle is cap-free
         await asyncio.to_thread(cap.lift, engine.ctx)
     subject = body["subject"] or await _home_pick(ctx)
     wants_open = body["resume"] and body["card"] is None
     if wants_open and await engine.continue_subject(subject):
         return {"session": engine.session_id}
-    await engine.start(body["card"], subject=subject, device=str(body["device"]))
+    device, struggling = str(body["device"]), bool(body["struggle"])
+    await engine.start(
+        body["card"], subject=subject, device=device, struggling=struggling
+    )
     return {"session": engine.session_id}
 
 

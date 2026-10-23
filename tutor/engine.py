@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from tutor import cards as cards_mod
-from tutor import follow_up, gating, media, research, resume, unit_credit
+from tutor import follow_up, gating, media, research, resume, struggle, unit_credit
 from tutor.cardflow import CardFlow
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
@@ -96,6 +96,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         subject: str | None = None,
         *,
         device: str = DESKTOP,
+        struggling: bool = False,  # help on a taught card (``tutor.struggle``)
     ) -> dict[str, Any]:
         """Begin a session on ``card_id`` (default: the subject's next card).
 
@@ -104,7 +105,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         ``ValueError`` (``RequestError``) before the live session is touched.
         """
         async with self._lock:
-            await self._open(self._source_for(subject), card_id, device)
+            src = self._source_for(subject)
+            await self._open(src, card_id, device, struggling=struggling)
         return self.state()
 
     async def _open(
@@ -113,18 +115,23 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         card_id: str | None,
         device: str,
         notices: Sequence[str] = (),
+        *,
+        struggling: bool = False,
     ) -> None:
         """Start a session on ``src`` (lock held); ``notices`` go on its first turn."""
-        card = src.pick(card_id)  # raises before anything changes
+        # Raises before anything changes.
+        card, brief = struggle.open_card(src, card_id, struggling=struggling)
         self.source = src
         if self._session is not None:
             await self._session.close()
         self.card = card
         sid = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
         self._conv = Conversation(sid, card.id, EngagementClock(self.time()))
-        self._session = self._factory(self._prompt(card))
+        self._session = self._factory(self._prompt(card, brief))
         start = {"type": "start", "card": card.id, "subject": self.source.subject}
-        self.store.log(self.session_id, {**start, "device": device})
+        self.store.log(
+            self.session_id, start | struggle.tag(brief) | {"device": device}
+        )
         opening = Delivery(device=device)
         await self._turn(
             "Begin the session.", learner_text=None, via=opening, notices=notices
@@ -143,7 +150,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         self._set_today(
             max(self.minutes_today, unit_credit.minutes_today(conv.receipts))
         )
-        self._session = self._factory(self._prompt(card))
+        brief = struggle.resumed(src, card.id, path)  # a struggle session stays one
+        self._session = self._factory(self._prompt(card, brief))
         conv.resumed.note = resume.primer(conv.messages)
         # Only a reply in flight is excused; replay reads the logged pending_at.
         conv.clock.server_restarted(self.time(), pending_at=state.pending_at)
@@ -184,11 +192,11 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             await self._session.close()
             self._session = None
 
-    def _prompt(self, card: cards_mod.Card) -> str:
-        """The subject's system prompt for ``card``."""
+    def _prompt(self, card: cards_mod.Card, brief: struggle.Brief | None = None) -> str:
+        """The subject's system prompt for ``card`` (``brief``: struggle help)."""
         src = self.source
         deck = [(c.id, c.front) for c in src.cards() if c.topic == card.topic]
-        return system_prompt(card, src.mastered(), src.profile, deck)
+        return system_prompt(card, src.mastered(), src.profile, deck, brief)
 
     def _live(self) -> tuple[TutorSession, Conversation, cards_mod.Card]:
         """The running session, or RuntimeError before any start."""

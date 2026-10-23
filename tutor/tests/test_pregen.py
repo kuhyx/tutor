@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor.curriculum import cap, cardgen, handlers, judge, rules, wiki
+from tutor.curriculum import cap, cardgen, handlers, judge, rules, subject_store, wiki
 from tutor.curriculum.errors import RequestError
-from tutor.curriculum.records import Module, Plan, plan_json
+from tutor.curriculum.records import Module, Plan
 from tutor.curriculum.source import SubjectSource
 from tutor.store import Store
 from tutor.tests._cur import T0, H, card, make_ctx, module, review, subject, taught
@@ -240,7 +240,7 @@ def test_flag_round_trip_and_wire_shape() -> None:
     plan = Plan(
         1, "approved", "", [Module("b", "B", pregenerated=True), Module("c", "C")]
     )
-    out = plan_json(plan)
+    out = subject_store.plan_json(plan)
     assert out["modules"][0]["pregenerated"] is True
     assert "pregenerated" not in out["modules"][1]  # the old shape when unset
     assert Plan.from_json(out) == plan

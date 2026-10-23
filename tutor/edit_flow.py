@@ -2,20 +2,21 @@
 """The tutor's ``card_edits``, applied right after the turn that asks for them.
 
 The tutor edits on the learner's criticism or on its own initiative (prompt
-rule 15). Each edit goes to the data-dir subject (``curriculum.card_ops``:
-edit / add / remove; an unmigrated subject on the repo deck is refused) in a
-worker thread, guarded by the subject store's lock, so it cannot clobber or
-be clobbered by a card generation's commit. Not on the relay's build lane:
-generation holds that lock for minutes, and the edit must land with the
-turn. Applied edits become ``notices`` lines on the turn's page message
-("Card removed: <front>"), which the transcript and the relay projection
-keep; refused ones go to the tutor in the next engine note. Removing the
-live card ends the session (``next_card`` + ``stop``, as Next card does) and
-opens the next card, whose first message carries the notice; with no card
-left the session stops. In follow-up mode (``follow_up``) it only stops: the
-card was done, and the learner was asking about it, not studying on. A
-rewrite of the live card reaches the model from the card's next session
-(the prompt is per session). Undo: the Editor.
+rule 15). Each edit goes to the data-dir subject (``curriculum.card_ops``,
+``card_split``: edit / add / remove / mnemonic / split; an unmigrated subject
+on the repo deck is refused) in a worker thread, guarded by the subject
+store's lock, so it cannot clobber or be clobbered by a card generation's
+commit. Not on the relay's build lane: generation holds that lock for
+minutes, and the edit must land with the turn. Applied edits become
+``notices`` lines on the turn's page message ("Card removed: <front>"),
+which the transcript and the relay projection keep; refused ones go to the
+tutor in the next engine note. Removing (or splitting) the live card ends
+the session (``next_card`` + ``stop``, as Next card does) and opens the
+next card (after a split: its first part), whose first message carries the
+notice; with no card left the session stops. In follow-up mode
+(``follow_up``) it only stops: the card was done, and the learner was
+asking about it, not studying on. A rewrite of the live card reaches the
+model from the card's next session (the prompt is per session). Undo: the Editor.
 ``Engine`` mixes this in.
 """
 
@@ -26,7 +27,7 @@ from dataclasses import dataclass, field
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor.curriculum import card_ops
+from tutor.curriculum import card_ops, card_split
 from tutor.curriculum.errors import EDIT_REFUSED, RequestError
 
 if TYPE_CHECKING:
@@ -72,6 +73,13 @@ def _one(ctx: Context, subject: str, live: str, edit: CardEdit) -> tuple[str, bo
         draft = card_ops.Draft(topic, edit.front, edit.back, edit.source, edit.quote)
         _, rec = card_ops.add(ctx, subject, draft)
         return f"Card added: {rec.front}", False
+    if edit.op == "mnemonic":
+        rec = card_ops.mnemonic(ctx, subject, cid, edit.text)
+        return f"Mnemonic {'set' if rec.mnemonic else 'cleared'}: {rec.front}", False
+    if edit.op == "split":  # the original is suspended: like a remove
+        parts = [card_split.Part(p.front, p.back, p.source, p.quote) for p in edit.into]
+        rec, ids = card_split.split(ctx, subject, cid, parts)
+        return f"Card split into {len(ids)}: {rec.front}", cid == live
     change = card_ops.Rewrite(edit.front, edit.back, edit.source, edit.quote)
     rec = card_ops.rewrite(ctx, subject, cid, change)
     return f"Card updated: {rec.front}", False

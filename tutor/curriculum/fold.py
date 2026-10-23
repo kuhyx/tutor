@@ -20,7 +20,9 @@
    the whole log, so order cannot matter) is skipped before step 2: no FSRS,
    no dedupe, no ``app_good``, not ``kept`` (listed in ``undone``). An undo
    naming an unknown or non-review eid does nothing;
-8. ``cap_lift`` days and the latest ``new_cap`` (§6) are folded log-wide.
+8. ``cap_lift`` days and the latest ``new_cap`` (§6) are folded log-wide;
+9. ``struggle(rev)`` (``DOCS-contract-struggle.md`` §3): the trailing run of
+   Again among the kept reviews since taught at the card's current ``rev``.
 
 ``contract/fsrs_vectors.json`` (``fsrs_vectors.py``) pins the results.
 """
@@ -70,6 +72,7 @@ class CardFold:
     session: str = ""
     memory: fsrs.Card | None = None
     reviews: list[tuple[int, int]] = field(default_factory=list)  # since taught
+    revs: list[int] = field(default_factory=list)  # each review's ``rev``
     flag_revs: set[int] = field(default_factory=set)
     new_at: list[int] = field(default_factory=list)  # taught while untaught
     app_good: bool = False  # a non-drill review >= Good since taught
@@ -82,6 +85,19 @@ class CardFold:
     def flagged(self, rev: int) -> bool:
         """Whether a flag matches the card's current ``rev``."""
         return rev in self.flag_revs
+
+    def struggle(self, rev: int) -> int:
+        """Again ratings in a row at ``rev``, newest back; a Hard+ at it ends them."""
+        run = 0
+        for at_rev, (_, rating) in zip(
+            reversed(self.revs), reversed(self.reviews), strict=True
+        ):
+            if at_rev != rev:
+                continue  # rated another wording: neither counts nor ends the run
+            if rating != fsrs.Rating.Again:
+                break
+            run += 1
+        return run
 
     def fsrs_state(self) -> dict[str, Any] | None:
         """``{"due","stability","difficulty","state"}`` or None if untaught."""
@@ -116,11 +132,14 @@ class Fold:
         return {c for (s, c), f in self.cards.items() if s == subject and f.taught}
 
 
-def _review(state: CardFold, at: int, rating: int, *, drill: bool = False) -> None:
+def _review(
+    state: CardFold, at: int, rating: int, *, drill: bool = False, rev: int = 1
+) -> None:
     # None only right after ``_teach`` cleared it: a new card, due at once.
     memory = state.memory or fsrs.Card(card_id=1, due=to_dt(at))
     state.memory, _ = SCHEDULER.review_card(memory, fsrs.Rating(rating), to_dt(at))
     state.reviews.append((at, rating))
+    state.revs.append(rev)
     state.app_good = state.app_good or (not drill and rating >= fsrs.Rating.Good)
 
 
@@ -141,7 +160,8 @@ def _teach(state: CardFold, event: dict[str, Any]) -> None:
     state.taught_at, state.session = at, str(event.get("session", ""))
     state.memory, state.reviews = None, []
     _review(state, at, int(fsrs.Rating.Good))
-    state.reviews, state.app_good = [], False  # Good-at-taught is no recall
+    state.reviews, state.revs = [], []  # Good-at-taught is no recall
+    state.app_good = False
 
 
 def _duplicate(recent: list[dict[str, Any]], event: dict[str, Any]) -> bool:
@@ -196,13 +216,13 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
                 *(k for k in recent.get(ref, []) if event["at"] - k["at"] < DEDUPE_MS),
                 event,
             ]
-            drill = is_drill(event, worker_devs)
-            _review(state, event["at"], event["r"], drill=drill)
+            drill, rev = is_drill(event, worker_devs), int(event.get("rev", 1))
+            _review(state, event["at"], event["r"], drill=drill, rev=rev)
         elif kind == "taught":
             _teach(state, event)
         elif kind == "untaught":
             state.taught_at, state.memory, state.reviews = None, None, []
-            state.app_good = False
+            state.revs, state.app_good = [], False
         else:
             state.flag_revs.add(int(event["rev"]))
         out.kept.append(event)
