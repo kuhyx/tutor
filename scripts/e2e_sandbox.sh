@@ -10,11 +10,15 @@
 #   scripts/e2e_sandbox.sh up [--new-cap N] [--as-of "YYYY-MM-DD HH:MM[:SS]"]
 #                                    # fresh sandbox; N forces the daily limit,
 #                                    # --as-of rewinds the copy (e2e_prepare.py)
-#   scripts/e2e_sandbox.sh flow F1|F2|F3|F4 [send|wait|check]
+#        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
+#                                    # the day before; a future --as-of runs
+#                                    # the worker under libfaketime from then
+#   scripts/e2e_sandbox.sh flow F1..F6 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
-#                                    # turn can outlast 60 s, so F1/F3/F4 run
-#                                    # as send, wait (75 = still pending: call
-#                                    # it again), check (e2e_drive.py)
+#                                    # turn can outlast 60 s, so F1/F3/F4/F5
+#                                    # run as send, wait (75 = still pending:
+#                                    # call it again), check (e2e_drive.py)
+#   scripts/e2e_sandbox.sh restart            # F6 again: a second worker start
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
 # Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
 # E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
@@ -22,7 +26,7 @@
 # (which never negotiates h2): Chrome's 6 connections per host are the real
 # budget, and the app keeps at most 4 streams (DOCS-contract §9).
 # Needs: java + the cached RTDB emulator jar (firebase-tools), chromium, an
-# Xvfb on E2E_DISPLAY, fvm.
+# Xvfb on E2E_DISPLAY, fvm, faketime (libfaketime) for a future --as-of.
 # ============================================================================
 set -euo pipefail
 
@@ -94,33 +98,30 @@ cmd_down() {
         }
         rm -f "$STATE"
     fi
-    rm -f "$(dirname "$STATE")"/f[1-4].json  # a phased flow's send state
+    rm -f "$(dirname "$STATE")"/f[1-6].json  # a phased flow's send state
     echo "e2e sandbox down"
 }
 
-cmd_up() {
-    [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
-    cmd_down >/dev/null
-    local sandbox db_port port dev db
-    sandbox="$(mktemp -d "${TMPDIR:-/tmp}/tutor-e2e.XXXXXX")"
-    dev="$("$PY" "$ROOT/scripts/e2e_prepare.py" "$SRC_DATA" "$sandbox/data" "$@")"
-    head -c 32 /dev/urandom | base64 > "$sandbox/test.key"
-    mkdir -p "$(dirname "$STATE")" "$sandbox/cache"
-    db_port="$(free_port)"
-    port="$(free_port)"
-    db="http://127.0.0.1:$db_port"
-    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\n' "$sandbox" "$db" "$port" "$dev" > "$STATE"
-    systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
-        java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
-    wait_http "$db/.json" 40 || die "emulator did not start"
+# Start the sandbox server on the state file's sandbox (up, restart). A
+# CLOCK runs it under libfaketime from that moment on: the worker's "today".
+start_server() {
+    local sandbox db port dev clock
+    sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
+    db="$(sed -n 's/^DB=//p' "$STATE")"
+    port="$(sed -n 's/^PORT=//p' "$STATE")"
+    dev="$(sed -n 's/^DEV=//p' "$STATE")"
+    clock="$(sed -n 's/^CLOCK=//p' "$STATE")"
+    local -a fake=()
+    [[ -n "$clock" ]] && fake=(faketime "$clock")
     systemd-run --user --quiet --collect --unit="$SERVER_UNIT" -p RuntimeMaxSec=3600 \
         -p WorkingDirectory="$ROOT" \
-        -p StandardOutput="file:$sandbox/server.log" -p StandardError="file:$sandbox/server.log" \
+        -p StandardOutput="append:$sandbox/server.log" -p StandardError="append:$sandbox/server.log" \
         -E TUTOR_DATA="$sandbox/data" -E TUTOR_KEY="$sandbox/test.key" \
         -E TUTOR_WEBAPP_DIR="$WEB" -E TUTOR_IMAGE_CACHE="$sandbox/cache/images" \
         -E TUTOR_SOURCE_CACHE="$sandbox/cache/sources" -E TUTOR_WIKI_CACHE="$sandbox/cache/wiki" \
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT" \
-        "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
+        -E FAKETIME_DONT_FAKE_MONOTONIC=1 \
+        "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {
         tail -20 "$sandbox/server.log" >&2
         die "server did not start"
@@ -130,12 +131,61 @@ cmd_up() {
         [[ "$(curl -sf "$db/tutor/v1/presence/workers/$dev.json")" != "null" ]] && break
         sleep 0.5
     done
+}
+
+cmd_up() {
+    [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
+    cmd_down >/dev/null
+    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry=""
+    local -a pass=()
+    while (($#)); do
+        case "$1" in
+            --struggle) struggle=1 ;;
+            --carry) carry="${2:?--carry N}"; shift ;;
+            --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
+            *) pass+=("$1") ;;
+        esac
+        shift
+    done
+    # A future --as-of has nothing to rewind: the worker lives at that moment.
+    if [[ -n "$as_of" ]] && (($(date -d "$as_of" +%s) > $(date +%s))); then
+        clock="$(date -d "$as_of" '+%Y-%m-%d %H:%M:%S')"
+        command -v faketime >/dev/null || die "no faketime: sudo pacman -S libfaketime"
+    fi
+    sandbox="$(mktemp -d "${TMPDIR:-/tmp}/tutor-e2e.XXXXXX")"
+    head -c 32 /dev/urandom | base64 > "$sandbox/test.key"
+    dev="$("$PY" "$ROOT/scripts/e2e_prepare.py" "$SRC_DATA" "$sandbox/data" "${pass[@]}")"
+    ((struggle)) && "$PY" "$ROOT/scripts/e2e_seed.py" struggle "$sandbox/data" --subject "$SUBJECT"
+    if [[ -n "$carry" ]]; then  # the day before the worker's today
+        "$PY" "$ROOT/scripts/e2e_seed.py" carry "$sandbox/data" --key "$sandbox/test.key" \
+            --minutes "$carry" --day "$(date -d "$(date -d "${clock:-now}" +%F) -1 day" +%F)"
+    fi
+    mkdir -p "$(dirname "$STATE")" "$sandbox/cache"
+    db_port="$(free_port)"
+    port="$(free_port)"
+    db="http://127.0.0.1:$db_port"
+    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\n' \
+        "$sandbox" "$db" "$port" "$dev" "$clock" > "$STATE"
+    systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
+        java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
+    wait_http "$db/.json" 40 || die "emulator did not start"
+    start_server
     grep 'e2e seed' "$sandbox/server.log" || true
-    echo "e2e sandbox up: app http://127.0.0.1:$port/app/?db=$db worker $dev"
+    echo "e2e sandbox up: app http://127.0.0.1:$port/app/?db=$db worker $dev${clock:+ clock $clock}"
+}
+
+# A second worker start on the same sandbox (F6 again): stats is deleted
+# first, so the new worker's publish is visible.
+cmd_restart() {
+    [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
+    systemctl --user stop "$SERVER_UNIT" 2>/dev/null || true
+    curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1/stats.json" >/dev/null
+    start_server
+    echo "e2e sandbox server restarted"
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1|F2|F3|F4}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F6}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
@@ -152,9 +202,10 @@ main() {
     case "$cmd" in
         build) cmd_build ;;
         up) cmd_up "$@" ;;
+        restart) cmd_restart ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] | flow F1|F2|F3|F4 [send|wait|check] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] | restart | flow F1..F6 [send|wait|check|again] | down" ;;
     esac
 }
 

@@ -11,7 +11,8 @@ subject), plus every device's log events from the data dir copy and
 ``prefs.current_subject``, then serves the e2e web build
 (``$TUTOR_WEBAPP_DIR``) and the relay in one process, as ``tutor.service``
 does. The model's working dir follows ``TUTOR_DATA`` into the sandbox
-(``tutor.session.sandbox_dir``).
+(``tutor.session.sandbox_dir``); every system prompt is appended to
+``<sandbox>/prompts.jsonl`` (F5 checks a struggle session's rule 16).
 
 Run by ``scripts/e2e_sandbox.sh up``; refuses the real data dir and :8778.
 """
@@ -43,9 +44,11 @@ from tutor.relay.worker import Relay, running
 from tutor.server import create_app
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable
 
     from starlette.applications import Starlette
+
+    from tutor.session import TutorSession
 
 LIVE_PORT: Final = 8778
 REAL_DATA: Final = Path.home() / ".local" / "share" / "tutor"
@@ -135,9 +138,26 @@ async def seed(db: str, subject: str | None) -> None:
         await engine.close()
 
 
-def serve(db: str, port: int) -> None:
-    """The engine, its relay on the emulator and the web app, until killed."""
-    engine, sink = cli.relay_engine()
+def logged(
+    factory: Callable[[str], TutorSession], out: Path
+) -> Callable[[str], TutorSession]:
+    """``factory``, appending each system prompt to ``out`` first (F5 reads it)."""
+
+    def make(prompt: str) -> TutorSession:
+        with out.open("a", encoding="utf-8") as log:
+            log.write(json.dumps({"at": time.time(), "prompt": prompt}) + "\n")
+        return factory(prompt)
+
+    return make
+
+
+def serve(db: str, port: int, prompts: Path) -> None:
+    """The engine, its relay on the emulator and the web app, until killed.
+
+    As ``cli.relay_engine()``, but every system prompt is logged to ``prompts``.
+    """
+    sink = phases.PhaseSink()
+    engine = Engine(session_factory=logged(phases.session_factory(sink), prompts))
     cli.prepare(engine)
     app: Starlette = create_app(engine)
     inner = app.router.lifespan_context
@@ -162,7 +182,7 @@ def main() -> int:
     data = Path(os.environ.get("TUTOR_DATA", REAL_DATA))
     check_sandbox(data, args.port)
     asyncio.run(seed(args.db, args.subject))
-    serve(args.db, args.port)
+    serve(args.db, args.port, data.parent / "prompts.jsonl")
     return 0
 
 

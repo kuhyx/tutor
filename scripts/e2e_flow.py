@@ -2,8 +2,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Shared agent-E2E steps: the emulator view and the step logger (``Flow``).
 
-Used by ``scripts/e2e_drive.py`` (F1, F2) and ``scripts/e2e_follow_up.py``
-(F3, F4).
+Used by ``scripts/e2e_drive.py`` (F1, F2), ``scripts/e2e_follow_up.py``
+(F3, F4), ``scripts/e2e_struggle.py`` (F5) and ``scripts/e2e_carry.py`` (F6).
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ class FlowError(RuntimeError):
 
 
 class Emulator:
-    """Read-only REST view of the sandbox RTDB (``/tutor/v1``)."""
+    """REST view of the sandbox RTDB (``/tutor/v1``)."""
 
     def __init__(self, url: str) -> None:
         """Bind the emulator base URL (``http://127.0.0.1:N``)."""
@@ -45,6 +45,16 @@ class Emulator:
         ) as r:
             value: object = json.load(r)
             return value
+
+    def put(self, path: str, value: object) -> None:
+        """Write ``value`` at ``path`` (F5 sends a request the app never would)."""
+        req = urllib.request.Request(
+            f"{self.url}/tutor/v1/{path}.json",
+            data=json.dumps(value).encode(),
+            method="PUT",
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read()
 
     def node(self, path: str) -> dict[str, Any]:
         """The object at ``path``; ``{}`` when absent or not an object."""
@@ -64,6 +74,10 @@ class Flow:
         """Print the next step's number and goal."""
         self.n += 1
         print(f"{self.args.flow} step {self.n}: {what}", flush=True)
+
+    def note(self, line: str) -> None:
+        """Print an indented detail under the current step (the run's evidence)."""
+        print(f"  {line}", flush=True)
 
     def shot(self, suffix: str) -> Path:
         """Save a screenshot as ``<out>_<suffix>.png`` and print its path."""

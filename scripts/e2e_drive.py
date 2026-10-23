@@ -13,6 +13,9 @@ Exit 0 = PASS.
   same tap ends on the blocked panel with "Learn more anyway"; tapping it
   starts ``--card`` with a tutor message.
 * F3, F4 follow-up questions (``e2e_follow_up.py``).
+* F5 help on a struggling card (``e2e_struggle.py``; phased like F1).
+* F6 the carry-over bank (``e2e_carry.py``): ``check``, then ``again`` after
+  ``e2e_sandbox.sh restart``.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -32,9 +35,11 @@ import sys
 import time
 from typing import TYPE_CHECKING
 
+from e2e_carry import f6_again, f6_check
 from e2e_cdp import Browser, CdpError
 from e2e_flow import Emulator, Flow, FlowError, State
 from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
+from e2e_struggle import f5_check, f5_send
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -96,8 +101,9 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F1": (f1_send, f1_check),
     "F3": (f3_send, f3_check),
     "F4": (f4_send, f4_check),
+    "F5": (f5_send, f5_check),
 }
-FLOWS = ["F1", "F2", "F3", "F4"]
+FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6"]
 
 
 def answered(db: Emulator, flow: str, rid: str, seconds: float) -> bool:
@@ -129,11 +135,22 @@ def phases(flow: Flow, args: argparse.Namespace) -> int:
     return 0
 
 
+def carry(flow: Flow, args: argparse.Namespace) -> None:
+    """F6: ``check`` (or ``all``) saves the ledger; ``again`` compares it."""
+    state_file = Path(args.state)
+    if args.phase == "again":
+        f6_again(flow, json.loads(state_file.read_text()))
+    else:
+        state_file.write_text(json.dumps(f6_check(flow)))
+
+
 def drive(args: argparse.Namespace, browser: Browser | None) -> int:
     """Run ``args.flow`` (its ``args.phase``, or all of it); the exit code."""
     flow = Flow(args, browser)  # wait has no browser: it reads the emulator only
     try:
-        if args.flow not in PHASED:
+        if args.flow == "F6":
+            carry(flow, args)
+        elif args.flow not in PHASED:
             f2(flow)
         elif (code := phases(flow, args)) != 0:
             return code
@@ -145,7 +162,7 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
                 print(f"  page {problem[:500]}", flush=True)
             flow.shot("fail")
         return 1
-    if args.phase in {"check", "all"} or args.flow not in PHASED:
+    if args.phase in {"check", "all", "again"} or args.flow not in PHASED:
         print(f"PASS {args.flow}", flush=True)
     else:
         print(f"OK {args.flow} {args.phase}", flush=True)
@@ -157,7 +174,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("flow", choices=FLOWS)
     parser.add_argument(
-        "phase", nargs="?", default="all", choices=["send", "wait", "check", "all"]
+        "phase",
+        nargs="?",
+        default="all",
+        choices=["send", "wait", "check", "again", "all"],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")
     parser.add_argument("--db", required=True, help="emulator http://127.0.0.1:N")
