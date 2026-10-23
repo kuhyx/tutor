@@ -130,13 +130,4 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Save report'), findsOneWidget);
   });
-
-  testWidgets("/review/<subject> opens that subject's due queue", (t) async {
-    final s = await fixtureServices(fixtureDb(), FakeStream());
-    await pumpScreen(
-      t,
-      HomeScreen(services: s, onSignedOut: () {}, initialRoute: '/review/car'),
-    );
-    expect(find.widgetWithText(AppBar, 'Review: this subject'), findsOneWidget);
-  });
 }

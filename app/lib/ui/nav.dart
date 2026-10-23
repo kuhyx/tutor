@@ -1,8 +1,7 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
-/// `/progress`, `/editor[/<subject>]`, `/review[/<subject>]`, `/drill`,
-/// `/report`; `/session/continue` opens the Session and asks for the open
-/// session).
+/// `/progress`, `/editor[/<subject>]`, `/review`, `/drill`, `/report`;
+/// `/session/continue` opens the Session and asks for the open session).
 library;
 
 import 'package:flutter/material.dart';
@@ -133,7 +132,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),
     'editor' => openEditor(context, s, subject: arg),
-    'review' => openReview(context, s, subject: arg),
+    'review' => openReview(context, s),
     'drill' => openReview(context, s, drill: true),
     'report' => showReport(context, s, route: '/'),
     _ => Future<void>.value(),
