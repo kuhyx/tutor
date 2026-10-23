@@ -127,6 +127,8 @@ const Map<String, Object> card = {
   'origin': 'generated',
   'created': 11,
   'suspended': false,
+  'mnemonic': 'four strokes: suck, squeeze, bang, blow',
+  'split_of': 'eng-whole',
 };
 
 const Map<String, Object> worker = {

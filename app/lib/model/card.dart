@@ -19,6 +19,8 @@ class StudyCard {
     this.created,
     this.suspended = false,
     this.tutor,
+    this.mnemonic,
+    this.splitOf,
   });
 
   /// Parses a card.
@@ -37,6 +39,8 @@ class StudyCard {
       created: intOr(j, 'created'),
       suspended: flag(j, 'suspended'),
       tutor: objOr(j, 'tutor'),
+      mnemonic: strOr(j, 'mnemonic'),
+      splitOf: strOr(j, 'split_of'),
     );
   }
 
@@ -77,6 +81,12 @@ class StudyCard {
   /// "requires_of": {...}}` (curriculum §3); null = untouched.
   final Json? tutor;
 
+  /// A memory aid shown under [back] (struggle §1; not excerpt-checked).
+  final String? mnemonic;
+
+  /// The card this one was split from (struggle §2; never edited).
+  final String? splitOf;
+
   /// Suspended by the tutor: the Editor offers Restore.
   bool get removedByTutor => suspended && tutor?['removed'] != null;
 
@@ -111,6 +121,8 @@ class StudyCard {
     'created': created,
     'suspended': suspended,
     'tutor': tutor,
+    'mnemonic': mnemonic,
+    'split_of': splitOf,
   });
 }
 

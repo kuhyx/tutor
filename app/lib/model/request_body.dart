@@ -45,7 +45,8 @@ class RequestBody {
         'choice': goDeeper ? 'go_deeper' : 'review_only',
       });
 
-  /// `card_edit`: a null [card] adds a new card.
+  /// `card_edit`: a null [card] adds a new card; an empty [mnemonic]
+  /// clears it (struggle §1).
   factory cardEdit({
     required String subject,
     required String module,
@@ -55,6 +56,7 @@ class RequestBody {
     required String excerpt,
     String? card,
     List<String> requires = const [],
+    String mnemonic = '',
   }) => RequestBody._(RequestKind.cardEdit, {
     'subject': subject,
     'card': card,
@@ -64,6 +66,7 @@ class RequestBody {
     'source': source,
     'excerpt': excerpt,
     'requires': requires,
+    'mnemonic': mnemonic,
   });
 
   /// `card_restore`: undo the tutor's removal of [card].
@@ -79,17 +82,20 @@ class RequestBody {
   /// `session_start`: null [card] = next open card; [resume] (Continue)
   /// first makes the subject's open session live; [liftCap] ("Learn more
   /// anyway") lifts today's new-card cap for the rest of the day
-  /// (DOCS-contract §4).
+  /// (DOCS-contract §4); [struggle] (Review's "Get help") opens a struggle
+  /// session on [card] (DOCS-contract-struggle §5).
   factory sessionStart({
     String? subject,
     String? card,
     bool resume = false,
     bool liftCap = false,
+    bool struggle = false,
   }) => RequestBody._(RequestKind.sessionStart, {
     'subject': subject,
     'card': card,
     if (resume) 'resume': true,
     if (liftCap) 'lift_cap': true,
+    if (struggle) 'struggle': true,
   });
 
   /// `session_resume`.

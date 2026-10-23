@@ -9,6 +9,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:tutor/log/event_log.dart';
+import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/review/review_items.dart';
 
@@ -45,6 +46,18 @@ class ReviewSession extends ChangeNotifier {
   bool _revealed = false;
   final List<_Step> _steps = [];
   Grade? _undone;
+  ReviewItem? _struggling;
+
+  /// The card the last rating left struggling (DOCS-contract-struggle §4:
+  /// struggle 3, 6, ...): Review offers help on it. Stateless: the next
+  /// rating, Back or [dismissStruggle] clears it, and nothing is recorded.
+  ReviewItem? get struggling => _struggling;
+
+  /// Hides the offer (records nothing; it returns after 3 more Again ratings).
+  void dismissStruggle() {
+    _struggling = null;
+    notifyListeners();
+  }
 
   /// Back can step to the previously rated card (never across a flag:
   /// a flag has no undo).
@@ -94,6 +107,7 @@ class ReviewSession extends ChangeNotifier {
     final key = '${item.subject}/${item.cardId}';
     final finished = !again && _finished.add(key);
     if (again) _queue.add(item);
+    _struggling = await _struggles(item, key) ? item : null;
     _steps.add(
       _Step(_index, logged.eid, grade, requeued: again, finished: finished),
     );
@@ -116,6 +130,7 @@ class ReviewSession extends ChangeNotifier {
       ),
     );
     if (step.requeued) _queue.removeLast();
+    _struggling = null;
     if (step.finished) _finished.remove('${item.subject}/${item.cardId}');
     _index = step.index;
     await _advance(to: step.grade);
@@ -139,7 +154,16 @@ class ReviewSession extends ChangeNotifier {
     // a flag takes it out of the run for good.
     _finished.add('${item.subject}/${item.cardId}');
     _steps.clear();
+    _struggling = null;
     await _advance();
+  }
+
+  // Fold step 7 on this card alone (only its own events and rev count).
+  Future<bool> _struggles(ReviewItem item, String key) async {
+    final n = fold(await events.all(), {
+      key: CardInfo(rev: item.card.rev),
+    }).struggleOf(key);
+    return n >= 3 && n % 3 == 0;
   }
 
   // Next card; [to] = Back re-showing a card rated [to] (revealed).

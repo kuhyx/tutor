@@ -68,6 +68,10 @@ void main() {
       find.widgetWithText(TextField, 'Requires (card ids, comma separated)'),
       'eng-crank, ',
     );
+    await t.enterText(
+      find.widgetWithText(TextField, 'Mnemonic (optional, one line)'),
+      ' suck, squeeze, bang, blow ',
+    );
     await t.tap(find.text('Save card'));
     await sent(t);
     final edit = await answer(
@@ -78,6 +82,7 @@ void main() {
     );
     expect(edit['body'], containsPair('card', 'eng-strokes'));
     expect(edit['body'], containsPair('requires', ['eng-crank']));
+    expect(edit['body'], containsPair('mnemonic', 'suck, squeeze, bang, blow'));
     expect(find.text('Edit cards'), findsOneWidget); // popped back
 
     await t.tap(find.text('Add card').first);

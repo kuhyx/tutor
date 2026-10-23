@@ -1,6 +1,7 @@
 /// Review (curriculum §5): offline FSRS queue across all subjects (or one
 /// subject's, from a Review inside that subject). Front ->
-/// reveal back + excerpt + source link -> Again/Hard/Good/Easy, or Flag.
+/// reveal back + mnemonic + excerpt + source link -> Again/Hard/Good/Easy,
+/// or Flag; a struggling card gets the help offer (`struggle_offer.dart`).
 /// Keys: Space reveals, 1-4 rate, F flags, Backspace / Ctrl+Z go Back. The app bar switches to Drill
 /// (`drill_view.dart`): pick-an-answer cards from the PC, no model.
 library;
@@ -13,15 +14,20 @@ import 'package:flutter/services.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/drill/drill_models.dart';
-import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/model/request_body.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_view.dart';
 import 'package:tutor/ui/flag_dialog.dart';
+import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/review_answer.dart';
 import 'package:tutor/ui/review_end.dart';
+import 'package:tutor/ui/struggle_offer.dart';
+import 'package:tutor/util/device.dart';
 
 /// The Review screen.
 class ReviewScreen extends StatefulWidget {
@@ -71,6 +77,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
   late final Future<ReviewSession> _run = _start();
   final _focus = FocusNode();
   late bool _drill = widget.drill;
+  late final _runner = RequestRunner(widget.services.relay);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.services.presence.start(); // idempotent; Home stops it
+  }
 
   Future<ReviewSession> _start() async {
     final now = widget.now ?? DateTime.now;
@@ -99,6 +112,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   void dispose() {
     _focus.dispose();
+    unawaited(_runner.dispose());
     unawaited(_run.then((r) => r.dispose()));
     super.dispose();
   }
@@ -106,6 +120,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Future<void> _flag(ReviewSession run) async {
     final reason = await askFlagReason(context);
     if (reason != null) await run.flag(reason);
+    _focus.requestFocus();
+  }
+
+  // "Get help": a struggle session on [item], opened over the queue.
+  Future<void> _help(ReviewSession run, ReviewItem item) async {
+    final status = await _runner.run(
+      RequestBody.sessionStart(
+        subject: item.subject,
+        card: item.cardId,
+        struggle: true,
+      ).withDevice(deviceName),
+    );
+    if (status is! RelayDone || !mounted) return;
+    run.dismissStruggle();
+    await openSession(context, widget.services);
     _focus.requestFocus();
   }
 
@@ -161,7 +190,22 @@ class _ReviewScreenState extends State<ReviewScreen> {
           child: Focus(
             focusNode: _focus,
             autofocus: true,
-            child: _body(context, run),
+            child: Column(
+              children: [
+                Expanded(child: _body(context, run)),
+                if (run.struggling case final item?)
+                  StruggleOffer(
+                    item: item,
+                    presence: widget.services.presence.state,
+                    runner: _runner,
+                    onHelp: () => unawaited(_help(run, item)),
+                    onDismiss: () {
+                      run.dismissStruggle();
+                      _focus.requestFocus();
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       );
@@ -172,35 +216,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final item = run.current;
     final text = Theme.of(context).textTheme;
     if (item == null) return ReviewEnd(run, module: widget.module != null);
-    final card = item.card;
     return PageList(
       children: [
         Text('${item.subjectTitle} · ${run.left} left', style: text.bodySmall),
         const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(card.front, style: text.titleLarge),
-                if (run.revealed) ...[
-                  const Divider(height: AppSpacing.xl),
-                  Text(card.back, style: text.bodyLarge),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    '"${card.excerpt}"',
-                    style: text.bodyMedium?.copyWith(
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  LinkText(hostOf(card.source), card.source),
-                ],
-              ],
-            ),
-          ),
-        ),
+        CardFace(item.card, revealed: run.revealed),
         const SizedBox(height: AppSpacing.md),
         AnswerBar(run, onFlag: () => _flag(run)),
       ],

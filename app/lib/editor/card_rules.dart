@@ -9,6 +9,9 @@ const kFrontWords = 25;
 /// Back word limit.
 const kBackWords = 30;
 
+/// Mnemonic word limit (struggle §1; optional, one line).
+const kMnemonicWords = 40;
+
 /// Excerpt word range.
 const kExcerptWords = (6, 40);
 
@@ -22,11 +25,13 @@ List<String> cardProblems({
   required String back,
   required String source,
   required String excerpt,
+  String mnemonic = '',
 }) {
   final (minEx, maxEx) = kExcerptWords;
   final f = wordCount(front);
   final b = wordCount(back);
   final e = wordCount(excerpt);
+  final m = wordCount(mnemonic);
   final uri = Uri.tryParse(source.trim());
   return [
     if (f == 0 || f > kFrontWords) 'Front: 1-$kFrontWords words (has $f).',
@@ -35,6 +40,8 @@ List<String> cardProblems({
       'Source must be an https:// link.',
     if (e < minEx || e > maxEx)
       'Excerpt: $minEx-$maxEx words verbatim from the source (has $e).',
+    if (m > kMnemonicWords || mnemonic.trim().contains('\n'))
+      'Mnemonic: one line, <=$kMnemonicWords words (has $m).',
   ];
 }
 

@@ -41,6 +41,7 @@ class FoldResult {
     required this.flagged,
     this.good = const {},
     this.reviewed = const {},
+    this.struggle = const {},
   });
 
   /// FSRS card per taught `subject/card` key (untaught cards are absent).
@@ -58,6 +59,14 @@ class FoldResult {
   /// latest `taught` rated Good or Easy, with no time gap. Sticky: a later
   /// Again does not clear it; only a new `taught` or an `untaught` does.
   final Set<String> reviewed;
+
+  /// Fold step 7 (`DOCS-contract-struggle.md` §3): per taught key, the
+  /// trailing run of Again among the kept reviews at the card's current rev
+  /// since the latest `taught`; absent = 0.
+  final Map<String, int> struggle;
+
+  /// [struggle] of [key] (0 when absent).
+  int struggleOf(String key) => struggle[key] ?? 0;
 }
 
 /// One entry of the review queue.
@@ -135,6 +144,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
   final taughtAt = <String, int>{};
   final latest = <String, ReviewEvent>{};
   final reviewed = <String>{};
+  final struggle = <String, int>{};
   final all = events.toList();
   // The whole log first, so event order cannot change who is a worker.
   final workers = workerDevices(all);
@@ -148,11 +158,13 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         taughtAt[key] = at;
         latest.remove(key);
         reviewed.remove(key);
+        struggle.remove(key);
       case UntaughtEvent():
         scheduled.remove(key);
         taughtAt.remove(key);
         latest.remove(key);
         reviewed.remove(key);
+        struggle.remove(key);
       case ReviewEvent(:final at, :final grade):
         final card = scheduled[key];
         if (card == null) continue; // a review of an untaught card
@@ -161,6 +173,14 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         // A drill pick schedules, but only an app rating marks `reviewed`.
         if (grade.value >= Grade.good.value && !isDrill(e, workers)) {
           reviewed.add(key);
+        }
+        // Step 7: only the current wording's ratings; Again extends the run,
+        // anything else ends it (an old-rev review does neither).
+        if (event.rev != cards[key]?.rev) continue;
+        if (grade == Grade.again) {
+          struggle.update(key, (n) => n + 1, ifAbsent: () => 1);
+        } else {
+          struggle.remove(key);
         }
       case FlagEvent(:final rev):
         if (cards[key]?.rev == rev) flagged.add(key);
@@ -180,6 +200,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
           key,
     },
     reviewed: reviewed,
+    struggle: struggle,
   );
 }
 

@@ -55,10 +55,11 @@ class _CardFormState extends State<CardForm> {
   late final _requires = TextEditingController(
     text: widget.card?.requires.join(', '),
   );
+  late final _mnemonic = TextEditingController(text: widget.card?.mnemonic);
 
   @override
   void dispose() {
-    for (final c in [_front, _back, _source, _excerpt, _requires]) {
+    for (final c in [_front, _back, _source, _excerpt, _requires, _mnemonic]) {
       c.dispose();
     }
     super.dispose();
@@ -69,6 +70,7 @@ class _CardFormState extends State<CardForm> {
     back: _back.text,
     source: _source.text,
     excerpt: _excerpt.text,
+    mnemonic: _mnemonic.text,
   );
 
   Future<void> _save() async {
@@ -86,6 +88,7 @@ class _CardFormState extends State<CardForm> {
           for (final r in _requires.text.split(','))
             if (r.trim().isNotEmpty) r.trim(),
         ],
+        mnemonic: _mnemonic.text.trim(),
       ),
     );
     if (status is RelayDone && mounted) {
@@ -123,6 +126,7 @@ class _CardFormState extends State<CardForm> {
           _field(_source, 'Source (https link)', lines: 1),
           _field(_excerpt, 'Excerpt (verbatim from the source)', lines: 4),
           _field(_requires, 'Requires (card ids, comma separated)', lines: 1),
+          _field(_mnemonic, 'Mnemonic (optional, one line)', lines: 1),
           for (final p in problems)
             Text(
               p,

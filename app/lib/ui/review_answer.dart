@@ -1,12 +1,16 @@
-/// Review's answer controls: Show answer, the four ratings (Back's undone
-/// rating highlighted), Back and Flag, and their keys.
+/// Review's card face (front; once revealed the back, its mnemonic, the
+/// excerpt and the source) and answer controls: Show answer, the four
+/// ratings (Back's undone rating highlighted), Back and Flag, and their keys.
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tutor/editor/card_rules.dart';
+import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/review/review_session.dart';
+import 'package:tutor/ui/common.dart';
 
 /// The rating's word.
 String gradeLabel(Grade g) => switch (g) {
@@ -29,6 +33,49 @@ const backKeys = [
   SingleActivator(LogicalKeyboardKey.backspace),
   SingleActivator(LogicalKeyboardKey.keyZ, control: true),
 ];
+
+/// The card: front; once [revealed], back, mnemonic, excerpt and source.
+class CardFace extends StatelessWidget {
+  /// Creates the face.
+  const new(this.card, {required this.revealed, super.key});
+
+  /// The card.
+  final StudyCard card;
+
+  /// The answer side shows.
+  final bool revealed;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(card.front, style: text.titleLarge),
+            if (revealed) ...[
+              const Divider(height: AppSpacing.xl),
+              Text(card.back, style: text.bodyLarge),
+              if (card.mnemonic case final m? when m.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(m, style: text.bodyMedium),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                '"${card.excerpt}"',
+                style: text.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              LinkText(hostOf(card.source), card.source),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /// Show answer, then the ratings; below, Back and Flag.
 class AnswerBar extends StatelessWidget {

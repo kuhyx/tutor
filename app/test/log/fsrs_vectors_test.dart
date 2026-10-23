@@ -6,7 +6,8 @@
 //                              "r"?,"rev"?,"src"?,...}],
 //           "cards": {"x": {"rev": 1}},
 //           "expect": {"x": {"taught","due","stability","difficulty",
-//                            "state","flagged","good","reviewed"?}},
+//                            "state","flagged","good","reviewed"?,
+//                            "struggle"?}},
 //           "dropped": [...], "ignored": [...]}]
 // Events are listed unsorted on purpose (the fold sorts). Tolerance 1e-6 on
 // stability/difficulty; `due` exact to the ms; `good` (§6 unlock rule) too.
@@ -65,6 +66,14 @@ void _check(Map<String, dynamic> v) {
         result.reviewed.contains(key),
         want['reviewed'],
         reason: '$name: $id reviewed',
+      );
+    }
+    // `struggle` (fold step 7) only once the worker's vectors carry it.
+    if (want.containsKey('struggle')) {
+      expect(
+        result.struggleOf(key),
+        (want['struggle'] as num).toInt(),
+        reason: '$name: $id struggle',
       );
     }
     if (card == null) continue;
