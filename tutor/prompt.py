@@ -53,11 +53,12 @@ def system_prompt(
     )
     cards = f"# Cards of this topic\n{listed}\n" if listed else ""
     rules = render_system(profile or profiles.automation())
+    aid = f"mnemonic: {card.mnemonic}\n" if card.mnemonic else ""
     return (
         f"{rules}\n# Target card\n"
         f"topic: {card.topic.title}\nid: {card.id}\n"
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
-        f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n\n"
+        f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n{aid}\n"
         f"{cards}# Already mastered concepts\n{done}\n"
     )
 

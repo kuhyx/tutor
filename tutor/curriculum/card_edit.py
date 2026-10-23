@@ -5,7 +5,9 @@ Fields, word limits, the module's id prefixes, ``requires`` (known, no
 cycle), then the source fetch and the verbatim excerpt check. Any refusal is
 ``edit_refused`` with the reason; nothing is written. Success bumps the
 card's ``rev`` (clearing its flags) and sets ``origin`` to ``edited``. Ids are
-never renamed and a card never moves to another module.
+never renamed and a card never moves to another module. ``mnemonic``: absent
+keeps the card's, "" clears it (an Editor that does not know the field never
+wipes one); ``split_of`` is never taken from a request.
 """
 
 from __future__ import annotations
@@ -35,6 +37,16 @@ def _fields(body: dict[str, Any]) -> dict[str, str]:
         msg = f"{', '.join(FIELDS)} must all be strings"
         raise bad(msg)
     return {k: " ".join(str(body[k]).split()) for k in FIELDS}
+
+
+def _mnemonic(body: dict[str, Any], rec: CardRec) -> None:
+    """Set the requested memory aid on one line (none in the body: keep it)."""
+    value = body.get("mnemonic")
+    if value is not None and not isinstance(value, str):
+        msg = "mnemonic must be a string"
+        raise bad(msg)
+    if value is not None:
+        rec.mnemonic = " ".join(value.split())
 
 
 def _new_id(module: Module, front: str, found: dict[str, CardRec]) -> str:
@@ -106,6 +118,7 @@ def card_edit(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
             rec = replace(old, requires=requires, rev=old.rev + 1, origin="edited")
             rec.front, rec.back = fields["front"], fields["back"]
             rec.source, rec.excerpt = fields["source"], fields["excerpt"]
+        _mnemonic(body, rec)
         staged = {**found, cid: rec}
         _verify(ctx, staged, plan, cid)
         ctx.subjects.commit(str(subject), meta, Change(plan=plan, cards=staged))

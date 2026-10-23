@@ -15,9 +15,9 @@ from tutor.curriculum.records import (
     Plan,
     check_modules,
     id_list,
-    plan_json,
     text,
 )
+from tutor.curriculum.subject_store import plan_json
 from tutor.tests._cur import card, module
 
 

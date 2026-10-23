@@ -26,8 +26,9 @@ MAX_TITLE: Final = 120
 MAX_SUMMARY: Final = 300
 MAX_NOTES: Final = 600
 MAX_GOAL: Final = 2000
-MAX_PLAN_BYTES: Final = 16_000
 MAX_CARD_BYTES: Final = 2_000
+# Card keys left out of the JSON while empty: older cards keep their shape.
+_CARD_OPTIONAL: Final = frozenset({"tutor", "mnemonic", "split_of"})
 MIN_MODULES: Final = 3
 MAX_MODULES: Final = 12
 
@@ -207,7 +208,7 @@ def check_modules(modules: list[Module]) -> None:
 
 
 @dataclass
-class CardRec:
+class CardRec:  # pylint: disable=too-many-instance-attributes  # the contract's fields
     """``subjects/{subj}/cards/{cid}`` (the id is the key, not a field)."""
 
     module: str
@@ -222,6 +223,8 @@ class CardRec:
     created: int = 0
     suspended: bool = False
     tutor: dict[str, Any] = field(default_factory=dict)
+    mnemonic: str = ""  # a memory aid (``DOCS-contract-struggle.md`` §1)
+    split_of: str = ""  # the card a split made this one from; never edited
 
     @classmethod
     def from_json(cls, raw: dict[str, Any]) -> CardRec:
@@ -231,20 +234,8 @@ class CardRec:
 
     def to_json(self) -> dict[str, Any]:
         """The contract shape; refuses a card over the 2 KB budget."""
-        out = {k: v for k, v in asdict(self).items() if v or k != "tutor"}
+        out = {k: v for k, v in asdict(self).items() if v or k not in _CARD_OPTIONAL}
         if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_CARD_BYTES:
             msg = f"card is over {MAX_CARD_BYTES} bytes"
             raise bad(msg)
         return out
-
-
-def plan_json(plan: Plan) -> dict[str, Any]:
-    """The plan's contract shape (``pregenerated`` only when set); <= 16 KB."""
-    out = asdict(plan)
-    for module in out["modules"]:  # an unset flag keeps the old shape
-        if not module["pregenerated"]:
-            del module["pregenerated"]
-    if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_PLAN_BYTES:
-        msg = f"plan is over {MAX_PLAN_BYTES} bytes"
-        raise bad(msg)
-    return out

@@ -36,6 +36,7 @@ def as_card(cid: str, rec: CardRec, module: Module) -> cards.Card:
         "source": rec.source,
         "excerpt": rec.excerpt,
         "requires": list(rec.requires),
+        **({"mnemonic": rec.mnemonic} if rec.mnemonic else {}),
     }
     return cards.validate_card(raw, topic(module), f"{module.id}/{cid}")
 
