@@ -116,7 +116,7 @@ repos:
         entry: scripts/check_repo_contract.sh
         language: system
         pass_filenames: false
-        files: ^(CLAUDE\.md|AGENTS\.md|scripts/test_changed\.sh)$
+        files: ^(CLAUDE\.md|AGENTS\.md|scripts/test_changed\.sh)$|(^|/)(AndroidManifest\.xml|build\.gradle(\.kts)?|strings\.xml|pubspec\.yaml|repo-contract\.toml|[^/]+\.desktop|assets/icon/[^/]+\.png)$
       # The Flutter client (app/). fvm runs the SDK pinned in app/.fvmrc; the
       # Python CI job skips this one, the flutter job runs the same analyze.
       - id: flutter-analyze
