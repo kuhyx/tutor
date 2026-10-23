@@ -148,6 +148,8 @@ const Map<String, Map<String, Object>> stats = {
     'target': 60,
     'new': 4,
     'new_cap': 10,
+    'banked': 40,
+    'prepaid': 15,
   },
   'days': {
     '2026-10-12': {'minutes': 23, 'taught': 4, 'reviews': 31},

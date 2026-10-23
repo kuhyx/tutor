@@ -67,9 +67,20 @@ class TodayFeed {
       ' · credited $sessionCredited';
   if (today == null) return ('Today: …', session);
   final active = today.activeMinutes;
+  final note = bankNote(today);
   return (
     'Today: ${active == null ? '' : '$active min active · '}'
-        'credited ${today.creditedMinutes}/${today.target} min',
+        'credited ${today.creditedMinutes}/${today.target} min'
+        '${note == null ? '' : ' · $note'}',
     session,
   );
+}
+
+/// "Banked N min · prepaid M": the carry-over bank (DOCS-contract-carry.md),
+/// or null when both are 0 or the worker predates it.
+String? bankNote(Today today) {
+  final banked = today.banked ?? 0;
+  final prepaid = today.prepaid ?? 0;
+  if (banked <= 0 && prepaid <= 0) return null;
+  return 'Banked $banked min · prepaid $prepaid';
 }

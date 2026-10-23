@@ -14,6 +14,8 @@ class Today {
     required this.newCap,
     this.activeMinutes,
     this.newCapLifted = false,
+    this.banked,
+    this.prepaid,
   });
 
   /// Parses `stats.today`.
@@ -25,6 +27,8 @@ class Today {
     newCards: integer(j, 'new'),
     newCap: integer(j, 'new_cap'),
     newCapLifted: j['new_cap_lifted'] == true,
+    banked: intOr(j, 'banked'),
+    prepaid: intOr(j, 'prepaid'),
   );
 
   /// PC-local date `YYYY-MM-DD`.
@@ -48,6 +52,13 @@ class Today {
   /// The cap was lifted for the rest of today ("Learn more anyway").
   final bool newCapLifted;
 
+  /// Carry-over bank balance after today (DOCS-contract-carry.md; null: an
+  /// older worker).
+  final int? banked;
+
+  /// Banked minutes counted today (null: an older worker).
+  final int? prepaid;
+
   /// Wire form.
   Json toJson() => {
     'day': day,
@@ -57,6 +68,8 @@ class Today {
     'new': newCards,
     'new_cap': newCap,
     if (newCapLifted) 'new_cap_lifted': true,
+    'banked': ?banked,
+    'prepaid': ?prepaid,
   };
 }
 

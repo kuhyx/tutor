@@ -14,7 +14,7 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Final
 
-from tutor import anki_watch
+from tutor import anki_watch, carry
 from tutor.relay import feedback_drain
 from tutor.relay.config import device_id
 from tutor.relay.context import Wiring
@@ -121,11 +121,16 @@ class Relay:
     def start(self) -> None:
         """Begin (startup retries in the background).
 
-        Anki credit runs beside, not after, the RTDB startup: it must not
-        wait on Firebase being reachable.
+        Anki credit and today's carry-over run beside, not after, the RTDB
+        startup: they must not wait on Firebase being reachable.
         """
         self._spawn(self._main(), "main")
         self._spawn(anki_watch.watch(), "anki")
+        self._spawn(self._carry(), "carry")
+
+    async def _carry(self) -> None:
+        """Spend today's carry-over at startup, without waiting on RTDB."""
+        await asyncio.to_thread(carry.spend, now=self.w.now())
 
     async def stop(self, grace: float = DRAIN_S) -> None:
         """Claim nothing new, let a request in flight finish, then leave."""

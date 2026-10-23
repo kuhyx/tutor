@@ -3,7 +3,8 @@
 
 A row pays ``detail.minutes`` (15 if absent: a legacy block; 0 if invalid);
 repeats of one ``entry_id`` pay their smallest count; a local day is capped
-at :data:`DAILY_CAP_MINUTES`.
+at :data:`DAILY_CAP_MINUTES`: earned_time's own 60 plus room for the
+carry-over bank (:mod:`tutor.carry`), so extra minutes are recorded to be banked.
 """
 
 from __future__ import annotations
@@ -14,7 +15,12 @@ import earned_time
 
 CREDIT: Final = "credit"
 LEGACY_MINUTES: Final = 15  # a row without ``detail.minutes`` pays this
-DAILY_CAP_MINUTES: Final = 60
+# What one day's minutes can earn at most (earned_time clamps its units at 60).
+EARNER_CAP_MINUTES: Final = 60
+# The most minutes the carry-over bank holds (DOCS-contract-carry.md).
+BANK_CAP: Final = 100
+# The writer's trim: a day records what it earns plus what it can bank.
+DAILY_CAP_MINUTES: Final = EARNER_CAP_MINUTES + BANK_CAP
 
 
 def minutes_of(row: dict[str, object]) -> int:

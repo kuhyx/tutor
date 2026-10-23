@@ -148,7 +148,7 @@ def build_row(
     return row
 
 
-def _append_locked(
+def append_locked(
     row: dict[str, Any], ledger: Path, key: bytes
 ) -> tuple[str | None, int]:
     """Dedupe, cap and append ``row`` (caller holds the lock).
@@ -230,7 +230,7 @@ def credit_span(
     row = build_row(last, minutes, session_id, key, now=moment)
     try:
         with exclusive(where.lock):
-            refusal, paid = _append_locked(row, where.ledger, key)
+            refusal, paid = append_locked(row, where.ledger, key)
             stored = read_rows(where.ledger)
     except (LedgerError, OSError) as exc:
         _logger.warning("credit %s not recorded: %s", entry_id, exc)

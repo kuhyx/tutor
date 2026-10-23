@@ -101,11 +101,11 @@ def test_nothing_to_credit_writes_nothing() -> None:
 
 
 def test_daily_cap_refusal_stops_the_later_spans() -> None:
-    assert unit_credit.credit_units(run(60), "full", now=NOON)[0]["minutes"] == 60
+    assert unit_credit.credit_units(run(160), "full", now=NOON)[0]["minutes"] == 160
     rows = unit_credit.credit_units([unit(1), unit(3), unit(5)], "late", now=NOON)
     assert len(rows) == 1
     assert (rows[0]["recorded"], rows[0]["error"]) == (False, credit.DAILY_CAP_ERROR)
-    assert ledger_ids() == ["full-m60"]
+    assert ledger_ids() == ["full-m160"]
 
 
 def test_other_errors_do_not_stop_the_later_spans(

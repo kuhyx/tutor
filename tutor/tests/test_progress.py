@@ -23,8 +23,9 @@ def paths(tmp_path: Path, key: bytes | None = cs.KEY) -> Paths:
 def test_minutes_by_day_sums_verified_rows_capped(tmp_path: Path) -> None:
     where = paths(tmp_path)
     forged = {**cs.paid("x-m3", 5), "hmac": "0" * 64}
-    cs.put(where, [cs.paid("a-m40", 40), cs.paid("b-m30", 30), forged])
-    assert progress.ledger_minutes_by_day(where) == {"2026-10-09": 60}
+    rows: list[object] = [cs.paid("a-m90", 90), cs.paid("b-m80", 80), forged]
+    cs.put(where, rows)
+    assert progress.ledger_minutes_by_day(where) == {"2026-10-09": 160}
 
 
 def test_minutes_by_day_without_key_or_ledger(tmp_path: Path) -> None:
