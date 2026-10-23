@@ -111,6 +111,7 @@ seeder once to give the tutor its own refresh token.
   `due_in_subject` and `next: "lift_cap"`; `error` e.g. `You learned 25 new
   cards today (the daily limit). “vhost-apache” is open.` The one-tap fix is
   `session_start` again with `lift_cap: true` (curriculum §6).
+- `session_start` `struggle: true` (help on a struggling card): `DOCS-contract-struggle.md` §5.
 - Stats node: `handlers.stats(engine.ctx)`. `session_start` / `card_done` pass
   `subject`; `live.subject` = `engine.source.subject`.
 

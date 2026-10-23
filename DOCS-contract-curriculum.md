@@ -68,8 +68,9 @@ pass the same vectors.
 ```json
 {"module":"engine-basics","order":3,"front":"<=25 words","back":"<=30 words",
  "source":"https://...","excerpt":"6-40 words, verbatim from source",
- "requires":[],"rev":1,"origin":"generated","created":ms,"suspended":false,"tutor"?}
+ "requires":[],"rev":1,"origin":"generated","created":ms,"suspended":false,"tutor"?,"mnemonic"?,"split_of"?}
 ```
+- `mnemonic`, `split_of`, the `split` edit and fold step 7 (struggle): `DOCS-contract-struggle.md`.
 - Rules as `plc_lab.cards` today: https source; excerpt verified verbatim in
   the fetched page text (`sources.check_excerpt`, normalised); `requires` are
   same-subject card ids, acyclic.
@@ -202,7 +203,7 @@ pass the same vectors.
   `(at, eid)`, else **25**. New card = a `taught` on a card untaught at that
   point; `new_today` = those with `at` on today's PC-local date. Teaching an
   untaught card when `new_today >= cap` -> `daily_new_cap` (fields: DOCS-relay);
-  re-teaching is free. **Lift**: `session_start` `lift_cap:true` -> the worker
+  re-teaching and teaching a split child (`split_of`) are free. **Lift**: `session_start` `lift_cap:true` -> the worker
   appends `cap_lift` for today (PC-local; none if today is lifted already);
   while one names today the cap is off on every device, never the next day.
   Client shows `stats.today.new`/`new_cap` (effective)/`new_cap_lifted`.
