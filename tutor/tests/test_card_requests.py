@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from tutor.card_requests import CardEdit, parse
+from tutor.card_requests import ITEM_SCHEMA, CardEdit, SplitPart, parse
 from tutor.models import REQUIRED_FIELDS, TURN_SCHEMA, TutorTurn
 from tutor.tests.test_models import raw_turn
 
@@ -38,3 +38,32 @@ def test_parse_reads_only_lists() -> None:
     assert parse(None) == ()
     assert parse({"op": "remove"}) == ()
     assert parse([{"op": "remove", "card": 3}]) == (CardEdit("remove", card="3"),)
+
+
+def test_mnemonic_and_split_ops_parse() -> None:
+    child = {"front": "F?", "back": "B.", "source": "", "quote": "q"}
+    edits = parse(
+        [
+            {"op": "mnemonic", "card": "c1", "text": " Coil:\n 24 V. "},
+            {"op": "split", "card": "", "into": [child, "junk", {"front": 3}]},
+            {"op": "split", "into": "nope"},
+        ]
+    )
+    assert edits == (
+        CardEdit("mnemonic", card="c1", text="Coil: 24 V."),
+        CardEdit(
+            "split",
+            into=(SplitPart("F?", "B.", "", "q"), SplitPart(), SplitPart(front="3")),
+        ),
+        CardEdit("split"),
+    )
+
+
+def test_the_schema_names_the_new_ops_and_fields() -> None:
+    props = ITEM_SCHEMA["properties"]
+    assert isinstance(props, dict)
+    assert {"mnemonic", "split"} <= set(props["op"]["enum"])
+    required = ITEM_SCHEMA["required"]
+    assert isinstance(required, list)
+    assert {"text", "into"} <= set(required)
+    assert props["into"]["items"]["required"] == ["front", "back", "source", "quote"]

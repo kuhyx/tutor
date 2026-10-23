@@ -5,7 +5,9 @@
   un-suspended, and its id put back where it stood in the ``requires`` of the
   cards it was dropped from (recorded at removal, ``card_ops.remove``). A
   tutor-added card the Editor suspended before that was recorded has no
-  record: it is only un-suspended.
+  record: it is only un-suspended. A split original (``card_split``) comes
+  back the same way and its children are suspended again: the whole split is
+  undone in one step.
 - ``card_remove``: a card the tutor added is suspended (never deleted), with
   ``card_ops.remove``'s rules: refused below 3 live cards in its module.
 
@@ -18,7 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from tutor.cards import CardError
-from tutor.curriculum import card_ops, card_rules
+from tutor.curriculum import card_ops, card_rules, card_split
 from tutor.curriculum.errors import EDIT_REFUSED, RequestError
 from tutor.curriculum.ids import valid_id
 from tutor.curriculum.records import bad
@@ -45,7 +47,18 @@ def _restorable(rec: CardRec) -> bool:
     """Suspended with a removal record, or a tutor-added card (older Remove)."""
     if not rec.suspended:
         return False
-    return any(k in rec.tutor for k in ("removed", "editor_removed", "added"))
+    marks = ("removed", "editor_removed", "added", card_split.SPLIT)
+    return any(k in rec.tutor for k in marks)
+
+
+def _unsplit(cards: dict[str, CardRec], cid: str, now: int) -> None:
+    """Suspend ``cid``'s live split children and drop them from ``requires``."""
+    children = {k for k, c in cards.items() if c.split_of == cid and not c.suspended}
+    for child in children:
+        cards[child].suspended = True
+        cards[child].tutor = {**cards[child].tutor, "unsplit": now}
+    for other in cards.values():
+        other.requires = [r for r in other.requires if r not in children]
 
 
 def restore(ctx: Context, subject: str, cid: str) -> CardRec:
@@ -63,6 +76,8 @@ def restore(ctx: Context, subject: str, cid: str) -> CardRec:
                 f"{cid} was not removed by the tutor or the Editor; nothing to restore"
             )
             raise _refuse(msg)
+        if card_split.SPLIT in rec.tutor:
+            _unsplit(cards, cid, ctx.clock())
         for other, at in dict(rec.tutor.get("requires_of") or {}).items():
             dep = cards.get(other)
             if dep is not None and cid not in dep.requires:
@@ -73,7 +88,7 @@ def restore(ctx: Context, subject: str, cid: str) -> CardRec:
             card_rules.check_set(cards, {m.id: m for m in plan.modules})
         except CardError as err:  # e.g. an Editor edit since made a cycle
             raise _refuse(str(err)) from err
-        for module in plan.modules:
+        for module in plan.modules:  # a split also changes its children's count
             if module.id == rec.module:
                 module.cards = sum(
                     c.module == module.id and not c.suspended for c in cards.values()

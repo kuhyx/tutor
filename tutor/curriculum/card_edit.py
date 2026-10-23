@@ -49,7 +49,7 @@ def _mnemonic(body: dict[str, Any], rec: CardRec) -> None:
         rec.mnemonic = " ".join(value.split())
 
 
-def _new_id(module: Module, front: str, found: dict[str, CardRec]) -> str:
+def new_id(module: Module, front: str, found: dict[str, CardRec]) -> str:
     """A new card's id: the slug of its front, with the module's prefix."""
     prefix = module.prefixes[0] if module.prefixes else ""
     return slug(prefix + front, found)
@@ -110,7 +110,7 @@ def card_edit(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
             msg = f"{given} belongs to {old.module}; cards never move modules"
             raise _refuse(msg)
         if old is None:
-            cid = str(given) if given else _new_id(module, fields["front"], found)
+            cid = str(given) if given else new_id(module, fields["front"], found)
             rec = _new(module, found, fields, requires, ctx.clock())
             module.cards += 1
         else:
