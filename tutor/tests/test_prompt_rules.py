@@ -163,3 +163,20 @@ def test_card_edits_may_swap_the_source(profile: profiles.Profile) -> None:
     assert "source and excerpt stay" not in rule
     assert "a new `source`" in rule
     assert "better or newer" in rule
+
+
+# 2026-10-24 (session 20261024-133854-4498): "Why is MySQL important for our
+# WordPress site?" failed twice on "MySQL stores the data and manages access"
+# for not saying MySQL is part of LAMP; the learner called it squeezing out
+# one phrase. Replay of attempt 2: 2/4 passed on the old rule, 4/4 on this.
+@PROFILES
+def test_check_answer_is_a_reference_not_a_checklist(
+    profile: profiles.Profile,
+) -> None:
+    rule = _rule(system_prompt(CARD, [], profile), 5)
+    assert "a reference, not a checklist" in rule
+    assert "passes on any correct core reason" in rule
+    assert "never the core idea unless the front asks for it" in rule
+    edits = _rule(system_prompt(CARD, [], profile), 15)
+    assert "answers exactly what its `front` asks" in edits
+    assert "only what its source supports" in edits

@@ -200,3 +200,8 @@ def _module_status(ctx: Context, mid: str, status: str) -> None:
 def test_card_rules_topic_without_prefixes() -> None:
     assert card_rules.topic(module("a")).prefixes == ("",)
     assert card_rules.as_card("x", card("a", 1), module("a")).topic.title == "A"
+
+
+def test_draft_back_answers_only_what_the_front_asks() -> None:
+    # 2026-10-24: a "why is MySQL important?" card backed "part of LAMP".
+    assert "exactly what the `front` asks, nothing it does not" in draft_prompt.SYSTEM

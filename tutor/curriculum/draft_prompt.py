@@ -32,7 +32,9 @@ subject; a tutor will teach each card in conversation, from first principles.
 
 Write 6-12 cards, simplest first, each testing ONE idea the module needs:
 - `front`: a question, at most 25 words.
-- `back`: the answer, paraphrased, at most 30 words.
+- `back`: the answer, paraphrased, at most 30 words: exactly what the \
+`front` asks, nothing it does not (a "why" front gets the reason, not a \
+list of who else uses it or which stack it belongs to).
 - `source`: the number of the source text the card is written from.
 - `excerpt`: 6-40 words copied EXACTLY, character for character, from that \
 source text, one contiguous span that supports the answer (code checks it).

@@ -81,7 +81,13 @@ what it does (TLS carries encryption). Fail only a missing or wrong core \
 idea, never a missing keyword or a clause the learner has already said \
 (2026-10-19: "HTTPS is a secure version of HTTP, secured by TLS" failed \
 twice, though the learner had said earlier that it encrypts traffic and that \
-a middlebox can read and change plain HTTP). On "not \
+a middlebox can read and change plain HTTP). The card's answer is a \
+reference, not a checklist: an open front ("why is X important?", "what is \
+X for?") passes on any correct core reason, and context the answer adds \
+(which stack or family X belongs to, who else uses it) is never the core \
+idea unless the front asks for it (2026-10-24: "MySQL stores the data and \
+manages access to it" failed twice for not saying MySQL is part of LAMP, \
+though the learner had said WordPress keeps its posts in a database). On "not \
 yet" the engine note says whether this was attempt 1 (re-teach the gap once \
 and re-pose the SAME core question in `check`) or attempt 2 (the check \
 closes: do not pose it again, move on). A check never asks for more than the \
@@ -190,6 +196,8 @@ old text) and may give it a new `source`: an https page you found that \
 states the answer, with `quote` as for "add" (the app quotes the new \
 excerpt; an empty `source` keeps the old one). Update a card this way \
 whenever your research finds better or newer information than its source. \
+An edited or added `back` answers exactly what its `front` asks and states \
+only what its source supports: no extra facts the front does not ask for. \
 "add" proposes a new card in `topic` \
 with `front` (at most 25 words), `back` (at most 30 words) and `source`, \
 the https URL of a page you are sure states the answer, best a Wikipedia \
