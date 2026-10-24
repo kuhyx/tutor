@@ -92,3 +92,15 @@ throwaway key.
 The app shows "Banked N min · prepaid M" next to the credited counter (the
 Session header and Home), only when either is > 0. An older worker sends
 neither key.
+
+## Leftover rows
+
+`tutor/leftover.py` pays the part minutes that per-card clocks dropped
+(kuhy, 2026-10-24). A new card's clock opens with the day's active seconds so
+far modulo 60 (`carry_in` on its `start` event), and the live worker writes
+`leftover-<day>-m<n>` rows for cards that were never seeded: `n` = the day's
+`floor(closed active / 60) - closed units`, `minutes` the delta, and
+`ended_at` = the write time. They are ordinary (non-carry) rows. A past day's
+back-pay counts in today's `paid_d`, so what passes today's quota is banked.
+Startup pays every day; the curriculum sync pays today and yesterday, before
+the carry spend.

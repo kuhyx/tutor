@@ -27,8 +27,8 @@ one :class:`BlockReady` (a "unit"), up to :data:`MAX_UNITS` per session, and
 nothing else gates it (kuhy, 2026-10-10: 21 active minutes credited nothing
 because no check had passed). Checks are still tallied and reported on each
 unit (cumulative over the session) so adjudication can see a minute credited
-with none. The daily cap across
-sessions is the ledger's, not the clock's. Pure: no I/O, time is injected.
+with none. The daily cap across sessions is the ledger's, not the clock's.
+``carry_in`` (:mod:`tutor.leftover`) counts toward units, not active. Pure.
 """
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ class BlockReady:
     Attributes:
         block: Which unit of the session, 1..MAX_UNITS (the n-th active minute).
         active_seconds: The session's *cumulative* active seconds at the moment
-            the unit was earned (>= block * UNIT_SECONDS).
+            the unit was earned (>= block * UNIT_SECONDS - the session's carry_in).
         ended_at: Unix time of the event that earned it.
         checks_passed: Checks passed so far this session.
         checks_total: Checks resolved (passed or failed) so far this session.
@@ -101,9 +101,10 @@ class _Tally:
 class EngagementClock:
     """Accrues active seconds from chat events and releases a unit per minute."""
 
-    def __init__(self, now: float) -> None:
-        """Start a session at unix time ``now``; the start itself earns nothing."""
+    def __init__(self, now: float, *, carry_in: float = 0.0) -> None:
+        """Start at unix time ``now`` (earns nothing), ``carry_in`` s toward unit 1."""
         del now
+        self._carry_in = carry_in
         self._active = 0.0
         self._turn = _Turn()
         self._tally = _Tally()
@@ -236,7 +237,7 @@ class EngagementClock:
         """Earn every unit whose time is in (a loop: a big accrual strands none)."""
         while (
             len(self._earned) < MAX_UNITS
-            and self._active >= (len(self._earned) + 1) * UNIT_SECONDS
+            and self._active + self._carry_in >= (len(self._earned) + 1) * UNIT_SECONDS
         ):
             self._earned.append(
                 BlockReady(

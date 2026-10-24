@@ -6,9 +6,10 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from tutor import carry, review_credit
+from tutor import carry, leftover, review_credit
 from tutor.curriculum.stats import stats
-from tutor.relay import curriculum_sync
+from tutor.relay import curriculum_sync, worker
+from tutor.relay.phases import PhaseSink
 from tutor.tests._cur import make_ctx
 from tutor.tests._fake_rtdb import FakeRtdb
 from tutor.tests._fakes import ManualClock
@@ -73,3 +74,44 @@ def test_the_curriculum_tick_spends_after_review_credit(
 
     asyncio.run(go())
     assert calls == ["review", "carry"]
+
+
+def test_the_curriculum_tick_pays_recent_leftover_before_carry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[object] = []
+    monkeypatch.setattr(review_credit, "credit_now", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        leftover, "pay", lambda folder, **k: calls.append((folder.name, k["days"]))
+    )
+    monkeypatch.setattr(carry, "spend", lambda **_k: calls.append("carry"))
+    eng, _ = engine(tmp_path, clock=ManualClock(at(24, 9)))
+    fake = FakeRtdb()
+
+    async def go() -> None:
+        w = wiring(fake, eng)
+        await curriculum_sync.CurriculumSync(w).sync()
+        await w.rtdb.aclose()
+
+    asyncio.run(go())
+    assert calls == [("sessions", ["20261023", "20261024"]), "carry"]
+
+
+def test_startup_pays_every_days_leftover_before_carry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[object] = []
+    monkeypatch.setattr(
+        leftover, "pay", lambda folder, **k: calls.append((folder.name, k["days"]))
+    )
+    monkeypatch.setattr(carry, "spend", lambda **_k: calls.append("carry"))
+    eng, _ = engine(tmp_path, clock=ManualClock(at(24, 9)))
+    fake = FakeRtdb()
+
+    async def go() -> None:
+        relay = worker.Relay(eng, fake.rtdb(), PhaseSink(), eng.time)
+        await relay._carry()
+        await relay.w.rtdb.aclose()
+
+    asyncio.run(go())
+    assert calls == [("sessions", None), "carry"]

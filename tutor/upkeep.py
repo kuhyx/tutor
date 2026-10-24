@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The engine's start-of-day chores: repair, backfill, resume after a restart.
+"""The engine's chores: repair, backfill, resume after a restart, a new card's clock.
 
 ``Engine`` mixes this in; the attributes it needs are declared for the type
 checker.
@@ -10,7 +10,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from tutor import backfill, repair, resume
+from tutor import backfill, leftover, repair, resume
+from tutor.clock import EngagementClock
+from tutor.conversation import Conversation
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -28,6 +30,7 @@ class Upkeep:
         _credit: Callable[[list[BlockReady], str], list[dict[str, Any]]]
         _set_today: Callable[[int], None]
         resume_path: Callable[[Path], bool]
+        time: Callable[[], float]
 
         @property
         def minutes_today(self) -> int:
@@ -53,3 +56,14 @@ class Upkeep:
             self.store.root / "sessions", time.strftime("%Y%m%d")
         )
         return self.resume_path(path) if path else False
+
+    def _opening(self, sid: str, card_id: str) -> tuple[Conversation, dict[str, Any]]:
+        """A new card's conversation and ``start`` event.
+
+        Its clock opens with the day's part minute so far (``leftover.seed``),
+        logged as ``carry_in`` so replay reproduces it.
+        """
+        carry_in = leftover.seed(self.store.root / "sessions", sid[:8])
+        clock = EngagementClock(self.time(), carry_in=carry_in)
+        start = {"type": "start", "card": card_id, "carry_in": carry_in}
+        return Conversation(sid, card_id, clock), start

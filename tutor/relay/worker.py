@@ -14,7 +14,7 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Final
 
-from tutor import anki_watch, carry
+from tutor import anki_watch, carry, leftover
 from tutor.relay import feedback_drain
 from tutor.relay.config import device_id
 from tutor.relay.context import Wiring
@@ -129,7 +129,13 @@ class Relay:
         self._spawn(self._carry(), "carry")
 
     async def _carry(self) -> None:
-        """Spend today's carry-over at startup, without waiting on RTDB."""
+        """Pay every day's leftover, then spend today's carry-over, at startup.
+
+        Without waiting on RTDB. Leftover first: a past day's back-pay counts
+        today, and what passes today's quota is banked.
+        """
+        sessions = self.w.engine.store.root / "sessions"
+        await asyncio.to_thread(leftover.pay, sessions, now=self.w.now(), days=None)
         await asyncio.to_thread(carry.spend, now=self.w.now())
 
     async def stop(self, grace: float = DRAIN_S) -> None:

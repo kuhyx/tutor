@@ -17,8 +17,6 @@ import uuid
 from tutor import cards as cards_mod
 from tutor import follow_up, gating, media, research, resume, struggle, unit_credit
 from tutor.cardflow import CardFlow
-from tutor.clock import EngagementClock
-from tutor.conversation import Conversation
 from tutor.curriculum.source import CardSource, source_for
 from tutor.delivery import DESKTOP, Delivery, learner_message
 from tutor.edit_flow import EditFlow
@@ -34,6 +32,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from tutor.clock import BlockReady
+    from tutor.conversation import Conversation
 
 
 class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
@@ -126,9 +125,9 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             await self._session.close()
         self.card = card
         sid = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
-        self._conv = Conversation(sid, card.id, EngagementClock(self.time()))
+        self._conv, start = self._opening(sid, card.id)
         self._session = self._factory(self._prompt(card, brief))
-        start = {"type": "start", "card": card.id, "subject": self.source.subject}
+        start["subject"] = self.source.subject
         self.store.log(
             self.session_id, start | struggle.tag(brief) | {"device": device}
         )

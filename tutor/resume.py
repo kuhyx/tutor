@@ -148,7 +148,7 @@ def replay(path: Path) -> Replayed | None:
     conv = Conversation(
         session_id=path.stem,
         card_id=str(start.get("card", "")),
-        clock=EngagementClock(_time(start)),
+        clock=EngagementClock(_time(start), carry_in=float(start.get("carry_in", 0.0))),
     )
     pending: dict[str, Any] | None = None
     for event in events:
