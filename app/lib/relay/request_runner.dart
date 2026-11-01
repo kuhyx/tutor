@@ -57,6 +57,13 @@ class RequestRunner {
     _ => false,
   };
 
+  /// Whether a Send button may be pressed: nothing in flight, or the
+  /// in-flight request stalled (a press re-sends it under its rid).
+  bool get canSend => !busy || stalled.value;
+
+  /// Fires on any change to [status] or [stalled].
+  Listenable get changes => Listenable.merge([status, stalled]);
+
   /// Whether the last request can be re-sent unchanged.
   bool get canRetry => switch (status.value) {
     RelayNotSent() => true,

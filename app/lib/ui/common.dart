@@ -196,3 +196,22 @@ class RequestStatusLine extends StatelessWidget {
     },
   );
 }
+
+/// Rebuilds [builder] on every change to [runner]'s status or stall, so a
+/// box or button can lock while a request is in flight.
+class RunnerBuilder extends StatelessWidget {
+  /// Creates the builder.
+  const new(this.runner, this.builder, {super.key});
+
+  /// The runner watched.
+  final RequestRunner runner;
+
+  /// Builds the child from the runner's current state.
+  final WidgetBuilder builder;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: runner.changes,
+    builder: (c, _) => builder(c),
+  );
+}

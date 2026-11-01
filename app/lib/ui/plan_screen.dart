@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/log/fsrs_fold.dart';
+import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/plan/plan_ops.dart';
@@ -48,7 +49,7 @@ class _PlanScreenState extends State<PlanScreen> {
     () => widget.services.catalog.fetch(widget.subject),
     hold: (now, next) =>
         _editorDirty &&
-        !_busy &&
+        !_runner.busy &&
         _editing(now) &&
         !samePlan(now?.plan, next?.plan),
   );
@@ -85,10 +86,11 @@ class _PlanScreenState extends State<PlanScreen> {
     super.dispose();
   }
 
-  bool get _busy => switch (_runner.status.value) {
-    RelayQueued() || RelayWorking() => true,
-    _ => false,
-  };
+  void _redraft(SubjectData data, Plan plan) {
+    final c = _comment.text.trim();
+    if (c.isEmpty) return;
+    unawaited(_send(RequestBody.planRevise(data.id, plan.rev, c)));
+  }
 
   static bool _editing(SubjectData? d) =>
       d != null &&
@@ -125,7 +127,8 @@ class _PlanScreenState extends State<PlanScreen> {
       ],
     ),
     body: ListenableBuilder(
-      listenable: _data,
+      // The runner too: the comment box locks while a request runs.
+      listenable: Listenable.merge([_data, _runner.changes]),
       builder: (context, _) {
         final error = _data.error;
         if (!_data.hasData) {
@@ -203,6 +206,7 @@ class _PlanScreenState extends State<PlanScreen> {
           const SectionHeader('Ask for changes'),
           TextField(
             controller: _comment,
+            enabled: !_runner.busy,
             minLines: 2,
             maxLines: 5,
             decoration: const InputDecoration(
@@ -214,14 +218,7 @@ class _PlanScreenState extends State<PlanScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: OutlinedButton(
-              onPressed: () {
-                final c = _comment.text.trim();
-                if (c.isNotEmpty) {
-                  unawaited(
-                    _send(RequestBody.planRevise(data.id, plan.rev, c)),
-                  );
-                }
-              },
+              onPressed: _runner.canSend ? () => _redraft(data, plan) : null,
               child: const Text('Redraft with this comment'),
             ),
           ),
