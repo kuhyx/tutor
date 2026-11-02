@@ -8,6 +8,7 @@ import 'package:tutor/focus/android_checkin_notifier.dart';
 import 'package:tutor/focus/web_checkin.dart';
 import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/ui/app.dart';
+import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 
 // The entry point is the one line flutter_test cannot run; everything it
@@ -31,6 +32,7 @@ void main() {
             : platformCheckinNotifier(),
       ),
       zoom: zoom,
+      initialRoute: kIsWeb ? routeFromUri(Uri.base) : null,
     ),
   );
 }

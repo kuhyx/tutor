@@ -12,15 +12,20 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/focus_form.dart';
+import 'package:tutor/ui/focus_gates.dart';
 import 'package:tutor/ui/focus_ring.dart';
 
 /// The focus project: today's ring, the timer and its check-in.
 class FocusScreen extends StatefulWidget {
-  /// Creates the screen.
-  const new({required this.services, super.key});
+  /// Creates the screen; [autoStart] (the `/focus?start=1` deep link)
+  /// starts the timer once, unless it is already running.
+  const new({required this.services, this.autoStart = false, super.key});
 
   /// Services.
   final TutorServices services;
+
+  /// Start the timer when the project is known and it is not running.
+  final bool autoStart;
 
   @override
   State<FocusScreen> createState() => _FocusScreenState();
@@ -30,6 +35,7 @@ class _FocusScreenState extends State<FocusScreen> {
   late final RequestRunner _runner = RequestRunner(_s.relay);
   FocusStatus? _status;
   int _countedAtLoad = 0;
+  bool _autoStarted = false;
 
   TutorServices get _s => widget.services;
   FocusTimer get _timer => _s.focus;
@@ -51,6 +57,7 @@ class _FocusScreenState extends State<FocusScreen> {
     final cached = await cachedStatus(_s.kv);
     if (mounted && cached != null && _status == null) {
       setState(() => _status = cached);
+      await _autoStart();
     }
     await _timer.flush();
     final result = await _runner.run(RequestBody.focusStatus());
@@ -60,6 +67,15 @@ class _FocusScreenState extends State<FocusScreen> {
       _status = parseStatus(result.data);
       _countedAtLoad = _timer.counted.inMinutes;
     });
+    await _autoStart();
+  }
+
+  // Once, and only with a project to count for: the link must not start a
+  // timer against nothing, nor reset a run that is already live.
+  Future<void> _autoStart() async {
+    if (!widget.autoStart || _autoStarted || _status?.active == null) return;
+    _autoStarted = true;
+    await _timer.ensureRunning();
   }
 
   Future<void> _toggle() async {
@@ -169,11 +185,11 @@ class _FocusScreenState extends State<FocusScreen> {
             child: FocusRing(
               minutes: project.minutes + live,
               goal: project.dailyMinutes,
-              caption: running ? _clock(_timer.counted) : null,
+              caption: running ? focusClock(_timer.counted) : null,
             ),
           ),
         ),
-        _Gates(status),
+        FocusGates(status),
         const SizedBox(height: AppSpacing.sm),
         if (_timer.checkinDue)
           FilledButton.icon(
@@ -210,37 +226,6 @@ class _FocusScreenState extends State<FocusScreen> {
           ],
         ),
         RequestStatusLine(_runner, queuedText: l.queued),
-      ],
-    );
-  }
-}
-
-String _clock(Duration d) {
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
-}
-
-class _Gates extends StatelessWidget {
-  const new(this.status);
-
-  final FocusStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.xs,
-      alignment: WrapAlignment.center,
-      children: [
-        for (final label in gateLabels(status, off: true))
-          Chip(
-            avatar: const Icon(Icons.block, size: 16),
-            label: Text(label),
-            side: BorderSide(color: scheme.outlineVariant),
-          ),
-        for (final label in gateLabels(status, off: false))
-          Chip(avatar: const Icon(Icons.check, size: 16), label: Text(label)),
       ],
     );
   }

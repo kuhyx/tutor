@@ -30,6 +30,7 @@ const FocusProject _edited = (
   unlockMinutes: 20,
   subjects: ['automation'],
   sitePatterns: ['a.com', 'b.com'],
+  workUrl: 'https://a.com/start',
   minutes: 10,
 );
 
@@ -44,7 +45,14 @@ void main() {
     expect(t.widget<FilledButton>(create).onPressed, isNull);
     final fields = find.byType(TextField);
     await t.enterText(fields.at(0), 'HackerRank prep');
-    await t.enterText(fields.last, 'hackerrank.com, leetcode.com');
+    await t.enterText(
+      find.widgetWithText(TextField, 'Sites, comma separated'),
+      'hackerrank.com, leetcode.com',
+    );
+    await t.enterText(
+      find.widgetWithText(TextField, 'Work URL'),
+      'https://www.hackerrank.com/dashboard',
+    );
     await t.tap(find.text('LeetCode'));
     await t.tap(find.text('Automation'));
     await t.pump();
@@ -63,6 +71,7 @@ void main() {
     expect(body['replaces'], ['leetcode']);
     expect(body['subjects'], ['automation']);
     expect(body['site_patterns'], ['hackerrank.com', 'leetcode.com']);
+    expect(body['work_url'], 'https://www.hackerrank.com/dashboard');
     expect(body['daily_minutes'], 120);
     expect(body['unlock_minutes'], 30);
     await answer(t, db, stream, data: {'id': 'hackerrank-prep'}, settle: false);
@@ -103,6 +112,7 @@ void main() {
     expect(find.text('HR prep'), findsOneWidget);
     expect(find.text('90'), findsOneWidget);
     expect(find.text('a.com, b.com'), findsOneWidget);
+    expect(find.text('https://a.com/start'), findsOneWidget);
     expect(find.text('2026-11-06'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Create'), findsNothing);
     // A started project's start date is fixed.
@@ -124,9 +134,37 @@ void main() {
     expect(body['replaces'], ['leetcode']);
     expect(body['subjects'], isEmpty);
     expect(body['site_patterns'], ['a.com', 'b.com']);
+    expect(body['work_url'], 'https://a.com/start');
     expect(body['daily_minutes'], 90);
     expect(body['unlock_minutes'], 20);
     await answer(t, db, stream, data: {'id': 'hr'}, settle: false);
+  });
+
+  testWidgets('a work URL that is not http(s) blocks saving; empty is fine', (
+    t,
+  ) async {
+    final db = FakeRtdb();
+    final stream = FakeStream();
+    final s = services(db, stream);
+    addTearDown(s.focus.dispose);
+    await pumpScreen(
+      t,
+      FocusFormScreen(services: s, status: _status, edit: _edited),
+    );
+    final save = find.widgetWithText(FilledButton, 'Save');
+    final url = find.widgetWithText(TextField, 'Work URL');
+    for (final bad in ['javascript:alert(1)', 'hackerrank.com', 'https://']) {
+      await t.enterText(url, bad);
+      await t.pump();
+      expect(t.widget<FilledButton>(save).onPressed, isNull, reason: bad);
+    }
+    await t.enterText(url, '');
+    await t.pump();
+    expect(t.widget<FilledButton>(save).onPressed, isNotNull);
+    await t.tap(save);
+    await t.pump(const Duration(milliseconds: 50));
+    final (_, req) = lastRequest(db);
+    expect((req['body'] as Map<String, dynamic>)['work_url'], '');
   });
 
   testWidgets('a project that has not started can move its start', (t) async {
@@ -145,6 +183,7 @@ void main() {
       unlockMinutes: 0,
       subjects: <String>[],
       sitePatterns: <String>[],
+      workUrl: '',
       minutes: 0,
     );
     await pumpScreen(

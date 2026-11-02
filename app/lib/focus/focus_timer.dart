@@ -31,7 +31,7 @@ class FocusTimer extends ChangeNotifier {
   final String _platform;
   final int Function() _now;
   bool _started = false;
-  bool _loaded = false;
+  Future<void>? _loading;
   bool _disposed = false;
   bool _lapseHandled = false;
   Future<void> _flushes = Future.value();
@@ -58,9 +58,11 @@ class FocusTimer extends ChangeNotifier {
   bool get checkinDue => isRunning && _gapMs >= checkinEvery.inMilliseconds;
 
   /// Restores the saved run, takes taps made off-screen, starts ticking.
-  Future<void> load() async {
-    if (_loaded) return;
-    _loaded = true;
+  /// Every caller gets the same future, so a second one never sees the timer
+  /// before the saved run is back.
+  Future<void> load() => _loading ??= _load();
+
+  Future<void> _load() async {
     await _restore();
     _taps = _notifier.confirmations.listen((ts) => unawaited(checkin(ts)));
     for (final ts in await _notifier.takePending()) {
@@ -89,6 +91,13 @@ class FocusTimer extends ChangeNotifier {
       await _tap('checkin', at);
     }
     await _notifier.schedule(checkinEvery);
+  }
+
+  /// The run is live: loads the saved one first, then starts a stopped or
+  /// lapsed timer; a live run is left alone (a deep link may ask twice).
+  Future<void> ensureRunning() async {
+    await load();
+    if (!isRunning) await start();
   }
 
   /// Ends the run.

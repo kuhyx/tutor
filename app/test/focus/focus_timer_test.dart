@@ -189,4 +189,51 @@ void main() {
     expect(await queue.pending(), isEmpty);
     t.dispose();
   });
+  test('a second load waits for the saved run (no lost run)', () async {
+    final first = open();
+    await first.start();
+    first.dispose();
+    clock += 2 * min;
+    final second = open();
+    unawaited(second.load()); // Home's load, still restoring ...
+    await second.load(); // ... when the focus screen asks.
+    expect(second.isRunning, isTrue);
+    second.dispose();
+  });
+
+  test('ensureRunning starts a stopped timer once', () async {
+    final t = open();
+    await t.ensureRunning();
+    await t.ensureRunning();
+    expect(t.isRunning, isTrue);
+    await t.flush();
+    expect(sent, ['start@${1000 * min}']);
+    t.dispose();
+  });
+
+  test('ensureRunning leaves a live run alone', () async {
+    final first = open();
+    await first.start();
+    first.dispose();
+    clock += 4 * min;
+    final t = open();
+    unawaited(t.load());
+    await t.ensureRunning();
+    await t.flush();
+    expect(sent, ['start@${1000 * min}']);
+    expect(t.counted, const Duration(minutes: 4));
+    t.dispose();
+  });
+
+  test('ensureRunning restarts a lapsed run', () async {
+    final t = open();
+    await t.start();
+    clock += 11 * min;
+    expect(t.isLapsed, isTrue);
+    await t.ensureRunning();
+    expect(t.isRunning, isTrue);
+    await t.flush();
+    expect(sent, ['start@${1000 * min}', 'start@${1011 * min}']);
+    t.dispose();
+  });
 }

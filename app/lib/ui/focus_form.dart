@@ -49,6 +49,7 @@ class _FocusFormState extends State<FocusFormScreen> {
   late final _sites = TextEditingController(
     text: _edit?.sitePatterns.join(', '),
   );
+  late final _workUrl = TextEditingController(text: _edit?.workUrl);
   late final _off = <String>{...?_edit?.replaces};
   late final _linked = <String>{...?_edit?.subjects};
   late final DateTime _today = DateTime.parse(widget.status.day);
@@ -61,7 +62,7 @@ class _FocusFormState extends State<FocusFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _daily, _unlock, _sites]) {
+    for (final c in [_name, _daily, _unlock, _sites, _workUrl]) {
       c.dispose();
     }
     unawaited(_runner.dispose());
@@ -86,6 +87,7 @@ class _FocusFormState extends State<FocusFormScreen> {
       _name.text.trim().isNotEmpty &&
       (int.tryParse(_daily.text) ?? 0) > 0 &&
       int.tryParse(_unlock.text) != null &&
+      isWorkUrl(_workUrl.text) &&
       !_end.isBefore(_start);
 
   Future<void> _submit() async {
@@ -95,6 +97,7 @@ class _FocusFormState extends State<FocusFormScreen> {
         .where((s) => s.isNotEmpty)
         .toList();
     final name = _name.text.trim();
+    final workUrl = _workUrl.text.trim();
     final daily = int.parse(_daily.text);
     final unlock = int.parse(_unlock.text);
     final edit = _edit;
@@ -109,6 +112,7 @@ class _FocusFormState extends State<FocusFormScreen> {
               unlockMinutes: unlock,
               subjects: _linked.toList(),
               sitePatterns: sites,
+              workUrl: workUrl,
             )
           : RequestBody.focusUpdate(
               id: edit.id,
@@ -120,6 +124,7 @@ class _FocusFormState extends State<FocusFormScreen> {
               unlockMinutes: unlock,
               subjects: _linked.toList(),
               sitePatterns: sites,
+              workUrl: workUrl,
             ),
     );
     if (mounted && result is RelayDone) Navigator.of(context).pop(true);
@@ -216,6 +221,12 @@ class _FocusFormState extends State<FocusFormScreen> {
                 TextField(
                   controller: _sites,
                   decoration: InputDecoration(labelText: l.sites),
+                ),
+                TextField(
+                  controller: _workUrl,
+                  keyboardType: TextInputType.url,
+                  decoration: InputDecoration(labelText: l.workUrl),
+                  onChanged: (_) => setState(() {}),
                 ),
                 RequestStatusLine(_runner),
                 const SizedBox(height: AppSpacing.sm),

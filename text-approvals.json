@@ -22,6 +22,7 @@
     "app/lib/l10n/app_en.arb::stillWorking": "b9a407399c15b201",
     "app/lib/l10n/app_en.arb::stop": "cae7d57bc067a514",
     "app/lib/l10n/app_en.arb::subjects": "2f57eb858396553c",
-    "app/lib/l10n/app_en.arb::unlockMinutes": "e0a48af9da5a8a6f"
+    "app/lib/l10n/app_en.arb::unlockMinutes": "e0a48af9da5a8a6f",
+    "app/lib/l10n/app_en.arb::workUrl": "e6dfe58196dd6057"
   }
 }

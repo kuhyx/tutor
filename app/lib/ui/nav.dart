@@ -2,6 +2,7 @@
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
 /// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
 /// `/report`;
+/// `/focus?start=1` also starts the focus timer if it is not running;
 /// `/session/continue` opens the Session and asks for the open session).
 library;
 
@@ -51,9 +52,12 @@ Future<void> openSession(
 Future<void> openPlan(BuildContext context, TutorServices s, String subject) =>
     _push(context, PlanScreen(services: s, subject: subject));
 
-/// Opens the focus project screen.
-Future<void> openFocus(BuildContext context, TutorServices s) =>
-    _push(context, FocusScreen(services: s));
+/// Opens the focus project screen; [autoStart] starts a stopped timer.
+Future<void> openFocus(
+  BuildContext context,
+  TutorServices s, {
+  bool autoStart = false,
+}) => _push(context, FocusScreen(services: s, autoStart: autoStart));
 
 /// Opens History.
 Future<void> openHistory(BuildContext context, TutorServices s) =>
@@ -124,7 +128,8 @@ Future<void> showReport(
 
 /// Opens [route] (see the library doc); unknown routes do nothing.
 Future<void> openRoute(BuildContext context, TutorServices s, String route) {
-  final parts = route.split('/').where((p) => p.isNotEmpty).toList();
+  final uri = Uri.parse(route);
+  final parts = uri.pathSegments.where((p) => p.isNotEmpty).toList();
   final arg = parts.length > 1 ? parts[1] : null;
   return switch (parts.firstOrNull) {
     'plan' when arg != null => openPlan(context, s, arg),
@@ -134,7 +139,11 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
       entry: const SessionEntry(label: 'Continue', resume: true),
     ),
     'session' => openSession(context, s),
-    'focus' => openFocus(context, s),
+    'focus' => openFocus(
+      context,
+      s,
+      autoStart: uri.queryParameters['start'] == '1',
+    ),
     'history' when arg != null => openTranscript(context, s, arg),
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),

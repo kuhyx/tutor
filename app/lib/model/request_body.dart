@@ -164,6 +164,7 @@ class RequestBody {
     required int unlockMinutes,
     required List<String> subjects,
     required List<String> sitePatterns,
+    required String workUrl,
   }) => RequestBody._(RequestKind.focusCreate, {
     'name': name,
     'start': start,
@@ -173,6 +174,7 @@ class RequestBody {
     'unlock_minutes': unlockMinutes,
     'subjects': subjects,
     'site_patterns': sitePatterns,
+    'work_url': workUrl,
   });
 
   /// `focus_update`: the create fields again, for project [id].
@@ -186,6 +188,7 @@ class RequestBody {
     required int unlockMinutes,
     required List<String> subjects,
     required List<String> sitePatterns,
+    required String workUrl,
   }) => RequestBody._(RequestKind.focusUpdate, {
     'id': id,
     'name': name,
@@ -196,6 +199,7 @@ class RequestBody {
     'unlock_minutes': unlockMinutes,
     'subjects': subjects,
     'site_patterns': sitePatterns,
+    'work_url': workUrl,
   });
 
   /// `focus_end`: last active day = today.

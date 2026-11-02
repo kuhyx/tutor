@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/home_screen.dart';
 
 import '../support/fake_stream.dart';
@@ -92,6 +93,39 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Sign out'), findsNothing);
+  });
+
+  testWidgets('the focus deep link opens the focus screen with autoStart', (
+    t,
+  ) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    await pumpScreen(
+      t,
+      HomeScreen(
+        services: s,
+        onSignedOut: () {},
+        initialRoute: '/focus?start=1',
+      ),
+      settle: false,
+    );
+    await t.pump(const Duration(milliseconds: 200));
+    final focus = t.widget<FocusScreen>(find.byType(FocusScreen));
+    expect(focus.autoStart, isTrue);
+  });
+
+  testWidgets('the plain focus route does not start the timer', (t) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    await pumpScreen(
+      t,
+      HomeScreen(services: s, onSignedOut: () {}, initialRoute: '/focus'),
+      settle: false,
+    );
+    await t.pump(const Duration(milliseconds: 200));
+    expect(t.widget<FocusScreen>(find.byType(FocusScreen)).autoStart, isFalse);
   });
 
   testWidgets('menu routes and the initial route', (t) async {

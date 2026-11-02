@@ -72,6 +72,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sites => 'Sites, comma separated';
 
   @override
+  String get workUrl => 'Work URL';
+
+  @override
   String get queued => 'Saved, sending later';
 
   @override

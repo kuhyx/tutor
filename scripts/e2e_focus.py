@@ -187,3 +187,34 @@ def f7(flow: Flow) -> None:
         msg = f"events not tagged dev=pc: {bad}"
         raise FlowError(msg)
     flow.shot("stopped")
+
+
+def f8(flow: Flow) -> None:
+    """Deep link ``#/focus?start=1``: starts the timer once, then cleans the URL.
+
+    The reload after a deliberate Stop must not start it again.
+    """
+    activity = Path(flow.args.focus) / "activity.jsonl"
+    flow.step(f"precondition: {activity} has no timer events")
+    if any(r["source"] == "timer" for r in _activity(activity)):
+        msg = "sandbox focus data is not fresh (run e2e_sandbox.sh up)"
+        raise FlowError(msg)
+    _create_project(flow)
+    link = f"{flow.args.app}?db={flow.args.db}#/focus?start=1"
+    flow.step(f"open the deep link {link}")
+    flow.browser.open(link)
+    flow.expect("E2E focus", STOP)
+    _wait_events(flow, activity, ["start"])
+    flow.shot("autostarted")
+    flow.step("the route is gone from the address bar")
+    href = str(flow.browser.evaluate("location.href"))
+    if "#/focus" in href or "start=1" in href:
+        msg = f"deep link left in the address bar: {href}"
+        raise FlowError(msg)
+    flow.tap(STOP)
+    _wait_events(flow, activity, ["start", "stop"])
+    flow.step("a fresh load of the plain route does not start it again")
+    flow.screen(ROUTE)
+    flow.expect("E2E focus", START)
+    time.sleep(3)
+    _wait_events(flow, activity, ["start", "stop"], timeout=3)

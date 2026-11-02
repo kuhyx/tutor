@@ -12,6 +12,7 @@ typedef FocusProject = ({
   int unlockMinutes,
   List<String> subjects,
   List<String> sitePatterns,
+  String workUrl,
   int minutes,
 });
 
@@ -41,6 +42,7 @@ FocusProject _project(Json j) => (
   unlockMinutes: intOr(j, 'unlock_minutes') ?? 0,
   subjects: strings(j, 'subjects'),
   sitePatterns: strings(j, 'site_patterns'),
+  workUrl: strOr(j, 'work_url') ?? '',
   minutes: intOr(j, 'minutes') ?? 0,
 );
 
@@ -71,3 +73,13 @@ List<String> gateLabels(FocusStatus s, {required bool off}) => [
   for (final g in s.gates)
     if ((s.active?.replaces.contains(g.id) ?? false) == off) g.label,
 ];
+
+/// Whether [text] may be a project's work URL: empty, or http(s) with a host.
+bool isWorkUrl(String text) {
+  final uri = Uri.tryParse(text.trim());
+  if (text.trim().isEmpty) return true;
+  return uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty &&
+      !text.trim().contains(' ');
+}

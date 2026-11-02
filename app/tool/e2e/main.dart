@@ -24,6 +24,7 @@ import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/focus/web_checkin.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/app.dart';
+import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 
 const _loopback = {'127.0.0.1', 'localhost'};
@@ -83,7 +84,9 @@ void main() {
     TutorApp(
       config: config,
       open: open,
-      initialRoute: Uri.base.queryParameters['screen'],
+      // The desktop deep link (`#/focus?start=1`), else `?screen=`.
+      initialRoute:
+          routeFromUri(Uri.base) ?? Uri.base.queryParameters['screen'],
       zoom: UiZoom(),
     ),
   );

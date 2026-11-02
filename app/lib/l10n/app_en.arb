@@ -19,6 +19,7 @@
   "gateKept": "kept",
   "subjects": "Tutor subjects",
   "sites": "Sites, comma separated",
+  "workUrl": "Work URL",
   "queued": "Saved, sending later",
   "missedCheckin": "Missed a check-in",
   "noProject": "No focus project",

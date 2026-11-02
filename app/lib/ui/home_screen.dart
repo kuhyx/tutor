@@ -16,6 +16,7 @@ import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/nav.dart';
@@ -79,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     final route = widget.initialRoute;
     if (route != null) {
+      forgetDeepLink();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(openRoute(context, _s, route).then(_back));
       });

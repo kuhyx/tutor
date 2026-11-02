@@ -202,6 +202,12 @@ abstract class AppLocalizations {
   /// **'Sites, comma separated'**
   String get sites;
 
+  /// No description provided for @workUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Work URL'**
+  String get workUrl;
+
   /// No description provided for @queued.
   ///
   /// In en, this message translates to:
