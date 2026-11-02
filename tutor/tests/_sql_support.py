@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, cast
 from tutor import focus_hook
 from tutor.relay import protocol, sql
 from tutor.relay.chat import CHAT_HANDLERS
+from tutor.store import data_dir
+from tutor.tests._cur import make_ctx
 from tutor.tests._fake_fp import FakeFp
 
 if TYPE_CHECKING:
@@ -124,6 +126,7 @@ def validate(kind: str, body: dict[str, Any]) -> protocol.Request:
 def call(kind: str, body: dict[str, Any]) -> dict[str, Any]:
     """Run the chat handler of ``kind`` on a validated body."""
     ctx = SimpleNamespace(
+        engine=SimpleNamespace(ctx=make_ctx(data_dir())[0]),  # fakes: no network
         now=lambda: NOW,
         request=SimpleNamespace(created_ms=int(NOW * 1000)),
         body=validate(kind, body).body,

@@ -2,6 +2,7 @@
 """``python -m tutor [--port N] [--relay]``: serve the tutor on localhost.
 
 ``python -m tutor migrate [--data DIR]``: the one-off curriculum migration.
+``python -m tutor sql-cards``: seed the SQL lesson cards (``sql_cards_cli``).
 ``python -m tutor worker`` runs the RTDB relay alone, ``publish-all`` publishes
 every transcript once (``tutor.relay.cli``).
 """
@@ -15,7 +16,7 @@ import sys
 
 import uvicorn
 
-from tutor.curriculum import migrate, regen
+from tutor.curriculum import migrate, regen, sql_cards_cli
 from tutor.engine import Engine
 from tutor.relay import cli
 from tutor.server import create_app
@@ -35,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
         return regen.main(argv[1:])
     if argv[:1] == ["migrate"]:
         return migrate.main(argv[1:])
+    if argv[:1] == ["sql-cards"]:
+        return sql_cards_cli.main(argv[1:])
     if argv and argv[0] in cli.COMMANDS:
         return cli.main(argv)
     parser = argparse.ArgumentParser(prog="python -m tutor", description=__doc__)

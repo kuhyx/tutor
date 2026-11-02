@@ -151,3 +151,16 @@ Result `data`:
 Errors: as the other model kinds (`model_error` + `retry:true` when the model
 could not produce a valid turn in 3 tries; the stored state is unchanged, so
 the same `answer` may be sent again with a new rid).
+
+### Cards from lessons (2026-11-02)
+When a concept is mastered (the turn that carries `summary_md`) the worker adds
+that concept's cards to the MySQL subject (`mysql-8-for-timed-sql-coding-tests-joins-and`,
+module `sql-lessons`, `ready`, no `requires`) and `taught`s them now, so FSRS
+schedules the first review. Cards live in `tutor/curriculum/sql_bank*.py`
+(concept title -> cards): each back shows the REAL MySQL result of its
+example query (run by `sql_drills`), each excerpt is checked against its
+source as for any card. Ids are `sql-<key>`; an existing id is never changed,
+a taught card is never taught twice, a suspended one stays suspended. A
+failure is logged and never fails the turn; the next mastery retries.
+Taught cards count toward the daily new cap. Backfill / repair:
+`python -m tutor sql-cards [--data DIR] [--taught-days-ago N]`.
