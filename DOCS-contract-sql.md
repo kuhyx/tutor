@@ -53,7 +53,9 @@ spinner and does not queue more than one of either.
 "match":bool,"cell_diff":[[row,col,expected,actual]],"extra":[...],"missing":[...]}`.
 A user SQL error is `ok:false` + `error` (MySQL's text) in a SUCCESSFUL
 request, never a failed one. `row`/`col` are 0-based. Cells are the
-normalised strings the judge compares (NULL = `NULL`, tabs -> space).
+normalised strings the judge compares (NULL = `NULL`, tabs -> space); a cell
+that exists on one side only is `""` on the other (RTDB drops nulls inside
+arrays, so the wire never carries one).
 
 `PredResult` (`sql_predict`): `{"match":bool,"cell_diff":[...],"actual_rows":[[str]]}`.
 

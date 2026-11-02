@@ -167,3 +167,11 @@ def test_load_sd_imports_the_package_when_present(
     monkeypatch.setattr(importlib.util, "find_spec", lambda name: object())
     monkeypatch.setattr(importlib, "import_module", lambda name: sentinel)
     assert sql.load_sd() is sentinel
+
+
+def test_a_missing_cell_in_a_diff_is_an_empty_string_not_null(
+    sd: FakeSd, fp: FakeFp
+) -> None:
+    sd.run_result = {"ok": True, "cell_diff": [[1, 0, "East", None], (2, 1, None, "x")]}
+    got = call("sql_run", {"id": "q1", "sql": "SELECT 1"})
+    assert got["cell_diff"] == [[1, 0, "East", ""], [2, 1, "", "x"]]

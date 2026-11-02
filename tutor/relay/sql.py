@@ -57,6 +57,9 @@ def wire(raw: object) -> Json:
     """The engine's answer as JSON values, long lists cut (``truncated``)."""
     data = _plain(raw)
     if isinstance(data, dict):
+        diff = data.get("cell_diff")
+        if isinstance(diff, list):
+            data["cell_diff"] = [["" if c is None else c for c in e] for e in diff]
         _cut(data)
         tables = data.get("tables")
         for table in tables.values() if isinstance(tables, dict) else ():
