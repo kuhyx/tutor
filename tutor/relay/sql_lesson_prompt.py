@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor.relay.sql_lesson_plan import PLAN
@@ -12,6 +13,11 @@ if TYPE_CHECKING:
     from tutor.relay.sql import Json
 
 VERDICTS: Final = ("start", "correct", "wrong_prediction", "wrong_reasoning", "partial")
+_BACKREF: Final = re.compile(
+    r"\b(rewrite|earlier|previous(ly)?|above|before|same query|that query|"
+    r"last query|q\d+|query \d+|question \d+)\b",
+    re.IGNORECASE,
+)
 MIN_CHECKS: Final = 2
 MULTI_CELL: Final = 2
 PROMPT_ROWS: Final = 12
@@ -57,6 +63,12 @@ question (a new query that tests their repaired model). Confirm a rule only \
 once the learner has stated it in their own words; set mastered=true only \
 then (and verdict correct), with summary_md = a compact markdown summary \
 table of the concept. Otherwise summary_md is "".
+
+The learner must never scroll back: a question that mentions an earlier \
+query, answer or question ("rewrite Q6 so it works", "the earlier query") \
+restates that query's SQL in full in a ```sql fence inside the same \
+question_md, and quotes the learner's earlier answer if it relies on it. \
+Never refer to an earlier turn by number alone.
 
 Mini-check phase: short fresh variant queries, one per turn; judge them the \
 same way. Be brief, warm, concrete; no company names; feedback_md is 1-4 \
@@ -139,6 +151,23 @@ def problem(raw: dict[str, Any], *, answered: bool) -> str | None:
     if answered and raw.get("mastered") is True and not str(text["summary_md"]).strip():
         return "mastered=true needs a summary_md table"
     return None
+
+
+def _squash(sql: str) -> str:
+    return " ".join(sql.lower().split())
+
+
+def missing_backref(question_md: str, earlier: list[str]) -> str | None:
+    """Why a question that points back lacks the earlier SQL, or ``None``."""
+    if not earlier or not _BACKREF.search(question_md):
+        return None
+    shown = _squash(question_md)
+    if any(_squash(q) in shown for q in earlier):
+        return None
+    return (
+        "question_md points at an earlier query but does not restate its SQL; "
+        "restate it in full inline (the learner must never scroll)"
+    )
 
 
 def clean(raw: dict[str, Json]) -> dict[str, Json]:

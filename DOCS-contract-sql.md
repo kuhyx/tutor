@@ -110,7 +110,13 @@ the worker mints it), `answer`? (free text <= 2000 chars, non-blank).
 - `lesson_id` + `answer`: grades the pending question, returns the next turn.
   Counts as focus activity (heartbeat).
 - `lesson_id` without `answer`: returns the current turn again (resume; no
-  model call, no heartbeat). Unknown id or another topic = `bad_request`.
+  model call, no heartbeat) plus `thread`: the whole stored conversation,
+  oldest first, `[{"mine":bool,"md":str}|{"mine":false,"grid":{columns,rows}}]`
+  (newest 120 entries). The app replaces its chat with it. Unknown id or
+  another topic = `bad_request`.
+- The learner never scrolls: a question that refers to an earlier query
+  ("rewrite Q6") must restate its SQL inline; the worker rejects and re-asks
+  a turn that points back without it.
 State lives on the worker (`<data>/sql_lessons/<lesson_id>.json`), so a lesson
 survives app restarts and works from phone and desktop alike.
 

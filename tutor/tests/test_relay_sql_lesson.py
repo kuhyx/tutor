@@ -74,6 +74,7 @@ def test_resuming_returns_the_same_turn_without_the_model(
     first = lesson()
     model(monkeypatch)
     again = lesson(lesson_id=first["lesson_id"])
+    assert again.pop("thread") == [{"mine": False, "md": first["question_md"]}]
     assert again == first
     assert fp.activity == []
 

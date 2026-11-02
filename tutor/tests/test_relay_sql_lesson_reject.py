@@ -114,3 +114,37 @@ def test_a_new_lesson_never_started_leaves_no_file_when_the_model_fails(
     model(monkeypatch, *[turn(query="")] * 3)
     assert refused().code == "model_error"
     assert not (data_dir() / "sql_lessons").exists()
+
+
+def test_a_turn_that_points_at_an_earlier_query_must_restate_it(
+    sd: FakeSd, fp: FakeFp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The learner never scrolls: "rewrite Q1" carries Q1's SQL inline."""
+    bare = turn(
+        verdict="wrong_prediction",
+        question_md="Rewrite the earlier query so it keeps Ann.\n```sql\nSELECT 2\n```",
+        query="SELECT 2",
+    )
+    inline = turn(
+        verdict="wrong_prediction",
+        question_md=(
+            "Rewrite this earlier query so it keeps Ann:\n"
+            "```sql\nSELECT   name FROM c\n```"
+        ),
+        query="SELECT 2",
+    )
+    fake = model(monkeypatch, turn(), bare, inline)
+    lid = lesson()["lesson_id"]
+    got = lesson(lesson_id=lid, answer="x")
+    assert "restate" in fake.prompts[2]
+    assert "SELECT   name FROM c" in got["question_md"]
+    assert "restate" not in fake.prompts[1]
+
+
+def test_the_system_prompt_forbids_scrolling_back() -> None:
+    from tutor.relay import sql_lesson_prompt as prompt
+
+    assert "never scroll" in prompt.SYSTEM
+    assert prompt.missing_backref("Rewrite Q6 now", ["SELECT 1"]) is not None
+    assert prompt.missing_backref("What is NULL = NULL?", ["SELECT 1"]) is None
+    assert prompt.missing_backref("Rewrite Q6 now", []) is None

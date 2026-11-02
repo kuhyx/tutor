@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 TRIES: Final = 3
 KEEP_HISTORY: Final = 20
+KEEP_THREAD: Final = 120
 
 
 def _path(lesson_id: str) -> Path:
@@ -41,11 +42,13 @@ def _load(lesson_id: str, topic: str) -> dict[str, Any]:
     if not isinstance(state, dict) or state.get("topic") != topic:
         msg = f"lesson {lesson_id!r} is not a {topic!r} lesson"
         raise RequestError(msg, code="bad_request")
+    state.setdefault("thread", [])  # lessons stored before the thread existed
     return state
 
 
 def _save(lesson_id: str, state: dict[str, Any]) -> None:
     state["history"] = state["history"][-KEEP_HISTORY:]
+    state["thread"] = state["thread"][-KEEP_THREAD:]
     path = _path(lesson_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
@@ -62,6 +65,7 @@ def _fresh(topic: str) -> dict[str, Any]:
         "turn": 0,
         "pending": None,
         "history": [],
+        "thread": [],
     }
 
 
@@ -90,13 +94,20 @@ async def _ask(state: dict[str, Any], answer: str | None) -> dict[str, Json]:
         if (why := prompt.problem(raw, answered=answer is not None)) is None:
             turn = prompt.clean(raw)
             ran = await _real_output(state, turn["query"])
-            why = _rejection(turn, ran, pending)
+            why = _rejection(turn, ran, pending) or prompt.missing_backref(
+                turn["question_md"], _earlier(state)
+            )
         if why is None:
             return {**turn, "rows": ran["rows"], "columns": ran["columns"]}
         _logger.warning("lesson turn rejected: %s", why)
         note = f"\n\nYour previous reply was rejected: {why}. Fix it."
     msg = "the model gave no valid lesson turn; try again"
     raise RequestError(msg, code="model_error", retry=True)
+
+
+def _earlier(state: dict[str, Any]) -> list[str]:
+    queries = [e["query"] for e in state["history"]]
+    return queries + ([state["pending"]["query"]] if state["pending"] else [])
 
 
 def _rejection(turn: dict[str, Json], ran: Json, pending: Json) -> str | None:
@@ -143,6 +154,22 @@ def _grade(state: dict[str, Any], turn: dict[str, Json], answer: str) -> dict[st
     return shown
 
 
+def _extend_thread(
+    state: dict[str, Any], answer: str | None, shown: dict[str, Any]
+) -> None:
+    """Append what the learner and the tutor just said, as the chat shows it."""
+    thread = state["thread"]
+    if answer is not None:
+        thread.append({"mine": True, "md": answer})
+    for key in ("feedback_md", "result", "summary_md"):
+        if shown.get(key):
+            thread.append(
+                {"mine": False, ("grid" if key == "result" else "md"): shown[key]}
+            )
+    if state["pending"] is not None:
+        thread.append({"mine": False, "md": state["pending"]["question_md"]})
+
+
 def _progress(state: dict[str, Any]) -> dict[str, Json]:
     plan = PLAN[state["topic"]]
     return {
@@ -185,7 +212,8 @@ async def sql_lesson_turn(ctx: RequestContext) -> Json:
     else:
         lesson_id, state = given, _load(given, topic)
         if answer is None:
-            return await _view(lesson_id, state, {})
+            view = await _view(lesson_id, state, {})
+            return {**view, "thread": state["thread"]}
     outage.ensure_available(ctx.now())
     state, shown = copy.deepcopy(state), {}
     if answer is not None and state["pending"] is None:
@@ -206,6 +234,7 @@ async def sql_lesson_turn(ctx: RequestContext) -> Json:
             turn = await _ask({**state, "pending": None, "history": []}, None)
     state["pending"] = _pending(turn) if turn else None
     state["turn"] += 1
+    _extend_thread(state, answer, shown)
     _save(lesson_id, state)
     if answer is not None:
         heartbeat()
