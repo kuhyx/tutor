@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/home/remote_bits.dart';
+import 'package:tutor/mock/mock_entry.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/error_text.dart';
@@ -157,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
         PopupMenuButton<String>(
           tooltip: 'More',
           onSelected: (v) => switch (v) {
+            'mock' => _go(() => openMock(context, _s)),
             'history' => _go(() => openHistory(context, _s)),
             'progress' => _go(() => openProgress(context, _s)),
             'editor' => _go(() => openEditor(context, _s)),
@@ -166,6 +168,10 @@ class _HomeScreenState extends State<HomeScreen> {
             _ => _signOut(),
           },
           itemBuilder: (_) => [
+            const PopupMenuItem(
+              value: 'mock',
+              child: Icon(Icons.quiz_outlined, semanticLabel: 'Mock test'),
+            ),
             const PopupMenuItem(value: 'history', child: Text('History')),
             const PopupMenuItem(value: 'progress', child: Text('Progress')),
             const PopupMenuItem(value: 'editor', child: Text('Edit cards')),
