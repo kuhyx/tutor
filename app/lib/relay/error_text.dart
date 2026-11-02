@@ -24,6 +24,7 @@ const Map<String, String> _headlines = {
   'model_error': 'The tutor model failed on this turn.',
   claudeUnavailable: 'Claude is not available right now.',
   'gave_up': 'The PC gave up after three attempts.',
+  'focus_refused': 'The focus project was refused.',
   'worker_error': 'Something broke on the PC.',
 };
 

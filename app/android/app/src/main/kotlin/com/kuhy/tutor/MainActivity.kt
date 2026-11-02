@@ -6,8 +6,26 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var focus: FocusChannel? = null
+
+    override fun onRequestPermissionsResult(
+        code: Int, permissions: Array<out String>, results: IntArray
+    ) {
+        super.onRequestPermissionsResult(code, permissions, results)
+        if (code == FocusChannel.REQUEST) {
+            focus?.onPermission(results.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED)
+        }
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        focus?.dispose()
+        focus = null
+        super.cleanUpFlutterEngine(flutterEngine)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        focus = FocusChannel(this, flutterEngine)
         // "Sync Anki & credit": AnkiDroid's own sync intent (it throttles
         // this to once per 2 min). false = not installed or refused (not exported).
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.kuhy.tutor/anki")

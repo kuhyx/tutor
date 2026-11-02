@@ -142,6 +142,43 @@ class RequestBody {
   /// `anki_status`.
   factory ankiStatus() => const RequestBody._(RequestKind.ankiStatus, {});
 
+  /// `focus_status`.
+  factory focusStatus() => const RequestBody._(RequestKind.focusStatus, {});
+
+  /// `focus_event`: [event] is `start`, `checkin` or `stop`, [tsMs] the tap
+  /// time on this device (kept when the event is delivered late).
+  factory focusEvent(String event, int tsMs, {required String platform}) =>
+      RequestBody._(RequestKind.focusEvent, {
+        'event': event,
+        'ts': tsMs,
+        'platform': platform,
+      });
+
+  /// `focus_create` (DOCS-contract-focus.md).
+  factory focusCreate({
+    required String name,
+    required String start,
+    required String end,
+    required List<String> replaces,
+    required int dailyMinutes,
+    required int unlockMinutes,
+    required List<String> subjects,
+    required List<String> sitePatterns,
+  }) => RequestBody._(RequestKind.focusCreate, {
+    'name': name,
+    'start': start,
+    'end': end,
+    'replaces': replaces,
+    'daily_minutes': dailyMinutes,
+    'unlock_minutes': unlockMinutes,
+    'subjects': subjects,
+    'site_patterns': sitePatterns,
+  });
+
+  /// `focus_end`: last active day = today.
+  factory focusEnd(String id) =>
+      RequestBody._(RequestKind.focusEnd, {'id': id});
+
   /// The kinds whose body takes `device` (DOCS-contract §4).
   static const Set<RequestKind> deviceKinds = {
     RequestKind.message,

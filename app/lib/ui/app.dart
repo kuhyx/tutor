@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/sign_in_screen.dart';
 import 'package:tutor/ui/ui_scale.dart';
@@ -37,6 +38,8 @@ class TutorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Tutor',
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: buildLightTheme(),
     darkTheme: buildDarkTheme(),
     builder: (context, child) => UiZoomHost(

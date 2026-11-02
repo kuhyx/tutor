@@ -2,6 +2,12 @@
     <!-- Release builds get no INTERNET permission by default (only debug/profile
          manifests add it); without this line the RTDB relay is dead on device. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Focus timer (DOCS-contract-focus.md): check-in prompt, its exact alarm,
+         and the foreground service that keeps the timer alive screen-off. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <application
         android:label="Tutor"
         android:name="${applicationName}"
@@ -28,6 +34,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <receiver android:name=".FocusAlarmReceiver" android:exported="false"/>
+        <receiver android:name=".FocusActionReceiver" android:exported="false"/>
+        <service
+            android:name=".FocusTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="focus timer shown while a focus session runs"/>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

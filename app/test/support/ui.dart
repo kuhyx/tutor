@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/ui/ui_zoom.dart';
@@ -46,6 +47,8 @@ Future<void> pumpScreen(
   // The zoom host as in TutorApp, so ⋮ -> Display size works in screens.
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: buildLightTheme(),
       builder: (context, child) => UiZoomHost(child: child!),
       home: screen,

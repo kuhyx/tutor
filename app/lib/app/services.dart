@@ -2,9 +2,14 @@
 library;
 
 import 'package:crdt_sync/crdt_sync.dart' show FirebaseCredentialStore;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
+import 'package:tutor/focus/checkin_notifier.dart';
+import 'package:tutor/focus/event_queue.dart';
+import 'package:tutor/focus/focus_send.dart';
+import 'package:tutor/focus/focus_timer.dart';
 import 'package:tutor/history/history.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/home/home_loader.dart';
@@ -39,6 +44,7 @@ class TutorServices {
     required this.catalog,
     required this.history,
     required this.feedback,
+    this.checkinNotifier = const NoopCheckinNotifier(),
   });
 
   /// Opens the platform stores and builds every service. Tests inject
@@ -50,6 +56,7 @@ class TutorServices {
     KvStore? kv,
     http.Client? httpClient,
     Uri? wrapperBase,
+    FocusCheckinNotifier? checkinNotifier,
   }) async {
     // One HTTP client for REST, SSE, token refresh and the wrapper.
     final web = httpClient ?? http.Client();
@@ -98,6 +105,7 @@ class TutorServices {
       catalog: Catalog(client: client, kv: kvStore),
       history: HistoryRepo(client),
       feedback: FeedbackSender(client: client, dev: dev, ulid: ulid),
+      checkinNotifier: checkinNotifier ?? const NoopCheckinNotifier(),
     );
   }
 
@@ -142,4 +150,16 @@ class TutorServices {
 
   /// Report a problem.
   final FeedbackSender feedback;
+
+  /// The system "Still working?" prompt (Android, browser, or none).
+  final FocusCheckinNotifier checkinNotifier;
+
+  /// The focus timer, shared by every screen.
+  late final FocusTimer focus = FocusTimer(
+    kv: kv,
+    queue: FocusEventQueue(kv),
+    send: relaySender(relay),
+    notifier: checkinNotifier,
+    platform: kIsWeb ? 'pc' : 'phone',
+  );
 }

@@ -1,6 +1,7 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
-/// `/progress`, `/editor[/<subject>]`, `/review`, `/drill`, `/report`;
+/// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
+/// `/report`;
 /// `/session/continue` opens the Session and asks for the open session).
 library;
 
@@ -10,6 +11,7 @@ import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/editor_screen.dart';
+import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
 import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
@@ -48,6 +50,10 @@ Future<void> openSession(
 /// Opens [subject]'s plan.
 Future<void> openPlan(BuildContext context, TutorServices s, String subject) =>
     _push(context, PlanScreen(services: s, subject: subject));
+
+/// Opens the focus project screen.
+Future<void> openFocus(BuildContext context, TutorServices s) =>
+    _push(context, FocusScreen(services: s));
 
 /// Opens History.
 Future<void> openHistory(BuildContext context, TutorServices s) =>
@@ -128,6 +134,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
       entry: const SessionEntry(label: 'Continue', resume: true),
     ),
     'session' => openSession(context, s),
+    'focus' => openFocus(context, s),
     'history' when arg != null => openTranscript(context, s, arg),
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),

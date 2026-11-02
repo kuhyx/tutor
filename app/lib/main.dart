@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
+import 'package:tutor/focus/android_checkin_notifier.dart';
+import 'package:tutor/focus/web_checkin.dart';
 import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/ui/ui_zoom.dart';
@@ -24,6 +26,9 @@ void main() {
         FirebaseConfig.compiled,
         // The desktop (web) build adopts the PC's session from its server.
         wrapperBase: kIsWeb ? Uri.base : null,
+        checkinNotifier: kIsWeb
+            ? createWebCheckinNotifier()
+            : platformCheckinNotifier(),
       ),
       zoom: zoom,
     ),

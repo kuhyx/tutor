@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/home/remote_bits.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/error_text.dart';
@@ -71,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) _refresh();
     });
     _presence.start();
+    unawaited(_s.focus.load());
     _lifecycle = AppLifecycleListener(
       onShow: _presence.start,
       onHide: () => unawaited(_presence.stop()),
@@ -144,6 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
       title: const Text('Tutor'),
       actions: [
         _PresenceChip(_presence.state),
+        IconButton(
+          tooltip: AppLocalizations.of(context).focus,
+          onPressed: () => _go(() => openFocus(context, _s)),
+          icon: const Icon(Icons.center_focus_strong_outlined),
+        ),
         IconButton(
           tooltip: 'Refresh',
           onPressed: _refresh,

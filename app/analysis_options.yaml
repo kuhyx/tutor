@@ -14,6 +14,7 @@ analyzer:
     - android/**
     - web/**
     - lib/config/firebase_local.dart
+    - lib/l10n/gen/**
 
 linter:
   rules:

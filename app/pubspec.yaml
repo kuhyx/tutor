@@ -16,7 +16,7 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.11.1
+      ref: crdt_sync_dart-v0.11.2
       path: crdt_sync_dart
   # The shared palette, spacing and type scale. No local theme to drift from.
   design_system:
@@ -26,14 +26,17 @@ dependencies:
       path: design_system
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   # Refresh token in the Android keystore (DOCS-contract §10).
   flutter_secure_storage: 11.2.0
   # Worker-drawn circuit diagrams arrive as inline SVG (DOCS-contract §8).
-  flutter_svg: 2.3.0
+  flutter_svg: 2.3.2
   google_sign_in: 7.2.0
   http: 1.6.0
   # Device id and the offline event queue on web live in IndexedDB.
-  idb_shim: 2.10.1+1
+  idb_shim: 2.11.1
+  intl: 0.20.3
   shared_preferences: 2.5.6
   # Source links and picture attribution open in the browser.
   url_launcher: 6.3.3
@@ -49,6 +52,7 @@ dev_dependencies:
   very_good_analysis: ^11.0.0
 
 flutter:
+  generate: true
   uses-material-design: true
 
 flutter_launcher_icons:
