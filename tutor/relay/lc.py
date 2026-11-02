@@ -35,13 +35,27 @@ def _table_md(columns: list[str], rows: list[list[str]]) -> str:
     return "\n".join([head, *("| " + " | ".join(r) + " |" for r in rows[:10])])
 
 
+SUGGESTED: Final[dict[str, Json]] = {
+    "name": "palindromes-dp",
+    "problems": [
+        "longest-palindromic-subsequence",
+        "longest-palindromic-substring",
+        "palindromic-substrings",
+        "valid-palindrome",
+        "valid-palindrome-ii",
+        "longest-palindrome",
+        "minimum-insertion-steps-to-make-a-string-palindrome",
+    ],
+}
+
+
 async def lc_list(ctx: RequestContext) -> Json:
-    """Recent sessions, clusters and cold re-tests due (model-free)."""
+    """Recent sessions, suggested + coach clusters, cold re-tests due (no model)."""
     del ctx
     coach = lc_backend.coach()
     return {
         "recent": lc_state.recent(),
-        "clusters": await asyncio.to_thread(coach.clusters),
+        "clusters": [SUGGESTED, *await asyncio.to_thread(coach.clusters)],
         "due": await asyncio.to_thread(coach.due),
     }
 

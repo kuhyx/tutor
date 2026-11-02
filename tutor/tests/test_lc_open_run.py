@@ -38,7 +38,16 @@ def test_open_fetches_and_asks_the_opener(monkeypatch: pytest.MonkeyPatch) -> No
     assert fakes.fp.activity == [{"source": "tutor", "kind": "heartbeat"}]
     again = s.call("lc_list", {})
     assert [r["slug"] for r in again["recent"]] == ["two-sum"]
-    assert again["clusters"][0]["name"] == "bits"
+    assert [c["name"] for c in again["clusters"]] == ["palindromes-dp", "bits"]
+    assert again["clusters"][0]["problems"] == [
+        "longest-palindromic-subsequence",
+        "longest-palindromic-substring",
+        "palindromic-substrings",
+        "valid-palindrome",
+        "valid-palindrome-ii",
+        "longest-palindrome",
+        "minimum-insertion-steps-to-make-a-string-palindrome",
+    ]
     assert again["due"][0]["slug"] == "two-sum"
 
 

@@ -5,8 +5,11 @@ from __future__ import annotations
 
 from typing import Any, Final
 
+from tutor.relay.mock_seeds_extra import EXTRA
+from tutor.relay.mock_seeds_more import MORE
+
 type Seed = dict[str, Any]
-SEEDS: Final[list[Seed]] = [
+_BASE: Final[list[Seed]] = [
     {
         "topic": "mutable default",
         "code": "def add(x, acc=[]):\n    acc.append(x)\n    return acc\n\n"
@@ -107,3 +110,4 @@ SEEDS: Final[list[Seed]] = [
         ],
     },
 ]
+SEEDS: Final[list[Seed]] = [*_BASE, *MORE, *EXTRA]

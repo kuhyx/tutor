@@ -3,6 +3,7 @@
 
 ``python -m tutor migrate [--data DIR]``: the one-off curriculum migration.
 ``python -m tutor sql-cards``: seed the SQL lesson cards (``sql_cards_cli``).
+``python -m tutor sql-pack`` / ``mock-prebuild``: drill pack, pre-built mocks.
 ``python -m tutor worker`` runs the RTDB relay alone, ``publish-all`` publishes
 every transcript once (``tutor.relay.cli``).
 """
@@ -13,6 +14,7 @@ import argparse
 import os
 import socket
 import sys
+from typing import TYPE_CHECKING, Final
 
 import uvicorn
 
@@ -20,8 +22,18 @@ from tutor.curriculum import migrate, regen, sql_cards_cli
 from tutor.engine import Engine
 from tutor.relay import cli
 from tutor.server import create_app
+from tutor.sql_pack import cli as sql_pack_cli
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 DEFAULT_PORT = 8778
+TOOLS: Final[dict[str, ModuleType]] = {
+    "regenerate": regen,
+    "migrate": migrate,
+    "sql-cards": sql_cards_cli,
+    "sql-pack": sql_pack_cli,
+}
 
 
 def _port_busy(port: int) -> bool:
@@ -32,12 +44,8 @@ def _port_busy(port: int) -> bool:
 def main(argv: list[str] | None = None) -> int:
     """Serve until interrupted; refuse loudly if the port is taken."""
     argv = sys.argv[1:] if argv is None else argv
-    if argv[:1] == ["regenerate"]:
-        return regen.main(argv[1:])
-    if argv[:1] == ["migrate"]:
-        return migrate.main(argv[1:])
-    if argv[:1] == ["sql-cards"]:
-        return sql_cards_cli.main(argv[1:])
+    if argv and argv[0] in TOOLS:
+        return int(TOOLS[argv[0]].main(argv[1:]))
     if argv and argv[0] in cli.COMMANDS:
         return cli.main(argv)
     parser = argparse.ArgumentParser(prog="python -m tutor", description=__doc__)

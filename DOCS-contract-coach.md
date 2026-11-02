@@ -15,7 +15,7 @@ lowercase hex chars, minted by the worker.
 
 | kind | body | result `data` |
 |---|---|---|
-| `lc_list` | `{}` | `{"recent":[Recent],"clusters":[Cluster],"due":[Due]}` |
+| `lc_list` | `{}` | `{"recent":[Recent],"clusters":[Cluster],"due":[Due]}` (first cluster `palindromes-dp`: 516, 5, 647, 125, 680, 409, 1312) |
 | `lc_open` | `{"problem"?,"statement"?,"title"?,"lang"?,"lc_id"?}` | Open |
 | `lc_turn` | `{"lc_id","text"<=8000,"intent"?}` | Turn |
 | `lc_run` | `{"lc_id","lang","code"<=8000}` | Run |
