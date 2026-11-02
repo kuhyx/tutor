@@ -15,10 +15,12 @@ drill never appears on the wire.
 | `sql_predict` | `{"id","grid":[[str]]}` | PredResult |
 | `sql_hint` | `{"id","sql"?,"last_result"?,"history"?}` | `{"question"}` |
 | `sql_generate` | `{"topic","difficulty"?}` | DrillMeta |
+| `sql_lesson_turn` | `{"topic","lesson_id"?,"answer"?}` | Lesson turn |
 
 Model-free (fast, ~100 ms warm): `sql_list`, `sql_get`, `sql_run`,
 `sql_predict`. Model calls (several seconds, own isolated Claude call, no
-tools): `sql_hint`, `sql_generate`. The chat lane is serial: a hint or a
+tools): `sql_hint`, `sql_generate`, `sql_lesson_turn` (an answered turn takes 10-40 s:
+two model calls at most). The chat lane is serial: a hint or a
 generate holds up other chat requests while it runs, so the client shows a
 spinner and does not queue more than one of either.
 
@@ -50,7 +52,7 @@ spinner and does not queue more than one of either.
 
 `RunResult` (`sql_run`):
 `{"ok":bool,"error"?:str,"columns":[str],"rows":[[str]],"expected_rows":[[str]],
-"match":bool,"cell_diff":[[row,col,expected,actual]],"extra":[...],"missing":[...]}`.
+"match":bool,"cell_diff":[[row,col,expected,actual]],"extra_rows":[[str]],"missing_rows":[[str]]}`.
 A user SQL error is `ok:false` + `error` (MySQL's text) in a SUCCESSFUL
 request, never a failed one. `row`/`col` are 0-based. Cells are the
 normalised strings the judge compares (NULL = `NULL`, tabs -> space); a cell
@@ -90,3 +92,53 @@ only). `error` is text for the user.
 A successful `sql_run` or `sql_predict` calls
 `focus_project.record_activity("sql_drills","heartbeat")` (no wire change;
 failures are logged, never fail the request).
+
+## Guided lesson (`sql_lesson_turn`)
+A Socratic lesson per topic, driven by the tutor's model with the engine as
+ground truth: every result the learner is asked about is the REAL output of a
+query run by `sql_drills` on the lesson's dataset (a builtin drill's tables);
+the model never writes result rows. It asks ONE question at a time ("what does
+this return, and why, in one sentence"), grades prediction AND reasoning (a
+right list with a wrong reason is probed, not passed), probes a wrong model
+with a variant query / plain-language reframe / "fill the unknown both ways",
+confirms only once the learner states the rule, then shows a summary table
+and asks 2 mini-checks before the next concept.
+
+Body: `topic` (as `sql_generate`), `lesson_id`? (absent = start a new lesson;
+the worker mints it), `answer`? (free text <= 2000 chars, non-blank).
+- no `lesson_id`: starts a lesson; `answer` must be absent (`bad_request`).
+- `lesson_id` + `answer`: grades the pending question, returns the next turn.
+  Counts as focus activity (heartbeat).
+- `lesson_id` without `answer`: returns the current turn again (resume; no
+  model call, no heartbeat). Unknown id or another topic = `bad_request`.
+State lives on the worker (`<data>/sql_lessons/<lesson_id>.json`), so a lesson
+survives app restarts and works from phone and desktop alike.
+
+Concepts per topic (order = progression): `basics`: NULL comparisons, JOIN ON
+vs WHERE; `joins-null`: anti-join; `group-having`: HAVING; `pivot`; `dates`;
+`number-format`; `window`; `strings`. The app walks the topics in that order.
+
+Result `data`:
+```json
+{"lesson_id":"a1b2c3d4e5f6","topic":"basics","turn":3,
+ "progress":{"concept":"NULL comparisons","index":0,"total":2,
+             "phase":"teach"|"check","checks_left":0..2},
+ "question_md":"...","tables":{"customers":{"columns":[],"rows":[[]]}},
+ "feedback_md":"...","summary_md":"...","result":{"columns":[],"rows":[[]]},
+ "done":true}
+```
+- `question_md`: the current question, with its query in a code fence. Absent
+  when `done`. `tables`: the CURRENT dataset, every turn (pin it above the
+  question; it changes when the concept changes).
+- `feedback_md`: reaction to the last answer (absent on the first turn). It
+  never states the answer or the rule before the learner has.
+- `summary_md`: a compact summary table, sent once when a concept is mastered
+  (and for the last concept together with `done`).
+- `result`: the real output of the PREVIOUS question's query; present only
+  when the learner's answer was fully right (prediction and reasoning).
+- `done:true`: the topic's last concept is finished; no further turn.
+- `phase:"check"`: the question is a mini-check; two right in a row advance;
+  a wrong one returns to `teach`.
+Errors: as the other model kinds (`model_error` + `retry:true` when the model
+could not produce a valid turn in 3 tries; the stored state is unchanged, so
+the same `answer` may be sent again with a new rid).
