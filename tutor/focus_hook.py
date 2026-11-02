@@ -80,6 +80,12 @@ class FocusApi(Protocol):
         """Add a project; ``ValueError`` on bad input or an overlap."""
         ...
 
+    def update_project(
+        self, project_id: str, *, today: date | None = None, **fields: object
+    ) -> ProjectLike:
+        """Edit a project; ``ValueError`` / ``KeyError`` if impossible."""
+        ...
+
     def end_project(self, project_id: str, day: date) -> ProjectLike:
         """End early; ``ValueError`` / ``KeyError`` if impossible."""
         ...

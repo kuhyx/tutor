@@ -155,6 +155,32 @@ async def focus_create(ctx: RequestContext) -> dict[str, Any]:
     return {"id": made.id}
 
 
+async def focus_update(ctx: RequestContext) -> dict[str, Any]:
+    """Edit a project (every field, like create); a refusal is ``focus_refused``."""
+    fp, body = _fp(), ctx.body
+    try:
+        fp.update_project(
+            body["id"],
+            today=_today(ctx),
+            name=body["name"],
+            start=date.fromisoformat(body["start"]),
+            end=date.fromisoformat(body["end"]),
+            replaces=body["replaces"],
+            daily_minutes=body["daily_minutes"],
+            unlock_minutes=body["unlock_minutes"],
+            subjects=body["subjects"],
+            site_patterns=body["site_patterns"],
+        )
+    except KeyError as exc:
+        msg = f"unknown project {body['id']!r}"
+        raise RequestError(msg, code="focus_refused") from exc
+    except ValueError as exc:
+        raise RequestError(str(exc), code="focus_refused") from exc
+    except OSError as exc:
+        raise _unreadable(exc) from exc
+    return {"id": body["id"]}
+
+
 async def focus_end(ctx: RequestContext) -> dict[str, Any]:
     """End a project early: ``day`` (default today) is its last active day."""
     fp, body = _fp(), ctx.body

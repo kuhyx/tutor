@@ -175,6 +175,29 @@ class RequestBody {
     'site_patterns': sitePatterns,
   });
 
+  /// `focus_update`: the create fields again, for project [id].
+  factory focusUpdate({
+    required String id,
+    required String name,
+    required String start,
+    required String end,
+    required List<String> replaces,
+    required int dailyMinutes,
+    required int unlockMinutes,
+    required List<String> subjects,
+    required List<String> sitePatterns,
+  }) => RequestBody._(RequestKind.focusUpdate, {
+    'id': id,
+    'name': name,
+    'start': start,
+    'end': end,
+    'replaces': replaces,
+    'daily_minutes': dailyMinutes,
+    'unlock_minutes': unlockMinutes,
+    'subjects': subjects,
+    'site_patterns': sitePatterns,
+  });
+
   /// `focus_end`: last active day = today.
   factory focusEnd(String id) =>
       RequestBody._(RequestKind.focusEnd, {'id': id});

@@ -10,16 +10,25 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 
-/// Creates a focus project: dates, gates to turn off, minutes, subjects.
+/// Creates or, given [edit], edits a focus project: dates, gates to turn
+/// off, minutes, subjects.
 class FocusFormScreen extends StatefulWidget {
   /// Creates the form over the PC's [status] (gates, subjects, today).
-  const new({required this.services, required this.status, super.key});
+  const new({
+    required this.services,
+    required this.status,
+    this.edit,
+    super.key,
+  });
 
   /// Services.
   final TutorServices services;
 
   /// The gate and subject lists, and today.
   final FocusStatus status;
+
+  /// The project being edited; null creates a new one.
+  final FocusProject? edit;
 
   @override
   State<FocusFormScreen> createState() => _FocusFormState();
@@ -29,14 +38,26 @@ String _iso(DateTime d) => d.toIso8601String().substring(0, 10);
 
 class _FocusFormState extends State<FocusFormScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
-  final _name = TextEditingController();
-  final _daily = TextEditingController(text: '120');
-  final _unlock = TextEditingController(text: '30');
-  final _sites = TextEditingController();
-  final _off = <String>{};
-  final _linked = <String>{};
-  late DateTime _start = DateTime.parse(widget.status.day);
-  late DateTime _end = _start.add(const Duration(days: 3));
+  FocusProject? get _edit => widget.edit;
+  late final _name = TextEditingController(text: _edit?.name);
+  late final _daily = TextEditingController(
+    text: '${_edit?.dailyMinutes ?? 120}',
+  );
+  late final _unlock = TextEditingController(
+    text: '${_edit?.unlockMinutes ?? 30}',
+  );
+  late final _sites = TextEditingController(
+    text: _edit?.sitePatterns.join(', '),
+  );
+  late final _off = <String>{...?_edit?.replaces};
+  late final _linked = <String>{...?_edit?.subjects};
+  late final DateTime _today = DateTime.parse(widget.status.day);
+  late DateTime _start = DateTime.parse(_edit?.start ?? widget.status.day);
+  late DateTime _end = _edit == null
+      ? _start.add(const Duration(days: 3))
+      : DateTime.parse(_edit!.end);
+  // The registry refuses to move the start of a project that has begun.
+  bool get _startLocked => _start.isBefore(_today);
 
   @override
   void dispose() {
@@ -51,9 +72,8 @@ class _FocusFormState extends State<FocusFormScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: start ? _start : _end,
-      firstDate: DateTime.parse(widget.status.day),
-      lastDate: DateTime.parse(widget.status.day)
-          .add(const Duration(days: 365)),
+      firstDate: _today,
+      lastDate: _today.add(const Duration(days: 365)),
     );
     if (picked == null) return;
     setState(() => start ? _start = picked : _end = picked);
@@ -68,23 +88,39 @@ class _FocusFormState extends State<FocusFormScreen> {
       int.tryParse(_unlock.text) != null &&
       !_end.isBefore(_start);
 
-  Future<void> _create() async {
+  Future<void> _submit() async {
     final sites = _sites.text
         .split(',')
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
+    final name = _name.text.trim();
+    final daily = int.parse(_daily.text);
+    final unlock = int.parse(_unlock.text);
+    final edit = _edit;
     final result = await _runner.run(
-      RequestBody.focusCreate(
-        name: _name.text.trim(),
-        start: _iso(_start),
-        end: _iso(_end),
-        replaces: _off.toList(),
-        dailyMinutes: int.parse(_daily.text),
-        unlockMinutes: int.parse(_unlock.text),
-        subjects: _linked.toList(),
-        sitePatterns: sites,
-      ),
+      edit == null
+          ? RequestBody.focusCreate(
+              name: name,
+              start: _iso(_start),
+              end: _iso(_end),
+              replaces: _off.toList(),
+              dailyMinutes: daily,
+              unlockMinutes: unlock,
+              subjects: _linked.toList(),
+              sitePatterns: sites,
+            )
+          : RequestBody.focusUpdate(
+              id: edit.id,
+              name: name,
+              start: _iso(_start),
+              end: _iso(_end),
+              replaces: _off.toList(),
+              dailyMinutes: daily,
+              unlockMinutes: unlock,
+              subjects: _linked.toList(),
+              sitePatterns: sites,
+            ),
     );
     if (mounted && result is RelayDone) Navigator.of(context).pop(true);
   }
@@ -98,7 +134,7 @@ class _FocusFormState extends State<FocusFormScreen> {
 
   Widget _date(String label, DateTime value, {required bool start}) => Expanded(
     child: InkWell(
-      onTap: () => _pick(start: start),
+      onTap: start && _startLocked ? null : () => _pick(start: start),
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
@@ -115,7 +151,7 @@ class _FocusFormState extends State<FocusFormScreen> {
     final status = widget.status;
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: Text(l.newProject)),
+      appBar: AppBar(title: Text(_edit == null ? l.newProject : l.editProject)),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -186,8 +222,10 @@ class _FocusFormState extends State<FocusFormScreen> {
                 RunnerBuilder(
                   _runner,
                   (_) => FilledButton(
-                    onPressed: _valid && _runner.canSend ? _create : null,
-                    child: Text(l.createProject),
+                    onPressed: _valid && _runner.canSend ? _submit : null,
+                    child: Text(
+                      _edit == null ? l.createProject : l.saveProject,
+                    ),
                   ),
                 ),
               ],

@@ -3,7 +3,7 @@
 Binding for the worker (`tutor/relay/focus.py`) and the app (`app/lib/focus/`).
 Core rules (projects, minutes, gates) live in `~/src/utils/focus_project`;
 this file is only the wire. Same envelope, lanes and done-map as
-`DOCS-contract.md` §4. All four kinds are model-free and run on the `chat`
+`DOCS-contract.md` §4. All five kinds are model-free and run on the `chat`
 lane. Times: `ts` unix ms, dates `YYYY-MM-DD` (PC local).
 
 | kind | body | result `data` |
@@ -11,9 +11,14 @@ lane. Times: `ts` unix ms, dates `YYYY-MM-DD` (PC local).
 | `focus_status` | `{}` | see Status |
 | `focus_event` | `{"event":"start"\|"checkin"\|"stop","ts":ms,"platform":"phone"\|"pc"}` | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...]}` (fp.status of today; name null = no active project) |
 | `focus_create` | `{"name"<=80,"start","end","replaces":[leetcode\|reading\|tutor],"daily_minutes":1..720,"unlock_minutes":0..daily,"subjects":[slug],"site_patterns":[host<=100 x<=20]}` | `{"id"}` |
+| `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`) | `{"id"}` |
 | `focus_end` | `{"id","day"?}` (day = last active day, default today) | `{}` |
 
 Empty lists are dropped by RTDB: absent = `[]`.
+
+`focus_update` follows focus_project's edit rules: a started project's `start`
+cannot move, an ended or finished project is refused, changed minutes apply
+from today (earlier days keep theirs) - all `focus_refused`.
 
 ## Status (`focus_status`)
 ```json

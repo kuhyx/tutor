@@ -80,6 +80,9 @@ enum RequestKind {
   /// Create a focus project.
   focusCreate('focus_create', Lane.chat),
 
+  /// Edit a focus project.
+  focusUpdate('focus_update', Lane.chat),
+
   /// End a focus project early.
   focusEnd('focus_end', Lane.chat);
 

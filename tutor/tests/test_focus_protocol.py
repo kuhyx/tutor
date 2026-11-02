@@ -20,7 +20,13 @@ def bad(kind: str, body: dict[str, Any]) -> RequestError:
 
 
 def test_the_kinds_are_chat_lane_kinds() -> None:
-    for kind in ("focus_status", "focus_event", "focus_create", "focus_end"):
+    for kind in (
+        "focus_status",
+        "focus_event",
+        "focus_create",
+        "focus_update",
+        "focus_end",
+    ):
         assert protocol.KINDS[kind][0] == protocol.CHAT
         assert kind in CHAT_HANDLERS
     assert "focus_refused" in CODES

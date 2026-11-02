@@ -109,6 +109,17 @@ def _patterns(value: object) -> list[str]:
     raise ValueError
 
 
+_CREATE: Final[dict[str, Callable[[object], object]]] = {
+    "name": _name,
+    "start": _day,
+    "end": _day,
+    "replaces": _gates,
+    "daily_minutes": _minutes(1),
+    "unlock_minutes": _minutes(0),
+    "subjects": _subjects,
+    "site_patterns": _patterns,
+}
+
 FIELDS: Final[dict[str, dict[str, Callable[[object], object]]]] = {
     "focus_status": {},
     "focus_event": {
@@ -116,15 +127,9 @@ FIELDS: Final[dict[str, dict[str, Callable[[object], object]]]] = {
         "ts": _ms,  # the client's tap time, unix ms (clamped by the handler)
         "platform": _choice("phone", "pc"),
     },
-    "focus_create": {
-        "name": _name,
-        "start": _day,
-        "end": _day,
-        "replaces": _gates,
-        "daily_minutes": _minutes(1),
-        "unlock_minutes": _minutes(0),
-        "subjects": _subjects,
-        "site_patterns": _patterns,
-    },
+    "focus_create": _CREATE,
+    # The whole editable set again (absent lists = []), so a stale client
+    # can never half-edit a project.
+    "focus_update": {"id": _slug, **_CREATE},
     "focus_end": {"id": _slug, "day": _opt_day},
 }

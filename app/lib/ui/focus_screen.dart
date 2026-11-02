@@ -72,15 +72,16 @@ class _FocusScreenState extends State<FocusScreen> {
     }
   }
 
-  Future<void> _new() async {
+  Future<void> _form({FocusProject? edit}) async {
     final status = _status;
     if (status == null) return;
-    final created = await Navigator.of(context).push<bool>(
+    final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => FocusFormScreen(services: _s, status: status),
+        builder: (_) =>
+            FocusFormScreen(services: _s, status: status, edit: edit),
       ),
     );
-    if (created ?? false) await _load();
+    if (saved ?? false) await _load();
   }
 
   Future<void> _end(FocusProject project) async {
@@ -138,7 +139,7 @@ class _FocusScreenState extends State<FocusScreen> {
             ),
           ),
           FilledButton.icon(
-            onPressed: _new,
+            onPressed: _form,
             icon: const Icon(Icons.add),
             label: Text(l.newProject),
           ),
@@ -197,7 +198,11 @@ class _FocusScreenState extends State<FocusScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            TextButton(onPressed: _new, child: Text(l.newProject)),
+            TextButton(onPressed: _form, child: Text(l.newProject)),
+            TextButton(
+              onPressed: () => _form(edit: project),
+              child: Text(l.editProject),
+            ),
             TextButton(
               onPressed: () => _end(project),
               child: Text(l.endProject),

@@ -17,10 +17,4 @@ if [[ ! -x "${VENV}/bin/python" ]]; then
 fi
 "${VENV}/bin/python" -m pip install --quiet --upgrade pip
 "${VENV}/bin/python" -m pip install --quiet -e "${REPO_DIR}[dev]"
-# focus_project (focus_* relay kinds + tutor heartbeat) is optional and untagged:
-# the worker imports it lazily, so only install it when the checkout is there.
-readonly FOCUS_PROJECT="${HOME}/src/utils/focus_project"
-if [[ -d "$FOCUS_PROJECT" ]]; then
-    "${VENV}/bin/python" -m pip install --quiet -e "$FOCUS_PROJECT"
-fi
 "${VENV}/bin/python" -c "import tutor, pytest, mypy, pylint; print('dev venv OK')"

@@ -19,6 +19,20 @@ const FocusStatus _status = (
   subjects: [(id: 'automation', title: 'Automation')],
 );
 
+const FocusProject _edited = (
+  id: 'hr',
+  name: 'HR prep',
+  start: '2026-11-01',
+  end: '2026-11-06',
+  daysLeft: 5,
+  replaces: ['leetcode'],
+  dailyMinutes: 90,
+  unlockMinutes: 20,
+  subjects: ['automation'],
+  sitePatterns: ['a.com', 'b.com'],
+  minutes: 10,
+);
+
 void main() {
   testWidgets('create sends gates, subjects, sites and minutes', (t) async {
     final db = FakeRtdb();
@@ -73,5 +87,72 @@ void main() {
     );
     expect(find.textContaining('overlaps another project'), findsOneWidget);
     expect(find.byType(FocusFormScreen), findsOneWidget);
+  });
+
+  testWidgets('edit is prefilled and sends focus_update with its id', (
+    t,
+  ) async {
+    final db = FakeRtdb();
+    final stream = FakeStream();
+    final s = services(db, stream);
+    addTearDown(s.focus.dispose);
+    await pumpScreen(
+      t,
+      FocusFormScreen(services: s, status: _status, edit: _edited),
+    );
+    expect(find.text('HR prep'), findsOneWidget);
+    expect(find.text('90'), findsOneWidget);
+    expect(find.text('a.com, b.com'), findsOneWidget);
+    expect(find.text('2026-11-06'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Create'), findsNothing);
+    // A started project's start date is fixed.
+    await t.tap(find.text('2026-11-01'));
+    await t.pump();
+    expect(find.byType(DatePickerDialog), findsNothing);
+    await t.enterText(find.byType(TextField).first, 'HR prep 2');
+    await t.tap(find.text('Automation'));
+    await t.pump();
+    await t.tap(find.widgetWithText(FilledButton, 'Save'));
+    await t.pump(const Duration(milliseconds: 50));
+    final (_, req) = lastRequest(db);
+    expect(req['kind'], 'focus_update');
+    final body = req['body'] as Map<String, dynamic>;
+    expect(body['id'], 'hr');
+    expect(body['name'], 'HR prep 2');
+    expect(body['start'], '2026-11-01');
+    expect(body['end'], '2026-11-06');
+    expect(body['replaces'], ['leetcode']);
+    expect(body['subjects'], isEmpty);
+    expect(body['site_patterns'], ['a.com', 'b.com']);
+    expect(body['daily_minutes'], 90);
+    expect(body['unlock_minutes'], 20);
+    await answer(t, db, stream, data: {'id': 'hr'}, settle: false);
+  });
+
+  testWidgets('a project that has not started can move its start', (t) async {
+    final db = FakeRtdb();
+    final stream = FakeStream();
+    final s = services(db, stream);
+    addTearDown(s.focus.dispose);
+    const later = (
+      id: 'hr',
+      name: 'HR',
+      start: '2026-11-04',
+      end: '2026-11-06',
+      daysLeft: 3,
+      replaces: <String>[],
+      dailyMinutes: 60,
+      unlockMinutes: 0,
+      subjects: <String>[],
+      sitePatterns: <String>[],
+      minutes: 0,
+    );
+    await pumpScreen(
+      t,
+      FocusFormScreen(services: s, status: _status, edit: later),
+    );
+    await t.tap(find.text('2026-11-04'));
+    await t.pumpAndSettle();
+    expect(find.byType(DatePickerDialog), findsOneWidget);
   });
 }

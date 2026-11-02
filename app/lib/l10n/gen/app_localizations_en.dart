@@ -28,6 +28,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createProject => 'Create';
 
   @override
+  String get editProject => 'Edit';
+
+  @override
+  String get saveProject => 'Save';
+
+  @override
   String get projectName => 'Name';
 
   @override

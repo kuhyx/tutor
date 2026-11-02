@@ -6,6 +6,8 @@
   "newProject": "New project",
   "endProject": "End project",
   "createProject": "Create",
+  "editProject": "Edit",
+  "saveProject": "Save",
   "projectName": "Name",
   "startDate": "From",
   "endDate": "Until",

@@ -40,6 +40,7 @@ class FakeFp:
     activity: list[dict[str, Any]] = field(default_factory=list)
     minutes: int = 0
     boom: Exception | None = None
+    updated_on: date | None = None
 
     def _check(self) -> None:
         if self.boom is not None:
@@ -106,4 +107,25 @@ class FakeFp:
             if found.id == project_id:
                 self.projects[i] = replace(found, ended_on=day)
                 return self.projects[i]
+        raise KeyError(project_id)
+
+    def update_project(
+        self, project_id: str, today: date | None = None, **kw: Any
+    ) -> FakeProject:
+        """Edit fields; KeyError when unknown, ValueError on an overlap."""
+        self._check()
+        self.updated_on = today
+        tupled = {k: tuple(v) for k, v in kw.items() if isinstance(v, list)}
+        for i, found in enumerate(self.projects):
+            if found.id != project_id:
+                continue
+            new = replace(found, **{**kw, **tupled})
+            for other in self.projects:
+                if other is not found and (
+                    new.start <= other.last_day and other.start <= new.last_day
+                ):
+                    msg = f"project overlaps {other.id!r}"
+                    raise ValueError(msg)
+            self.projects[i] = new
+            return new
         raise KeyError(project_id)

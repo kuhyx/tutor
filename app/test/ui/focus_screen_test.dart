@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tutor/ui/focus_form.dart';
 import 'package:tutor/ui/focus_screen.dart';
 
 import '../support/fake_rtdb.dart';
@@ -74,6 +75,15 @@ void main() {
     await t.tap(find.text('Stop'));
     await t.pump(const Duration(milliseconds: 50));
     expect(find.text('Start'), findsOneWidget);
+  });
+
+  testWidgets('Edit opens the form on the active project', (t) async {
+    await open(t);
+    await t.tap(find.text('Edit'));
+    await t.pumpAndSettle();
+    expect(find.byType(FocusFormScreen), findsOneWidget);
+    expect(find.text('hackerrank.com'), findsOneWidget);
+    expect(find.text('Save'), findsOneWidget);
   });
 
   testWidgets('no project: only New project', (t) async {

@@ -21,7 +21,13 @@ from tutor.curriculum import cap
 from tutor.delivery import Delivery
 from tutor.drill import Drill
 from tutor.relay.errors import RequestError
-from tutor.relay.focus import focus_create, focus_end, focus_event, focus_status
+from tutor.relay.focus import (
+    focus_create,
+    focus_end,
+    focus_event,
+    focus_status,
+    focus_update,
+)
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.views import key
 
@@ -219,4 +225,5 @@ CHAT_HANDLERS: Final[
     "focus_event": focus_event,
     "focus_create": focus_create,
     "focus_end": focus_end,
+    "focus_update": focus_update,
 }

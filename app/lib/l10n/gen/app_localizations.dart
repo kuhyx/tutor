@@ -130,6 +130,18 @@ abstract class AppLocalizations {
   /// **'Create'**
   String get createProject;
 
+  /// No description provided for @editProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editProject;
+
+  /// No description provided for @saveProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveProject;
+
   /// No description provided for @projectName.
   ///
   /// In en, this message translates to:
