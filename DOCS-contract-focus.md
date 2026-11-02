@@ -24,6 +24,8 @@ tomorrow (a mixed edit defers whole); raises, removed gates and edits to a
 project that has not started hold from today. `effective_from` is the first
 day the new values hold; `message` is present only when it is after today. The
 frozen app ignores the response body, so it shows neither.
+Floor (focus_project 0.7.1, coordinator decision): `daily_minutes` >= 30 per replaced
+gate (min 30; 3 gates = 90), on create and update; below it is `focus_refused`.
 
 ## Status (`focus_status`)
 `minutes` is the real count (may exceed `daily_minutes`: 121/120); `carry_out`
