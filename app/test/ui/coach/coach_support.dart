@@ -40,6 +40,7 @@ class CoachRig {
     await pumpScreen(
       t,
       CoachScreen(
+        key: UniqueKey(),
         services: services(db, stream, kv: kv),
         open: body ?? lcOpen(problem: 'two-sum'),
       ),

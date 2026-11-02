@@ -10,7 +10,6 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/model/json.dart';
-import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/sql/sql_drafts.dart';
 import 'package:tutor/sql/sql_models.dart';
@@ -22,6 +21,7 @@ import 'package:tutor/ui/sql/prediction_grid.dart';
 import 'package:tutor/ui/sql/result_view.dart';
 import 'package:tutor/ui/sql/sql_editor.dart';
 import 'package:tutor/ui/sql/task_view.dart';
+import 'package:tutor/widgets/code_symbol_bar.dart';
 
 /// From this width the task and the work sit side by side.
 const kSqlTwoPanes = 900.0;
@@ -109,9 +109,6 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
     }
   }
 
-  void _send(RequestRunner runner, RequestBody body) =>
-      unawaited(runner.run(body));
-
   void _typed(Grid grid) {
     _grid = grid;
     unawaited(_drafts.saveGrid(widget.id, grid));
@@ -139,10 +136,14 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
     );
     final work = ListenableBuilder(
       listenable: _sql,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        children: _work(drill, touch: !wide),
+      builder: (context, _) => WithSymbolBar(
+        controller: _sql,
+        show: !wide && !drill.meta.predict,
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          children: _work(drill),
+        ),
       ),
     );
     if (wide) {
@@ -181,7 +182,7 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
     );
   }
 
-  List<Widget> _work(Drill drill, {required bool touch}) {
+  List<Widget> _work(Drill drill) {
     final predict = drill.meta.predict;
     final o = _outcome;
     return [
@@ -192,7 +193,7 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
           marked: {for (final d in o?.diff ?? <CellDiff>[]) (d.row, d.col)},
         )
       else
-        SqlEditor(controller: _sql, showKeys: touch),
+        SqlEditor(controller: _sql),
       const SizedBox(height: AppSpacing.sm),
       Row(
         children: [
@@ -202,11 +203,12 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
               key: ValueKey(predict ? 'check' : 'run'),
               onPressed:
                   _run.canSend && (predict || _sql.text.trim().isNotEmpty)
-                  ? () => _send(
-                      _run,
-                      predict
-                          ? sqlPredict(widget.id, trimGrid(_grid))
-                          : sqlRun(widget.id, _sql.text),
+                  ? () => unawaited(
+                      _run.run(
+                        predict
+                            ? sqlPredict(widget.id, trimGrid(_grid))
+                            : sqlRun(widget.id, _sql.text),
+                      ),
                     )
                   : null,
               child: Icon(
@@ -221,13 +223,14 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
             (_) => OutlinedButton(
               key: const ValueKey('hint'),
               onPressed: _hint.canSend
-                  ? () => _send(
-                      _hint,
-                      sqlHint(
-                        widget.id,
-                        history: _hints,
-                        sql: _sql.text,
-                        lastResult: _outcome?.hintSlice(),
+                  ? () => unawaited(
+                      _hint.run(
+                        sqlHint(
+                          widget.id,
+                          history: _hints,
+                          sql: _sql.text,
+                          lastResult: _outcome?.hintSlice(),
+                        ),
                       ),
                     )
                   : null,

@@ -1,5 +1,5 @@
-/// A multi-line SQL field: monospace, line numbers that follow wrapped
-/// lines, no autocorrect, and a row of symbols a phone keyboard buries.
+/// A multi-line code field: monospace, line numbers that follow wrapped
+/// lines, no autocorrect.
 library;
 
 import 'package:design_system/design_system.dart';
@@ -13,53 +13,13 @@ const _strut = StrutStyle(
   forceStrutHeight: true,
 );
 
-/// Symbols a phone keyboard buries, for SQL.
-const sqlSymbols = ['*', '(', ')', "'", ',', '=', '.', '%', '<', '>', '_'];
-
-/// The same for Python, JavaScript and TypeScript; two spaces indent.
-const codeSymbols = [
-  '  ',
-  ':',
-  '(',
-  ')',
-  '[',
-  ']',
-  '{',
-  '}',
-  '"',
-  "'",
-  '=',
-  '.',
-  ',',
-  '_',
-  '<',
-  '>',
-  '+',
-  '-',
-  '*',
-  '/',
-  '%',
-  '!',
-];
-
-/// The editor over [controller]; [showKeys] adds the symbol row.
+/// The editor over [controller].
 class SqlEditor extends StatelessWidget {
   /// Creates the editor.
-  const new({
-    required this.controller,
-    this.showKeys = false,
-    this.symbols = sqlSymbols,
-    super.key,
-  });
+  const new({required this.controller, super.key});
 
   /// The SQL text.
   final TextEditingController controller;
-
-  /// Show the symbol row (touch screens).
-  final bool showKeys;
-
-  /// The symbols in that row.
-  final List<String> symbols;
 
   @override
   Widget build(BuildContext context) {
@@ -82,22 +42,6 @@ class SqlEditor extends StatelessWidget {
             ),
           ),
         ),
-        if (showKeys)
-          ExcludeFocus(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final s in symbols)
-                    TextButton(
-                      key: ValueKey('key-$s'),
-                      onPressed: () => _insert(s),
-                      child: Text(s.trim().isEmpty ? '⇥' : s, style: sqlMono),
-                    ),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -155,16 +99,5 @@ class SqlEditor extends StatelessWidget {
     final result = (width: p.width, lines: p.computeLineMetrics().length);
     p.dispose();
     return result;
-  }
-
-  void _insert(String symbol) {
-    final text = controller.text;
-    final sel = controller.selection;
-    final start = sel.isValid ? sel.start : text.length;
-    final end = sel.isValid ? sel.end : text.length;
-    controller.value = TextEditingValue(
-      text: text.replaceRange(start, end, symbol),
-      selection: TextSelection.collapsed(offset: start + symbol.length),
-    );
   }
 }

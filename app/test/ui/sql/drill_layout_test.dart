@@ -71,6 +71,7 @@ void main() {
       ),
     );
     await t.pump();
+    await t.ensureVisible(find.byKey(const ValueKey('key-*')));
     await t.tap(find.byKey(const ValueKey('key-*')));
     await t.pump();
     expect(find.text('select * from emp'), findsOneWidget);

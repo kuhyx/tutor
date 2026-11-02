@@ -5,6 +5,7 @@ import 'package:tutor/ui/coach/coach_run_view.dart';
 import 'package:tutor/ui/coach/coach_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/sql_editor.dart';
+import 'package:tutor/widgets/code_symbol_bar.dart';
 
 /// The code tab: language, editor with line numbers, Run, per-example
 /// results. `touch` adds the symbol row a phone keyboard lacks.
@@ -25,7 +26,7 @@ class CoachCodeTab extends StatelessWidget {
       final s = session;
       final langs = s.opened?.langs ?? [s.lang];
       final report = s.report;
-      return ListView(
+      final list = ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
@@ -39,11 +40,7 @@ class CoachCodeTab extends StatelessWidget {
             onChanged: (l) => l == null ? null : s.setLang(l),
           ),
           const SizedBox(height: AppSpacing.sm),
-          SqlEditor(
-            controller: s.code,
-            showKeys: touch,
-            symbols: isSqlLang(s.lang) ? sqlSymbols : codeSymbols,
-          ),
+          SqlEditor(controller: s.code),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
@@ -66,6 +63,7 @@ class CoachCodeTab extends StatelessWidget {
             CoachRunView(report, key: ObjectKey(report)),
         ],
       );
+      return WithSymbolBar(controller: s.code, show: touch, child: list);
     },
   );
 }

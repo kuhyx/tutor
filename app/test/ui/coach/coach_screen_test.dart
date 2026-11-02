@@ -8,7 +8,8 @@ import '../../coach/coach_fixtures.dart';
 import 'coach_support.dart';
 
 void main() {
-  final rig = CoachRig();
+  late CoachRig rig;
+  setUp(() => rig = CoachRig());
 
   testWidgets('opens: title, statement, the opener, gate chip', (t) async {
     await rig.open(t);
