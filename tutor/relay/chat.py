@@ -28,6 +28,9 @@ from tutor.relay.focus import (
     focus_status,
     focus_update,
 )
+from tutor.relay.lc import lc_list, lc_open, lc_run
+from tutor.relay.lc_cards import lc_cards
+from tutor.relay.lc_turn import lc_turn
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.sql import sql_get, sql_list, sql_predict, sql_run
 from tutor.relay.sql_lesson import sql_lesson_turn
@@ -236,4 +239,9 @@ CHAT_HANDLERS: Final[
     "sql_hint": sql_hint,
     "sql_generate": sql_generate,
     "sql_lesson_turn": sql_lesson_turn,
+    "lc_list": lc_list,
+    "lc_open": lc_open,
+    "lc_turn": lc_turn,
+    "lc_run": lc_run,
+    "lc_cards": lc_cards,
 }
