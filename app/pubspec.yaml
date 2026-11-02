@@ -16,13 +16,13 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.11.2
+      ref: crdt_sync_dart-v0.11.3
       path: crdt_sync_dart
   # The shared palette, spacing and type scale. No local theme to drift from.
   design_system:
     git:
       url: https://github.com/kuhyx/utils
-      ref: design_system-v0.2.1
+      ref: design_system-v0.3.0
       path: design_system
   flutter:
     sdk: flutter
