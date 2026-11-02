@@ -21,6 +21,7 @@ dependencies = [
     "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.20.0#subdirectory=earned_time",
     "focus-project @ git+https://github.com/kuhyx/utils@focus-project-v0.5.0#subdirectory=focus_project",
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
+    "sql-drills @ git+https://github.com/kuhyx/utils@sql-drills-v0.1.0#subdirectory=sql_drills",
     "httpx==0.28.1",
 ]
 
