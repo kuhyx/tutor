@@ -23,7 +23,7 @@ dependencies = [
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
     "sql-drills @ git+https://github.com/kuhyx/utils@sql-drills-v0.2.1#subdirectory=sql_drills",
     "leetcode-coach @ git+https://github.com/kuhyx/utils@leetcode-coach-v0.1.1#subdirectory=leetcode_coach",
-    "code-runner @ git+https://github.com/kuhyx/utils@code-runner-v0.1.0#subdirectory=code_runner",
+    "code-runner @ git+https://github.com/kuhyx/utils@code-runner-v0.1.1#subdirectory=code_runner",
     "httpx==0.28.1",
 ]
 
