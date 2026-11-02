@@ -21,7 +21,8 @@ readonly UNIT="tutor.service"
 readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="$HOME/.local/lib/tutor-live"  # current/ = tutor.service cwd
 readonly LOG="$HOME/.local/state/tutor/server.log"
-readonly APP_URL="${URL}app/"
+# Deep link opened in the app (`--route /focus?start=1`), set by option parsing.
+APP_ROUTE=""
 # Fixed port (above) and fixed profile: the desktop app's sign-in and its
 # offline review queue live in this profile's storage, keyed by origin.
 # Changing either silently signs the window out and hides queued reviews.
@@ -29,8 +30,9 @@ readonly PROFILE="${TUTOR_DESKTOP_PROFILE:-$HOME/.local/share/tutor-desktop/prof
 OPEN=1
 
 usage() {
-    echo "Usage: $(basename "$0") [--no-open]"
+    echo "Usage: $(basename "$0") [--no-open] [--route /path[?query]]"
     echo "  --no-open   start the tutor if needed and print its URL only"
+    echo "  --route R   open the app on route R (/focus?start=1 starts the timer)"
     exit 0
 }
 
@@ -43,6 +45,11 @@ browser() {
     return 1
 }
 
+# The app's address; Flutter web routes live in the fragment (#/focus).
+app_url() {
+    echo "${URL}app/${APP_ROUTE:+#$APP_ROUTE}"
+}
+
 open_ui() {
     local b
     if b="$(browser)"; then
@@ -53,12 +60,12 @@ open_ui() {
         # app (seen on Xvfb). The guard wrapper's extensions still load.
         # No --force-device-scale-factor: it is process-wide (wrong on the
         # QHD monitor); the app scales itself per display (lib/ui/ui_scale.dart).
-        XDG_CONFIG_HOME="$PROFILE.xdg" setsid -f "$b" --app="$APP_URL" \
+        XDG_CONFIG_HOME="$PROFILE.xdg" setsid -f "$b" --app="$(app_url)" \
             --user-data-dir="$PROFILE" \
             --class=tutor --password-store=basic --no-first-run \
             >/dev/null 2>&1
     else
-        setsid -f xdg-open "$APP_URL" >/dev/null 2>&1
+        setsid -f xdg-open "$(app_url)" >/dev/null 2>&1
     fi
 }
 
@@ -95,7 +102,7 @@ main() {
         start_server
         wait_up || { echo "Tutor did not start; see $LOG" >&2; exit 1; }
     fi
-    echo "Tutor: $APP_URL"
+    echo "Tutor: $(app_url)"
     if [[ $OPEN -eq 1 ]]; then
         open_ui
     fi
@@ -104,6 +111,10 @@ main() {
 while [[ $# -gt 0 ]]; do
     case $1 in
         --no-open) OPEN=0; shift ;;
+        --route)
+            [[ -n "${2:-}" && "$2" =~ ^/([A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*)?(\?[A-Za-z0-9_.=\&-]*)?$ ]] \
+                || { echo "--route needs a path like /focus?start=1" >&2; exit 1; }
+            APP_ROUTE="$2"; shift 2 ;;
         -h | --help) usage ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
