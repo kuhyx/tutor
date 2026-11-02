@@ -3,6 +3,7 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/plan/today_plan.dart';
 
 /// One dot per step: done, current, to do.
@@ -93,7 +94,7 @@ class StepCard extends StatelessWidget {
                 child: FilledButton(
                   key: const ValueKey('today-start'),
                   onPressed: onStart,
-                  child: const Text('Start'),
+                  child: Text(AppLocalizations.of(context).start),
                 ),
               ),
             const SizedBox(height: AppSpacing.sm),

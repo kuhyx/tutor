@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:tutor/mock/mock_models.dart';
 import 'package:tutor/mock/mock_run_view.dart';
 import 'package:tutor/mock/mock_session.dart';
+import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
 import 'package:tutor/ui/sql/sql_editor.dart';
+import 'package:tutor/ui/sql/table_strip.dart';
 import 'package:tutor/ui/sql/task_view.dart';
 import 'package:tutor/widgets/code_symbol_bar.dart';
 
@@ -47,47 +49,69 @@ Widget mockTaskBody({
       ],
     );
   }
-  return WithSymbolBar(
-    controller: editor!,
-    show: true,
-    child: ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      children: [
-        ...head,
-        ...tableWidgets(task.tables),
-        if (task.sample.isNotEmpty) ...[
-          _gap,
-          const Icon(Icons.flag_outlined, semanticLabel: 'Sample'),
-          DataGridView(columns: const [], rows: task.sample),
-        ],
-        _gap,
-        SqlEditor(controller: editor),
-        _gap,
-        Row(
+  return MetricsBuilder(
+    builder: (context) {
+      final pinned = task.tables.isNotEmpty && keyboardUp(context);
+      return WithSymbolBar(
+        controller: editor!,
+        show: true,
+        child: Column(
           children: [
-            FilledButton.tonal(
-              key: const ValueKey('run'),
-              onPressed: onRun,
-              child: const Icon(Icons.play_arrow, semanticLabel: 'Run'),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            FilledButton(
-              key: const ValueKey('submit'),
-              onPressed: () => session.submit(task.id),
-              child: Icon(
-                session.isSubmitted(task.id) ? Icons.check : Icons.send,
-                semanticLabel: 'Submit',
+            if (pinned) TableStrip(tables: task.tables),
+            Expanded(
+              key: const ValueKey('task-list'),
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                children: [
+                  ...head,
+                  Offstage(
+                    offstage: pinned,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: tableWidgets(task.tables),
+                    ),
+                  ),
+                  if (task.sample.isNotEmpty) ...[
+                    _gap,
+                    const Icon(Icons.flag_outlined, semanticLabel: 'Sample'),
+                    DataGridView(columns: const [], rows: task.sample),
+                  ],
+                  _gap,
+                  SqlEditor(controller: editor),
+                  _gap,
+                  _buttons(session, task, onRun),
+                  runLine,
+                  if (out != null) MockRunView(out),
+                ],
               ),
             ),
           ],
         ),
-        runLine,
-        if (out != null) MockRunView(out),
-      ],
-    ),
+      );
+    },
   );
 }
+
+Widget _buttons(MockSession session, MockTask task, VoidCallback? onRun) => Row(
+  children: [
+    FilledButton.tonal(
+      key: const ValueKey('run'),
+      onPressed: onRun,
+      child: const Icon(Icons.play_arrow, semanticLabel: 'Run'),
+    ),
+    const SizedBox(width: AppSpacing.sm),
+    FilledButton(
+      key: const ValueKey('submit'),
+      onPressed: () => session.submit(task.id),
+      child: Icon(
+        session.isSubmitted(task.id) ? Icons.check : Icons.send,
+        semanticLabel: 'Submit',
+      ),
+    ),
+  ],
+);
 
 class _Option extends StatelessWidget {
   const new(this.i, this.text, {required this.selected, required this.onTap});

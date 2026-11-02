@@ -85,10 +85,7 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
   @override
   void didChangeMetrics() => _toEnd();
 
-  void _onFocus() {
-    if (_focus.hasFocus) setState(() => _tablesOpen = false);
-    _toEnd();
-  }
+  void _onFocus() => setState(_toEnd);
 
   void _toEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
@@ -168,6 +165,7 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
                 PinnedTables(
                   tables: _tables,
                   open: _tablesOpen,
+                  compact: _focus.hasFocus,
                   onToggle: () => setState(() => _tablesOpen = !_tablesOpen),
                 ),
               const Divider(height: 1),

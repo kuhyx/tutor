@@ -12,7 +12,7 @@ import 'package:tutor/ui/sql/lesson_parts.dart';
 
 /// The chat tab: thread, pinned snippet, notices, answer box and actions.
 /// `onPostMortem` opens the cards view once the session is done; the
-/// statement folds above the thread unless `sidePane` shows it elsewhere.
+/// statement stays above the thread, capped, unless `sidePane` shows it.
 class CoachChat extends StatefulWidget {
   /// Creates the pane.
   const new({
@@ -45,7 +45,7 @@ class _CoachChatState extends State<CoachChat> {
   @override
   void initState() {
     super.initState();
-    _focus.addListener(_onFocus);
+    _focus.addListener(_toEnd);
     _s.addListener(_toEnd);
   }
 
@@ -53,15 +53,10 @@ class _CoachChatState extends State<CoachChat> {
   void dispose() {
     _s.removeListener(_toEnd);
     _focus
-      ..removeListener(_onFocus)
+      ..removeListener(_toEnd)
       ..dispose();
     _scroll.dispose();
     super.dispose();
-  }
-
-  void _onFocus() {
-    if (_focus.hasFocus) setState(() => _statementOpen = false);
-    _toEnd();
   }
 
   void _toEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -5,8 +5,10 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/sql/lesson_models.dart';
 import 'package:tutor/sql/sql_models.dart';
+import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
+import 'package:tutor/ui/sql/table_strip.dart';
 import 'package:tutor/ui/sql/task_view.dart';
 
 /// The current tables under a header that folds them, capped by [share].
@@ -16,6 +18,7 @@ class PinnedTables extends StatelessWidget {
     required this.tables,
     required this.open,
     required this.onToggle,
+    this.compact = false,
     this.share = 0.3,
     super.key,
   });
@@ -29,13 +32,15 @@ class PinnedTables extends StatelessWidget {
   /// Folds or unfolds the body.
   final VoidCallback onToggle;
 
+  /// Typing: only the always-visible [TableStrip], no fold.
+  final bool compact;
+
   /// Largest part of the free height the body may take.
   final double share;
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final room = media.size.height - media.viewInsets.bottom;
+    if (compact) return TableStrip(tables: tables, share: share);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -64,8 +69,8 @@ class PinnedTables extends StatelessWidget {
           ),
         ),
         if (open)
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: room * share),
+          CappedHeight(
+            share: share,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,

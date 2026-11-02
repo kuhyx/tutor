@@ -13,6 +13,9 @@ const TextStyle sqlMono = TextStyle(
   fontSize: AppTextSize.label,
 );
 
+/// The same at strip size.
+const TextStyle sqlMonoDense = TextStyle(fontFamily: 'monospace', fontSize: 11);
+
 /// Header [columns], body [rows], and the (row, col) cells to flag.
 class DataGridView extends StatelessWidget {
   /// Creates the grid.
@@ -20,6 +23,7 @@ class DataGridView extends StatelessWidget {
     required this.columns,
     required this.rows,
     this.marked = const {},
+    this.dense = false,
     super.key,
   });
 
@@ -32,6 +36,9 @@ class DataGridView extends StatelessWidget {
   /// Flagged body cells, 0-based.
   final Set<(int, int)> marked;
 
+  /// Smaller font and padding, for a strip.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -40,9 +47,9 @@ class DataGridView extends StatelessWidget {
     Widget cell(String text, {bool head = false, Key? key, bool hit = false}) =>
         Container(
           key: key,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
+          padding: EdgeInsets.symmetric(
+            horizontal: dense ? AppSpacing.xs : AppSpacing.sm,
+            vertical: dense ? 1 : AppSpacing.xs,
           ),
           decoration: BoxDecoration(
             color: hit
@@ -54,7 +61,7 @@ class DataGridView extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: sqlMono.copyWith(
+            style: (dense ? sqlMonoDense : sqlMono).copyWith(
               fontWeight: head || hit ? FontWeight.w700 : null,
             ),
           ),

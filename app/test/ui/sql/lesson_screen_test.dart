@@ -203,29 +203,6 @@ void main() {
       expect(inTables, findsOneWidget);
     });
 
-    testWidgets('with the keyboard up, header and answer box stay in view', (
-      t,
-    ) async {
-      await open(t, keyboard: 800);
-      await t.tap(find.byKey(const ValueKey('answer')));
-      await t.pump(const Duration(milliseconds: 100));
-      const dpr = 2.625;
-      const top = 132 / dpr;
-      const keyboardTop = (2400 - 800) / dpr;
-      final header = t.getRect(find.byKey(const ValueKey('tables-header')));
-      final box = t.getRect(find.byKey(const ValueKey('answer')));
-      expect(header.top, greaterThanOrEqualTo(top));
-      expect(box.bottom, lessThanOrEqualTo(keyboardTop));
-      expect(box.top, greaterThan(header.bottom));
-      expect(
-        find.descendant(
-          of: find.byType(PinnedTables),
-          matching: find.text('Ann'),
-        ),
-        findsNothing,
-      );
-    });
-
     testWidgets('the unfolded tables never fill the screen', (t) async {
       await open(t, keyboard: 800);
       final box = t.getRect(find.byKey(const ValueKey('answer')));

@@ -1,6 +1,7 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/coach/coach_models.dart';
+import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
 
@@ -71,8 +72,6 @@ class FoldingStatement extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final room = media.size.height - media.viewInsets.bottom;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -95,8 +94,8 @@ class FoldingStatement extends StatelessWidget {
           ),
         ),
         if (open)
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: room * 0.35),
+          CappedHeight(
+            share: 0.3,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
@@ -125,7 +124,6 @@ class PinnedSnippet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final room = MediaQuery.of(context).size.height;
     return Container(
       key: const ValueKey('pinned'),
       decoration: BoxDecoration(
@@ -137,8 +135,8 @@ class PinnedSnippet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: room * 0.22),
+            child: CappedHeight(
+              share: 0.22,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 child: RichMd(md),
