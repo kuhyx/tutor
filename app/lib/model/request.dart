@@ -121,7 +121,10 @@ enum RequestKind {
   lcRun('lc_run', Lane.chat),
 
   /// Problem coach: confirm the toolbox entries the post-mortem proposes.
-  lcCards('lc_cards', Lane.chat);
+  lcCards('lc_cards', Lane.chat),
+
+  /// Mock test: start, answer, run, finish.
+  mock('mock', Lane.chat);
 
   new(this.wire, this.lane);
 
