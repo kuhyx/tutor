@@ -138,6 +138,21 @@ class SqlOutcome {
   /// The decoded result, for the hint request.
   final Json raw;
 
+  /// The part of this result a hint request carries (the worker reads
+  /// only these, and the first 20 rows and diffs).
+  Json hintSlice() => compact({
+    'ok': ok,
+    'error': error,
+    'columns': columns.isEmpty ? null : columns,
+    'match': match,
+    'rows': rows.isEmpty ? null : rows.take(20).toList(),
+    'cell_diff': diff.isEmpty
+        ? null
+        : [
+            for (final d in diff.take(20)) [d.row, d.col, d.expected, d.actual],
+          ],
+  });
+
   /// Cells to highlight in the expected or the actual grid: the diff, plus
   /// every cell of a row the other grid does not have.
   Set<(int, int)> marked({required bool expected}) {

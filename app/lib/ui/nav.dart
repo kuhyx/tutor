@@ -1,7 +1,7 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
 /// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
-/// `/report`;
+/// `/report`, `/sql`;
 /// `/focus?start=1` also starts the focus timer if it is not running;
 /// `/session/continue` opens the Session and asks for the open session).
 library;
@@ -19,6 +19,7 @@ import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/report_dialog.dart';
 import 'package:tutor/ui/review_screen.dart';
 import 'package:tutor/ui/session/session_screen.dart';
+import 'package:tutor/ui/sql/sql_screen.dart';
 import 'package:tutor/ui/transcript_screen.dart';
 
 Future<void> _push(
@@ -58,6 +59,10 @@ Future<void> openFocus(
   TutorServices s, {
   bool autoStart = false,
 }) => _push(context, FocusScreen(services: s, autoStart: autoStart));
+
+/// Opens SQL practice.
+Future<void> openSql(BuildContext context, TutorServices s) =>
+    _push(context, SqlPracticeScreen(services: s));
 
 /// Opens History.
 Future<void> openHistory(BuildContext context, TutorServices s) =>
@@ -144,6 +149,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
       s,
       autoStart: uri.queryParameters['start'] == '1',
     ),
+    'sql' => openSql(context, s),
     'history' when arg != null => openTranscript(context, s, arg),
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),

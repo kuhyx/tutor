@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/home/remote_bits.dart';
-import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/error_text.dart';
@@ -19,6 +18,7 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_body.dart';
+import 'package:tutor/ui/home_icons.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/new_cap_dialog.dart';
 import 'package:tutor/util/refresher.dart';
@@ -148,11 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
       title: const Text('Tutor'),
       actions: [
         _PresenceChip(_presence.state),
-        IconButton(
-          tooltip: AppLocalizations.of(context).focus,
-          onPressed: () => _go(() => openFocus(context, _s)),
-          icon: const Icon(Icons.center_focus_strong_outlined),
-        ),
+        ...homeIcons(context, _s, _go),
         IconButton(
           tooltip: 'Refresh',
           onPressed: _refresh,

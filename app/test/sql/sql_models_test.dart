@@ -64,6 +64,20 @@ void main() {
     expect(r.marked(expected: true), {(0, 0)});
   });
 
+  test('hintSlice keeps what the worker reads, trimmed', () {
+    final slice = parseOutcome(runBadData).hintSlice();
+    expect(slice['match'], false);
+    expect(slice['rows'], [
+      ['3'],
+      ['NULL'],
+    ]);
+    expect(slice['cell_diff'], [
+      [0, 0, '2', '3'],
+    ]);
+    final empty = parseOutcome(const {'ok': false, 'error': 'x'}).hintSlice();
+    expect(empty.keys, unorderedEquals(['ok', 'error', 'match']));
+  });
+
   test('result: error and empty rows', () {
     final r = parseOutcome(const {'ok': false, 'error': 'syntax'});
     expect(r.ok, isFalse);
