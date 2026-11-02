@@ -11,14 +11,19 @@ lane. Times: `ts` unix ms, dates `YYYY-MM-DD` (PC local).
 | `focus_status` | `{}` | see Status |
 | `focus_event` | `{"event":"start"\|"checkin"\|"stop","ts":ms,"platform":"phone"\|"pc"}` | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...],"carry_out"}` (fp.status of today; name null = no active project) |
 | `focus_create` | `{"name"<=80,"start","end","replaces":[leetcode\|reading\|tutor],"daily_minutes":1..720,"unlock_minutes":0..daily,"subjects":[slug],"site_patterns":[host<=100 x<=20],"work_url"?:http(s) URL or ""}` | `{"id"}` |
-| `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`; absent `work_url` = kept) | `{"id"}` |
+| `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`; absent `work_url` = kept) | `{"id","effective_from":"YYYY-MM-DD","message"?}` |
 | `focus_end` | `{"id","day"?}` (day = last active day, default today; a past day is `focus_refused`) | `{}` |
 
 Empty lists are dropped by RTDB: absent = `[]`.
 
 `focus_update` follows focus_project's edit rules: a started project's `start`
-cannot move, an ended or finished project is refused, changed minutes apply
-from today (earlier days keep theirs) - all `focus_refused`.
+cannot move, an ended or finished project is refused - all `focus_refused`.
+An edit never lowers today's obligation (focus_project 0.7.0): a lower
+`daily_minutes`/`unlock_minutes` or a gate added to `replaces` holds from
+tomorrow (a mixed edit defers whole); raises, removed gates and edits to a
+project that has not started hold from today. `effective_from` is the first
+day the new values hold; `message` is present only when it is after today. The
+frozen app ignores the response body, so it shows neither.
 
 ## Status (`focus_status`)
 `minutes` is the real count (may exceed `daily_minutes`: 121/120); `carry_out`

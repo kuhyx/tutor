@@ -52,6 +52,12 @@ class ProjectLike(Protocol):
     created_ms: int
 
 
+class UpdateLike(Protocol):
+    """``focus_project.Update``: the edited project, and when it takes hold."""
+
+    effective_from: date
+
+
 class FocusApi(Protocol):
     """``import focus_project as fp``: the contract functions used here."""
 
@@ -81,9 +87,9 @@ class FocusApi(Protocol):
         """Add a project; ``ValueError`` on bad input or an overlap."""
         ...
 
-    def update_project(
+    def apply_update(
         self, project_id: str, *, today: date | None = None, **fields: object
-    ) -> ProjectLike:
+    ) -> UpdateLike:
         """Edit a project; ``ValueError`` / ``KeyError`` if impossible."""
         ...
 

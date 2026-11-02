@@ -4,10 +4,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from datetime import date
+from datetime import date, timedelta
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -33,6 +31,14 @@ class FakeProject:
         return self.ended_on or self.end
 
 
+@dataclass(frozen=True)
+class FakeUpdate:
+    """The real ``Update``: the edited project and its first effective day."""
+
+    project: FakeProject
+    effective_from: date
+
+
 @dataclass
 class FakeFp:
     """Records every call; ``create_project`` refuses overlaps like the real one."""
@@ -42,6 +48,7 @@ class FakeFp:
     minutes: int = 0
     boom: Exception | None = None
     updated_on: date | None = None
+    defer: bool = False  # act like a reduction: the edit holds from tomorrow
 
     def _check(self) -> None:
         if self.boom is not None:
@@ -112,9 +119,7 @@ class FakeFp:
                 return self.projects[i]
         raise KeyError(project_id)
 
-    def update_project(
-        self, project_id: str, today: date | None = None, **kw: Any
-    ) -> FakeProject:
+    def apply_update(self, project_id: str, today: date, **kw: Any) -> FakeUpdate:
         """Edit fields; KeyError when unknown, ValueError on an overlap."""
         self._check()
         self.updated_on = today
@@ -130,5 +135,6 @@ class FakeFp:
                     msg = f"project overlaps {other.id!r}"
                     raise ValueError(msg)
             self.projects[i] = new
-            return new
+            first = today + timedelta(days=1) if self.defer else today
+            return FakeUpdate(new, first)
         raise KeyError(project_id)

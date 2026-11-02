@@ -169,13 +169,13 @@ async def focus_create(ctx: RequestContext) -> dict[str, Any]:
 
 async def focus_update(ctx: RequestContext) -> dict[str, Any]:
     """Edit a project (every field, like create); a refusal is ``focus_refused``."""
-    fp, body = _fp(), ctx.body
+    fp, body, today = _fp(), ctx.body, _today(ctx)
     # An older client never sends work_url: absent keeps it, "" clears it.
     kept = {} if body["work_url"] is None else {"work_url": body["work_url"]}
     try:
-        fp.update_project(
+        done = fp.apply_update(
             body["id"],
-            today=_today(ctx),
+            today=today,
             **kept,
             name=body["name"],
             start=date.fromisoformat(body["start"]),
@@ -193,7 +193,14 @@ async def focus_update(ctx: RequestContext) -> dict[str, Any]:
         raise RequestError(str(exc), code="focus_refused") from exc
     except OSError as exc:
         raise _unreadable(exc) from exc
-    return {"id": body["id"]}
+    first = done.effective_from
+    out: dict[str, Any] = {"id": body["id"], "effective_from": first.isoformat()}
+    if first > today:
+        out["message"] = (
+            f"Saved. Lower targets and newly replaced gates apply from {first}; "
+            "today keeps the old ones."
+        )
+    return out
 
 
 async def focus_end(ctx: RequestContext) -> dict[str, Any]:

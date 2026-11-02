@@ -37,7 +37,10 @@ def fp(monkeypatch: pytest.MonkeyPatch) -> FakeFp:
 
 def test_update_passes_every_field_and_today(fp: FakeFp) -> None:
     fp.projects = [project("now", 0, 3)]
-    assert call("focus_update", UPDATE) == {"id": "now"}
+    assert call("focus_update", UPDATE) == {
+        "id": "now",
+        "effective_from": TODAY.isoformat(),
+    }
     edited = fp.projects[0]
     assert (edited.id, edited.name, edited.start, edited.end) == (
         "now", "Renamed", day(0), day(3),
@@ -95,3 +98,12 @@ def test_work_url_is_set_kept_when_absent_and_cleared_when_empty(fp: FakeFp) -> 
     assert fp.projects[0].work_url == url
     call("focus_update", {**UPDATE, "work_url": ""})
     assert fp.projects[0].work_url == ""
+
+
+def test_a_deferred_edit_says_it_applies_tomorrow(fp: FakeFp) -> None:
+    fp.projects = [project("now", 0, 3)]
+    fp.defer = True
+    got = call("focus_update", UPDATE)
+    assert got["effective_from"] == day(1).isoformat()
+    assert day(1).isoformat() in got["message"]
+    assert "today" in got["message"]
