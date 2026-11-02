@@ -1,16 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
 import 'package:tutor/focus/event_queue.dart';
 import 'package:tutor/storage/kv_store.dart';
+
+part 'focus_timer_background.dart';
 
 const _key = 'focus.timer';
 const _tick = Duration(seconds: 1);
 
 /// A gap above this between taps stops the counting (focus_project rule).
 const lapseAfter = Duration(minutes: 10);
+
+/// Longer than this out of the foreground ends the run, at the moment the
+/// app left the screen.
+const backgroundGrace = Duration(seconds: 60);
 
 /// The focus timer: taps become queued `focus_event`s with the tap time.
 class FocusTimer extends ChangeNotifier {
@@ -21,6 +27,7 @@ class FocusTimer extends ChangeNotifier {
     required this._send,
     this._notifier = const NoopCheckinNotifier(),
     this._platform = 'phone',
+    this._background = backgroundGrace,
     int Function()? now,
   }) : _now = now ?? (() => DateTime.now().millisecondsSinceEpoch);
 
@@ -29,6 +36,7 @@ class FocusTimer extends ChangeNotifier {
   final FocusSender _send;
   final FocusCheckinNotifier _notifier;
   final String _platform;
+  final Duration _background;
   final int Function() _now;
   bool _started = false;
   Future<void>? _loading;
@@ -39,6 +47,10 @@ class FocusTimer extends ChangeNotifier {
   int _countedMs = 0;
   Timer? _ticker;
   StreamSubscription<int>? _taps;
+  AppLifecycleListener? _lifecycle;
+  Timer? _grace;
+  Future<void> _leaving = Future.value();
+  QueuedFocusEvent? _pendingStop;
 
   int get _gapMs => _now() - _lastMs;
 
@@ -124,14 +136,26 @@ class FocusTimer extends ChangeNotifier {
     _started = j['running'] as bool;
     _lastMs = j['last'] as int;
     _countedMs = j['counted'] as int;
+    final stored = j['pendingStop'];
+    if (stored == null) return;
+    // A process killed in the grace left its stop queued: finish it now.
+    _endRunAt(QueuedFocusEvent.fromJson(stored as Map<String, dynamic>).ts);
+    await _save();
+    await _notifier.cancel();
   }
 
   Future<void> _save() => _kv.set(
     _key,
-    jsonEncode({'running': _started, 'last': _lastMs, 'counted': _countedMs}),
+    jsonEncode({
+      'running': _started,
+      'last': _lastMs,
+      'counted': _countedMs,
+      if (_pendingStop != null) 'pendingStop': _pendingStop!.toJson(),
+    }),
   );
 
   Future<void> _tap(String event, int ts, {bool started = true}) async {
+    await _dropPendingStop();
     await _queue.enqueue(event, ts: ts, platform: _platform);
     _started = started;
     _lastMs = ts;
@@ -140,6 +164,10 @@ class FocusTimer extends ChangeNotifier {
     _arm();
     notifyListeners();
     unawaited(flush());
+  }
+
+  void _changed() {
+    if (!_disposed) notifyListeners();
   }
 
   void _arm() {
@@ -161,6 +189,8 @@ class FocusTimer extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _ticker?.cancel();
+    _grace?.cancel();
+    _lifecycle?.dispose();
     unawaited(_taps?.cancel());
     super.dispose();
   }

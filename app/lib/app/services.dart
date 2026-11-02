@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
+import 'package:tutor/focus/android_checkin_notifier.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
 import 'package:tutor/focus/event_queue.dart';
 import 'package:tutor/focus/focus_send.dart';
@@ -155,11 +156,18 @@ class TutorServices {
   final FocusCheckinNotifier checkinNotifier;
 
   /// The focus timer, shared by every screen.
-  late final FocusTimer focus = FocusTimer(
-    kv: kv,
-    queue: FocusEventQueue(kv),
-    send: relaySender(relay),
-    notifier: checkinNotifier,
-    platform: kIsWeb ? 'pc' : 'phone',
-  );
+  late final FocusTimer focus = _openFocus();
+
+  // On the phone the run ends when the app stays away for over a minute.
+  FocusTimer _openFocus() {
+    final timer = FocusTimer(
+      kv: kv,
+      queue: FocusEventQueue(kv),
+      send: relaySender(relay),
+      notifier: checkinNotifier,
+      platform: kIsWeb ? 'pc' : 'phone',
+    );
+    if (checkinNotifier is AndroidCheckinNotifier) timer.watchLifecycle();
+    return timer;
+  }
 }

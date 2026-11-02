@@ -100,12 +100,17 @@ class FocusEventQueue {
   final int Function() _now;
   Future<void> _lock = Future.value();
   Future<FocusFlush>? _flushing;
+  // Rids a flush must not send yet (in memory only: after a restart the
+  // process that held them is dead, so they go out).
+  final Set<String> _held = {};
 
-  /// Stores an event; [ts] defaults to now.
+  /// Stores an event; [ts] defaults to now. A [hold]ing event stays queued
+  /// but is not sent by [flush] until [release]d (or the process restarts).
   Future<QueuedFocusEvent> enqueue(
     String event, {
     int? ts,
     String platform = 'phone',
+    bool hold = false,
   }) {
     if (!focusEventNames.contains(event)) {
       throw ArgumentError.value(event, 'event');
@@ -116,9 +121,25 @@ class FocusEventQueue {
       ts: ts ?? _now(),
       platform: platform,
     );
+    if (hold) _held.add(e.rid);
     return _locked(() async {
       await _write([...await pending(), e]);
       return e;
+    });
+  }
+
+  /// Lets a held event go out with the next [flush].
+  void release(String rid) => _held.remove(rid);
+
+  /// Forgets a queued event that was never sent (a held one the app
+  /// returned from).
+  Future<void> remove(String rid) {
+    _held.remove(rid);
+    return _locked(() async {
+      await _write([
+        for (final p in await pending())
+          if (p.rid != rid) p,
+      ]);
     });
   }
 
@@ -154,6 +175,7 @@ class FocusEventQueue {
     var sent = 0;
     var dropped = 0;
     for (final e in await pending()) {
+      if (_held.contains(e.rid)) break;
       final outcome = await send(e);
       if (outcome == FocusSendOutcome.retry) break;
       await _locked(() async {

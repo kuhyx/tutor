@@ -33,6 +33,17 @@ class FocusTimerService : Service() {
         return START_NOT_STICKY
     }
 
+    /**
+     * Swiped out of recents: the run is over. Drop the alarms, the prompt and
+     * this service at once; the stop event (stamped when the app was hidden)
+     * is already queued by Dart and goes out on the next launch.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        FocusCheckin.cancel(this)
+        stopSelf()
+        super.onTaskRemoved(rootIntent)
+    }
+
     companion object {
         fun start(ctx: Context) {
             try {
