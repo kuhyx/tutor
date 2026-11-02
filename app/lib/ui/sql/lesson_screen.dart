@@ -120,12 +120,20 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
         _turn = t;
         _lessonId = t.lessonId;
         _tables = t.tables ?? _tables;
-        _thread.addAll([
-          if (t.feedbackMd != null) (mine: false, md: t.feedbackMd, grid: null),
-          if (t.result != null) (mine: false, md: null, grid: t.result),
-          if (t.summaryMd != null) (mine: false, md: t.summaryMd, grid: null),
-          if (t.questionMd != null) (mine: false, md: t.questionMd, grid: null),
-        ]);
+        final stored = t.thread;
+        if (stored != null) _thread.clear();
+        _thread.addAll(
+          stored ??
+              [
+                if (t.feedbackMd != null)
+                  (mine: false, md: t.feedbackMd, grid: null),
+                if (t.result != null) (mine: false, md: null, grid: t.result),
+                if (t.summaryMd != null)
+                  (mine: false, md: t.summaryMd, grid: null),
+                if (t.questionMd != null)
+                  (mine: false, md: t.questionMd, grid: null),
+              ],
+        );
       });
       _toEnd();
     } on FormatException catch (e) {

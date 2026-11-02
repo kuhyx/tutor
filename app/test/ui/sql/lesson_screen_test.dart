@@ -109,6 +109,38 @@ void main() {
     expect(find.textContaining('Which names'), findsOneWidget);
   });
 
+  testWidgets('resume shows the whole stored conversation', (t) async {
+    kv.data['sql.lesson.basics'] = 'a1b2c3d4e5f6';
+    await open(t, first: null);
+    await answer(
+      t,
+      db,
+      stream,
+      data: {
+        ...lessonTurnData,
+        'thread': [
+          {'mine': false, 'md': 'First question?'},
+          {'mine': true, 'md': 'my earlier answer'},
+          {
+            'mine': false,
+            'grid': {
+              'columns': ['name'],
+              'rows': [
+                ['Zed'],
+              ],
+            },
+          },
+          {'mine': false, 'md': 'Which names, once more?'},
+        ],
+      },
+    );
+    expect(find.text('First question?'), findsOneWidget);
+    expect(find.text('my earlier answer'), findsOneWidget);
+    expect(find.text('Zed'), findsOneWidget);
+    expect(find.textContaining('Which names, once more'), findsOneWidget);
+    expect(find.text('Not quite.'), findsNothing); // thread replaces the turn
+  });
+
   testWidgets('a bad turn is reported, not thrown', (t) async {
     await open(t, first: const {'lesson_id': 5});
     expect(find.textContaining('lesson_id'), findsOneWidget);

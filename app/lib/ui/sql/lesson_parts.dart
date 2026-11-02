@@ -3,13 +3,11 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/sql/lesson_models.dart';
 import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
 import 'package:tutor/ui/sql/task_view.dart';
-
-/// One chat entry: the learner's text, or the tutor's markdown or a result.
-typedef Bubble = ({bool mine, String? md, SqlTable? grid});
 
 /// The current tables under a header that folds them, capped by [share].
 class PinnedTables extends StatelessWidget {

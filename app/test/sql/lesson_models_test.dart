@@ -34,6 +34,36 @@ void main() {
     expect(parseLessonTurn(const {'lesson_id': 'y'}).check, isFalse);
   });
 
+  test('a stored thread parses; a bad entry is a FormatException', () {
+    final t = parseLessonTurn({
+      'lesson_id': 'x',
+      'thread': [
+        {'mine': true, 'md': 'hi'},
+        {
+          'mine': false,
+          'grid': {
+            'columns': ['a'],
+            'rows': [
+              ['1'],
+            ],
+          },
+        },
+      ],
+    });
+    expect(t.thread!.first, (mine: true, md: 'hi', grid: null));
+    expect(t.thread!.last.grid!.rows, [
+      ['1'],
+    ]);
+    expect(parseLessonTurn(const {'lesson_id': 'x'}).thread, isNull);
+    expect(
+      () => parseLessonTurn(const {
+        'lesson_id': 'x',
+        'thread': [1],
+      }),
+      throwsFormatException,
+    );
+  });
+
   test('topics walk in order and end', () {
     expect(nextLessonTopic('basics'), 'joins-null');
     expect(nextLessonTopic('window'), 'strings');
