@@ -109,4 +109,22 @@ void main() {
     expect(find.text('After'), findsOneWidget);
     expect(find.text('|---|---|'), findsNothing);
   });
+
+  testWidgets('a long query wraps in its block instead of clipping', (t) async {
+    const query =
+        'SELECT id, name FROM customers WHERE referee != 1 ORDER BY id DESC';
+    await pumpScreen(
+      t,
+      const Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 300, child: CodeBlock(query)),
+        ),
+      ),
+    );
+    final box = t.getSize(find.byType(CodeBlock));
+    expect(box.width, lessThanOrEqualTo(300));
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(t.getSize(find.text(query)).height, greaterThan(24));
+  });
 }

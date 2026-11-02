@@ -26,10 +26,8 @@ class CodeBlock extends StatelessWidget {
     ),
     child: Padding(
       padding: const EdgeInsets.all(AppSpacing.sm),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SelectableText(code.trimRight(), style: sqlMono),
-      ),
+      // Wraps: a query clipped at the screen edge cannot be answered.
+      child: SelectableText(code.trimRight(), style: sqlMono),
     ),
   );
 }
