@@ -68,7 +68,9 @@ def output_columns(statement: str) -> list[str]:
     after = re.split(r"Output\s*:?\**", statement, maxsplit=1)
     for line in after[1].splitlines() if len(after) > 1 else []:
         if (row := _ROW.match(line)) is not None:
-            return [c.strip() for c in row.group(1).split("|") if c.strip()]
+            cells = (c.strip() for c in row.group(1).split("|"))
+            # "..." stands for the columns the example leaves out (1179).
+            return [c for c in cells if any(ch.isalnum() for ch in c)]
     return []
 
 

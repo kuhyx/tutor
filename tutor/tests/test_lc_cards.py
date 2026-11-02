@@ -7,7 +7,7 @@ import pytest
 
 from tutor import sources
 from tutor.curriculum.context import Context
-from tutor.relay import lc_cards
+from tutor.relay import lc_backend, lc_cards
 from tutor.relay.errors import RequestError
 from tutor.store import data_dir
 from tutor.tests import _lc_support as s
@@ -129,6 +129,16 @@ def test_a_refused_entry_names_the_reason(
         {"name": "sentinel", "reason": "property set nests with 'XOR'"}
     ]
     assert got["cards"] == []
+
+
+def test_apkg_only_delivery_is_not_delivered(
+    monkeypatch: pytest.MonkeyPatch, cur: Context
+) -> None:
+    fakes, lc_id = done_session(monkeypatch)
+    fakes.anki_line = f"1 cards -> /x.apkg ({lc_backend.APKG_ONLY}). Import it"
+    fakes.replies.append({"entries": ["XOR"], "proposals": []})
+    got = cards(lc_id, cur)
+    assert got["anki"] == {"delivered": False, "line": fakes.anki_line}
 
 
 def test_anki_down_is_reported_not_raised(

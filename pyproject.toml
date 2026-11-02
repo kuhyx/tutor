@@ -22,7 +22,7 @@ dependencies = [
     "focus-project @ git+https://github.com/kuhyx/utils@focus-project-v0.6.0#subdirectory=focus_project",
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
     "sql-drills @ git+https://github.com/kuhyx/utils@sql-drills-v0.2.1#subdirectory=sql_drills",
-    "leetcode-coach @ git+https://github.com/kuhyx/utils@leetcode-coach-v0.1.0#subdirectory=leetcode_coach",
+    "leetcode-coach @ git+https://github.com/kuhyx/utils@leetcode-coach-v0.1.1#subdirectory=leetcode_coach",
     "code-runner @ git+https://github.com/kuhyx/utils@code-runner-v0.1.0#subdirectory=code_runner",
     "httpx==0.28.1",
 ]
@@ -64,6 +64,7 @@ ignore = [
 "tutor/curriculum/regen.py" = ["T201"]
 # Dev tool: the printed JSON is the smoke run's evidence.
 "scripts/curriculum_smoke.py" = ["T201"]
+"scripts/lc_live_e2e.py" = ["T201"]
 # Agent E2E (scripts/e2e_sandbox.sh): the printed steps, seed counts and the
 # device id are the run's evidence; the driver reads a loopback http
 # emulator; Chrome's --remote-debugging-pipe needs fds 3/4 placed in the

@@ -42,6 +42,12 @@ def test_output_columns_and_shape() -> None:
     assert c.shape_verdict("nothing", "x") == ("unverified", ())
 
 
+def test_ellipsis_column_is_not_a_column() -> None:
+    table = "Output:\n| id | Jan | ... | Dec |\n|---|---|---|---|\n"
+    assert c.output_columns(table) == ["id", "Jan", "Dec"]
+    assert c.shape_verdict(table, "id Jan Dec") == ("pass", ())
+
+
 def test_frustration_counts_two_confusions_in_a_row() -> None:
     assert c.frustrated("we are going in circles", 0) == (True, 0)
     assert c.frustrated("Stop.", 0) == (True, 0)

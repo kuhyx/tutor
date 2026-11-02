@@ -78,7 +78,8 @@ async def _anki(entries: list[dict[str, Any]]) -> dict[str, Any]:
     except ANKI_DOWN as err:
         _logger.warning("Anki delivery failed: %r", err)
         return {"delivered": False, "line": str(err)}
-    return {"delivered": True, "line": line}
+    # No AnkiConnect: the library wrote an .apkg that still needs importing.
+    return {"delivered": lc_backend.APKG_ONLY not in line, "line": line}
 
 
 def _known(box: lc_backend.Toolbox, names: list[str]) -> list[dict[str, Any]]:

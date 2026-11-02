@@ -9,28 +9,27 @@ module names (``leetcode_coach``, ``sql_drills``, ``code_runner``).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import importlib
-import importlib.util
+import datetime as dt
 import json
-import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from tutor.relay.errors import RequestError
+from tutor.relay import lc_runner
+from tutor.relay.lc_libs import lib as _lib
 from tutor.relay.lc_protocol import ALGO_LANGS, SQL_LANGS
-from tutor.relay.sql import wire
+from tutor.store import data_dir
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from types import ModuleType
 
-_logger = logging.getLogger(__name__)
 type Json = Any
+type Box = Any  # leetcode_coach.toolbox.Toolbox, loaded late
 type Ask = Callable[[str, str, dict[str, Any]], dict[str, Any]]
 type Runner = Callable[[str, str, str, str], dict[str, Any]]
 type Verdict = tuple[str, tuple[str, ...]]
 type Toolbox = tuple[list[dict[str, Any]], dict[str, str]]
 TOOLBOX_SLUG = "toolbox"
+APKG_ONLY = "Anki desktop not open"  # make_cards.deliver's offline line
 
 
 @dataclass(frozen=True)
@@ -72,13 +71,6 @@ class Coach:
     due: Callable[[], list[dict[str, Any]]]
 
 
-def _lib(name: str) -> ModuleType:
-    if importlib.util.find_spec(name.split(".", maxsplit=1)[0]) is None:
-        msg = f"{name.split('.', maxsplit=1)[0]} is not installed on the worker"
-        raise RequestError(msg, code="worker_error")
-    return importlib.import_module(name)
-
-
 def _problem(arg: str) -> Problem:
     fp = _lib("leetcode_coach.fetch_problem")
     slug = fp.slug_from(arg)
@@ -98,14 +90,33 @@ def _problem(arg: str) -> Problem:
     )
 
 
+def _toolbox_path() -> Path:
+    """The tutor's own toolbox, seeded from the library's on first use.
+
+    ``append_entry`` writes its target: the library's copy sits in the frozen
+    release's site-packages, which a deploy replaces, so confirmed entries
+    would vanish. The data dir keeps them.
+    """
+    path = data_dir() / "lc_toolbox.json"
+    if not path.exists():
+        seed = Path(str(_lib("leetcode_coach.toolbox").TOOLBOX_PATH))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
+    return path
+
+
+def _load_box() -> Box:
+    return _lib("leetcode_coach.toolbox").load_safe(_toolbox_path())
+
+
 def _verdict(statement: str, text: str, ask: Ask) -> Verdict:
-    rc, tb = _lib("leetcode_coach.req_check"), _lib("leetcode_coach.toolbox")
-    got = rc.check(statement, text, tb.load_safe(), ask)
+    rc = _lib("leetcode_coach.req_check")
+    got = rc.check(statement, text, _load_box(), ask)
     return str(got.verdict), tuple(got.missing)
 
 
 def _toolbox() -> Toolbox:
-    box = _lib("leetcode_coach.toolbox").load_safe()
+    box = _load_box()
     entries = [
         {"name": e.name, "aliases": list(e.aliases), "properties": list(e.properties)}
         for e in box.entries
@@ -140,9 +151,14 @@ def _clusters() -> list[dict[str, Any]]:
     ]
 
 
+def _due_ms(day: str) -> int:
+    midnight = dt.datetime.fromisoformat(day).replace(tzinfo=dt.UTC)
+    return int(midnight.timestamp() * 1000)
+
+
 def _due() -> list[dict[str, Any]]:
     return [
-        {"slug": r["slug"], "title": r["slug"], "due": r["due"]}
+        {"slug": r["slug"], "title": r["slug"], "due_ms": _due_ms(r["due"])}
         for r in _lib("leetcode_coach.progress").due_retests()
     ]
 
@@ -154,75 +170,17 @@ def make_coach() -> Coach:
         system_prompt=_system_prompt,
         check_req=_verdict,
         leaked=lambda reply, said: _lib("leetcode_coach.leak").leaked_names(
-            reply, said, _lib("leetcode_coach.toolbox").load_safe()
+            reply, said, _load_box()
         ),
         toolbox=_toolbox,
         append_entry=lambda n, a, p: _lib("leetcode_coach.toolbox_cards").append_entry(
-            n, a, p
+            n, a, p, path=_toolbox_path()
         ),
         deliver_anki=_deliver,
         log=_log,
         clusters=_clusters,
         due=_due,
     )
-
-
-class _CaseLike(Protocol):
-    n: int
-    ok: bool
-    input: object
-    expected: object
-    actual: object
-    error: str | None
-
-
-def _shown(value: object) -> str:
-    return json.dumps(value, default=str, ensure_ascii=False)[:200]
-
-
-def _case(result: _CaseLike) -> dict[str, Any]:
-    case: dict[str, Any] = {
-        "n": result.n,
-        "ok": result.ok,
-        "input": _shown(result.input),
-        "expected": _shown(result.expected),
-    }
-    if result.error:
-        case["error"] = str(result.error)
-    elif not result.ok:
-        case["got"] = _shown(result.actual)
-    return case
-
-
-def _run_sql(lang: str, code: str, statement: str) -> dict[str, Any]:
-    sd = _lib("sql_drills")
-    try:
-        sd.ensure_running(dialect=lang)
-        results = sd.run_problem(statement, code, dialect=lang)
-    except sd.NoExamplesError as err:
-        _logger.warning("no examples parsed from the statement: %s", err)
-        return {"ok": True, "no_examples": True, "examples": []}
-    except (sd.EngineError, sd.DialectError, sd.ProblemUnavailableError) as err:
-        raise RuntimeError(str(err)) from err
-    cases = [
-        {"n": i, "ok": r.ok and r.match, **wire(r)} for i, r in enumerate(results, 1)
-    ]
-    errors = [str(c["error"]) for c in cases if c.get("error")]
-    return {"ok": not errors, "error": errors[0] if errors else None, "examples": cases}
-
-
-def _run(lang: str, code: str, statement: str, starter: str) -> dict[str, Any]:
-    if lang in SQL_LANGS:
-        return _run_sql(lang, code, statement)
-    cr = _lib("code_runner")
-    if not (examples := cr.parse_examples(statement)):
-        return {"ok": True, "no_examples": True, "examples": []}
-    try:
-        results = cr.run(lang, code, starter, examples)
-    except cr.RunnerError as err:
-        _logger.warning("code_runner refused the run: %s", err)
-        return {"ok": False, "error": str(err), "examples": []}
-    return {"ok": True, "examples": [_case(r) for r in results]}
 
 
 _ACTIVE: dict[str, object] = {}
@@ -246,5 +204,5 @@ def coach() -> Coach:
 
 
 def runner() -> Runner:
-    """The code runner (the real one is :func:`_run`)."""
-    return cast("Runner", _ACTIVE.get("runner", _run))
+    """The code runner (the real one is ``lc_runner.run``)."""
+    return cast("Runner", _ACTIVE.get("runner", lc_runner.run))

@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from tutor.relay import lc_backend as b
+from tutor.relay import lc_runner
 from tutor.relay.errors import RequestError
+from tutor.relay.lc_libs import lib
+from tutor.store import data_dir
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -25,10 +28,14 @@ def fake_libs(monkeypatch: pytest.MonkeyPatch, **libs: Any) -> None:
     monkeypatch.setattr(b, "_lib", lambda name: libs[name])
 
 
+def fake_runner_libs(monkeypatch: pytest.MonkeyPatch, **libs: Any) -> None:
+    monkeypatch.setattr(lc_runner, "lib", lambda name: libs[name])
+
+
 def test_lib_imports_an_installed_package() -> None:
-    assert b._lib("json").__name__ == "json"
+    assert lib("json").__name__ == "json"
     with pytest.raises(RequestError, match="nothing_here"):
-        b._lib("nothing_here.sub")
+        lib("nothing_here.sub")
 
 
 def case(n: int, ok: bool, error: str | None = None) -> SimpleNamespace:
@@ -50,13 +57,13 @@ def test_algo_runner_maps_code_runner_results(monkeypatch: pytest.MonkeyPatch) -
         run=run,
         RunnerError=BoomError,
     )
-    fake_libs(monkeypatch, code_runner=cr)
-    assert b._run("python3", "x", "plain", "def f(): ...") == {
+    fake_runner_libs(monkeypatch, code_runner=cr)
+    assert lc_runner.run("python3", "x", "plain", "def f(): ...") == {
         "ok": True,
         "no_examples": True,
         "examples": [],
     }
-    got = b._run("python3", "x", "Input", "def f(): ...")
+    got = lc_runner.run("python3", "x", "Input", "def f(): ...")
     assert got["examples"][0] == {
         "n": 1,
         "ok": True,
@@ -66,7 +73,7 @@ def test_algo_runner_maps_code_runner_results(monkeypatch: pytest.MonkeyPatch) -
     assert got["examples"][1]["got"] == "[2]"
     assert got["examples"][2]["error"] == "TimeLimitExceeded"
     assert seen["args"][2] == "def f(): ..."
-    bad = b._run("python3", "crash", "Input", "")
+    bad = lc_runner.run("python3", "crash", "Input", "")
     assert (bad["ok"], bad["error"]) == (False, "no entry point")
 
 
@@ -99,13 +106,13 @@ def test_sql_runner_maps_run_problem_results(monkeypatch: pytest.MonkeyPatch) ->
         DialectError=BoomError,
         ProblemUnavailableError=BoomError,
     )
-    fake_libs(monkeypatch, sql_drills=sd)
-    assert b._run("mysql", "none", "st", "")["no_examples"] is True
+    fake_runner_libs(monkeypatch, sql_drills=sd)
+    assert lc_runner.run("mysql", "none", "st", "")["no_examples"] is True
     with pytest.raises(RuntimeError, match="docker"):
-        b._run("postgresql", "down", "st", "")
-    fine = b._run("postgresql", "ok", "st", "")
+        lc_runner.run("postgresql", "down", "st", "")
+    fine = lc_runner.run("postgresql", "ok", "st", "")
     assert (fine["ok"], fine["examples"][0]["n"]) == (True, 1)
-    mixed = b._run("mysql", "mixed", "st", "")
+    mixed = lc_runner.run("mysql", "mixed", "st", "")
     assert mixed["ok"] is False
     assert mixed["error"] == "ERROR: column"
     assert [e["ok"] for e in mixed["examples"]] == [True, False]
@@ -165,7 +172,13 @@ def test_coach_adapter(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     box = ns(entries=(entry,), properties={"p": "meaning"})
     log_calls: list[Any] = []
     appended: list[Any] = []
+    loaded: list[Path] = []
+    (tmp_path / "toolbox.json").write_text('{"entries": []}', encoding="utf-8")
     delivered: list[str] = []
+
+    def load_safe(path: Path) -> Any:
+        loaded.append(path)
+        return box
 
     def deliver(slug: str, cards: list[Any]) -> str:
         delivered.append(slug)
@@ -173,7 +186,10 @@ def test_coach_adapter(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
     libs = {
         "leetcode_coach": lib_tree(tmp_path),
-        "leetcode_coach.toolbox": ns(load_safe=lambda: box),
+        "leetcode_coach.toolbox": ns(
+            load_safe=load_safe,
+            TOOLBOX_PATH=tmp_path / "toolbox.json",
+        ),
         "leetcode_coach.req_check": ns(
             check=lambda st, text, tb, ask: ns(verdict="incomplete", missing=["p"])
         ),
@@ -193,7 +209,7 @@ def test_coach_adapter(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         ),
         "leetcode_coach.leak": ns(leaked_names=lambda reply, said, tb: [reply, *said]),
         "leetcode_coach.toolbox_cards": ns(
-            append_entry=lambda n, a, p: appended.append((n, a, p))
+            append_entry=lambda n, a, p, path: appended.append((n, a, p, path))
         ),
     }
     fake_libs(monkeypatch, **libs)
@@ -211,10 +227,13 @@ def test_coach_adapter(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     assert log_calls == [("/log/two-sum", "rung", {"rung": "H1"})]
     assert coach.system_prompt("st") == "skill text|st"
     assert coach.clusters() == [{"name": "bits", "problems": ["missing-number"]}]
-    assert coach.due() == [{"slug": "a", "title": "a", "due": "2026-11-01"}]
+    assert coach.due() == [{"slug": "a", "title": "a", "due_ms": 1_793_491_200_000}]
     assert coach.leaked("reply", ["said"]) == ["reply", "said"]
     coach.append_entry("n", [], ["p"])
-    assert appended == [("n", [], ["p"])]
+    own = data_dir() / "lc_toolbox.json"
+    assert own.read_text(encoding="utf-8") == '{"entries": []}'
+    assert appended == [("n", [], ["p"], own)]
+    assert set(loaded) == {own}
 
 
 def test_coach_and_runner_accessors(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -224,5 +243,5 @@ def test_coach_and_runner_accessors(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(b, "make_coach", lambda: sentinel)
     assert b.coach() is sentinel
     assert b.coach() is sentinel
-    assert b.runner() is b._run
+    assert b.runner() is lc_runner.run
     b.install(None, None)

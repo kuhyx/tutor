@@ -64,6 +64,7 @@ class Fakes:
     append_error: Exception | None = None
     anki: list[list[dict[str, str]]] = field(default_factory=list)
     anki_error: Exception | None = None
+    anki_line: str | None = None
     run_report: dict[str, Any] = field(
         default_factory=lambda: {"ok": True, "examples": [{"n": 1, "ok": True}]}
     )
@@ -110,7 +111,7 @@ class Fakes:
         if self.anki_error is not None:
             raise self.anki_error
         self.anki.append(cards)
-        return f"{len(cards)} cards -> Anki"
+        return self.anki_line or f"{len(cards)} cards -> Anki"
 
     def log(self, slug: str, event: str, **fields: object) -> None:
         self.logs.append((slug, event, dict(fields)))
