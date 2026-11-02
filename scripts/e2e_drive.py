@@ -16,6 +16,7 @@ Exit 0 = PASS.
 * F5 help on a struggling card (``e2e_struggle.py``; phased like F1).
 * F6 the carry-over bank (``e2e_carry.py``): ``check``, then ``again`` after
   ``e2e_sandbox.sh restart``.
+* F7 the desktop Focus screen (``e2e_focus.py``): one call.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -38,6 +39,7 @@ from typing import TYPE_CHECKING
 from e2e_carry import f6_again, f6_check
 from e2e_cdp import Browser, CdpError
 from e2e_flow import Emulator, Flow, FlowError, State
+from e2e_focus import f7
 from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
 from e2e_struggle import f5_check, f5_send
 
@@ -103,7 +105,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6"]
+FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6", "F7"]
 
 
 def answered(db: Emulator, flow: str, rid: str, seconds: float) -> bool:
@@ -150,6 +152,8 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
     try:
         if args.flow == "F6":
             carry(flow, args)
+        elif args.flow == "F7":
+            f7(flow)
         elif args.flow not in PHASED:
             f2(flow)
         elif (code := phases(flow, args)) != 0:
@@ -186,6 +190,7 @@ def main() -> int:
     parser.add_argument("--state", required=True, help="send's state, for wait/check")
     parser.add_argument("--wait", type=float, default=45, help="wait: seconds per call")
     parser.add_argument("--data", type=Path, help="the sandbox data dir (ledger)")
+    parser.add_argument("--focus", type=Path, help="F7: the sandbox focus_project dir")
     parser.add_argument("--session", help="F3/F4: the session at card end")
     parser.add_argument("--display", default=":97")
     # :97 is 4K, so the app's UI scale is 2: 2560x1440 lays out as 1280x720.

@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
+import 'package:tutor/focus/web_checkin.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/ui/ui_zoom.dart';
@@ -69,7 +70,13 @@ void main() {
         expiresAt: DateTime.now().add(const Duration(days: 1)),
       ),
     );
-    return await TutorServices.open(config, store: store, kv: MemoryKv());
+    return await TutorServices.open(
+      config,
+      store: store,
+      kv: MemoryKv(),
+      // The desktop build's browser notification (scripts/e2e_focus.py).
+      checkinNotifier: createWebCheckinNotifier(),
+    );
   }
 
   runApp(

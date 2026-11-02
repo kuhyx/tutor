@@ -103,6 +103,9 @@ scripts/e2e_sandbox.sh up --as-of "2026-10-24 20:00" --carry 130  # F6: fake clo
 scripts/e2e_sandbox.sh flow F6         # carry-<day>-m<n> row, stats, "Banked B min · prepaid P"
 scripts/e2e_sandbox.sh restart         # a second worker start on the same sandbox
 scripts/e2e_sandbox.sh flow F6 again   # the ledger is unchanged: no duplicate carry row
+scripts/e2e_sandbox.sh up                                       # F7: the desktop Focus screen
+scripts/e2e_sandbox.sh flow F7   # project -> Start -> notification + button check-ins -> Stop;
+                                   # activity.jsonl in <sandbox>/focus (never the live dir)
 scripts/e2e_sandbox.sh down
 ```
 

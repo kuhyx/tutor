@@ -45,6 +45,8 @@ readonly SESSION="${E2E_SESSION:-20261020-172115-3f84}"
 readonly DISPLAY_ID="${E2E_DISPLAY:-:97}"
 readonly DB_UNIT="tutor-e2e-db"
 readonly SERVER_UNIT="tutor-e2e-server"
+# focus_project (F7) lives outside this repo; its data dir is the sandbox's.
+readonly FOCUS_SRC="${E2E_FOCUS_SRC:-$HOME/src/utils/focus_project}"
 
 die() { echo "e2e_sandbox: $*" >&2; exit 1; }
 
@@ -98,7 +100,7 @@ cmd_down() {
         }
         rm -f "$STATE"
     fi
-    rm -f "$(dirname "$STATE")"/f[1-6].json  # a phased flow's send state
+    rm -f "$(dirname "$STATE")"/f[1-7].json  # a phased flow's send state
     echo "e2e sandbox down"
 }
 
@@ -119,7 +121,8 @@ start_server() {
         -E TUTOR_DATA="$sandbox/data" -E TUTOR_KEY="$sandbox/test.key" \
         -E TUTOR_WEBAPP_DIR="$WEB" -E TUTOR_IMAGE_CACHE="$sandbox/cache/images" \
         -E TUTOR_SOURCE_CACHE="$sandbox/cache/sources" -E TUTOR_WIKI_CACHE="$sandbox/cache/wiki" \
-        -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT" \
+        -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
+        -E FOCUS_PROJECT_DATA="$sandbox/focus" \
         -E FAKETIME_DONT_FAKE_MONOTONIC=1 \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {
@@ -185,14 +188,14 @@ cmd_restart() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F6}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F7}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
     "$PY" "$ROOT/scripts/e2e_drive.py" "$flow" "$phase" --app "http://127.0.0.1:$port/app/" \
         --db "$db" --card "$CARD" --display "$DISPLAY_ID" \
-        --data "$sandbox/data" --session "$SESSION" \
+        --data "$sandbox/data" --focus "$sandbox/focus" --session "$SESSION" \
         --state "$(dirname "$STATE")/${flow,,}.json" --out "$SCREENS/e2e_${flow,,}"
 }
 
@@ -205,7 +208,7 @@ main() {
         restart) cmd_restart ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] | restart | flow F1..F6 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] | restart | flow F1..F7 [send|wait|check|again] | down" ;;
     esac
 }
 
