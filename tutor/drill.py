@@ -171,7 +171,13 @@ class Drill:
         clock.user_reply(at, _PICK_TEXT, low_effort=quick)
         clock.tutor_message(at)  # a zero "tutor gap": nothing accrues after a pick
         units = clock.ready_blocks()
-        rows = unit_credit.credit_units(units, run.session_id, now=at) if units else []
+        rows = (
+            unit_credit.credit_units(
+                units, run.session_id, now=at, subject=prompt.subject
+            )
+            if units
+            else []
+        )
         for row in rows:
             self._log(run, {"type": "credit", **row})
         return rows

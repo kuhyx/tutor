@@ -17,6 +17,7 @@ from tutor import delivery
 from tutor.curriculum.ids import SLUG_CHARS
 from tutor.history import SESSION_ID
 from tutor.relay.errors import RequestError
+from tutor.relay.focus_protocol import FIELDS as FOCUS_FIELDS
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -148,8 +149,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "mnemonic": _text(MAX_CARD_FIELD, empty=True, absent=True),
         },
     ),
-    # The Editor's undo of the tutor's edits (``curriculum.card_undo``).
-    "card_restore": (BUILD, {"subject": _slug, "card": _slug}),
+    "card_restore": (BUILD, {"subject": _slug, "card": _slug}),  # Editor's undo
     "card_remove": (BUILD, {"subject": _slug, "card": _slug}),
     # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).
     "session_start": (
@@ -174,10 +174,10 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     "stop": (CHAT, {"session": _session}),
     "follow_up_open": (CHAT, {"session": _session}),  # reopen (``follow_up``)
     "card_done": (CHAT, {"subject": _opt_slug, "card": _slug, "done": _bool}),
-    # The model-free drill (``tutor.drill``): served while Claude is not.
     "drill_next": (CHAT, {"subject": _opt_slug}),
     "drill_answer": (CHAT, {"prompt_id": _ulid, "choice": _int}),
     "anki_status": (CHAT, {}),
+    **{k: (CHAT, f) for k, f in FOCUS_FIELDS.items()},  # ``relay.focus``
 }
 
 

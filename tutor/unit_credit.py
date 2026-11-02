@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import credit, ledger_pay
+from tutor import credit, focus_hook, ledger_pay
 from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
 
 if TYPE_CHECKING:
@@ -73,13 +73,19 @@ def credit_row(
 
 
 def credit_units(
-    units: Iterable[BlockReady], session_id: str, *, now: float
+    units: Iterable[BlockReady],
+    session_id: str,
+    *,
+    now: float,
+    subject: str | None = None,
 ) -> list[dict[str, Any]]:
     """Write one ledger row per span of ``units``; the rows to log, in order.
 
     Minutes the ledger already pays for this session are skipped, whatever the
     transcript's receipts say (a write whose read-back failed did land). Stops
     after a daily-cap refusal: no later minute of the day can pay either.
+    A learner turn on ``subject`` that paid also counts as focus work when the
+    active focus project lists it (``focus_hook``; never raises).
     """
     rows: list[dict[str, Any]] = []
     paid = credit.session_minutes(session_id)
@@ -89,6 +95,8 @@ def credit_units(
         rows.append(credit_row(last, len(group), receipt))
         if receipt.error == credit.DAILY_CAP_ERROR:
             break
+    if subject and any(r["recorded"] for r in rows):
+        focus_hook.heartbeat(subject, now)
     return rows
 
 

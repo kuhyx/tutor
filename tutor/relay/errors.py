@@ -28,6 +28,7 @@ CODES: Final = frozenset(
         "unknown_card",
         "plan_conflict",
         "edit_refused",
+        "focus_refused",
         "model_error",
         "claude_unavailable",
         "unknown_prompt",

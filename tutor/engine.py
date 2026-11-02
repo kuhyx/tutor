@@ -52,7 +52,9 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         self.store = store or Store()
         self._now = now
         self._credit = credit_fn or (
-            lambda units, sid: unit_credit.credit_units(units, sid, now=self.time())
+            lambda units, sid: unit_credit.credit_units(
+                units, sid, now=self.time(), subject=self.source.subject
+            )
         )
         self._factory = session_factory or (
             lambda prompt: TutorSession(traced(research.research_options(prompt)))
@@ -146,9 +148,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             return False
         self.source, self.card, self._conv = src, card, conv
         # max: backfill_today may already have paid more than these receipts saw.
-        self._set_today(
-            max(self.minutes_today, unit_credit.minutes_today(conv.receipts))
-        )
+        paid = unit_credit.minutes_today(conv.receipts)
+        self._set_today(max(self.minutes_today, paid))
         brief = struggle.resumed(src, card.id, path)  # a struggle session stays one
         self._session = self._factory(self._prompt(card, brief))
         conv.resumed.note = resume.primer(conv.messages)
