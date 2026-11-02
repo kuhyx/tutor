@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor import outage
 from tutor.curriculum.modelcall import ask_model
+from tutor.relay import sql_lesson_checks as checks
 from tutor.relay import sql_lesson_prompt as prompt
 from tutor.relay.errors import RequestError
 from tutor.relay.sql import Json, engine_call, heartbeat, wire
@@ -89,15 +90,19 @@ async def _real_output(state: dict[str, Any], query: str) -> Json:
 async def _ask(state: dict[str, Any], answer: str | None) -> dict[str, Json]:
     """One valid model turn whose query ran; the real rows are in ``rows``."""
     tables, note, pending = await _tables(state), "", state["pending"]
-    for _ in range(TRIES):
+    for attempt in range(TRIES):
         text = prompt.build(state, tables, answer, note)
         raw = await asyncio.to_thread(ask_model, prompt.SYSTEM, text, prompt.SCHEMA)
         if (why := prompt.problem(raw, answered=answer is not None)) is None:
             turn = prompt.clean(raw)
             ran = await _real_output(state, turn["query"])
-            why = _rejection(turn, ran, pending) or prompt.missing_backref(
+            why = checks.rejection(turn, ran, pending) or prompt.missing_backref(
                 turn["question_md"], _earlier(state)
             )
+        if why is None and answer is not None:
+            why = checks.problem(turn, state, answer)
+            if why and attempt == TRIES - 1:  # last re-ask: a generic nudge
+                turn, why = checks.generic(turn, state, answer), None
         if why is None:
             return {**turn, "rows": ran["rows"], "columns": ran["columns"]}
         _logger.warning("lesson turn rejected: %s", why)
@@ -109,19 +114,6 @@ async def _ask(state: dict[str, Any], answer: str | None) -> dict[str, Json]:
 def _earlier(state: dict[str, Any]) -> list[str]:
     queries = [e["query"] for e in state["history"]]
     return queries + ([state["pending"]["query"]] if state["pending"] else [])
-
-
-def _rejection(turn: dict[str, Json], ran: Json, pending: Json) -> str | None:
-    if not ran["ok"]:
-        return f"your query failed in MySQL ({ran['error']}); write a valid one"
-    if not ran["rows"]:
-        return "your query returns no rows; use one with a non-empty result"
-    if prompt.leaked(turn["question_md"], ran["rows"]):
-        return "question_md spells out the query's result; show the query only"
-    hidden = pending["rows"] if pending and turn["verdict"] != "correct" else []
-    if prompt.leaked(turn["feedback_md"], hidden):
-        return "feedback_md reveals the previous result before a correct answer"
-    return None
 
 
 def _pending(turn: dict[str, Json]) -> dict[str, Json]:
@@ -169,6 +161,14 @@ def _extend_thread(
             )
     if state["pending"] is not None:
         thread.append({"mine": False, "md": state["pending"]["question_md"]})
+
+
+def _stamp_mastery(
+    ctx: RequestContext, state: dict[str, Any], shown: dict[str, Any]
+) -> None:
+    """Note when a concept was mastered; ``plan_today`` ticks the lesson step."""
+    if shown.get("summary_md"):
+        state["mastered_ms"] = int(ctx.now() * 1000)
 
 
 def _progress(state: dict[str, Any]) -> dict[str, Json]:
@@ -236,6 +236,7 @@ async def sql_lesson_turn(ctx: RequestContext) -> Json:
     state["pending"] = _pending(turn) if turn else None
     state["turn"] += 1
     _extend_thread(state, answer, shown)
+    _stamp_mastery(ctx, state, shown)
     _save(lesson_id, state)
     if shown.get("summary_md"):  # a concept was just mastered (index not yet moved)
         await seed_cards(ctx, PLAN[topic][state["index"]].title)

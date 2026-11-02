@@ -121,6 +121,7 @@ async def solved(
     ex, grade = state["exit"], await _grade(state, text)
     lc_state.say(state, mine=True, md=text)
     state["phase"] = "exit"
+    state.setdefault("exit_ms", int(ctx.now() * 1000))  # plan_today reads it
     if ex["step"] == "explain":
         return await _explained(state, text, grade)
     if grade.get("retired"):

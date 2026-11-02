@@ -99,6 +99,7 @@ async def _coach_turn(
     if revealed:
         lc_reply.log(state, "reveal")
         state.update(revealed=True, phase="exit")
+        state.setdefault("exit_ms", int(ctx.now() * 1000))  # plan_today reads it
     elif lc_checks.is_code(text, state["kind"]):
         if not state["code_seen"]:
             extra = {"req_incomplete": True} if state["gate"]["forced"] else {}

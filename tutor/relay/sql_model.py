@@ -32,9 +32,10 @@ _STATEMENT: Final = re.compile(
 # English ones (FORMAT, CASE, COUNT...) only when written as SQL, and any call.
 _TOOL_LOWER: Final = re.compile(
     r"\b(?:round|cast|convert|ifnull|coalesce|nullif|date_format|str_to_date|"
-    r"date_add|date_sub|datediff|row_number|dense_rank|substring|truncate)\b|\w\(",
+    r"date_add|date_sub|datediff|row_number|dense_rank|substring|truncate)\b",
     re.IGNORECASE,
 )
+_CALL: Final = re.compile(r"\b(\w+)\(")
 _TOOL_UPPER: Final = re.compile(
     r"\b(?:FORMAT|CASE|COUNT|SUM|AVG|MIN|MAX|CONCAT|RANK|FLOOR|CEIL|DECIMAL|"
     r"GROUP BY|ORDER BY|HAVING|JOIN|LIKE|EXTRACT|OVER)\b"
@@ -63,8 +64,12 @@ GENERATE_SYSTEM: Final = (
 )
 
 
-def _names_tool(question: str) -> bool:
-    return bool(_TOOL_LOWER.search(question) or _TOOL_UPPER.search(question))
+def tools_named(text: str) -> set[str]:
+    """Lower-cased function/clause names ``text`` gives away (see the patterns)."""
+    found = {m.group(0) for m in _TOOL_LOWER.finditer(text)}
+    found |= {m.group(0) for m in _TOOL_UPPER.finditer(text)}
+    found |= {m.group(1) for m in _CALL.finditer(text)}
+    return {name.lower() for name in found}
 
 
 def _problem(question: str, level: int) -> str | None:
@@ -76,7 +81,7 @@ def _problem(question: str, level: int) -> str | None:
         return "it contained SQL code"
     if question.count("?") != 1 or not question.endswith("?"):
         return "it was not exactly one question ending in a question mark"
-    if level <= len(LEVEL_NOTES) - 1 and _names_tool(question):
+    if level <= len(LEVEL_NOTES) - 1 and tools_named(question):
         return "it named a function or syntax; a first hint only points at the rule"
     return None
 

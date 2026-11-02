@@ -143,6 +143,7 @@ def test_stating_the_rule_gives_the_summary_and_starts_the_mini_checks(
     assert got["summary_md"] == "| a | b | UNKNOWN |"
     assert got["progress"]["phase"] == "check"
     assert got["progress"]["checks_left"] == 2
+    assert state_of(lid)["mastered_ms"] > 0  # the plan reads it (plan_auto)
 
 
 def test_two_right_mini_checks_advance_to_the_next_concept(

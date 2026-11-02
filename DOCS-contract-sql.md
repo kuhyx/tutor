@@ -120,8 +120,13 @@ the worker mints it), `answer`? (free text <= 2000 chars, non-blank).
 - The learner never scrolls: a question that refers to an earlier query
   ("rewrite Q6") must restate its SQL inline; the worker rejects and re-asks
   a turn that points back without it.
+- The first probe after a wrong answer names no function or clause (ROUND,
+  CAST, HAVING...) the learner has not typed: checked in code
+  (`sql_lesson_checks`), re-asked twice, then replaced by the generic nudge
+  "Look at the table and the rule above". SQL in a fence is not prose.
 State lives on the worker (`<data>/sql_lessons/<lesson_id>.json`), so a lesson
-survives app restarts and works from phone and desktop alike.
+survives app restarts and works from phone and desktop alike. It also notes
+`mastered_ms` (last mastery summary) for `plan_today` (`plan_auto`).
 
 Concepts per topic (order = progression): `basics`: NULL comparisons, JOIN ON
 vs WHERE; `joins-null`: anti-join; `group-having`: HAVING; `pivot`; `dates`;

@@ -3,7 +3,8 @@
 
 The file is ``{"steps": [{id, title, what, kind, target}]}`` plus a
 ``"done": [ids]`` list the handlers maintain. ``plan_today`` returns the
-steps with ``done`` flags and ``current`` (the first step not done).
+steps with ``done`` flags and ``current`` (the first step not done). A step
+the server saw done (``plan_auto``) is added to ``done`` on the way.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import credit
+from tutor.relay import plan_auto
 from tutor.relay.errors import RequestError
 from tutor.store import data_dir
 
@@ -50,17 +52,34 @@ def _steps(raw: dict[str, Json]) -> list[dict[str, Json]]:
     return [s for s in ok if s.get("kind") in KINDS]
 
 
-def _view(day: str) -> Json:
+def _write(day: str, raw: dict[str, Json]) -> None:
+    target = _path(day)
+    tmp = target.with_suffix(".tmp")
+    tmp.write_text(json.dumps(raw, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp.replace(target)
+
+
+def _view(ctx: RequestContext) -> Json:
+    """The plan with ``done`` flags; what the server saw done is ticked for good."""
+    day = credit.local_day(ctx.now())[0]
     raw = _read(day)
-    done = {d for d in raw.get("done", []) if isinstance(d, str)}
-    steps = [{**s, "done": s["id"] in done} for s in _steps(raw)]
-    current = next((s["id"] for s in steps if not s["done"]), None)
-    return {"date": day, "steps": steps, "current": current}
+    steps = _steps(raw)
+    done = [d for d in raw.get("done", []) if isinstance(d, str)]
+    seen = plan_auto.auto_done(ctx, [s for s in steps if s["id"] not in done])
+    if seen:
+        done = [*done, *seen]
+        try:
+            _write(day, {**raw, "done": done})
+        except OSError:
+            _logger.warning("plan file for %s is not writable", day)
+    marked = [{**s, "done": s["id"] in done} for s in steps]
+    current = next((s["id"] for s in marked if not s["done"]), None)
+    return {"date": day, "steps": marked, "current": current}
 
 
 async def plan_today(ctx: RequestContext) -> Json:
     """Today's plan (empty ``steps`` when none was written)."""
-    return _view(credit.local_day(ctx.now())[0])
+    return _view(ctx)
 
 
 async def plan_step_done(ctx: RequestContext) -> Json:
@@ -73,9 +92,5 @@ async def plan_step_done(ctx: RequestContext) -> Json:
         raise RequestError(msg, code="bad_request")
     done = [d for d in raw.get("done", []) if isinstance(d, str)]
     if step_id not in done:
-        raw["done"] = [*done, step_id]
-        target = _path(day)
-        tmp = target.with_suffix(".tmp")
-        tmp.write_text(json.dumps(raw, ensure_ascii=False, indent=1), encoding="utf-8")
-        tmp.replace(target)
-    return _view(day)
+        _write(day, {**raw, "done": [*done, step_id]})
+    return _view(ctx)

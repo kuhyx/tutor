@@ -124,3 +124,21 @@ def test_an_unretired_belief_stays_open_after_three_tries(
     last = s.turn(lc_id, "No idea.", "solved")
     assert "| Belief | still open |" in last["exit"]["summary_md"]
     assert last["state"]["phase"] == "done"
+
+
+def test_reaching_exit_stamps_exit_ms_for_the_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fakes, lc_id = solved_session(monkeypatch)
+    assert "exit_ms" not in s.stored(lc_id)
+    fakes.replies.append(GOOD)
+    s.turn(lc_id, EXPLAIN, "solved")
+    assert s.stored(lc_id)["exit_ms"] == int(s.NOW * 1000)
+
+
+def test_a_reveal_stamps_exit_ms_too(monkeypatch: pytest.MonkeyPatch) -> None:
+    fakes = s.install(monkeypatch)
+    lc_id = s.open_session(fakes)
+    fakes.replies.append(s.reply("Step one. What is a?"))
+    s.turn(lc_id, "reveal")
+    assert s.stored(lc_id)["exit_ms"] == int(s.NOW * 1000)
