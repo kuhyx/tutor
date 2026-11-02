@@ -25,6 +25,7 @@ class FakeProject:
     site_patterns: tuple[str, ...] = ()
     ended_on: date | None = None
     created_ms: int = 0
+    work_url: str = ""
 
     @property
     def last_day(self) -> date:

@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date
 import re
 from typing import TYPE_CHECKING, Final
+from urllib.parse import urlsplit
 
 from tutor.curriculum.ids import SLUG_CHARS
 
@@ -27,6 +28,7 @@ MAX_LIST: Final = 48
 MAX_PATTERNS: Final = 20
 MAX_PATTERN: Final = 100
 MAX_SLUG: Final = 48
+MAX_URL: Final = 2000
 
 
 def _slug(value: object) -> str:
@@ -109,6 +111,17 @@ def _patterns(value: object) -> list[str]:
     raise ValueError
 
 
+def _work_url(value: object) -> str | None:
+    """Absent = ``None`` (an update keeps it); ``""`` clears; else http(s)."""
+    if value is None or value == "":
+        return value
+    if isinstance(value, str) and len(value) <= MAX_URL and value.isprintable():
+        parts = urlsplit(value)
+        if parts.scheme in {"http", "https"} and parts.netloc and " " not in value:
+            return value
+    raise ValueError
+
+
 _CREATE: Final[dict[str, Callable[[object], object]]] = {
     "name": _name,
     "start": _day,
@@ -118,6 +131,7 @@ _CREATE: Final[dict[str, Callable[[object], object]]] = {
     "unlock_minutes": _minutes(0),
     "subjects": _subjects,
     "site_patterns": _patterns,
+    "work_url": _work_url,
 }
 
 FIELDS: Final[dict[str, dict[str, Callable[[object], object]]]] = {

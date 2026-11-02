@@ -33,6 +33,7 @@ CREATE: dict[str, Any] = {
     "unlock_minutes": 30,
     "subjects": ["sql"],
     "site_patterns": ["leetcode.com"],
+    "work_url": "https://leetcode.com/problemset/",
 }
 
 

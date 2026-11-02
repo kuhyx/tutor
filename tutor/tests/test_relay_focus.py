@@ -42,7 +42,15 @@ def test_status_lists_the_active_project_and_all_newest_first(fp: FakeFp) -> Non
     fp.minutes = 42
     fp.projects = [
         project("old", -30, -20, created=1),
-        project("now", -1, 3, created=2, subjects=("sql",), site_patterns=("a.com",)),
+        project(
+            "now",
+            -1,
+            3,
+            created=2,
+            subjects=("sql",),
+            site_patterns=("a.com",),
+            work_url="https://a.com/x",
+        ),
         project("next", 10, 12, created=3),
     ]
     got = call("focus_status", {})
@@ -58,6 +66,7 @@ def test_status_lists_the_active_project_and_all_newest_first(fp: FakeFp) -> Non
         "unlock_minutes": 10,
         "subjects": ["sql"],
         "site_patterns": ["a.com"],
+        "work_url": "https://a.com/x",
         "minutes": 42,
     }
     assert "minutes" not in got["projects"][1]

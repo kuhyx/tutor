@@ -48,6 +48,7 @@ class ProjectLike(Protocol):
     unlock_minutes: int
     subjects: Sequence[str]
     site_patterns: Sequence[str]
+    work_url: str
     created_ms: int
 
 

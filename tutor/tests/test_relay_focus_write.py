@@ -92,6 +92,23 @@ def test_create_passes_the_fields_and_returns_the_id(fp: FakeFp) -> None:
     assert (made.subjects, made.site_patterns) == (("sql",), ("leetcode.com",))
 
 
+def test_create_stores_the_work_url_or_leaves_it_empty(fp: FakeFp) -> None:
+    call("focus_create", {k: v for k, v in CREATE.items() if k != "work_url"})
+    assert fp.projects[0].work_url == ""
+    url = "https://www.hackerrank.com/dashboard"
+    call(
+        "focus_create",
+        {
+            **CREATE,
+            "name": "Later",
+            "start": "2027-02-01",
+            "end": "2027-02-03",
+            "work_url": url,
+        },
+    )
+    assert fp.projects[1].work_url == url
+
+
 def test_create_ids_are_ascii_slugs_made_unique(fp: FakeFp) -> None:
     first = call("focus_create", {**CREATE, "name": "Żółć -- SQL!"})["id"]
     assert first == "zoc-sql"

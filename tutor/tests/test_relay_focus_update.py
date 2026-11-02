@@ -83,3 +83,15 @@ def test_update_body_is_a_create_body_plus_an_id() -> None:
     )
     assert bad("focus_update", {**UPDATE, "id": "Bad Id"}).code == "bad_request"
     assert bad("focus_update", {**UPDATE, "daily_minutes": 0}).code == "bad_request"
+
+
+def test_work_url_is_set_kept_when_absent_and_cleared_when_empty(fp: FakeFp) -> None:
+    fp.projects = [project("now", 0, 3)]
+    url = "https://www.hackerrank.com/dashboard"
+    call("focus_update", {**UPDATE, "work_url": url})
+    assert fp.projects[0].work_url == url
+    older = {k: v for k, v in UPDATE.items() if k != "work_url"}
+    call("focus_update", older)  # a client that never heard of work_url
+    assert fp.projects[0].work_url == url
+    call("focus_update", {**UPDATE, "work_url": ""})
+    assert fp.projects[0].work_url == ""

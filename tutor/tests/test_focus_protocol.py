@@ -89,3 +89,25 @@ def test_an_end_needs_a_slug_and_an_optional_day() -> None:
     assert validate("focus_end", both).body == both
     assert bad("focus_end", {"id": "Bad Id"}).code == "bad_request"
     assert bad("focus_end", {"id": "exam", "day": "soon"}).code == "bad_request"
+
+
+def test_work_url_is_optional_and_must_be_a_plain_http_url() -> None:
+    bare = {k: v for k, v in CREATE.items() if k != "work_url"}
+    assert validate("focus_create", bare).body["work_url"] is None
+    url = "https://www.hackerrank.com/dashboard"
+    assert validate("focus_create", {**CREATE, "work_url": url}).body["work_url"] == url
+    assert (
+        validate("focus_update", {"id": "a", **CREATE, "work_url": ""}).body["work_url"]
+        == ""
+    )
+    for value in (
+        "javascript:alert(1)",
+        "file:///etc/passwd",
+        "https://",
+        "https://a b.com",
+        "https://a.com/" + "x" * 2000,
+        "hackerrank.com",
+        3,
+        ["https://a.com"],
+    ):
+        assert bad("focus_create", {**CREATE, "work_url": value}).code == "bad_request"

@@ -61,6 +61,7 @@ def _project(project: ProjectLike, today: date) -> dict[str, Any]:
         "unlock_minutes": project.unlock_minutes,
         "subjects": list(project.subjects),
         "site_patterns": list(project.site_patterns),
+        "work_url": project.work_url,
     }
 
 
@@ -149,6 +150,7 @@ async def focus_create(ctx: RequestContext) -> dict[str, Any]:
             unlock_minutes=body["unlock_minutes"],
             subjects=body["subjects"],
             site_patterns=body["site_patterns"],
+            work_url=body["work_url"] or "",
         )
     except ValueError as exc:
         raise RequestError(str(exc), code="focus_refused") from exc
@@ -158,10 +160,13 @@ async def focus_create(ctx: RequestContext) -> dict[str, Any]:
 async def focus_update(ctx: RequestContext) -> dict[str, Any]:
     """Edit a project (every field, like create); a refusal is ``focus_refused``."""
     fp, body = _fp(), ctx.body
+    # An older client never sends work_url: absent keeps it, "" clears it.
+    kept = {} if body["work_url"] is None else {"work_url": body["work_url"]}
     try:
         fp.update_project(
             body["id"],
             today=_today(ctx),
+            **kept,
             name=body["name"],
             start=date.fromisoformat(body["start"]),
             end=date.fromisoformat(body["end"]),

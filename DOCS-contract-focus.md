@@ -10,8 +10,8 @@ lane. Times: `ts` unix ms, dates `YYYY-MM-DD` (PC local).
 |---|---|---|
 | `focus_status` | `{}` | see Status |
 | `focus_event` | `{"event":"start"\|"checkin"\|"stop","ts":ms,"platform":"phone"\|"pc"}` | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...]}` (fp.status of today; name null = no active project) |
-| `focus_create` | `{"name"<=80,"start","end","replaces":[leetcode\|reading\|tutor],"daily_minutes":1..720,"unlock_minutes":0..daily,"subjects":[slug],"site_patterns":[host<=100 x<=20]}` | `{"id"}` |
-| `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`) | `{"id"}` |
+| `focus_create` | `{"name"<=80,"start","end","replaces":[leetcode\|reading\|tutor],"daily_minutes":1..720,"unlock_minutes":0..daily,"subjects":[slug],"site_patterns":[host<=100 x<=20],"work_url"?:http(s) URL or ""}` | `{"id"}` |
+| `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`; absent `work_url` = kept) | `{"id"}` |
 | `focus_end` | `{"id","day"?}` (day = last active day, default today; a past day is `focus_refused`) | `{}` |
 
 Empty lists are dropped by RTDB: absent = `[]`.
@@ -24,7 +24,7 @@ from today (earlier days keep theirs) - all `focus_refused`.
 ```json
 {"day":"2026-11-02",
  "active":{"id","name","start","end","days_left","replaces":[],"daily_minutes":120,
-           "unlock_minutes":30,"subjects":[],"site_patterns":[],"minutes":42} | null,
+           "unlock_minutes":30,"subjects":[],"site_patterns":[],"work_url":"","minutes":42} | null,
  "projects":[{same as active, no "minutes"}],
  "gates":[{"id":"leetcode","label":"LeetCode","replaceable":true},
           {"id":"workout","label":"workout","replaceable":false}],
