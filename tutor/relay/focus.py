@@ -182,9 +182,16 @@ async def focus_update(ctx: RequestContext) -> dict[str, Any]:
 
 
 async def focus_end(ctx: RequestContext) -> dict[str, Any]:
-    """End a project early: ``day`` (default today) is its last active day."""
-    fp, body = _fp(), ctx.body
-    day = date.fromisoformat(body["day"]) if body["day"] else _today(ctx)
+    """End a project early: ``day`` (default today) is its last active day.
+
+    A past ``day`` is refused: it would erase that day's shortfall and lift
+    the focus lock. The app sends no ``day`` (= today).
+    """
+    fp, body, today = _fp(), ctx.body, _today(ctx)
+    day = date.fromisoformat(body["day"]) if body["day"] else today
+    if day < today:
+        msg = f"cannot end {body['id']!r} in the past ({day})"
+        raise RequestError(msg, code="focus_refused")
     try:
         fp.end_project(body["id"], day)
     except KeyError as exc:

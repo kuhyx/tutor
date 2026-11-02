@@ -123,6 +123,18 @@ def test_end_calls_end_project_with_today_or_the_day(fp: FakeFp) -> None:
     assert fp.projects[0].ended_on == day(2)
 
 
+def test_end_in_the_past_is_refused_and_leaves_the_project(fp: FakeFp) -> None:
+    """A retroactive end would erase yesterday's shortfall and lift the lock."""
+    fp.projects = [project("now", -3, 5)]
+    with pytest.raises(RequestError) as caught:
+        call("focus_end", {"id": "now", "day": day(-1).isoformat()})
+    assert (caught.value.code, caught.value.retry) == ("focus_refused", False)
+    assert "past" in caught.value.message
+    assert fp.projects[0].ended_on is None
+    assert call("focus_end", {"id": "now", "day": TODAY.isoformat()}) == {}
+    assert fp.projects[0].ended_on == TODAY
+
+
 def test_end_of_an_unknown_project_is_focus_refused(fp: FakeFp) -> None:
     with pytest.raises(RequestError) as caught:
         call("focus_end", {"id": "ghost"})
