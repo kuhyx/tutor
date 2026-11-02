@@ -31,6 +31,7 @@ from tutor.relay.focus import (
 from tutor.relay.lc import lc_list, lc_open, lc_run
 from tutor.relay.lc_cards import lc_cards
 from tutor.relay.lc_turn import lc_turn
+from tutor.relay.mock import mock_request
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.sql import sql_get, sql_list, sql_predict, sql_run
 from tutor.relay.sql_lesson import sql_lesson_turn
@@ -244,4 +245,5 @@ CHAT_HANDLERS: Final[
     "lc_turn": lc_turn,
     "lc_run": lc_run,
     "lc_cards": lc_cards,
+    "mock": mock_request,
 }
