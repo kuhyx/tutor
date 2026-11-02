@@ -30,6 +30,7 @@ from tutor.relay.focus import (
 )
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.sql import sql_get, sql_list, sql_predict, sql_run
+from tutor.relay.sql_lesson import sql_lesson_turn
 from tutor.relay.sql_model import sql_generate, sql_hint
 from tutor.relay.views import key
 
@@ -234,4 +235,5 @@ CHAT_HANDLERS: Final[
     "sql_predict": sql_predict,
     "sql_hint": sql_hint,
     "sql_generate": sql_generate,
+    "sql_lesson_turn": sql_lesson_turn,
 }

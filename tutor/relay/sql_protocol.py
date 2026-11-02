@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 _ID: Final = re.compile(r"[A-Za-z0-9_.-]{1,64}", re.ASCII)
+_LESSON: Final = re.compile(r"[0-9a-f]{12}", re.ASCII)
 TOPICS: Final = (
     "basics",
     "pivot",
@@ -31,6 +32,7 @@ MAX_COLS: Final = 30
 MAX_CELL: Final = 200
 MAX_HISTORY: Final = 10
 MAX_HINT: Final = 500
+MAX_ANSWER: Final = 2000
 MAX_RESULT_ROWS: Final = 20
 
 
@@ -103,6 +105,22 @@ def _last_result(value: object) -> dict[str, Any] | None:
     return out
 
 
+def _lesson_id(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and _LESSON.fullmatch(value):
+        return value
+    raise ValueError
+
+
+def _answer(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() and len(value) <= MAX_ANSWER:
+        return value
+    raise ValueError
+
+
 def _topic(value: object) -> str:
     if isinstance(value, str) and value in TOPICS:
         return value
@@ -129,4 +147,5 @@ FIELDS: Final[dict[str, dict[str, Callable[[object], object]]]] = {
         "history": _history,
     },
     "sql_generate": {"topic": _topic, "difficulty": _difficulty},
+    "sql_lesson_turn": {"topic": _topic, "lesson_id": _lesson_id, "answer": _answer},
 }

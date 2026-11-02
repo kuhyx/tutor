@@ -28,6 +28,7 @@ def test_the_kinds_are_chat_lane_kinds_with_handlers() -> None:
         "sql_predict",
         "sql_hint",
         "sql_generate",
+        "sql_lesson_turn",
     ):
         assert protocol.KINDS[kind][0] == protocol.CHAT
         assert kind in CHAT_HANDLERS
@@ -94,3 +95,22 @@ def test_generate_needs_a_known_topic_and_defaults_the_difficulty() -> None:
     bad("sql_generate", {"topic": "cooking"})
     bad("sql_generate", {})
     bad("sql_generate", {"topic": "pivot", "difficulty": "insane"})
+
+
+def test_lesson_turn_fields() -> None:
+    assert validate("sql_lesson_turn", {"topic": "basics"}).body == {
+        "topic": "basics",
+        "lesson_id": None,
+        "answer": None,
+    }
+    full = {"topic": "dates", "lesson_id": "0123456789ab", "answer": " x "}
+    assert validate("sql_lesson_turn", full).body == full
+    for wrong in (
+        {"topic": "cooking"},
+        {"topic": "basics", "lesson_id": "XYZ"},
+        {"topic": "basics", "lesson_id": "0123456789abc"},
+        {"topic": "basics", "answer": "  "},
+        {"topic": "basics", "answer": "x" * 2001},
+        {"topic": "basics", "answer": 5},
+    ):
+        bad("sql_lesson_turn", wrong)

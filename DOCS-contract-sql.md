@@ -133,7 +133,7 @@ Result `data`:
 - `feedback_md`: reaction to the last answer (absent on the first turn). It
   never states the answer or the rule before the learner has.
 - `summary_md`: a compact summary table, sent once when a concept is mastered
-  (and for the last concept together with `done`).
+  (never repeated; the last concept's `done` turn carries only `feedback_md`).
 - `result`: the real output of the PREVIOUS question's query; present only
   when the learner's answer was fully right (prediction and reasoning).
 - `done:true`: the topic's last concept is finished; no further turn.
