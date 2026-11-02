@@ -117,8 +117,8 @@ All but `state` optional. `reply_md` absent when the turn is a gate message or
 held. `note` is a system line (gate verdict, hold reason), never from the model.
 
 ## Exit (`intent:"solved"`)
-Allowed once `ran_ok` (an `lc_run` passed every example, or `no_examples`) or
-after `reveal`; else held. `text` is kuhy's explanation: more than 3 sentences
+Allowed once `ran_ok` (an `lc_run` passed every example), after `reveal`, or
+when a run reported `no_examples`; else held. `text` is kuhy's explanation: more than 3 sentences
 is held ("say it in <= 2 sentences"). The grader (model) judges whether the key
 mechanism is present; missing = `exit.missing` in the Turn plus one more turn
 (3 tries, then accepted as partial). Then, if kuhy opened with a belief (the
@@ -140,8 +140,8 @@ exists, expected values come from the statement.
 A user error is `ok:false` + `error` in a SUCCESSFUL request. A throw shows the
 error name only. SQL runs in the dialect `lang` names (an isolated database
 per run, row order ignored unless the statement orders); unparsable example
-tables = `no_examples:true` (the coach says so, never guesses). `ran_ok` flips
-on a full pass. Lists > 200 entries are cut with `"truncated":true`.
+tables, design-class, list and tree problems = `no_examples:true` and a `note`
+("cannot run locally", never a silent pass); `ran_ok` flips on a full pass only. Lists > 200 entries are cut with `"truncated":true`.
 
 ## Cards (`lc_cards`)
 Phase must be `done`. No `confirm`: the model names which toolbox entries the
