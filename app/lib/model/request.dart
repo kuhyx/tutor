@@ -105,7 +105,23 @@ enum RequestKind {
   sqlGenerate('sql_generate', Lane.chat),
 
   /// One turn of a guided SQL lesson.
-  sqlLessonTurn('sql_lesson_turn', Lane.chat);
+  sqlLessonTurn('sql_lesson_turn', Lane.chat),
+
+  /// Problem coach: due re-tests, recent problems, the live session.
+  lcList('lc_list', Lane.chat),
+
+  /// Problem coach: open a problem, or resume a session by its id.
+  lcOpen('lc_open', Lane.chat),
+
+  /// Problem coach: a chat message (`hint`, `reveal` and the like are
+  /// plain text), or a "solved" claim with its explanation.
+  lcTurn('lc_turn', Lane.chat),
+
+  /// Problem coach: run code against the statement examples.
+  lcRun('lc_run', Lane.chat),
+
+  /// Problem coach: confirm the toolbox entries the post-mortem proposes.
+  lcCards('lc_cards', Lane.chat);
 
   new(this.wire, this.lane);
 

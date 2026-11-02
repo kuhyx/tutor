@@ -58,11 +58,12 @@ LessonTurn parseLessonTurn(Json j) {
     tables: j['tables'] == null ? null : parseTables(j['tables']),
     result: result == null ? null : parseTables({'': result}).single,
     done: flag(j, 'done'),
-    thread: thread is List ? [for (final e in thread) _bubble(e)] : null,
+    thread: thread is List ? [for (final e in thread) parseBubble(e)] : null,
   );
 }
 
-Bubble _bubble(Object? e) {
+/// Parses one thread entry `{mine, md?, grid?}`.
+Bubble parseBubble(Object? e) {
   if (e is! Map<String, dynamic>) throw const FormatException('thread entry');
   final grid = objOr(e, 'grid');
   return (
