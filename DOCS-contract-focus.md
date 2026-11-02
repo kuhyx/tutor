@@ -9,7 +9,7 @@ lane. Times: `ts` unix ms, dates `YYYY-MM-DD` (PC local).
 | kind | body | result `data` |
 |---|---|---|
 | `focus_status` | `{}` | see Status |
-| `focus_event` | `{"event":"start"\|"checkin"\|"stop","ts":ms,"platform":"phone"\|"pc"}` | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...]}` (fp.status of today; name null = no active project) |
+| `focus_event` | `{"event":"start"\|"checkin"\|"stop","ts":ms,"platform":"phone"\|"pc"}` | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...],"carry_out"}` (fp.status of today; name null = no active project) |
 | `focus_create` | `{"name"<=80,"start","end","replaces":[leetcode\|reading\|tutor],"daily_minutes":1..720,"unlock_minutes":0..daily,"subjects":[slug],"site_patterns":[host<=100 x<=20],"work_url"?:http(s) URL or ""}` | `{"id"}` |
 | `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`; absent `work_url` = kept) | `{"id"}` |
 | `focus_end` | `{"id","day"?}` (day = last active day, default today; a past day is `focus_refused`) | `{}` |
@@ -21,11 +21,14 @@ cannot move, an ended or finished project is refused, changed minutes apply
 from today (earlier days keep theirs) - all `focus_refused`.
 
 ## Status (`focus_status`)
+`minutes` is the real count (may exceed `daily_minutes`: 121/120); `carry_out`
+is the overtime banked for the next project day (max 60, `focus_project.carry`).
+
 ```json
 {"day":"2026-11-02",
  "active":{"id","name","start","end","days_left","replaces":[],"daily_minutes":120,
-           "unlock_minutes":30,"subjects":[],"site_patterns":[],"work_url":"","minutes":42} | null,
- "projects":[{same as active, no "minutes"}],
+           "unlock_minutes":30,"subjects":[],"site_patterns":[],"work_url":"","minutes":42,"carry_out":0} | null,
+ "projects":[{same as active, no "minutes"/"carry_out"}],
  "gates":[{"id":"leetcode","label":"LeetCode","replaceable":true},
           {"id":"workout","label":"workout","replaceable":false}],
  "subjects":[{"id":"automation","title":"..."}]}

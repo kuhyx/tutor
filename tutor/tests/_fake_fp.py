@@ -58,8 +58,9 @@ class FakeFp:
         return next((p for p in self.projects if p.start <= day <= p.last_day), None)
 
     def minutes_for(self, day: date) -> int:
-        """The canned minutes."""
-        return self.minutes
+        """The canned minutes, capped at the target like the real pay figure."""
+        found = self.active(day)
+        return self.minutes if found is None else min(self.minutes, found.daily_minutes)
 
     def status(self, day: date) -> dict[str, Any]:
         """The contract's status dict."""
@@ -78,6 +79,7 @@ class FakeFp:
             "project": found.id,
             "name": found.name,
             "minutes": self.minutes,
+            "carry_out": min(60, max(0, self.minutes - found.daily_minutes)),
             "daily_minutes": found.daily_minutes,
             "unlock_minutes": found.unlock_minutes,
             "ends": found.last_day.isoformat(),

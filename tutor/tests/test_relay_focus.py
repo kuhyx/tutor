@@ -68,9 +68,19 @@ def test_status_lists_the_active_project_and_all_newest_first(fp: FakeFp) -> Non
         "site_patterns": ["a.com"],
         "work_url": "https://a.com/x",
         "minutes": 42,
+        "carry_out": 0,
     }
     assert "minutes" not in got["projects"][1]
     assert [p["days_left"] for p in got["projects"]] == [3, 4, 0]
+
+
+def test_status_shows_the_real_minutes_not_the_capped_pay(fp: FakeFp) -> None:
+    fp.minutes = 121
+    fp.projects = [project("now", -1, 3)]  # daily target 60 in these fakes
+    fp.minutes = 130
+    got = call("focus_status", {})
+    assert got["active"]["minutes"] == 130
+    assert got["active"]["carry_out"] == 60
 
 
 def test_an_early_ended_project_reports_its_last_day(fp: FakeFp) -> None:

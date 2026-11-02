@@ -88,7 +88,13 @@ async def focus_status(ctx: RequestContext) -> dict[str, Any]:
         active = fp.active(today)
         shown = None
         if active is not None:
-            shown = _project(active, today) | {"minutes": fp.minutes_for(today)}
+            # The real minutes (121/120), not the capped pay figure; the bank
+            # is what overtime leaves for tomorrow (``focus_project.carry``).
+            status = fp.status(today)
+            shown = _project(active, today) | {
+                "minutes": status["minutes"],
+                "carry_out": status.get("carry_out", 0),
+            }
         listed = sorted(
             fp.list_projects(), key=lambda p: (p.created_ms, p.start), reverse=True
         )
@@ -116,7 +122,11 @@ async def focus_event(ctx: RequestContext) -> dict[str, Any]:
         status = fp.status(today)
     except (OSError, ValueError) as exc:
         raise _unreadable(exc) from exc
-    return {k: status[k] for k in _STATUS_KEYS} | {"replaces": list(status["replaces"])}
+    return (
+        {k: status[k] for k in _STATUS_KEYS}
+        | {"replaces": list(status["replaces"])}
+        | {"carry_out": status.get("carry_out", 0)}
+    )
 
 
 def _slug_of(name: str) -> str:

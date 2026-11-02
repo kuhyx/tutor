@@ -43,6 +43,7 @@ def test_an_event_keeps_the_client_time_and_returns_the_status(fp: FakeFp) -> No
     assert got == {
         "name": "Now",
         "minutes": 7,
+        "carry_out": 0,
         "daily_minutes": 60,
         "unlock_minutes": 10,
         "ends": day(3).isoformat(),
