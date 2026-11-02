@@ -7,6 +7,7 @@ ledger), ``~/.cache`` or ``~/.claude`` can only ever land in ``tmp_path``.
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any
 import urllib.request
 
@@ -16,6 +17,7 @@ import pytest
 from tutor import images
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
 KEY = b"tutor-test-key-not-the-real-one"
@@ -32,13 +34,17 @@ async def _offline_async(*_: object, **__: object) -> object:
 
 
 @pytest.fixture(autouse=True)
-def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     """Redirect HOME, the data dir, the key and the image cache; block the network."""
     home = tmp_path / "home"
     home.mkdir()
     key = tmp_path / "hmac.key"
     key.write_bytes(KEY + b"\n")
     monkeypatch.setenv("HOME", str(home))
+    # "Local day" is the machine's zone; tests state Warsaw clock times, and a
+    # UTC runner (CI) would put 00:01 Warsaw on the previous day.
+    monkeypatch.setenv("TZ", "Europe/Warsaw")
+    time.tzset()
     monkeypatch.setenv("TUTOR_DATA", str(tmp_path / "data"))
     monkeypatch.setenv("TUTOR_KEY", str(key))
     monkeypatch.setenv("TUTOR_IMAGE_CACHE", str(tmp_path / "images"))
@@ -50,7 +56,9 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         httpx.AsyncHTTPTransport, "handle_async_request", _offline_async
     )
     monkeypatch.setattr(httpx.HTTPTransport, "handle_request", _offline)
-    return tmp_path
+    yield tmp_path
+    monkeypatch.undo()
+    time.tzset()
 
 
 @pytest.fixture
