@@ -23,5 +23,6 @@
   "queued": "Saved, sending later",
   "missedCheckin": "Missed a check-in",
   "noProject": "No focus project",
-  "focus": "Focus"
+  "focus": "Focus",
+  "retestNoSubmit": "Re-test: do NOT submit this on LeetCode"
 }

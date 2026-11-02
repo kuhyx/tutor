@@ -66,16 +66,20 @@ typedef ToolboxEntry = ({
   List<String> properties,
 });
 
-/// `lc_cards`: confirm these toolbox `entries` (at most five).
-RequestBody lcCards(String lcId, List<ToolboxEntry> entries) =>
-    RequestBody.raw(RequestKind.lcCards, {
-      'lc_id': lcId,
-      'confirm': [
-        for (final e in entries)
-          compact({
-            'name': e.name,
-            'aliases': e.aliases.isEmpty ? null : e.aliases,
-            'properties': e.properties,
-          }),
-      ],
-    });
+/// `lc_cards`: no entries asks for the cards; else confirms them (max 5).
+RequestBody lcCards(String lcId, List<ToolboxEntry> entries) => RequestBody.raw(
+  RequestKind.lcCards,
+  compact({
+    'lc_id': lcId,
+    'confirm': entries.isEmpty
+        ? null
+        : [
+            for (final e in entries)
+              compact({
+                'name': e.name,
+                'aliases': e.aliases.isEmpty ? null : e.aliases,
+                'properties': e.properties,
+              }),
+          ],
+  }),
+);

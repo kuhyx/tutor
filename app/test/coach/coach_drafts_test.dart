@@ -11,14 +11,6 @@ void main() {
     d = CoachDrafts(kv);
   });
 
-  test('the live session is saved and forgotten', () async {
-    expect(await d.session(), isNull);
-    await d.saveSession('s-1');
-    expect(await d.session(), 's-1');
-    await d.forgetSession();
-    expect(await d.session(), isNull);
-  });
-
   test('code is kept per problem and language', () async {
     expect(await d.code('a', 'python3'), isNull);
     await d.saveCode('a', 'python3', 'x = 1');

@@ -6,7 +6,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/ui/nav.dart';
 
-/// Focus and SQL buttons; [go] opens a screen and refreshes Home after.
+/// Focus, SQL and coach buttons; [go] opens a screen, then refreshes Home.
 List<Widget> homeIcons(
   BuildContext context,
   TutorServices s,
@@ -20,5 +20,9 @@ List<Widget> homeIcons(
   IconButton(
     onPressed: () => go(() => openSql(context, s)),
     icon: const Icon(Icons.storage_outlined, semanticLabel: 'SQL'),
+  ),
+  IconButton(
+    onPressed: () => go(() => openCoach(context, s)),
+    icon: const Icon(Icons.psychology_outlined, semanticLabel: 'Coach'),
   ),
 ];

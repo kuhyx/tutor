@@ -85,4 +85,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get focus => 'Focus';
+
+  @override
+  String get retestNoSubmit => 'Re-test: do NOT submit this on LeetCode';
 }

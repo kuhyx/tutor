@@ -1,7 +1,7 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
 /// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
-/// `/report`, `/sql`;
+/// `/report`, `/sql`, `/coach`;
 /// `/focus?start=1` also starts the focus timer if it is not running;
 /// `/session/continue` opens the Session and asks for the open session).
 library;
@@ -11,6 +11,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/session/session_entry.dart';
+import 'package:tutor/ui/coach/coach_picker.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
@@ -63,6 +64,10 @@ Future<void> openFocus(
 /// Opens SQL practice.
 Future<void> openSql(BuildContext context, TutorServices s) =>
     _push(context, SqlPracticeScreen(services: s));
+
+/// Opens the problem coach.
+Future<void> openCoach(BuildContext context, TutorServices s) =>
+    _push(context, CoachPickerScreen(services: s));
 
 /// Opens History.
 Future<void> openHistory(BuildContext context, TutorServices s) =>
@@ -150,6 +155,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
       autoStart: uri.queryParameters['start'] == '1',
     ),
     'sql' => openSql(context, s),
+    'coach' => openCoach(context, s),
     'history' when arg != null => openTranscript(context, s, arg),
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),

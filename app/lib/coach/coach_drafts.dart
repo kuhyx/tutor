@@ -1,6 +1,5 @@
-/// What the coach screens keep on this install: the live session id, the
-/// code per problem and language, the chosen language and a copy of the
-/// thread (shown at once on resume; the worker's copy replaces it).
+/// What the coach screens keep on this install: the code per problem and
+/// language, the chosen language and a copy of the thread.
 library;
 
 import 'dart:convert';
@@ -17,15 +16,6 @@ class CoachDrafts {
 
   /// The store.
   final KvStore kv;
-
-  /// The live session id, or null.
-  Future<String?> session() => kv.get('coach.session');
-
-  /// Saves the live session id.
-  Future<void> saveSession(String id) => kv.set('coach.session', id);
-
-  /// Forgets the live session.
-  Future<void> forgetSession() => kv.remove('coach.session');
 
   /// The saved code of `slug` in `lang`; null = never edited (the starter
   /// code goes in).

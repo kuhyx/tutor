@@ -12,18 +12,54 @@ const _strut = StrutStyle(
   height: 1.5,
   forceStrutHeight: true,
 );
-const _symbols = ['*', '(', ')', "'", ',', '=', '.', '%', '<', '>', '_'];
+
+/// Symbols a phone keyboard buries, for SQL.
+const sqlSymbols = ['*', '(', ')', "'", ',', '=', '.', '%', '<', '>', '_'];
+
+/// The same for Python, JavaScript and TypeScript; two spaces indent.
+const codeSymbols = [
+  '  ',
+  ':',
+  '(',
+  ')',
+  '[',
+  ']',
+  '{',
+  '}',
+  '"',
+  "'",
+  '=',
+  '.',
+  ',',
+  '_',
+  '<',
+  '>',
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '!',
+];
 
 /// The editor over [controller]; [showKeys] adds the symbol row.
 class SqlEditor extends StatelessWidget {
   /// Creates the editor.
-  const new({required this.controller, this.showKeys = false, super.key});
+  const new({
+    required this.controller,
+    this.showKeys = false,
+    this.symbols = sqlSymbols,
+    super.key,
+  });
 
   /// The SQL text.
   final TextEditingController controller;
 
   /// Show the symbol row (touch screens).
   final bool showKeys;
+
+  /// The symbols in that row.
+  final List<String> symbols;
 
   @override
   Widget build(BuildContext context) {
@@ -52,11 +88,11 @@ class SqlEditor extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (final s in _symbols)
+                  for (final s in symbols)
                     TextButton(
                       key: ValueKey('key-$s'),
                       onPressed: () => _insert(s),
-                      child: Text(s, style: sqlMono),
+                      child: Text(s.trim().isEmpty ? '⇥' : s, style: sqlMono),
                     ),
                 ],
               ),

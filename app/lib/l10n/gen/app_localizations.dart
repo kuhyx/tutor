@@ -231,6 +231,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Focus'**
   String get focus;
+
+  /// No description provided for @retestNoSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-test: do NOT submit this on LeetCode'**
+  String get retestNoSubmit;
 }
 
 class _AppLocalizationsDelegate

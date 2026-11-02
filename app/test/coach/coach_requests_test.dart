@@ -42,6 +42,10 @@ void main() {
     });
   });
 
+  test('cards without entries only asks', () {
+    expect(lcCards('i', const []).body, {'lc_id': 'i'});
+  });
+
   test('cards: aliases only when there are some', () {
     final body = lcCards('i', [
       (name: 'a', aliases: ['b'], properties: ['p']),
