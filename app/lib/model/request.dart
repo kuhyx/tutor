@@ -124,7 +124,13 @@ enum RequestKind {
   lcCards('lc_cards', Lane.chat),
 
   /// Mock test: start, answer, run, finish.
-  mock('mock', Lane.chat);
+  mock('mock', Lane.chat),
+
+  /// Today's linear plan (server-driven; `tutor/relay/plan.py`).
+  planToday('plan_today', Lane.chat),
+
+  /// Marks one step of today's plan done.
+  planStepDone('plan_step_done', Lane.chat);
 
   new(this.wire, this.lane);
 

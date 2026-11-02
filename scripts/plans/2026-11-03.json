@@ -1,0 +1,12 @@
+{
+ "steps": [
+  {"id": "s1", "title": "Coach: longest palindromic subsequence", "what": "Finish the problem with the coach: get the DP recurrence and code it.", "kind": "coach", "target": "longest-palindromic-subsequence"},
+  {"id": "s2", "title": "Coach: longest palindromic substring", "what": "Next problem with the coach: expand around centers, then code it.", "kind": "coach", "target": "longest-palindromic-substring"},
+  {"id": "s3", "title": "Cards: MySQL", "what": "Review the due MySQL cards (today's 25 SQL tricks).", "kind": "cards", "target": "mysql-8-for-timed-sql-coding-tests-joins-and"},
+  {"id": "s4", "title": "SQL lesson: dates", "what": "Learn STR_TO_DATE and DATEDIFF with the lesson, then do its drills.", "kind": "sql_lesson", "target": "dates"},
+  {"id": "s5", "title": "Mock test, 60 min", "what": "Timed mock test. No hints; it is graded at the end.", "kind": "mock", "target": "60"},
+  {"id": "s6", "title": "Review: mock misses", "what": "Open the mock result and go through every miss.", "kind": "mock", "target": "review"},
+  {"id": "s7", "title": "Cards: Python", "what": "Review the due Python cards.", "kind": "cards", "target": "python-fundamentals-for-multiple-choice"},
+  {"id": "s8", "title": "Evening on the PC", "what": "HackerRank sample test from the invitation email.", "kind": "note", "target": ""}
+ ]
+}

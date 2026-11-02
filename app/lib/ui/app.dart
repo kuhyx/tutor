@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
-import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/sign_in_screen.dart';
+import 'package:tutor/ui/start_screen.dart';
 import 'package:tutor/ui/ui_scale.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 
@@ -85,7 +85,7 @@ class _GateState extends State<_Gate> {
             _session = services.auth.hasSession();
           });
           return session.data!
-              ? HomeScreen(
+              ? StartScreen(
                   services: services,
                   onSignedOut: recheck,
                   initialRoute: widget.initialRoute,
