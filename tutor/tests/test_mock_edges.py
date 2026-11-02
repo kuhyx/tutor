@@ -88,3 +88,11 @@ def test_a_model_answer_that_is_not_a_list_gives_no_questions(
 ) -> None:
     monkeypatch.setattr(mock_mcq, "ask_model", lambda *_: {"questions": "no"})
     assert asyncio.run(mock_mcq.generate()) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "shown"),
+    [("# Pivot with CASE\n\nList ids.", "List ids."), ("List ids.", "List ids.")],
+)
+def test_the_task_title_is_dropped(text: str, shown: str) -> None:
+    assert mock_sql._untitled(text) == shown

@@ -59,6 +59,16 @@ async def _drill(drill_id: str) -> Json:
     return wire(await engine_call(lambda sd: lambda: sd.get_drill(drill_id), drill_id))
 
 
+def _untitled(task_md: str) -> str:
+    """The task text without its ``# Title`` line (a title can name the tool)."""
+    lines = task_md.lstrip().splitlines()
+    return (
+        "\n".join(lines[1:]).strip()
+        if lines[:1] and lines[0].startswith("#")
+        else task_md
+    )
+
+
 def _choose(
     metas: list[Json], topics: tuple[str, ...], seen: set[str], rnd: random.Random
 ) -> str:
@@ -92,7 +102,7 @@ async def pick(
                 "section": "sql",
                 "title": f"SQL task {n}",
                 "topic": got["meta"]["topic"],
-                "prompt_md": got["task_md"],
+                "prompt_md": _untitled(got["task_md"]),
                 "tables": got["tables"],
                 "sample": got["expected_preview"][:SAMPLE_ROWS],
             }
