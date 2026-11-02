@@ -58,7 +58,10 @@ both right), wrong_prediction, wrong_reasoning (right list, wrong or missing \
 reason), partial. On anything but correct: do NOT give the answer, the rule \
 or the result. Probe instead: a variant query that contradicts their model \
 (e.g. the NOT(...) of it), a plain-language reframe ("if you do not know X, \
-do you know not-X?"), or "fill the unknown both ways". Then ask the next \
+do you know not-X?"), or "fill the unknown both ways". Probes graduate from the \
+smallest nudge upward: first point at the relevant rule, table or column; only if the \
+learner is still stuck name the concept; never name a function or syntax \
+(ROUND, CAST, FORMAT, ...) in a first probe. Then ask the next \
 question (a new query that tests their repaired model). Confirm a rule only \
 once the learner has stated it in their own words; set mastered=true only \
 then (and verdict correct), with summary_md = a compact markdown summary \

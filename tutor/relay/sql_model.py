@@ -28,11 +28,30 @@ _STATEMENT: Final = re.compile(
     r"|update\s+\w+\s+set)\b",
     re.IGNORECASE | re.DOTALL,
 )
+# Names that give the tool away: SQL-only words match in any case, common
+# English ones (FORMAT, CASE, COUNT...) only when written as SQL, and any call.
+_TOOL_LOWER: Final = re.compile(
+    r"\b(?:round|cast|convert|ifnull|coalesce|nullif|date_format|str_to_date|"
+    r"date_add|date_sub|datediff|row_number|dense_rank|substring|truncate)\b|\w\(",
+    re.IGNORECASE,
+)
+_TOOL_UPPER: Final = re.compile(
+    r"\b(?:FORMAT|CASE|COUNT|SUM|AVG|MIN|MAX|CONCAT|RANK|FLOOR|CEIL|DECIMAL|"
+    r"GROUP BY|ORDER BY|HAVING|JOIN|LIKE|EXTRACT|OVER)\b"
+)
 HINT_SYSTEM: Final = (
     "You coach a student practising MySQL 8 for a timed test. Reply with ONE "
     "short Socratic question that nudges them toward the next step. Never give "
     "the answer, never write a SQL statement or a code block, never name the "
-    "full solution. One question mark, at the end."
+    "full solution. One question mark, at the end. Hints graduate from the "
+    "smallest nudge upward: level 1 only points at the relevant rule, table "
+    "or column and names NO function or syntax; level 2 names the concept "
+    "area; from level 3 you may name a function, still as a question."
+)
+LEVEL_NOTES: Final = (
+    "point at the rule, table or column only; name no function or syntax",
+    "name the concept area, still no function name",
+    "you may now name the function or clause, as a question",
 )
 GENERATE_SYSTEM: Final = (
     "You write one SQL practice drill for MySQL 8.0.33. schema_sql: CREATE "
@@ -44,7 +63,11 @@ GENERATE_SYSTEM: Final = (
 )
 
 
-def _problem(question: str) -> str | None:
+def _names_tool(question: str) -> bool:
+    return bool(_TOOL_LOWER.search(question) or _TOOL_UPPER.search(question))
+
+
+def _problem(question: str, level: int) -> str | None:
     if not question:
         return "it was empty"
     if len(question) > MAX_QUESTION:
@@ -53,7 +76,14 @@ def _problem(question: str) -> str | None:
         return "it contained SQL code"
     if question.count("?") != 1 or not question.endswith("?"):
         return "it was not exactly one question ending in a question mark"
+    if level <= len(LEVEL_NOTES) - 1 and _names_tool(question):
+        return "it named a function or syntax; a first hint only points at the rule"
     return None
+
+
+def _level(body: dict[str, Any]) -> int:
+    """1 for the first hint of a drill, one more per hint already shown."""
+    return len(body["history"]) + 1
 
 
 def _hint_prompt(drill: dict[str, Json], body: dict[str, Any]) -> str:
@@ -70,6 +100,9 @@ def _hint_prompt(drill: dict[str, Json], body: dict[str, Any]) -> str:
     if body["history"]:
         asked = "\n".join(f"- {q}" for q in body["history"])
         parts.append(f"Questions already asked (do not repeat):\n{asked}")
+    level = _level(body)
+    note = LEVEL_NOTES[min(level, len(LEVEL_NOTES)) - 1]
+    parts.append(f"Hint level {level}: {note}.")
     return "\n\n".join(parts)
 
 
@@ -86,7 +119,7 @@ async def sql_hint(ctx: RequestContext) -> Json:
             ask_model, HINT_SYSTEM, prompt + note, HINT_SCHEMA
         )
         question = str(raw.get("question", "")).strip()
-        if (why := _problem(question)) is None:
+        if (why := _problem(question, _level(body))) is None:
             return {"question": question}
         note = f"\n\nYour previous reply was rejected: {why}. Reply with ONE question."
     msg = "the model gave no usable hint; try again"

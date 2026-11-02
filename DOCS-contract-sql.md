@@ -68,7 +68,10 @@ none. Lists longer than 200 entries (`cell_diff`: 500) are cut and
 ## Hints (`sql_hint`)
 The model gets the task, the schema, the user's `sql`, the compact
 `last_result` and the earlier hint questions; it never gets the reference SQL.
-It must return ONE short Socratic question (<= 400 chars, one `?`, at the end,
+Hints graduate with the number of earlier hints in `history`: level 1 only
+points at the rule, table or column and names no function or syntax (the
+worker rejects and re-asks one that does), level 2 names the concept, from
+level 3 a function may be named. It must return ONE short Socratic question (<= 400 chars, one `?`, at the end,
 no code fence, no SQL statement). The worker validates this and re-asks up to
 2 times; still invalid = `model_error` (`retry:true`). A hint that would hand
 over the answer is therefore never delivered.
