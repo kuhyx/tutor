@@ -84,7 +84,25 @@ enum RequestKind {
   focusUpdate('focus_update', Lane.chat),
 
   /// End a focus project early.
-  focusEnd('focus_end', Lane.chat);
+  focusEnd('focus_end', Lane.chat),
+
+  /// SQL practice: drills and topics.
+  sqlList('sql_list', Lane.chat),
+
+  /// One drill (no reference SQL).
+  sqlGet('sql_get', Lane.chat),
+
+  /// Run the typed SQL against a drill.
+  sqlRun('sql_run', Lane.chat),
+
+  /// Check a typed output grid against a drill.
+  sqlPredict('sql_predict', Lane.chat),
+
+  /// One Socratic question about the typed SQL.
+  sqlHint('sql_hint', Lane.chat),
+
+  /// A new drill on a topic.
+  sqlGenerate('sql_generate', Lane.chat);
 
   new(this.wire, this.lane);
 

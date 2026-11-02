@@ -12,6 +12,9 @@ import 'package:tutor/model/request.dart';
 class RequestBody {
   const new _(this.kind, this.body);
 
+  /// A body built outside this file (`sql/sql_requests.dart`).
+  const new raw(this.kind, this.body);
+
   /// `subject_new`: "I want to learn how a car works" (<= 2000 chars).
   factory subjectNew(String text) =>
       RequestBody._(RequestKind.subjectNew, {'text': _cap(text, 2000)});
