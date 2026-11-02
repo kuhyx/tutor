@@ -47,6 +47,8 @@ object FocusCheckin {
     /** Arms the prompt [afterMs] from now and keeps the timer service alive. */
     fun schedule(ctx: Context, afterMs: Long, everyMs: Long) {
         prefs(ctx).edit().putLong(KEY_EVERY, everyMs).putBoolean(KEY_ARMED, true).apply()
+        // An in-app check-in lands here too: the shade prompt is answered.
+        notifications(ctx).cancel(ID_PROMPT)
         arm(ctx, afterMs)
         FocusTimerService.start(ctx)
     }
