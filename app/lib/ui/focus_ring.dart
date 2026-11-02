@@ -10,6 +10,7 @@ class FocusRing extends StatelessWidget {
     required this.minutes,
     required this.goal,
     this.caption,
+    this.banked,
     super.key,
   });
 
@@ -21,6 +22,9 @@ class FocusRing extends StatelessWidget {
 
   /// Second line inside the ring.
   final String? caption;
+
+  /// Overtime banked for tomorrow, e.g. `(+1 banked)`; null when none.
+  final String? banked;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +52,7 @@ class FocusRing extends StatelessWidget {
                     child: Divider(color: scheme.onSurface, thickness: 2),
                   ),
                   Text(goal.toString(), style: text.titleLarge),
+                  if (banked != null) Text(banked!, style: text.bodyMedium),
                   if (caption != null) Text(caption!, style: text.bodyMedium),
                 ],
               ),

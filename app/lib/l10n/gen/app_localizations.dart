@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'{n, plural, =1{1 day left} other{{n} days left}}'**
   String daysLeft(int n);
 
+  /// No description provided for @banked.
+  ///
+  /// In en, this message translates to:
+  /// **'(+{n} banked)'**
+  String banked(int n);
+
   /// No description provided for @dailyMinutes.
   ///
   /// In en, this message translates to:

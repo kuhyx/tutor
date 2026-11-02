@@ -15,6 +15,9 @@ import 'package:tutor/ui/focus_form.dart';
 import 'package:tutor/ui/focus_gates.dart';
 import 'package:tutor/ui/focus_ring.dart';
 
+/// The most overtime the server banks for the next day (`focus_project`).
+const int _bankCap = 60;
+
 /// The focus project: today's ring, the timer and its check-in.
 class FocusScreen extends StatefulWidget {
   /// Creates the screen; [autoStart] (the `/focus?start=1` deep link)
@@ -175,6 +178,9 @@ class _FocusScreenState extends State<FocusScreen> {
     final running = _timer.isRunning;
     final lapsed = _timer.isLapsed;
     final live = (_timer.counted.inMinutes - _countedAtLoad).clamp(0, 999);
+    // Real minutes, never capped (121/120): the overtime banks for tomorrow.
+    final shown = project.minutes + live;
+    final banked = (shown - project.dailyMinutes).clamp(0, _bankCap);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -183,8 +189,9 @@ class _FocusScreenState extends State<FocusScreen> {
         Expanded(
           child: Center(
             child: FocusRing(
-              minutes: project.minutes + live,
+              minutes: shown,
               goal: project.dailyMinutes,
+              banked: banked > 0 ? l.banked(banked) : null,
               caption: running ? focusClock(_timer.counted) : null,
             ),
           ),

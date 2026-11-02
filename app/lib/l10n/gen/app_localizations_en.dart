@@ -54,6 +54,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String banked(int n) {
+    return '(+$n banked)';
+  }
+
+  @override
   String get dailyMinutes => 'Minutes per day';
 
   @override

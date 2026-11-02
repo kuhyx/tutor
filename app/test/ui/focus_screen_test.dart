@@ -25,9 +25,9 @@ const Map<String, Object> _project = {
   'site_patterns': ['hackerrank.com'],
 };
 
-Map<String, Object?> _status({bool active = true}) => {
+Map<String, Object?> _status({bool active = true, int minutes = 42}) => {
   'day': '2026-11-02',
-  'active': active ? {..._project, 'minutes': 42} : null,
+  'active': active ? {..._project, 'minutes': minutes} : null,
   'projects': [_project],
   'gates': [
     {'id': 'leetcode', 'label': 'LeetCode', 'replaceable': true},
@@ -48,6 +48,7 @@ void main() {
     bool active = true,
     bool autoStart = false,
     bool running = false,
+    int minutes = 42,
   }) async {
     db = FakeRtdb();
     stream = FakeStream();
@@ -66,7 +67,12 @@ void main() {
       FocusScreen(services: s, autoStart: autoStart),
       settle: false,
     );
-    await answer(t, db, stream, data: _status(active: active));
+    await answer(
+      t,
+      db,
+      stream,
+      data: _status(active: active, minutes: minutes),
+    );
   }
 
   List<Object?> focusEvents() {
@@ -88,6 +94,23 @@ void main() {
     expect(find.text('LeetCode'), findsOneWidget);
     expect(find.text('Workout'), findsOneWidget);
     expect(find.text('Start'), findsOneWidget);
+  });
+
+  testWidgets('overtime shows the real minutes and what is banked', (t) async {
+    await open(t, minutes: 121);
+    expect(find.text('121'), findsOneWidget);
+    expect(find.text('120'), findsOneWidget);
+    expect(find.text('(+1 banked)'), findsOneWidget);
+  });
+
+  testWidgets('the bank shown is capped at the 60 the server banks', (t) async {
+    await open(t, minutes: 300);
+    expect(find.text('(+60 banked)'), findsOneWidget);
+  });
+
+  testWidgets('no overtime, no bank line', (t) async {
+    await open(t);
+    expect(find.textContaining('banked'), findsNothing);
   });
 
   testWidgets('Start queues a start tap with its time; Stop ends it', (
