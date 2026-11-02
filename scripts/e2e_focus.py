@@ -9,7 +9,7 @@ Runs on a sandbox that is ``up`` (``e2e_sandbox.sh``): the worker's
 1. a project covering today is created through the relay (``focus_create``,
    as the form would send it) and shows on the Focus screen;
 2. the page hooks are installed (see ``PAGE_HOOK``): a recording
-   ``Notification`` (permission granted) and the 9-minute check-in timer
+   ``Notification`` (permission granted) and the 7-minute check-in timer
    shortened, so the run needs seconds, not minutes;
 3. Start -> the worker records ``timer/start`` in ``activity.jsonl``;
 4. the check-in is due: the browser notification fires (``Still working?``)
@@ -36,10 +36,10 @@ ROUTE = "/focus"
 START, CHECKIN, STOP = "Start", "Still working", "Stop"
 # Page-side, before the app boots: a Notification that is granted, recorded
 # in ``window.__notes`` and clickable by the script; timers of 60 s or more
-# run 100x faster (the notifier's 9 minutes become 5.4 s); ``__skew(ms)``
+# run 100x faster (the notifier's 7 minutes become 4.2 s); ``__skew(ms)``
 # moves the app clock forward, so the timer's own gap check (check-in due at
-# 540 s, lapse at 600 s) is reached in seconds without a lapse.
-SKEW_MS = 535_000
+# 420 s, lapse at 600 s) is reached in seconds without a lapse.
+SKEW_MS = 418_000
 PAGE_HOOK = """
 (() => {
   window.__notes = [];

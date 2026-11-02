@@ -1,6 +1,7 @@
 /// Android side of `FocusCheckinNotifier`: the native `FocusCheckin` (exact
-/// alarm + "Still working" notification action + foreground timer service) in
-/// `android/.../com/kuhy/tutor/` behind one method channel.
+/// alarms for the prompt and the lapse cleanup, the "Still working" action and
+/// the foreground timer service) in `android/.../com/kuhy/tutor/` behind one
+/// method channel.
 ///
 /// Taps are stored natively first, so one made with the app dead or the
 /// screen off is never lost; `takePending` drains them.
@@ -11,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
+import 'package:tutor/focus/focus_timer.dart' show lapseAfter;
 
 /// The notifier for the phone build.
 class AndroidCheckinNotifier implements FocusCheckinNotifier {
@@ -35,6 +37,7 @@ class AndroidCheckinNotifier implements FocusCheckinNotifier {
     await _channel.invokeMethod<void>('schedule', {
       'afterMs': after.inMilliseconds,
       'everyMs': checkinEvery.inMilliseconds,
+      'lapseMs': lapseAfter.inMilliseconds,
     });
   }
 

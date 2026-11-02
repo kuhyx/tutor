@@ -45,7 +45,7 @@ void main() {
     () async {
       final n = AndroidCheckinNotifier();
       await n.schedule(const Duration(minutes: 3));
-      await n.schedule(const Duration(minutes: 9));
+      await n.schedule(const Duration(minutes: 7));
       expect(calls.map((c) => c.method), [
         'ensurePermission',
         'schedule',
@@ -53,16 +53,18 @@ void main() {
       ]);
       expect(calls[1].arguments, {
         'afterMs': 180000,
-        'everyMs': checkinEvery.inMilliseconds,
+        'everyMs': 420000,
+        'lapseMs': 600000,
       });
+      expect(checkinEvery.inMilliseconds, 420000);
     },
   );
 
   test('a denied permission is asked again next time but still arms', () async {
     permission = false;
     final n = AndroidCheckinNotifier();
-    await n.schedule(const Duration(minutes: 9));
-    await n.schedule(const Duration(minutes: 9));
+    await n.schedule(const Duration(minutes: 7));
+    await n.schedule(const Duration(minutes: 7));
     expect(calls.where((c) => c.method == 'ensurePermission'), hasLength(2));
     expect(calls.where((c) => c.method == 'schedule'), hasLength(2));
   });

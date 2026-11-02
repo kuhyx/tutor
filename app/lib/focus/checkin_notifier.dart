@@ -8,8 +8,9 @@
 library;
 
 /// A check-in is due this often while the timer runs (contract: a gap above
-/// 10 minutes stops the counting, so ask a minute earlier).
-const checkinEvery = Duration(minutes: 9);
+/// 10 minutes stops the counting, so ask three minutes earlier: time to see
+/// the prompt and tap).
+const checkinEvery = Duration(minutes: 7);
 
 /// Platform side of the check-in prompt.
 abstract class FocusCheckinNotifier {
@@ -17,8 +18,8 @@ abstract class FocusCheckinNotifier {
   /// already armed. Its action button ("Still working") is a check-in.
   Future<void> schedule(Duration after);
 
-  /// The timer stopped (or the check-in landed): drop the armed prompt and
-  /// any notification on screen.
+  /// The timer stopped or lapsed: drop the armed prompt, any notification on
+  /// screen and (Android) the foreground service.
   Future<void> cancel();
 
   /// Taps on the action while the app is alive: the tap time, unix ms.

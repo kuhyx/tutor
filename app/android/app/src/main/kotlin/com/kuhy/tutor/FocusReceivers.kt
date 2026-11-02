@@ -13,3 +13,8 @@ class FocusAlarmReceiver : BroadcastReceiver() {
 class FocusActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) = FocusCheckin.recordTap(context)
 }
+
+/** The lapse alarm fired: no tap for the lapse window, so stop everything. */
+class FocusLapseReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) = FocusCheckin.onLapse(context)
+}

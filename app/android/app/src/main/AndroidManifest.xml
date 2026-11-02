@@ -36,6 +36,7 @@
         </activity>
         <receiver android:name=".FocusAlarmReceiver" android:exported="false"/>
         <receiver android:name=".FocusActionReceiver" android:exported="false"/>
+        <receiver android:name=".FocusLapseReceiver" android:exported="false"/>
         <service
             android:name=".FocusTimerService"
             android:exported="false"

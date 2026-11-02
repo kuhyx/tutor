@@ -38,6 +38,10 @@ The client owns the timer; each tap is one `focus_event` whose `ts` is the
 CLIENT time of the tap. The worker calls
 `fp.record_activity("timer", event, ts=ts/1000, dev=platform)`.
 A segment counts only while check-ins arrive <= 600 s apart (focus_project).
+The client asks "Still working?" 420 s (7 min) after each tap, leaving 180 s to
+answer before the 600 s lapse. At the lapse the client drops the prompt and,
+on Android, the foreground service (native alarm at tap + 600 s; Dart may be
+dead). The next tap on Start begins a new segment.
 A phone that is offline queues events locally (same rid, same `ts`, replayed
 in order) and the rid is a ULID minted at tap time, so lane order = tap order.
 Worker clamps: `ts` later than the request's `created` becomes `created`;

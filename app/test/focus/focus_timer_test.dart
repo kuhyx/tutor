@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
 import 'package:tutor/focus/event_queue.dart';
@@ -72,23 +73,58 @@ void main() {
     await t.start();
     expect(t.isRunning, isTrue);
     expect(notifier.scheduled.last, checkinEvery);
-    clock += 9 * min;
+    expect(checkinEvery, const Duration(minutes: 7));
+    expect(notifier.scheduled.last, const Duration(minutes: 7));
+    clock += 6 * min;
+    expect(t.checkinDue, isFalse);
+    clock += 1 * min;
     expect(t.checkinDue, isTrue);
-    expect(t.counted, const Duration(minutes: 9));
+    expect(t.counted, const Duration(minutes: 7));
     await t.checkin();
     expect(t.checkinDue, isFalse);
     clock += 4 * min;
     await t.stop();
-    expect(t.counted, const Duration(minutes: 13));
+    expect(t.counted, const Duration(minutes: 11));
     expect(t.isRunning, isFalse);
     expect(notifier.cancelled, 1);
     await t.flush();
     expect(sent, [
       'start@${1000 * min}',
-      'checkin@${1009 * min}',
-      'stop@${1013 * min}',
+      'checkin@${1007 * min}',
+      'stop@${1011 * min}',
     ]);
     t.dispose();
+  });
+
+  test('the ticker cancels the notifier once when the run lapses', () {
+    fakeAsync((async) {
+      // The queue's lock future must be born in the fake zone.
+      queue = FocusEventQueue(
+        kv,
+        ulid: UlidGenerator(now: () => clock),
+        now: () => clock,
+      );
+      final t = open();
+      unawaited(t.load().then((_) => t.start()));
+      async.flushMicrotasks();
+      expect(notifier.cancelled, 0);
+      clock += 10 * min;
+      async.elapse(const Duration(seconds: 1));
+      expect(notifier.cancelled, 0); // exactly 10 min is not yet a lapse
+      clock += 1000;
+      async.elapse(const Duration(seconds: 1));
+      expect(t.isLapsed, isTrue);
+      expect(notifier.cancelled, 1);
+      clock += 5000;
+      async.elapse(const Duration(seconds: 3));
+      expect(notifier.cancelled, 1);
+      unawaited(t.checkin()); // the way back; a new lapse cancels again
+      async.flushMicrotasks();
+      clock += 10 * min + 1000;
+      async.elapse(const Duration(seconds: 1));
+      expect(notifier.cancelled, 2);
+      t.dispose();
+    });
   });
 
   test('a missed check-in stops the counting; the next tap restarts', () async {

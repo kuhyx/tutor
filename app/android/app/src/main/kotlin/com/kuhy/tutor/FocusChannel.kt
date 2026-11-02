@@ -8,7 +8,7 @@ import io.flutter.plugin.common.MethodChannel
 
 /**
  * `com.kuhy.tutor/focus`: the Dart `AndroidCheckinNotifier`'s side.
- * Methods: ensurePermission -> bool, schedule {afterMs, everyMs}, cancel,
+ * Methods: ensurePermission -> bool, schedule {afterMs, everyMs, lapseMs}, cancel,
  * takePending -> [ms]. Native -> Dart: `tapped` (taps are stored first).
  */
 class FocusChannel(private val activity: Activity, engine: FlutterEngine) {
@@ -39,6 +39,7 @@ class FocusChannel(private val activity: Activity, engine: FlutterEngine) {
                     activity,
                     (call.argument<Number>("afterMs") ?: 0).toLong(),
                     (call.argument<Number>("everyMs") ?: 0).toLong(),
+                    (call.argument<Number>("lapseMs") ?: 600_000).toLong(),
                 )
                 result.success(null)
             }

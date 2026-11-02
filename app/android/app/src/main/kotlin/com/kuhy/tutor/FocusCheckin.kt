@@ -24,6 +24,7 @@ object FocusCheckin {
     const val CHANNEL_PROMPT = "focus_checkin_v1"
     const val CHANNEL_TIMER = "focus_timer_v1"
     const val ACTION_ALARM = "com.kuhy.tutor.focus.ALARM"
+    const val ACTION_LAPSE = "com.kuhy.tutor.focus.LAPSE"
     const val ACTION_STILL = "com.kuhy.tutor.focus.STILL_WORKING"
     const val ID_TIMER = 4100
     const val ID_PROMPT = 4101
@@ -32,6 +33,12 @@ object FocusCheckin {
     private const val KEY_PENDING = "pending"
     private const val KEY_EVERY = "every_ms"
     private const val KEY_ARMED = "armed"
+    private const val KEY_LAPSE = "lapse_ms"
+    private const val KEY_LAST_TAP = "last_tap"
+
+    // Same fallbacks as Dart's checkinEvery / lapseAfter (focus_project: 600 s).
+    private const val DEFAULT_EVERY_MS = 7 * 60_000L
+    private const val DEFAULT_LAPSE_MS = 10 * 60_000L
 
     /** Set while an Activity listens; told when a tap was stored. */
     @Volatile
@@ -44,21 +51,48 @@ object FocusCheckin {
             ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** Arms the prompt [afterMs] from now and keeps the timer service alive. */
-    fun schedule(ctx: Context, afterMs: Long, everyMs: Long) {
-        prefs(ctx).edit().putLong(KEY_EVERY, everyMs).putBoolean(KEY_ARMED, true).apply()
+    /**
+     * Arms the prompt [afterMs] from now and the lapse cleanup [lapseMs] from
+     * now (this is a tap), and keeps the timer service alive.
+     */
+    fun schedule(
+        ctx: Context,
+        afterMs: Long,
+        everyMs: Long,
+        lapseMs: Long = DEFAULT_LAPSE_MS,
+        nowMs: Long = System.currentTimeMillis(),
+    ) {
+        prefs(ctx).edit()
+            .putLong(KEY_EVERY, everyMs)
+            .putLong(KEY_LAPSE, lapseMs)
+            .putLong(KEY_LAST_TAP, nowMs)
+            .putBoolean(KEY_ARMED, true)
+            .apply()
         // An in-app check-in lands here too: the shade prompt is answered.
         notifications(ctx).cancel(ID_PROMPT)
         arm(ctx, afterMs)
+        armLapse(ctx, nowMs + lapseMs)
         FocusTimerService.start(ctx)
     }
 
-    /** The timer stopped: no alarm, no notification, no service. */
+    /** The timer stopped or lapsed: no alarms, no notification, no service. */
     fun cancel(ctx: Context) {
         prefs(ctx).edit().putBoolean(KEY_ARMED, false).apply()
         alarms(ctx).cancel(alarmIntent(ctx))
+        alarms(ctx).cancel(lapseIntent(ctx))
         notifications(ctx).cancel(ID_PROMPT)
         FocusTimerService.stop(ctx)
+    }
+
+    /**
+     * The lapse alarm fired (Dart may be dead): with no newer tap the run is
+     * over, so disarm and tear the prompt and the service down.
+     */
+    fun onLapse(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
+        val p = prefs(ctx)
+        if (!p.getBoolean(KEY_ARMED, false)) return
+        if (p.getLong(KEY_LAST_TAP, 0L) + p.getLong(KEY_LAPSE, DEFAULT_LAPSE_MS) > nowMs) return
+        cancel(ctx)
     }
 
     /** A tap on "Still working": store it, clear the prompt, arm the next one. */
@@ -70,7 +104,11 @@ object FocusCheckin {
         }
         notifications(ctx).cancel(ID_PROMPT)
         val p = prefs(ctx)
-        if (p.getBoolean(KEY_ARMED, false)) arm(ctx, p.getLong(KEY_EVERY, 9 * 60_000L))
+        if (p.getBoolean(KEY_ARMED, false)) {
+            p.edit().putLong(KEY_LAST_TAP, nowMs).apply()
+            arm(ctx, p.getLong(KEY_EVERY, DEFAULT_EVERY_MS))
+            armLapse(ctx, nowMs + p.getLong(KEY_LAPSE, DEFAULT_LAPSE_MS))
+        }
         onTap?.invoke()
     }
 
@@ -116,19 +154,27 @@ object FocusCheckin {
         )
     }
 
-    private fun arm(ctx: Context, afterMs: Long) {
-        val at = System.currentTimeMillis() + afterMs.coerceAtLeast(1_000L)
+    private fun arm(ctx: Context, afterMs: Long) =
+        setAlarm(ctx, System.currentTimeMillis() + afterMs.coerceAtLeast(1_000L), alarmIntent(ctx))
+
+    private fun armLapse(ctx: Context, atMs: Long) = setAlarm(ctx, atMs, lapseIntent(ctx))
+
+    private fun setAlarm(ctx: Context, atMs: Long, pi: PendingIntent) {
         val am = alarms(ctx)
-        val pi = alarmIntent(ctx)
         if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, pi)
         } else {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, pi)
         }
     }
 
     private fun alarmIntent(ctx: Context): PendingIntent = PendingIntent.getBroadcast(
         ctx, 2, Intent(ctx, FocusAlarmReceiver::class.java).setAction(ACTION_ALARM),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun lapseIntent(ctx: Context): PendingIntent = PendingIntent.getBroadcast(
+        ctx, 3, Intent(ctx, FocusLapseReceiver::class.java).setAction(ACTION_LAPSE),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 

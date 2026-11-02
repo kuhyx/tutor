@@ -33,6 +33,7 @@ class FocusTimer extends ChangeNotifier {
   bool _started = false;
   bool _loaded = false;
   bool _disposed = false;
+  bool _lapseHandled = false;
   Future<void> _flushes = Future.value();
   int _lastMs = 0;
   int _countedMs = 0;
@@ -125,6 +126,7 @@ class FocusTimer extends ChangeNotifier {
     await _queue.enqueue(event, ts: ts, platform: _platform);
     _started = started;
     _lastMs = ts;
+    _lapseHandled = false;
     await _save();
     _arm();
     notifyListeners();
@@ -133,7 +135,17 @@ class FocusTimer extends ChangeNotifier {
 
   void _arm() {
     _ticker?.cancel();
-    _ticker = _started ? Timer.periodic(_tick, (_) => notifyListeners()) : null;
+    _ticker = _started ? Timer.periodic(_tick, (_) => _onTick()) : null;
+  }
+
+  /// Once per run -> lapsed transition the notifier is cancelled, so no
+  /// prompt or service outlives the counting (Android also does it natively).
+  void _onTick() {
+    if (isLapsed && !_lapseHandled) {
+      _lapseHandled = true;
+      unawaited(_notifier.cancel());
+    }
+    notifyListeners();
   }
 
   @override
