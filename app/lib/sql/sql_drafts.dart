@@ -21,6 +21,16 @@ class SqlDrafts {
   /// Saves the SQL of drill [id].
   Future<void> saveSql(String id, String text) => kv.set('sql.sql.$id', text);
 
+  /// The lesson id saved for [topic] (null if none).
+  Future<String?> lesson(String topic) => kv.get('sql.lesson.$topic');
+
+  /// Saves the lesson id of [topic].
+  Future<void> saveLesson(String topic, String id) =>
+      kv.set('sql.lesson.$topic', id);
+
+  /// Forgets the lesson of [topic].
+  Future<void> forgetLesson(String topic) => kv.remove('sql.lesson.$topic');
+
   /// The saved prediction grid of drill [id] (empty if none or damaged).
   Future<Grid> grid(String id) async {
     final raw = await kv.get('sql.grid.$id');

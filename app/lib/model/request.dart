@@ -102,7 +102,10 @@ enum RequestKind {
   sqlHint('sql_hint', Lane.chat),
 
   /// A new drill on a topic.
-  sqlGenerate('sql_generate', Lane.chat);
+  sqlGenerate('sql_generate', Lane.chat),
+
+  /// One turn of a guided SQL lesson.
+  sqlLessonTurn('sql_lesson_turn', Lane.chat);
 
   new(this.wire, this.lane);
 

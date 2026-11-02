@@ -47,6 +47,15 @@ void main() {
     ]);
   });
 
+  test('an object that is not an index map is an error', () {
+    expect(
+      () => parseOutcome(const {
+        'rows': {'a': 1},
+      }),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('result: grids, diff, extra and missing rows', () {
     final r = parseOutcome(runBadData);
     expect(r.ok, isTrue);

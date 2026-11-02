@@ -11,6 +11,7 @@ import 'package:tutor/sql/sql_requests.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
+import 'package:tutor/ui/sql/lesson_screen.dart';
 
 /// The topic list.
 class SqlPracticeScreen extends StatefulWidget {
@@ -76,6 +77,12 @@ class _SqlPracticeScreenState extends State<SqlPracticeScreen> {
     super.dispose();
   }
 
+  Future<void> _lesson(String topic) => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => SqlLessonScreen(services: widget.services, topic: topic),
+    ),
+  );
+
   Future<void> _open(DrillMeta drill) => Navigator.of(context)
       .push<void>(
         MaterialPageRoute(
@@ -118,7 +125,10 @@ class _SqlPracticeScreenState extends State<SqlPracticeScreen> {
 
   List<Widget> _topic(String topic, DrillList? drills) => [
     ListTile(
+      key: ValueKey('lesson-$topic'),
+      leading: const Icon(Icons.school_outlined, semanticLabel: 'Lesson'),
       title: Text(topic, style: Theme.of(context).textTheme.titleMedium),
+      onTap: () => unawaited(_lesson(topic)),
       trailing: RunnerBuilder(
         _generate,
         (_) => IconButton(

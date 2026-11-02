@@ -105,3 +105,36 @@ const Map<String, Object?> runGoodData = {
   ],
   'match': true,
 };
+
+const Map<String, Object?> lessonTurnData = {
+  'lesson_id': 'a1b2c3d4e5f6',
+  'topic': 'basics',
+  'turn': 3,
+  'progress': {
+    'concept': 'NULL comparisons',
+    'index': 0,
+    'total': 2,
+    'phase': 'teach',
+    'checks_left': 0,
+  },
+  'question_md':
+      'Which names does this return, and why?\n\n'
+      '```sql\nSELECT name FROM customers WHERE age <> 2;\n```',
+  'tables': {
+    'customers': {
+      'columns': ['id', 'name', 'age'],
+      'rows': [
+        [1, 'Ann', 2],
+        [2, 'Bob', null],
+      ],
+    },
+  },
+  'feedback_md': 'Not quite.',
+  'summary_md': '| a | b |\n|---|---|\n| UNKNOWN | no row |',
+  'result': {
+    'columns': ['name'],
+    'rows': [
+      ['Ann'],
+    ],
+  },
+};

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
+import 'package:tutor/ui/sql/lesson_screen.dart';
 import 'package:tutor/ui/sql/sql_screen.dart';
 
 import '../../sql/sql_fixtures.dart';
@@ -66,6 +67,37 @@ void main() {
       extra: {'retry': true},
     );
     expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('Retry delivers the list that finally arrives', (t) async {
+    db = FakeRtdb();
+    stream = FakeStream();
+    await pumpScreen(
+      t,
+      SqlPracticeScreen(services: services(db, stream)),
+      settle: false,
+    );
+    await answer(
+      t,
+      db,
+      stream,
+      code: 'worker_error',
+      error: 'docker down',
+      extra: {'retry': true},
+    );
+    await t.tap(find.text('Retry'));
+    await t.pump(const Duration(milliseconds: 50));
+    await answer(t, db, stream, data: listData);
+    expect(find.text('Count rows'), findsOneWidget);
+  });
+
+  testWidgets('a topic opens its lesson', (t) async {
+    await open(t);
+    await t.tap(find.byKey(const ValueKey('lesson-basics')));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    expect(find.byType(SqlLessonScreen), findsOneWidget);
+    expect(lastRequest(db).$2['kind'], 'sql_lesson_turn');
   });
 
   testWidgets('tapping a drill opens it and asks for it', (t) async {

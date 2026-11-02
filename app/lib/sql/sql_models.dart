@@ -79,26 +79,27 @@ DrillList parseDrillList(Json j) => (
   topics: _names(j['topics'], 'topics'),
 );
 
-/// Parses a `sql_get` result; `meta` may be nested or flat.
-Drill parseDrill(Json j) {
-  final tables = j['tables'] == null
-      ? <String, dynamic>{}
-      : asJson(j['tables']);
-  return (
-    meta: _meta(objOr(j, 'meta') ?? j),
-    taskMd: strOr(j, 'task_md') ?? '',
-    tables: [
-      for (final e in tables.entries)
-        (
-          name: e.key,
-          columns: _names(asJson(e.value, e.key)['columns'], e.key),
-          rows: _grid(asJson(e.value, e.key)['rows'], e.key),
-        ),
-    ],
-    query: strOr(j, 'query') ?? '',
-    preview: _grid(j['expected_preview'], 'expected_preview'),
-  );
+/// Tables from `{name: {columns, rows}}`; absent = none.
+List<SqlTable> parseTables(Object? v) {
+  final tables = v == null ? <String, dynamic>{} : asJson(v, 'tables');
+  return [
+    for (final e in tables.entries)
+      (
+        name: e.key,
+        columns: _names(asJson(e.value, e.key)['columns'], e.key),
+        rows: _grid(asJson(e.value, e.key)['rows'], e.key),
+      ),
+  ];
 }
+
+/// Parses a `sql_get` result; `meta` may be nested or flat.
+Drill parseDrill(Json j) => (
+  meta: _meta(objOr(j, 'meta') ?? j),
+  taskMd: strOr(j, 'task_md') ?? '',
+  tables: parseTables(j['tables']),
+  query: strOr(j, 'query') ?? '',
+  preview: _grid(j['expected_preview'], 'expected_preview'),
+);
 
 /// A `sql_run` or `sql_predict` result.
 class SqlOutcome {

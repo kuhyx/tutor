@@ -83,6 +83,7 @@ class SqlEditor extends StatelessWidget {
           width: gutter,
           child: Text(
             numbers,
+            key: const ValueKey('gutter'),
             textAlign: TextAlign.end,
             strutStyle: _strut,
             style: sqlMono.copyWith(color: scheme.outline),

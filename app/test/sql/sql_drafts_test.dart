@@ -19,6 +19,16 @@ void main() {
     ]);
   });
 
+  test('lesson ids are saved and forgotten per topic', () async {
+    final d = SqlDrafts(MemoryKv());
+    expect(await d.lesson('basics'), isNull);
+    await d.saveLesson('basics', 'abc');
+    expect(await d.lesson('basics'), 'abc');
+    expect(await d.lesson('pivot'), isNull);
+    await d.forgetLesson('basics');
+    expect(await d.lesson('basics'), isNull);
+  });
+
   test('a damaged grid reads as empty', () async {
     final kv = MemoryKv();
     final d = SqlDrafts(kv);

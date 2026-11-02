@@ -52,6 +52,14 @@ RequestBody sqlHint(
 RequestBody sqlGenerate(String topic) =>
     RequestBody.raw(RequestKind.sqlGenerate, {'topic': topic});
 
+/// `sql_lesson_turn`: no [lessonId] starts a lesson, a [lessonId] alone
+/// resumes it, with an [answer] it grades the pending question.
+RequestBody sqlLessonTurn(String topic, {String? lessonId, String? answer}) =>
+    RequestBody.raw(
+      RequestKind.sqlLessonTurn,
+      compact({'topic': topic, 'lesson_id': lessonId, 'answer': answer}),
+    );
+
 List<String>? _history(List<String> history) {
   if (history.isEmpty) return null;
   final recent = history.length > maxHintHistory
