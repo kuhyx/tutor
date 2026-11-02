@@ -146,6 +146,14 @@ void main() {
     );
   });
 
+  test('a failed result keeps the worker reason', () {
+    RelayFailed failed(Map<String, Object?> extra) => statusOf({
+      'result': {'ok': false, 'at': 1, 'code': 'bad_request', ...extra},
+    }) as RelayFailed;
+    expect(failed({'reason': 'paste_statement'}).reason, 'paste_statement');
+    expect(failed({}).reason, isNull);
+  });
+
   test('statusOf on an empty node is queued; default clock', () {
     expect(statusOf(null), isA<RelayQueued>());
     final wall = RequestRelay(

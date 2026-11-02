@@ -34,19 +34,26 @@ String? slugFromInput(String input) {
   return _slug.hasMatch(slug) ? slug : null;
 }
 
-/// A problem in a list; `note` is the due stage (`+3 d`) of a re-test.
-typedef ProblemRef = ({
+/// A past or live session, resumed by `lcId`.
+typedef Recent = ({
+  String lcId,
   String slug,
   String title,
-  String difficulty,
-  String? note,
+  String phase,
+  int updatedMs,
 });
 
-/// `lc_list`: `lcId` is the live session id, if one is open.
+/// A cold re-test that is due (never submitted on LeetCode).
+typedef Due = ({String slug, String title, int dueMs});
+
+/// A named group of problem slugs.
+typedef Cluster = ({String name, List<String> problems});
+
+/// `lc_list`.
 typedef CoachList = ({
-  String? lcId,
-  List<ProblemRef> due,
-  List<ProblemRef> recent,
+  List<Recent> recent,
+  List<Cluster> clusters,
+  List<Due> due,
 });
 
 /// A list that RTDB may have stored as an index-keyed map; absent = empty.
@@ -65,20 +72,39 @@ List<Object?> items(Object? v, String what) {
   throw FormatException('"$what": expected array, got ${v.runtimeType}');
 }
 
-ProblemRef _ref(Object? v) {
-  final j = asJson(v, 'problem');
+Recent _recent(Object? v) {
+  final j = asJson(v, 'recent');
+  final slug = str(j, 'slug');
+  return (
+    lcId: str(j, 'lc_id'),
+    slug: slug,
+    title: strOr(j, 'title') ?? slug,
+    phase: strOr(j, 'phase') ?? 'work',
+    updatedMs: intOr(j, 'updated_ms') ?? 0,
+  );
+}
+
+Due _due(Object? v) {
+  final j = asJson(v, 'due');
   final slug = str(j, 'slug');
   return (
     slug: slug,
     title: strOr(j, 'title') ?? slug,
-    difficulty: strOr(j, 'difficulty') ?? '',
-    note: strOr(j, 'note'),
+    dueMs: intOr(j, 'due_ms') ?? 0,
+  );
+}
+
+Cluster _cluster(Object? v) {
+  final j = asJson(v, 'clusters');
+  return (
+    name: str(j, 'name'),
+    problems: [for (final p in items(j['problems'], 'problems')) '$p'],
   );
 }
 
 /// Parses an `lc_list` result.
 CoachList parseCoachList(Json j) => (
-  lcId: strOr(j, 'lc_id'),
-  due: [for (final e in items(j['due'], 'due')) _ref(e)],
-  recent: [for (final e in items(j['recent'], 'recent')) _ref(e)],
+  recent: [for (final e in items(j['recent'], 'recent')) _recent(e)],
+  clusters: [for (final e in items(j['clusters'], 'clusters')) _cluster(e)],
+  due: [for (final e in items(j['due'], 'due')) _due(e)],
 );

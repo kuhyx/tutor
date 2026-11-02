@@ -92,6 +92,7 @@ class RelayFailed extends RelayStatus {
     this.retry = false,
     this.unavailable,
     this.blocked,
+    this.reason,
   });
 
   /// Error code.
@@ -100,6 +101,9 @@ class RelayFailed extends RelayStatus {
   /// For a blocking code (daily_new_cap, locked, no_card_left): why, and
   /// what fixes it (a call to action, not an error).
   final Blocked? blocked;
+
+  /// Machine-readable detail beside the code (`paste_statement`).
+  final String? reason;
 
   /// Text for kuhy.
   final String text;
@@ -126,6 +130,7 @@ RelayStatus statusOf(Object? node) {
       code: r.code,
       text: blocked?.text() ?? errorText(r.code, r.error),
       blocked: blocked,
+      reason: strOr(result, 'reason'),
       retry: r.retry,
       unavailable: r.code == claudeUnavailable
           ? Unavailable.fromError(result)

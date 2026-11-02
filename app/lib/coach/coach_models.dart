@@ -1,104 +1,92 @@
-/// One coach turn (the result of `lc_open`, `lc_turn`): every field is
-/// optional on the wire; the screen keeps what an earlier turn gave.
-/// Provisional shape (handoff 20261102-problem-coach-contract s7);
-/// DOCS-contract-coach.md wins.
+/// `lc_open` and `lc_turn` results (DOCS-contract-coach.md).
 library;
 
-import 'package:tutor/coach/coach_run.dart';
+import 'package:tutor/coach/coach_list.dart';
+import 'package:tutor/coach/coach_state.dart';
 import 'package:tutor/model/json.dart';
 import 'package:tutor/sql/lesson_models.dart';
-import 'package:tutor/sql/sql_models.dart';
 
 export 'package:tutor/coach/coach_list.dart';
 export 'package:tutor/coach/coach_run.dart';
+export 'package:tutor/coach/coach_state.dart';
 
-/// The problem, sent on start and on resume.
-typedef Problem = ({
+/// An opened problem: `replyMd` (opener) or `thread` (resume).
+typedef Opened = ({
+  String lcId,
   String slug,
   String title,
   String difficulty,
+  String kind,
+  String lang,
+  List<String> langs,
   String statementMd,
   Map<String, String> starter,
-});
-
-/// What to keep above the answer box: markdown (a code fence, a table) or
-/// a parsed table.
-typedef Pin = ({String? md, SqlTable? table});
-
-/// One turn. `step` is 1-5, `rung` the hint rung (`H0`-`H3`), `turn` and
-/// `budget` the turn counter, `banner` a notice from the worker (re-test:
-/// do not submit on LeetCode; budget reached), `thread` the whole stored
-/// conversation (resume only).
-typedef CoachTurn = ({
-  String lcId,
-  Problem? problem,
-  int? step,
-  String? rung,
-  int? turn,
-  int? budget,
   bool retest,
-  String? banner,
+  CoachState? state,
   String? replyMd,
-  Pin? pin,
   List<Bubble>? thread,
-  bool ended,
-  PostMortem? postmortem,
 });
 
-/// Parses a coach turn. Without a `pin` the last code block or table of the
-/// reply is pinned: a question about it never sends the learner scrolling.
-CoachTurn parseCoachTurn(Json j) {
-  final reply = strOr(j, 'msg_md');
-  final pin = objOr(j, 'pin');
-  final problem = objOr(j, 'problem');
-  final post = objOr(j, 'postmortem');
-  final fallback = reply == null ? null : extractPin(reply);
+/// Parses an `lc_open` result.
+Opened parseOpened(Json j) {
+  final slug = str(j, 'slug');
+  final kind = strOr(j, 'kind') ?? 'algo';
+  final lang = strOr(j, 'lang') ?? (kind == 'sql' ? 'mysql' : defaultCoachLang);
+  final langs = strings(j, 'langs');
   return (
     lcId: str(j, 'lc_id'),
-    problem: problem == null ? null : _problem(problem),
-    step: intOr(j, 'step'),
-    rung: strOr(j, 'rung'),
-    turn: intOr(j, 'turn'),
-    budget: intOr(j, 'budget'),
-    retest: flag(j, 'retest'),
-    banner: strOr(j, 'banner'),
-    replyMd: reply,
-    pin: pin != null
-        ? _pin(pin)
-        : fallback == null
-        ? null
-        : (md: fallback, table: null),
-    thread: j['thread'] == null
-        ? null
-        : [for (final e in _list(j['thread'])) parseBubble(e)],
-    ended: flag(j, 'ended'),
-    postmortem: post == null ? null : parsePostMortem(post),
-  );
-}
-
-List<Object?> _list(Object? v) =>
-    v is List ? v : throw const FormatException('"thread": expected array');
-
-Problem _problem(Json j) {
-  final slug = str(j, 'slug');
-  return (
     slug: slug,
     title: strOr(j, 'title') ?? slug,
     difficulty: strOr(j, 'difficulty') ?? '',
+    kind: kind,
+    lang: lang,
+    langs: langs.isEmpty ? [lang] : langs,
     statementMd: strOr(j, 'statement_md') ?? '',
     starter: mapOf(
       j,
       'starter',
       (v) => v is String ? v : throw const FormatException('"starter"'),
     ),
+    retest: flag(j, 'retest'),
+    state: parseState(j['state']),
+    replyMd: strOr(j, 'reply_md'),
+    thread: j['thread'] == null
+        ? null
+        : [for (final e in items(j['thread'], 'thread')) parseBubble(e)],
   );
 }
 
-Pin _pin(Json j) {
-  final t = objOr(j, 'table');
+/// The `solved` verdict: what is `missing`; `summaryMd` once done.
+typedef ExitInfo = ({bool ok, String? missing, String? summaryMd});
+
+/// An `lc_turn` result; `held` = a verdict or refusal in `note`.
+typedef CoachTurn = ({
+  CoachState? state,
+  String? replyMd,
+  String? note,
+  bool held,
+  String? banner,
+  List<String> choices,
+  ExitInfo? exit,
+});
+
+/// Parses an `lc_turn` result.
+CoachTurn parseCoachTurn(Json j) {
+  final exit = objOr(j, 'exit');
   return (
-    md: strOr(j, 'md'),
-    table: t == null ? null : parseTables({strOr(t, 'name') ?? '': t}).single,
+    state: parseState(j['state']),
+    replyMd: strOr(j, 'reply_md'),
+    note: strOr(j, 'note'),
+    held: flag(j, 'held'),
+    banner: strOr(j, 'banner'),
+    choices: strings(j, 'choices'),
+    exit: exit == null
+        ? null
+        : (
+            ok: flag(exit, 'ok'),
+            missing: strOr(exit, 'missing'),
+            summaryMd: strOr(exit, 'summary_md'),
+          ),
   );
 }
 

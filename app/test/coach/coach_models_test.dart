@@ -29,23 +29,33 @@ void main() {
 
   test('a list parses; missing parts are empty', () {
     final l = parseCoachList(listData);
-    expect(l.lcId, 'a1b2c3d4e5f6');
-    expect(l.due.single.slug, 'two-sum');
-    expect(l.due.single.note, '+3 d');
-    expect(l.recent.first.title, 'Reformat Department Table');
+    expect(l.recent.first.lcId, lcId);
+    expect(l.recent.first.title, 'Two Sum');
+    expect(l.recent.first.updatedMs, 5);
     expect(l.recent.last.title, 'lru-cache');
-    expect(l.recent.last.difficulty, '');
+    expect(l.recent.last.phase, 'work');
+    expect(l.clusters.single.problems, ['two-sum', 'valid-anagram']);
+    expect(l.due.single.title, 'Group Anagrams');
+    expect(l.due.single.dueMs, 9);
     final none = parseCoachList(const {});
-    expect(none.lcId, isNull);
-    expect(none.due, isEmpty);
     expect(none.recent, isEmpty);
+    expect(none.clusters, isEmpty);
+    expect(none.due, isEmpty);
+    expect(
+      parseCoachList(const {
+        'due': [
+          {'slug': 'x'},
+        ],
+      }).due.single.title,
+      'x',
+    );
   });
 
   test('an index-keyed map is read as a list', () {
     final l = parseCoachList(const {
       'recent': {
-        '1': {'slug': 'b'},
-        '0': {'slug': 'a'},
+        '1': {'lc_id': 'b', 'slug': 'b'},
+        '0': {'lc_id': 'a', 'slug': 'a'},
       },
     });
     expect([for (final r in l.recent) r.slug], ['a', 'b']);
@@ -58,61 +68,35 @@ void main() {
     expect(() => parseCoachList(const {'recent': 3}), throwsFormatException);
   });
 
-  test('a start turn carries problem, starter code and progress', () {
-    final t = parseCoachTurn(startData);
-    expect(t.lcId, '0123456789ab');
-    expect(t.problem!.slug, 'two-sum');
-    expect(t.problem!.statementMd, contains('target'));
-    expect(t.problem!.starter['python3'], startsWith('class'));
-    expect((t.step, t.rung, t.turn, t.budget), (1, 'H0', 1, 16));
-    expect(t.replyMd, startsWith('Restate'));
+  test('an opened algorithm problem', () {
+    final o = parseOpened(openData);
+    expect(o.lcId, lcId);
     expect(
-      (t.ended, t.retest, t.banner, t.pin, t.thread),
-      (false, false, null, null, null),
+      (o.slug, o.title, o.difficulty, o.kind),
+      ('two-sum', 'Two Sum', 'easy', 'algo'),
     );
+    expect(o.langs, ['python3', 'javascript', 'typescript']);
+    expect(o.starter['python3'], startsWith('class'));
+    expect(o.statementMd, contains('target'));
+    expect(o.replyMd, startsWith('Restate'));
+    expect(o.retest, isFalse);
+    expect(o.thread, isNull);
+    expect(o.state!.gate.open, isFalse);
+    expect(o.state!.budget, 16);
   });
 
-  test('a later turn has no problem; a reply pins its last block', () {
-    final t = parseCoachTurn(turnData);
-    expect(t.problem, isNull);
-    expect(t.pin!.md, '```python\nseen = {}\n```');
-    expect(t.thread, isNull);
-  });
-
-  test('a server pin wins over the reply, a table pin parses', () {
-    final t = parseCoachTurn({
-      ...turnData,
-      'pin': {
-        'table': {
-          'name': 'Department',
-          'columns': ['id'],
-          'rows': [
-            [1],
-          ],
-        },
-      },
-    });
-    expect(t.pin!.table!.name, 'Department');
-    expect(t.pin!.table!.rows, [
-      ['1'],
-    ]);
-    final md = parseCoachTurn({
-      ...turnData,
-      'pin': {'md': 'x = 1'},
-    });
-    expect(md.pin!.md, 'x = 1');
-    expect(
-      () => parseCoachTurn({...turnData, 'pin': 'str'}),
-      throwsFormatException,
-    );
-  });
-
-  test('banner, retest, ended and a stored thread parse', () {
-    final t = parseCoachTurn({
-      'lc_id': 'x',
+  test('an opened SQL problem defaults to mysql; resume has a thread', () {
+    final o = parseOpened(sqlOpenData);
+    expect(o.lang, 'mysql');
+    expect(o.langs, ['mysql', 'postgresql']);
+    expect(o.state, isNull);
+    final min = parseOpened(const {'lc_id': 'x', 'slug': 's'});
+    expect(min.langs, ['python3']);
+    expect((min.lang, min.kind, min.title), ('python3', 'algo', 's'));
+    final r = parseOpened({
+      ...openData,
+      'reply_md': null,
       'retest': true,
-      'banner': 'Do NOT submit',
-      'ended': true,
       'thread': [
         {'mine': true, 'md': 'hi'},
         {
@@ -126,15 +110,70 @@ void main() {
         },
       ],
     });
-    expect((t.retest, t.banner, t.ended), (true, 'Do NOT submit', true));
-    expect(t.thread!.first.mine, isTrue);
-    expect(t.thread!.last.grid!.columns, ['a']);
+    expect((r.replyMd, r.retest), (null, true));
+    expect(r.thread!.first.mine, isTrue);
+    expect(r.thread!.last.grid!.columns, ['a']);
     expect(
-      () => parseCoachTurn(const {
-        'lc_id': 'x',
+      () => parseOpened({
+        ...openData,
         'thread': [1],
       }),
       throwsFormatException,
+    );
+    expect(
+      () => parseOpened({
+        ...openData,
+        'starter': {'x': 1},
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test('state parses with defaults', () {
+    final s = parseState(stateWork)!;
+    expect((s.phase, s.rung, s.used, s.budget), ('work', 'H1', 3, 16));
+    expect(
+      (s.gate.kind, s.gate.tries, s.gate.open, s.ranOk),
+      ('req', 1, true, false),
+    );
+    final d = parseState(const <String, Object?>{})!;
+    expect(
+      (d.phase, d.gate.open, d.over, d.revealed, d.rung),
+      ('work', true, false, false, null),
+    );
+    expect(parseState(null), isNull);
+    expect(
+      parseState(const {
+        'gate': {'forced': true},
+      })!.gate.open,
+      isFalse,
+    );
+  });
+
+  test('a turn', () {
+    final t = parseCoachTurn(turnData);
+    expect(t.replyMd, contains('seen[3]'));
+    expect((t.held, t.note, t.banner, t.exit), (false, null, null, null));
+    expect(t.choices, isEmpty);
+    final h = parseCoachTurn(const {
+      'held': true,
+      'note': 'Not yet',
+      'banner': 'budget',
+      'choices': ['write it', 'hint!', 'reveal'],
+      'exit': {'ok': false, 'missing': 'the ELSE'},
+    });
+    expect((h.held, h.note, h.banner), (true, 'Not yet', 'budget'));
+    expect(h.choices, ['write it', 'hint!', 'reveal']);
+    expect(
+      (h.exit!.ok, h.exit!.missing, h.exit!.summaryMd),
+      (false, 'the ELSE', null),
+    );
+    expect(h.state, isNull);
+    expect(
+      parseCoachTurn(const {
+        'exit': {'ok': true, 'summary_md': '| a |'},
+      }).exit!.summaryMd,
+      '| a |',
     );
   });
 
@@ -151,40 +190,7 @@ void main() {
         extractPin('```x\n1\n```\n\n$table\n\n```y\n2\n```'),
         '```y\n2\n```',
       );
+      expect(extractPin('```x\n1\n```\n\n$table'), table);
     });
-  });
-
-  test('a run report: examples, errors, SQL tables', () {
-    final r = parseRunReport(runData);
-    expect(r.error, isNull);
-    expect(r.examples.map((e) => e.ok), [true, false, false]);
-    expect(r.examples[1].got, '[1,2]');
-    expect(r.examples[1].expected, '[0,2]');
-    expect(r.examples[2].error, 'TypeError');
-    final s = parseRunReport(sqlRunData).examples.single;
-    expect(s.gotTable!.rows[1], ['2', 'NULL']);
-    expect(s.expectedTable!.rows[1], ['2', '5']);
-    expect(parseRunReport(const {'error': 'timeout'}).error, 'timeout');
-    expect(
-      () => parseRunReport(const {
-        'examples': [3],
-      }),
-      throwsFormatException,
-    );
-  });
-
-  test('a post-mortem parses its cards and proposals', () {
-    final t = parseCoachTurn(postmortemData);
-    final p = t.postmortem!;
-    expect(p.summaryMd, contains('step'));
-    expect(p.cards.single.back, 'hash map');
-    expect(p.proposals.map((e) => e.name), [
-      'conditional aggregation',
-      'quoting',
-    ]);
-    expect(p.proposals.first.aliases, ['sum case']);
-    expect(p.proposals.last.aliases, isEmpty);
-    expect(p.proposals.last.properties, ['text value vs identifier']);
-    expect(parseCoachTurn(const {'lc_id': 'x'}).postmortem, isNull);
   });
 }
