@@ -128,6 +128,7 @@ Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_reques
 | `follow_up_open` | `{"session":sid}` reopen a session whose card was done there, for follow-up questions (`DOCS-relay.md` "Follow-ups"); another live session -> `session_live` | `{"session":sid}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
 | `drill_next`, `drill_answer` | the model-free drill, `DOCS-relay.md` "Claude unavailable" | | chat |
+| `focus_status`, `focus_event`, `focus_create`, `focus_end` | focus projects, `DOCS-contract-focus.md` | | chat |
 | `anki_status` | `{}` (credits new Anki reviews first; idempotent) | `{"credited_today_min","eligible_today_min","last_sync_at":s\|null,"unavailable":{"until":s,"reason"}\|null}` | chat |
 
 One live session at a time; message for a non-`live` session -> `not_live`,
