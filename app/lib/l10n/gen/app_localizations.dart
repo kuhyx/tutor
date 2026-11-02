@@ -243,6 +243,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Re-test: do NOT submit this on LeetCode'**
   String get retestNoSubmit;
+
+  /// No description provided for @todayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get todayTitle;
+
+  /// No description provided for @timerOn.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min'**
+  String timerOn(int n);
+
+  /// No description provided for @timerOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get timerOff;
+
+  /// No description provided for @homeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeTooltip;
+
+  /// No description provided for @allDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done'**
+  String get allDone;
+
+  /// No description provided for @stepOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}/{total}'**
+  String stepOf(int n, int total);
+
+  /// No description provided for @doneStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get doneStep;
 }
 
 class _AppLocalizationsDelegate

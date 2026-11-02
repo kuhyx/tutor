@@ -11,6 +11,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/coach/coach_requests.dart';
 import 'package:tutor/focus/focus_models.dart';
 import 'package:tutor/focus/focus_send.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/mock/mock_entry.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/plan/today_plan.dart';
@@ -146,9 +147,10 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     final step = _plan.current;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Today'),
+        title: Text(l10n.todayTitle),
         actions: [
           ListenableBuilder(
             listenable: _s.focus,
@@ -157,8 +159,8 @@ class _TodayScreenState extends State<TodayScreen> {
               child: Center(
                 child: Text(
                   _s.focus.isRunning
-                      ? 'Timer on · ${_s.focus.counted.inMinutes} min'
-                      : 'Timer off',
+                      ? l10n.timerOn(_s.focus.counted.inMinutes)
+                      : l10n.timerOff,
                   key: const ValueKey('today-timer'),
                 ),
               ),
@@ -166,7 +168,7 @@ class _TodayScreenState extends State<TodayScreen> {
           ),
           IconButton(
             key: const ValueKey('today-home'),
-            tooltip: 'Home',
+            tooltip: l10n.homeTooltip,
             icon: const Icon(Icons.home_outlined),
             onPressed: widget.openHome,
           ),
@@ -177,9 +179,9 @@ class _TodayScreenState extends State<TodayScreen> {
           PlanDots(_plan),
           const SizedBox(height: AppSpacing.lg),
           if (step == null)
-            const Text(
-              'All done for today.',
-              key: ValueKey('today-all-done'),
+            Text(
+              l10n.allDone,
+              key: const ValueKey('today-all-done'),
             )
           else
             StepCard(

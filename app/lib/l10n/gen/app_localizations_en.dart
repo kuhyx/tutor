@@ -93,4 +93,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retestNoSubmit => 'Re-test: do NOT submit this on LeetCode';
+
+  @override
+  String get todayTitle => 'Today';
+
+  @override
+  String timerOn(int n) {
+    return '$n min';
+  }
+
+  @override
+  String get timerOff => 'Off';
+
+  @override
+  String get homeTooltip => 'Home';
+
+  @override
+  String get allDone => 'All done';
+
+  @override
+  String stepOf(int n, int total) {
+    return '$n/$total';
+  }
+
+  @override
+  String get doneStep => 'Done';
 }

@@ -26,5 +26,14 @@
   "missedCheckin": "Missed a check-in",
   "noProject": "No focus project",
   "focus": "Focus",
-  "retestNoSubmit": "Re-test: do NOT submit this on LeetCode"
+  "retestNoSubmit": "Re-test: do NOT submit this on LeetCode",
+  "todayTitle": "Today",
+  "timerOn": "{n} min",
+  "@timerOn": {"placeholders": {"n": {"type": "int"}}},
+  "timerOff": "Off",
+  "homeTooltip": "Home",
+  "allDone": "All done",
+  "stepOf": "{n}/{total}",
+  "@stepOf": {"placeholders": {"n": {"type": "int"}, "total": {"type": "int"}}},
+  "doneStep": "Done"
 }

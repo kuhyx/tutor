@@ -72,13 +72,14 @@ class StepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Step $number of $total', style: text.labelLarge),
+            Text(l10n.stepOf(number, total), style: text.labelLarge),
             const SizedBox(height: AppSpacing.sm),
             Text(
               step.title,
@@ -94,7 +95,7 @@ class StepCard extends StatelessWidget {
                 child: FilledButton(
                   key: const ValueKey('today-start'),
                   onPressed: onStart,
-                  child: Text(AppLocalizations.of(context).start),
+                  child: Text(l10n.start),
                 ),
               ),
             const SizedBox(height: AppSpacing.sm),
@@ -103,7 +104,7 @@ class StepCard extends StatelessWidget {
               child: OutlinedButton(
                 key: const ValueKey('today-done'),
                 onPressed: busy ? null : onDone,
-                child: const Text('Done → next'),
+                child: Text(l10n.doneStep),
               ),
             ),
           ],
