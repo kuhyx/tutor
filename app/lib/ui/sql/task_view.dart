@@ -12,7 +12,7 @@ import 'package:tutor/ui/sql/rich_md.dart';
 List<Widget> taskWidgets(Drill drill) {
   const gap = SizedBox(height: AppSpacing.md);
   return [
-    RichMd(drill.taskMd),
+    RichMd(drill.taskMd.replaceFirst(RegExp(r'^# .*\n+'), '')),
     if (drill.query.isNotEmpty) ...[gap, CodeBlock(drill.query)],
     ...tableWidgets(drill.tables),
     if (drill.preview.isNotEmpty) ...[

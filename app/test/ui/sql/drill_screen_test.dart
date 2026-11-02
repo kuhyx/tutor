@@ -168,6 +168,34 @@ void main() {
       expect(find.text('1'), findsWidgets);
     });
 
+    for (final (match, icon) in [
+      (true, Icons.check_circle_outline),
+      (false, Icons.cancel_outlined),
+    ]) {
+      testWidgets('a predicted ERROR (match $match) shows the verdict and '
+          'the real error', (t) async {
+        await open(t, drill: predictDrillData);
+        await t.enterText(find.byKey(const ValueKey('cell-0-0')), 'ERROR');
+        await t.pump();
+        await t.tap(find.byKey(const ValueKey('check')));
+        await t.pump(const Duration(milliseconds: 50));
+        await answer(
+          t,
+          db,
+          stream,
+          data: {
+            'match': match,
+            'error': 'ERROR 1054 (42S22): Unknown column',
+            'actual_rows': [
+              ['ERROR 1054'],
+            ],
+          },
+        );
+        expect(find.byIcon(icon), findsOneWidget);
+        expect(find.textContaining('Unknown column'), findsOneWidget);
+      });
+    }
+
     testWidgets('rows and columns can be added and removed', (t) async {
       await open(t, drill: predictDrillData);
       expect(find.byKey(const ValueKey('cell-1-0')), findsOneWidget);

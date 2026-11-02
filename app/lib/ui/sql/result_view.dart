@@ -29,9 +29,17 @@ class _ResultViewState extends State<ResultView> {
     final o = widget.outcome;
     final scheme = Theme.of(context).colorScheme;
     if (!o.ok) {
-      return SelectableText(
-        o.error ?? '',
-        style: sqlMono.copyWith(color: scheme.error),
+      // A prediction of ERROR can be right: the verdict comes with the text.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _verdict(o.match),
+          const SizedBox(height: AppSpacing.sm),
+          SelectableText(
+            o.error ?? '',
+            style: sqlMono.copyWith(color: scheme.error),
+          ),
+        ],
       );
     }
     final canSwitch = o.expectedRows.isNotEmpty;
@@ -41,11 +49,7 @@ class _ResultViewState extends State<ResultView> {
       children: [
         Row(
           children: [
-            Icon(
-              o.match ? Icons.check_circle_outline : Icons.cancel_outlined,
-              semanticLabel: o.match ? 'Match' : 'Mismatch',
-              color: o.match ? AppPalette.success : AppPalette.danger,
-            ),
+            _verdict(o.match),
             if (o.diff.isNotEmpty) ...[
               const SizedBox(width: AppSpacing.sm),
               Text('${o.diff.length}', style: sqlMono),
@@ -79,3 +83,9 @@ class _ResultViewState extends State<ResultView> {
     );
   }
 }
+
+Widget _verdict(bool match) => Icon(
+  match ? Icons.check_circle_outline : Icons.cancel_outlined,
+  semanticLabel: match ? 'Match' : 'Mismatch',
+  color: match ? AppPalette.success : AppPalette.danger,
+);

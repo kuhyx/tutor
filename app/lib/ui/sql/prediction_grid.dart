@@ -122,8 +122,12 @@ class _PredictionGridState extends State<PredictionGrid> {
         ),
       ),
     );
-    Widget step(Key key, IconData icon, VoidCallback? onTap) =>
-        IconButton(key: key, onPressed: onTap, icon: Icon(icon));
+    Widget step(Key key, IconData icon, VoidCallback? onTap, String label) =>
+        IconButton(
+          key: key,
+          onPressed: onTap,
+          icon: Icon(icon, semanticLabel: label),
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,11 +153,13 @@ class _PredictionGridState extends State<PredictionGrid> {
                     const ValueKey('add-col'),
                     Icons.add,
                     _cols < _maxCols ? _addColumn : null,
+                    'Add column',
                   ),
                   step(
                     const ValueKey('remove-col'),
                     Icons.remove,
                     _cols > 1 ? _removeColumn : null,
+                    'Remove column',
                   ),
                 ],
               ),
@@ -166,11 +172,13 @@ class _PredictionGridState extends State<PredictionGrid> {
               const ValueKey('add-row'),
               Icons.add,
               _cells.length < _maxRows ? _addRow : null,
+              'Add row',
             ),
             step(
               const ValueKey('remove-row'),
               Icons.remove,
               _cells.length > 1 ? _removeRow : null,
+              'Remove row',
             ),
           ],
         ),
