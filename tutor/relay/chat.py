@@ -29,6 +29,8 @@ from tutor.relay.focus import (
     focus_update,
 )
 from tutor.relay.protocol import SLUG, SLUG_MAX
+from tutor.relay.sql import sql_get, sql_list, sql_predict, sql_run
+from tutor.relay.sql_model import sql_generate, sql_hint
 from tutor.relay.views import key
 
 if TYPE_CHECKING:
@@ -226,4 +228,10 @@ CHAT_HANDLERS: Final[
     "focus_create": focus_create,
     "focus_end": focus_end,
     "focus_update": focus_update,
+    "sql_list": sql_list,
+    "sql_get": sql_get,
+    "sql_run": sql_run,
+    "sql_predict": sql_predict,
+    "sql_hint": sql_hint,
+    "sql_generate": sql_generate,
 }

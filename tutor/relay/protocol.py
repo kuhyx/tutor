@@ -17,7 +17,7 @@ from tutor import delivery
 from tutor.curriculum.ids import SLUG_CHARS
 from tutor.history import SESSION_ID
 from tutor.relay.errors import RequestError
-from tutor.relay.focus_protocol import FIELDS as FOCUS_FIELDS
+from tutor.relay.extra_fields import FIELDS as EXTRA_FIELDS
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -177,7 +177,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     "drill_next": (CHAT, {"subject": _opt_slug}),
     "drill_answer": (CHAT, {"prompt_id": _ulid, "choice": _int}),
     "anki_status": (CHAT, {}),
-    **{k: (CHAT, f) for k, f in FOCUS_FIELDS.items()},  # ``relay.focus``
+    **{k: (CHAT, f) for k, f in EXTRA_FIELDS.items()},  # focus_*, sql_*
 }
 
 
