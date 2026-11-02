@@ -127,4 +127,22 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(t.getSize(find.text(query)).height, greaterThan(24));
   });
+
+  testWidgets('hard-wrapped prose lines join; bullets stay apart', (t) async {
+    await pumpScreen(
+      t,
+      const Scaffold(
+        body: RichMd(
+          'Lists those who\nnever ordered.\n\n'
+          '- first\n  more of first\n- second',
+        ),
+      ),
+    );
+    expect(
+      find.textContaining('Lists those who never ordered.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('first more of first'), findsOneWidget);
+    expect(find.textContaining('second'), findsOneWidget);
+  });
 }

@@ -68,12 +68,31 @@ List<String> _cells(String line) {
   return [for (final c in t.split('|')) c.trim()];
 }
 
+final _item = RegExp(r'^\s*([-*>]|\d+\.|#)\s');
+
+/// Joins source lines hard-wrapped at 72 columns: a line continues the one
+/// above unless it is blank or opens a list item or heading.
+String _unwrap(List<String> lines) {
+  final out = StringBuffer();
+  for (var i = 0; i < lines.length; i++) {
+    final line = lines[i];
+    final joins =
+        i > 0 &&
+        line.trim().isNotEmpty &&
+        lines[i - 1].trim().isNotEmpty &&
+        !_item.hasMatch(line);
+    if (i > 0) out.write(joins ? ' ' : '\n');
+    out.write(joins ? line.trim() : line);
+  }
+  return out.toString();
+}
+
 List<Widget> _prose(String text) {
   final lines = text.split('\n');
   final out = <Widget>[];
   final plain = <String>[];
   void flush() {
-    final md = plain.join('\n').trim();
+    final md = _unwrap(plain).trim();
     if (md.isNotEmpty) out.add(MarkdownText(md));
     plain.clear();
   }
