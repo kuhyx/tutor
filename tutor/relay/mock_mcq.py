@@ -130,6 +130,31 @@ def seeds() -> list[Json]:
     )
 
 
+def curated(rnd: random.Random, exclude: set[str]) -> list[Json]:
+    """``COUNT`` verified bank questions, one topic each where possible.
+
+    Candidates are shuffled and run one by one until enough pass, so a
+    pre-built paper costs ``COUNT`` sandbox runs, not one per seed.
+    """
+    pool = [
+        {"topic": s["topic"], "code": s["code"], "wrong_outputs": s["wrong"]}
+        for s in SEEDS
+        if s["code"] not in exclude
+    ]
+    rnd.shuffle(pool)
+    first: dict[str, Json] = {}
+    for item in pool:
+        first.setdefault(item["topic"], item)
+    rest = [i for i in pool if i not in first.values()]
+    chosen: list[Json] = []
+    for item in [*first.values(), *rest]:
+        got = _verified([item])
+        chosen.extend(got)
+        if len(chosen) == COUNT:
+            break
+    return chosen
+
+
 async def assemble(rnd: random.Random, now: float) -> tuple[list[Json], list[str]]:
     """``COUNT`` verified questions (fresh model ones first) and notes."""
     notes: list[str] = []

@@ -78,14 +78,18 @@ def _choose(
 
 
 async def pick(
-    rnd: random.Random, seen: set[str]
+    rnd: random.Random, seen: set[str], *, generate: bool = True
 ) -> tuple[list[Json], list[Json], list[str]]:
-    """(public tasks, private records, notes) for the three SQL slots."""
+    """(public tasks, private records, notes) for the three SQL slots.
+
+    ``generate=False`` (pre-built papers) never asks the model: all three
+    drills are saved ones and no note is needed.
+    """
     notes: list[str] = []
     metas = await _metas()
     slot3 = SLOTS[2][rnd.randrange(2)]
-    made = await _generate(slot3)
-    if made is None:
+    made = await _generate(slot3) if generate else None
+    if made is None and generate:
         notes.append("No new SQL drill this time: all three are saved ones.")
     ids = [
         made if i == len(SLOTS) - 1 and made else _choose(metas, topics, seen, rnd)

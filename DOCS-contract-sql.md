@@ -164,3 +164,11 @@ a taught card is never taught twice, a suspended one stays suspended. A
 failure is logged and never fails the turn; the next mastery retries.
 Taught cards count toward the daily new cap. Backfill / repair:
 `python -m tutor sql-cards [--data DIR] [--taught-days-ago N]`.
+
+### Drill pack (2026-11-02)
+`python -m tutor sql-pack [--data DIR]` saves the hand-written drills in
+`tutor/sql_pack/` (pivot, dates, number format, joins/NULL, GROUP BY/HAVING,
+window, strings; write and predict) through `sd.save_generated`: the engine
+runs each reference query twice and refuses an empty, failing or unstable
+one, so every expected output is real MySQL output. Ids are spec digests;
+a rerun is a no-op. They show in `sql_list` as `source:"generated"`.

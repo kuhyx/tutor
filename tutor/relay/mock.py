@@ -12,9 +12,16 @@ from __future__ import annotations
 
 import asyncio
 import secrets
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
-from tutor.relay import mock_grade, mock_mcq, mock_palin, mock_sql, mock_store
+from tutor.relay import (
+    mock_grade,
+    mock_mcq,
+    mock_palin,
+    mock_pool,
+    mock_sql,
+    mock_store,
+)
 from tutor.relay.errors import RequestError
 from tutor.relay.sql import engine_call, heartbeat, wire
 
@@ -62,28 +69,59 @@ def _mcq_tasks(
     return public, private
 
 
-async def start(ctx: RequestContext) -> Json:
-    """Assemble and store a new paper; its model calls run side by side."""
-    rnd = secrets.SystemRandom()
-    now = ctx.now()
-    (questions, notes), (sql_pub, sql_priv, sql_notes) = await asyncio.gather(
-        mock_mcq.assemble(rnd, now),
-        mock_sql.pick(rnd, mock_store.seen_drills()),
-    )
-    palin = mock_palin.pick(rnd)
-    mcq_pub, mcq_priv = _mcq_tasks(questions, rnd)
-    minutes = ctx.body["minutes"]
+class Parts(NamedTuple):
+    """What a paper is built from: MCQs, SQL tasks, the palindrome task, notes."""
+
+    questions: list[Json]
+    sql: tuple[list[Json], list[Json], list[str]]
+    palin: mock_palin.PalinTask
+    notes: list[str]
+
+
+def compose(rnd: random.Random, now: float, minutes: int, parts: Parts) -> Json:
+    """The stored paper (public tasks, private keys) for ``parts``."""
+    sql_pub, sql_priv, sql_notes = parts.sql
+    mcq_pub, mcq_priv = _mcq_tasks(parts.questions, rnd)
     started = int(now * 1000)
-    mock: dict[str, Json] = {
+    return {
         "id": secrets.token_hex(6),
         "started_ms": started,
         "deadline_ms": started + minutes * 60_000,
         "minutes": minutes,
-        "tasks": [*mcq_pub, mock_palin.public(palin), *sql_pub],
-        "private": [*mcq_priv, {"id": "pc1", "palin": palin.key}, *sql_priv],
+        "tasks": [*mcq_pub, mock_palin.public(parts.palin), *sql_pub],
+        "private": [*mcq_priv, {"id": "pc1", "palin": parts.palin.key}, *sql_priv],
         "answers": {},
-        "notes": [*notes, *sql_notes],
+        "notes": [*parts.notes, *sql_notes],
     }
+
+
+def _activate(mock: Json, now: float, minutes: int) -> Json:
+    """Start the clock on a pre-built paper."""
+    started = int(now * 1000)
+    mock |= {
+        "started_ms": started,
+        "deadline_ms": started + minutes * 60_000,
+        "minutes": minutes,
+    }
+    return mock
+
+
+async def start(ctx: RequestContext) -> Json:
+    """A pre-built paper if one waits, else assemble one (model calls overlap)."""
+    now = ctx.now()
+    minutes = ctx.body["minutes"]
+    ready = await asyncio.to_thread(mock_pool.take)
+    if ready is not None:
+        mock = _activate(ready, now, minutes)
+        mock_store.save(mock)
+        return _public(mock)
+    rnd = secrets.SystemRandom()
+    (questions, notes), sql = await asyncio.gather(
+        mock_mcq.assemble(rnd, now),
+        mock_sql.pick(rnd, mock_store.seen_drills()),
+    )
+    parts = Parts(questions, sql, mock_palin.pick(rnd), notes)
+    mock = compose(rnd, now, minutes, parts)
     mock_store.save(mock)
     return _public(mock)
 

@@ -20,7 +20,7 @@ import uvicorn
 
 from tutor.curriculum import migrate, regen, sql_cards_cli
 from tutor.engine import Engine
-from tutor.relay import cli
+from tutor.relay import cli, mock_prebuild
 from tutor.server import create_app
 from tutor.sql_pack import cli as sql_pack_cli
 
@@ -33,6 +33,7 @@ TOOLS: Final[dict[str, ModuleType]] = {
     "migrate": migrate,
     "sql-cards": sql_cards_cli,
     "sql-pack": sql_pack_cli,
+    "mock-prebuild": mock_prebuild,
 }
 
 
