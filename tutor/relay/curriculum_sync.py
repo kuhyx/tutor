@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Final
 from tutor import carry, leftover, review_credit
 from tutor.credit import local_day
 from tutor.curriculum import handlers as cur
+from tutor.curriculum import log_order
 from tutor.curriculum.subject_store import read_json
 from tutor.relay import hooks
 from tutor.relay.protocol import DEV
@@ -95,6 +96,13 @@ class CurriculumSync:
         """PATCH this worker's own events RTDB does not have yet."""
         own = self.w.worker
         events = await asyncio.to_thread(self.ctx.log.read)
+        # An own event minted below an eid already stored (a backdated
+        # writer in another process) is invisible to readers past it:
+        # re-mint it above every own eid first (log_order).
+        lifted = log_order.copies(events, own, self.ctx.clock())
+        if lifted:
+            await asyncio.to_thread(self.ctx.log.append, lifted)
+            events = [*events, *lifted]
         new = {
             e["eid"]: {k: v for k, v in e.items() if k not in {"dev", "eid"}}
             for e in events

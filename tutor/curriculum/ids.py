@@ -121,3 +121,11 @@ def device_id(path: Path) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{minted}\n", encoding="utf-8")
     return minted
+
+
+def ulid_ms(eid: str) -> int:
+    """The ms timestamp a ULID carries (its first 10 characters)."""
+    value = 0
+    for char in eid[:10]:
+        value = value * 32 + _CROCKFORD.index(char)
+    return value
