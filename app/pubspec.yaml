@@ -40,7 +40,7 @@ dependencies:
       path: google_account_token
   http: 1.6.0
   # Device id and the offline event queue on web live in IndexedDB.
-  idb_shim: 2.11.1
+  idb_shim: 2.11.2
   intl: 0.20.3
   shared_preferences: 2.5.6
   # Source links and picture attribution open in the browser.

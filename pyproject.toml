@@ -13,7 +13,7 @@ license = "MIT"
 # needs crdt-sync (the Firebase session) and httpx (RTDB REST + SSE; also
 # what Starlette's TestClient needs).
 dependencies = [
-    "claude-agent-sdk==0.2.176",
+    "claude-agent-sdk==0.2.178",
     "fsrs==6.3.2",
     "starlette==1.10.0",
     "uvicorn==0.54.0",
