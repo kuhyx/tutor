@@ -13,7 +13,7 @@ license = "MIT"
 # needs crdt-sync (the Firebase session) and httpx (RTDB REST + SSE; also
 # what Starlette's TestClient needs).
 dependencies = [
-    "claude-agent-sdk==0.2.178",
+    "claude-agent-sdk==0.2.179",
     "fsrs==6.3.2",
     "starlette==1.10.0",
     "uvicorn==0.54.0",
@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy==2.4.1", "pylint==4.1.3", "pytest==9.2.0", "pytest-cov==7.1.0", "ruff==0.17.3"]
+dev = ["mypy==2.4.1", "pylint==4.1.3", "pytest==9.2.0", "pytest-cov==7.1.0", "ruff==0.17.4"]
 
 [build-system]
 requires = ["setuptools>=61"]

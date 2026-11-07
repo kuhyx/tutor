@@ -16,7 +16,6 @@ void main() {
     await pumpScreen(
       t,
       HomeScreen(services: s, onSignedOut: () => signedOut = true),
-      size: const Size(412, 1400),
     );
     expect(find.textContaining('Credited 23/60 min'), findsOneWidget);
     expect(find.text('Continue session'), findsOneWidget);

@@ -29,7 +29,6 @@ void main() {
     await pumpScreen(
       t,
       HomeScreen(services: s, onSignedOut: () {}),
-      size: const Size(412, 1400),
     );
     final box = find.byType(TextField);
     await t.enterText(box, 'how bridges stand');

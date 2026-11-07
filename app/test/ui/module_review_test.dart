@@ -45,6 +45,12 @@ Future<void> _rate(WidgetTester t, String grade) async {
   await t.pumpAndSettle();
 }
 
+/// Phone Home: a subject's actions sit in its long-press sheet.
+Future<void> _sheetOf(WidgetTester t, String id) async {
+  await t.longPress(find.byKey(ValueKey('subject-tile-$id')));
+  await t.pumpAndSettle();
+}
+
 void main() {
   testWidgets('Home: Review <module> runs its cards; Again comes back', (
     t,
@@ -56,6 +62,7 @@ void main() {
       HomeScreen(services: s, onSignedOut: () {}),
       size: const Size(412, 1400),
     );
+    await _sheetOf(t, 'car');
     expect(find.text('Review Fuel and ignition'), findsOneWidget);
     expect(find.text('Review The four-stroke engine'), findsNothing);
     await t.tap(find.text('Review Fuel and ignition'));
@@ -78,6 +85,7 @@ void main() {
     // Back on Home the module is reviewed: no action any more.
     await t.pageBack();
     await t.pumpAndSettle();
+    await _sheetOf(t, 'car');
     expect(find.text('Review Fuel and ignition'), findsNothing);
   });
 

@@ -186,6 +186,11 @@ void main() {
       t,
     ) async {
       final (db, stream, s) = await _home(t, size);
+      final plus = find.byTooltip('New subject');
+      if (plus.evaluate().isNotEmpty) {
+        await t.tap(plus); // phone: the field sits in the "+" dialog
+        await t.pumpAndSettle();
+      }
       final field = find.widgetWithText(TextField, 'I want to learn...');
       await t.ensureVisible(field);
       await t.enterText(field, 'how a boat floats');

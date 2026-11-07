@@ -22,7 +22,10 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/module_tile.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/plan_editor.dart';
+import 'package:tutor/ui/plan_grid.dart';
 import 'package:tutor/util/refresher.dart';
+
+part 'plan_screen_fit.dart';
 
 /// The Plan screen for one subject.
 class PlanScreen extends StatefulWidget {
@@ -159,24 +162,27 @@ class _PlanScreenState extends State<PlanScreen> {
     final progress = _fold == null
         ? null
         : subjectProgress(data, _fold!, DateTime.now());
-    return PageList(
+    final header = <Widget>[
+      if (_data.hasPending)
+        MaterialBanner(
+          content: const Text('Plan changed — reload'),
+          actions: [
+            TextButton(
+              onPressed: _data.applyPending,
+              child: const Text('Reload plan'),
+            ),
+          ],
+        ),
+      if (_data.error != null) Text('Could not refresh: ${_data.error}'),
+      Text(data.meta.title, style: text.headlineSmall),
+      if (data.meta.goal.isNotEmpty) Text(data.meta.goal),
+      const SizedBox(height: AppSpacing.sm),
+      Pill(data.meta.status.wire.replaceAll('_', ' ')),
+      RequestStatusLine(_runner),
+    ];
+    final list = PageList(
       children: [
-        if (_data.hasPending)
-          MaterialBanner(
-            content: const Text('Plan changed — reload'),
-            actions: [
-              TextButton(
-                onPressed: _data.applyPending,
-                child: const Text('Reload plan'),
-              ),
-            ],
-          ),
-        if (_data.error != null) Text('Could not refresh: ${_data.error}'),
-        Text(data.meta.title, style: text.headlineSmall),
-        if (data.meta.goal.isNotEmpty) Text(data.meta.goal),
-        const SizedBox(height: AppSpacing.sm),
-        Pill(data.meta.status.wire.replaceAll('_', ' ')),
-        RequestStatusLine(_runner),
+        ...header,
         if (data.meta.status == SubjectStatus.failed)
           EmptyState(
             icon: Icons.error_outline,
@@ -230,11 +236,7 @@ class _PlanScreenState extends State<PlanScreen> {
               tally: progress?.modules[m.id],
               review: progress?.review[m.id],
               onRetry: () => _send(RequestBody.planApprove(data.id, plan.rev)),
-              onReview: () => openReview(
-                context,
-                widget.services,
-                module: ModuleRef.of(data.id, m),
-              ).then((_) => _refold()), // the tile shows the result
+              onReview: () => _review(data, m),
             ),
         ],
         if (plan != null && plan.history.isNotEmpty) ...[
@@ -243,5 +245,6 @@ class _PlanScreenState extends State<PlanScreen> {
         ],
       ],
     );
+    return _fit(data, list, header, progress);
   }
 }

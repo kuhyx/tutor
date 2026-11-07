@@ -11,6 +11,8 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_parts.dart';
+import 'package:tutor/ui/home_fit.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
 import 'package:tutor/ui/subject_tile.dart';
@@ -80,104 +82,109 @@ class HomeBody extends StatelessWidget {
     final entry = sessionEntry(data.live, data.currentSubject);
     final text = Theme.of(context).textTheme;
     // Wide: today on the left; subjects and a new one on the right.
-    return TwoColumnPage(
-      secondFlex: 3,
-      firstFlex: 2,
-      first: [
-        if (data.offline)
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.cloud_off),
-              title: Text('Offline: showing the last synced catalog'),
-            ),
-          ),
-        PcOfflineBanner(presence),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Today', style: text.titleMedium),
-                const SizedBox(height: AppSpacing.sm),
-                if (today == null)
-                  const Text('No counters yet (the PC writes them).')
-                else ...[
-                  Text(
-                    'Credited ${today.creditedMinutes}/${today.target} min'
-                    '${_active(today.activeMinutes)}'
-                    ' · new cards ${today.newCards}/${today.newCap}'
-                    '${today.newCapLifted ? ' (limit lifted)' : ''}',
-                  ),
-                  if (bankNote(today) case final note?) Text(note),
-                  const SizedBox(height: AppSpacing.sm),
-                  LinearProgressIndicator(
-                    value: today.target == 0
-                        ? 0
-                        : (today.creditedMinutes / today.target).clamp(0, 1),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => onSession(entry),
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: Text(entry.label),
-                    ),
-                    // Every subject's due cards; the tooltip says whose.
-                    // Nothing due: no button (kuhy, 2026-10-17).
-                    if (data.due > 0)
-                      _withTip(
-                        _dueSplit(data),
-                        OutlinedButton.icon(
-                          onPressed: onReview,
-                          icon: const Icon(Icons.style),
-                          label: Text('Review (${data.due} due)'),
-                        ),
-                      ),
-                    OutlinedButton.icon(
-                      onPressed: onDrill,
-                      icon: const Icon(Icons.touch_app_outlined),
-                      label: const Text('Drill'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    final first = <Widget>[
+      if (data.offline)
+        const Card(
+          child: ListTile(
+            leading: Icon(Icons.cloud_off),
+            title: Text('Offline: showing the last synced catalog'),
           ),
         ),
-      ],
-      second: [
-        const SectionHeader('Subjects'),
-        if (data.subjects.isEmpty)
-          const EmptyState(
-            icon: Icons.lightbulb_outline,
-            title: 'No subjects yet',
-            message: 'Say what you want to learn below.',
+      PcOfflineBanner(presence),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Today', style: text.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              if (today == null)
+                const Text('No counters yet (the PC writes them).')
+              else ...[
+                Text(
+                  'Credited ${today.creditedMinutes}/${today.target} min'
+                  '${_active(today.activeMinutes)}'
+                  ' · new cards ${today.newCards}/${today.newCap}'
+                  '${today.newCapLifted ? ' (limit lifted)' : ''}',
+                ),
+                if (bankNote(today) case final note?) Text(note),
+                const SizedBox(height: AppSpacing.sm),
+                LinearProgressIndicator(
+                  value: today.target == 0
+                      ? 0
+                      : (today.creditedMinutes / today.target).clamp(0, 1),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => onSession(entry),
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: Text(entry.label),
+                  ),
+                  // Every subject's due cards; the tooltip says whose.
+                  // Nothing due: no button (kuhy, 2026-10-17).
+                  if (data.due > 0)
+                    _withTip(
+                      _dueSplit(data),
+                      OutlinedButton.icon(
+                        onPressed: onReview,
+                        icon: const Icon(Icons.style),
+                        label: Text('Review (${data.due} due)'),
+                      ),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: onDrill,
+                    icon: const Icon(Icons.touch_app_outlined),
+                    label: const Text('Drill'),
+                  ),
+                ],
+              ),
+            ],
           ),
-        for (final s in data.subjects)
-          SubjectTile(
-            entry: s,
-            toReview: data.toReview[s.id],
-            tally: data.cardTally[s.id],
-            due: data.dueBySubject[s.id] ?? 0,
-            onReviewModule: onReviewModule,
-            onReviewDue: onReviewSubject == null
-                ? null
-                : () => onReviewSubject!(s.id, s.meta.title),
-            current: s.id == data.currentSubject,
-            onPlan: () => onPlan(s.id),
-            onEdit: () => onEdit(s.id),
-            onPick: () => onPick(s.id),
-            onFinish: (goDeeper) => onFinish(s.id, goDeeper: goDeeper),
-            onRetry: () => onNewSubject(s.meta.goal),
-          ),
-        const SectionHeader('New subject'),
-        NewSubjectField(runner: runner, onSubmit: onNewSubject),
-      ],
+        ),
+      ),
+    ];
+    final second = <Widget>[
+      const SectionHeader('Subjects'),
+      if (data.subjects.isEmpty)
+        const EmptyState(
+          icon: Icons.lightbulb_outline,
+          title: 'No subjects yet',
+          message: 'Say what you want to learn below.',
+        ),
+      for (final s in data.subjects)
+        SubjectTile(
+          entry: s,
+          toReview: data.toReview[s.id],
+          tally: data.cardTally[s.id],
+          due: data.dueBySubject[s.id] ?? 0,
+          onReviewModule: onReviewModule,
+          onReviewDue: onReviewSubject == null
+              ? null
+              : () => onReviewSubject!(s.id, s.meta.title),
+          current: s.id == data.currentSubject,
+          onPlan: () => onPlan(s.id),
+          onEdit: () => onEdit(s.id),
+          onPick: () => onPick(s.id),
+          onFinish: (goDeeper) => onFinish(s.id, goDeeper: goDeeper),
+          onRetry: () => onNewSubject(s.meta.goal),
+        ),
+      const SectionHeader('New subject'),
+      NewSubjectField(runner: runner, onSubmit: onNewSubject),
+    ];
+    return widthSwitch(
+      narrow: (_) => HomeFit(body: this, today: first),
+      wide: (_) => TwoColumnPage(
+        secondFlex: 3,
+        firstFlex: 2,
+        first: first,
+        second: second,
+      ),
     );
   }
 }

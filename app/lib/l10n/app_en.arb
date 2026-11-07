@@ -35,5 +35,19 @@
   "allDone": "All done",
   "stepOf": "{n}/{total}",
   "@stepOf": {"placeholders": {"n": {"type": "int"}, "total": {"type": "int"}}},
-  "doneStep": "Done"
+  "doneStep": "Done",
+  "creditedToday": "Credited today",
+  "cardsTaught": "Cards taught",
+  "daysLogged": "Days logged",
+  "modulesReviewed": "Modules reviewed",
+  "allDays": "All days",
+  "moduleCount": "{n} modules",
+  "@moduleCount": {"placeholders": {"n": {"type": "int"}}},
+  "minutes": "Minutes",
+  "taught": "Taught",
+  "modules": "Modules",
+  "revisions": "Revisions",
+  "revisionLine": "rev {rev}: {comment}",
+  "@revisionLine": {"placeholders": {"rev": {"type": "int"}, "comment": {"type": "String"}}},
+  "newSubject": "New subject"
 }

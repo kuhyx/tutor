@@ -11,8 +11,10 @@ import 'package:tutor/progress/progress.dart';
 import 'package:tutor/progress/terms.dart';
 import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/progress_chart.dart';
+import 'package:tutor/ui/progress_tiles.dart';
 
 /// The Progress screen.
 class ProgressScreen extends StatefulWidget {
@@ -50,55 +52,68 @@ class _ProgressScreenState extends State<ProgressScreen> {
         final (stats, modules) = snap.requireData;
         final days = timeline(stats?.days ?? const {});
         final text = Theme.of(context).textTheme;
-        return TwoColumnPage(
-          firstFlex: 3,
-          secondFlex: 2,
-          first: [
-            if (days.isEmpty)
-              const EmptyState(
-                icon: Icons.insights,
-                title: 'No days yet',
-                message: 'The PC writes a row per day once you learn.',
-              )
-            else ...[
-              Text('Credited minutes per day', style: text.titleMedium),
-              ProgressChart(
-                values: [for (final d in days) d.minutes],
-                labels: [for (final d in days) d.day],
-                cap: stats?.today.target,
-                unit: 'min',
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Cards taught (total)', style: text.titleMedium),
-              ProgressChart(
-                values: [for (final d in days) d.taughtTotal],
-                labels: [for (final d in days) d.day],
-                line: true,
-                unit: 'cards',
-              ),
-              const SectionHeader('Days'),
-              _DayTable(days.reversed.toList()),
-            ],
+        final first = <Widget>[
+          if (days.isEmpty)
+            const EmptyState(
+              icon: Icons.insights,
+              title: 'No days yet',
+              message: 'The PC writes a row per day once you learn.',
+            )
+          else ...[
+            Text('Credited minutes per day', style: text.titleMedium),
+            ProgressChart(
+              values: [for (final d in days) d.minutes],
+              labels: [for (final d in days) d.day],
+              cap: stats?.today.target,
+              unit: 'min',
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Cards taught (total)', style: text.titleMedium),
+            ProgressChart(
+              values: [for (final d in days) d.taughtTotal],
+              labels: [for (final d in days) d.day],
+              line: true,
+              unit: 'cards',
+            ),
+            const SectionHeader('Days'),
+            _DayTable(days.reversed.toList()),
           ],
-          second: [
-            const SectionHeader('Modules'),
-            if (modules.isEmpty) const Text('No approved plans yet.'),
-            for (final m in modules)
-              ListTile(
-                title: Text('${m.subject}: ${m.module.title}'),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.xs),
-                  child: LinearProgressIndicator(value: m.module.recall),
-                ),
-                trailing: Explained(
-                  badgeHelp(moduleBadge(m.module)),
-                  child: Text(
-                    '${(m.module.recall * 100).round()}% · '
-                    '${moduleBadge(m.module)}',
-                  ),
+        ];
+        final second = <Widget>[
+          const SectionHeader('Modules'),
+          if (modules.isEmpty) const Text('No approved plans yet.'),
+          for (final m in modules)
+            ListTile(
+              title: Text('${m.subject}: ${m.module.title}'),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: LinearProgressIndicator(value: m.module.recall),
+              ),
+              trailing: Explained(
+                badgeHelp(moduleBadge(m.module)),
+                child: Text(
+                  '${(m.module.recall * 100).round()}% · '
+                  '${moduleBadge(m.module)}',
                 ),
               ),
-          ],
+            ),
+        ];
+        return widthSwitch(
+          // The phone page borrows the wide page's empty states and header.
+          narrow: (_) => ProgressFit(
+            stats: stats,
+            modules: modules,
+            header: second.first,
+            noPlans: modules.isEmpty ? second[1] : null,
+            empty: days.isEmpty ? first.single : null,
+            allDays: _DayTable(days.reversed.toList()),
+          ),
+          wide: (_) => TwoColumnPage(
+            firstFlex: 3,
+            secondFlex: 2,
+            first: first,
+            second: second,
+          ),
         );
       },
     ),
