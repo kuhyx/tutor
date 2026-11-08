@@ -16,7 +16,7 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.11.3
+      ref: crdt_sync_dart-v0.12.0
       path: crdt_sync_dart
   # The shared palette, spacing and type scale. No local theme to drift from.
   design_system:

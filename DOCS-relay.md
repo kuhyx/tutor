@@ -175,3 +175,12 @@ message under a new rid.
   session's own `-m<n>` numbering (the ledger dedupes any top-up); the clock
   restarts at the reopen, so the idle time before it earns nothing. The
   per-session cap (`MAX_UNITS` = 60) covers the follow-ups too.
+
+## Sandbox builds and the relay
+
+A phone test build made with `--dart-define=SYNC_NAMESPACE=sandbox/slotN`
+prefixes every RTDB path of the app (`app/lib/sync/rtdb_client.dart`, same
+rule as crdt_sync) with `/sandbox/slotN/`. The PC server's relay still reads
+and writes the real paths, so a slot app never reaches it: its requests are
+not answered and its events are not folded into real data. Use such a build
+for UI checks only; the server is deliberately unchanged.

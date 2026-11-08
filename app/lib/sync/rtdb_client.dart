@@ -7,6 +7,8 @@ library;
 
 import 'dart:convert';
 
+import 'package:crdt_sync/crdt_sync.dart'
+    show checkSyncNamespace, syncNamespace;
 import 'package:http/http.dart' as http;
 
 /// Supplies a currently valid Firebase ID token.
@@ -72,16 +74,23 @@ Map<String, String> keyRangeQuery(String startAt) => {
 /// The REST client.
 class RtdbClient {
   /// Creates a client for [databaseUrl] authenticated by [idToken].
+  ///
+  /// [namespace] (default: the `SYNC_NAMESPACE` dart-define, as in crdt_sync)
+  /// is empty for production or `sandbox/<slot>`; every request path then
+  /// lives under `/<namespace>/`. Anything else throws (fail closed).
   new({
     required String databaseUrl,
     required this.idToken,
     http.Client? httpClient,
-  }) : _base = databaseUrl.endsWith('/')
+    String? namespace,
+  }) : _namespace = checkSyncNamespace(namespace ?? syncNamespace),
+       _base = databaseUrl.endsWith('/')
            ? databaseUrl.substring(0, databaseUrl.length - 1)
            : databaseUrl,
        _http = httpClient ?? http.Client();
 
   final String _base;
+  final String _namespace;
 
   /// Token source; also used by the stream for reconnects.
   final IdTokenSource idToken;
@@ -92,7 +101,10 @@ class RtdbClient {
 
   /// The REST URL of [path] with a fresh token and [query].
   Future<Uri> uri(String path, {Map<String, String> query = const {}}) async {
-    final segments = path.split('/').where((s) => s.isNotEmpty);
+    final segments = [
+      ..._namespace.split('/'),
+      ...path.split('/'),
+    ].where((s) => s.isNotEmpty);
     final encoded = segments.map(Uri.encodeComponent).join('/');
     return Uri.parse('$_base/$encoded.json')
         .replace(queryParameters: {'auth': await idToken(), ...query});

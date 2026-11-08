@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:crdt_sync/crdt_sync.dart'
+    show checkSyncNamespace, syncNamespace;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
@@ -16,6 +18,8 @@ import 'package:tutor/ui/ui_zoom.dart';
 // coverage:ignore-start
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Fail closed on a bad SYNC_NAMESPACE before any screen or request.
+  checkSyncNamespace(syncNamespace);
   // Loaded beside the services, not inside them: the zoom applies from the
   // sign-in screen on.
   final zoom = UiZoom();
