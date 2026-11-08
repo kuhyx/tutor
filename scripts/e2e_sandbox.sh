@@ -11,8 +11,8 @@
 #                                    # fresh sandbox; N forces the daily limit,
 #                                    # --as-of rewinds the copy (e2e_prepare.py)
 #        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
-#                                    # the day before; a future --as-of runs
-#                                    # the worker under libfaketime from then
+#                                    # the day before; --as-of runs the
+#                                    # worker under libfaketime from then
 #   scripts/e2e_sandbox.sh flow F1..F8 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
@@ -26,7 +26,7 @@
 # (which never negotiates h2): Chrome's 6 connections per host are the real
 # budget, and the app keeps at most 4 streams (DOCS-contract §9).
 # Needs: java + the cached RTDB emulator jar (firebase-tools), chromium, an
-# Xvfb on E2E_DISPLAY, fvm, faketime (libfaketime) for a future --as-of.
+# Xvfb on E2E_DISPLAY, fvm, faketime (libfaketime) for --as-of.
 # ============================================================================
 set -euo pipefail
 
@@ -150,8 +150,9 @@ cmd_up() {
         esac
         shift
     done
-    # A future --as-of has nothing to rewind: the worker lives at that moment.
-    if [[ -n "$as_of" ]] && (($(date -d "$as_of" +%s) > $(date +%s))); then
+    # The worker lives at --as-of (libfaketime): a past one is also rewound,
+    # so its "today" (stats, live card, carry day) matches the copy.
+    if [[ -n "$as_of" ]]; then
         clock="$(date -d "$as_of" '+%Y-%m-%d %H:%M:%S')"
         command -v faketime >/dev/null || die "no faketime: sudo pacman -S libfaketime"
     fi

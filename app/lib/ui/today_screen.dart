@@ -19,6 +19,8 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/coach/coach_screen.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/sql/lesson_screen.dart';
 import 'package:tutor/ui/today_parts.dart';
@@ -174,25 +176,40 @@ class _TodayScreenState extends State<TodayScreen> {
           ),
         ],
       ),
-      body: PageList(
-        children: [
-          PlanDots(_plan),
-          const SizedBox(height: AppSpacing.lg),
-          if (step == null)
-            Text(
-              l10n.allDone,
-              key: const ValueKey('today-all-done'),
-            )
-          else
-            StepCard(
-              step: step,
-              number: _plan.steps.indexOf(step) + 1,
-              total: _plan.steps.length,
-              busy: _busy,
-              onStart: () => unawaited(_start(step)),
-              onDone: () => unawaited(_done(step)),
-            ),
-        ],
+      body: _body(context, step),
+    );
+  }
+
+  Widget _body(BuildContext context, PlanStep? step) {
+    final l10n = AppLocalizations.of(context);
+    // Phone: Start and Done stay under the step on every page.
+    final split = step != null && isCompact(context);
+    final page = PageList(
+      children: [
+        PlanDots(_plan),
+        const SizedBox(height: AppSpacing.lg),
+        if (step == null)
+          Text(l10n.allDone, key: const ValueKey('today-all-done'))
+        else
+          StepCard(
+            step: step,
+            number: _plan.steps.indexOf(step) + 1,
+            total: _plan.steps.length,
+            busy: _busy,
+            actions: !split,
+            onStart: () => unawaited(_start(step)),
+            onDone: () => unawaited(_done(step)),
+          ),
+      ],
+    );
+    if (!split) return page;
+    return FitSplit(
+      body: page,
+      bar: StepActions(
+        step: step,
+        busy: _busy,
+        onStart: () => unawaited(_start(step)),
+        onDone: () => unawaited(_done(step)),
       ),
     );
   }

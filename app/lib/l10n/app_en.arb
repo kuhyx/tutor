@@ -49,5 +49,7 @@
   "revisions": "Revisions",
   "revisionLine": "rev {rev}: {comment}",
   "@revisionLine": {"placeholders": {"rev": {"type": "int"}, "comment": {"type": "String"}}},
-  "newSubject": "New subject"
+  "newSubject": "New subject",
+  "pagePrev": "Previous page",
+  "pageNext": "Next page"
 }

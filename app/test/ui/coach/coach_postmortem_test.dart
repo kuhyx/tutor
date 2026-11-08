@@ -124,13 +124,7 @@ void main() {
     t,
   ) async {
     await open(t);
-    await answer(
-      t,
-      db,
-      stream,
-      code: 'model_error',
-      extra: {'retry': true},
-    );
+    await answer(t, db, stream, code: 'model_error', extra: {'retry': true});
     expect(find.text('Retry'), findsOneWidget);
     await t.tap(find.text('Retry'));
     await sent(t);

@@ -12,7 +12,6 @@ import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/mock/mock_entry.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
-import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
@@ -20,6 +19,7 @@ import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/home_icons.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/new_cap_dialog.dart';
 import 'package:tutor/util/refresher.dart';
@@ -148,13 +148,15 @@ class _HomeScreenState extends State<HomeScreen> {
     appBar: AppBar(
       title: const Text('Tutor'),
       actions: [
-        _PresenceChip(_presence.state),
+        PresenceChip(_presence.state),
         ...homeIcons(context, _s, _go),
-        IconButton(
-          tooltip: 'Refresh',
-          onPressed: _refresh,
-          icon: const Icon(Icons.refresh),
-        ),
+        // Phone: no room beside the presence pill at 1.15 font; in the menu.
+        if (!isCompact(context))
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
         PopupMenuButton<String>(
           tooltip: 'More',
           onSelected: (v) => switch (v) {
@@ -165,9 +167,15 @@ class _HomeScreenState extends State<HomeScreen> {
             'report' => showReport(context, _s, route: '/'),
             'display' => showDisplaySize(context),
             'newcap' => showNewCap(context, _s.events),
+            'refresh' => _refresh(),
             _ => _signOut(),
           },
           itemBuilder: (_) => [
+            if (isCompact(context))
+              const PopupMenuItem(
+                value: 'refresh',
+                child: Icon(Icons.refresh, semanticLabel: 'Refresh'),
+              ),
             const PopupMenuItem(
               value: 'mock',
               child: Icon(Icons.quiz_outlined, semanticLabel: 'Mock test'),
@@ -221,27 +229,5 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     ),
-  );
-}
-
-class _PresenceChip extends StatelessWidget {
-  const new(this.state);
-
-  final ValueNotifier<PcPresence> state;
-
-  @override
-  Widget build(BuildContext context) => ValueListenableBuilder<PcPresence>(
-    valueListenable: state,
-    builder: (context, value, _) {
-      final (label, tip) = switch (value) {
-        PcPresence.checking => ('PC: checking', 'Waiting for a heartbeat'),
-        PcPresence.online => ('PC online', 'Replies come from the PC'),
-        PcPresence.offline => ('PC offline', pcOfflineText),
-      };
-      return Tooltip(
-        message: tip,
-        child: Center(child: Pill(label, warn: value == PcPresence.offline)),
-      );
-    },
   );
 }

@@ -357,6 +357,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New subject'**
   String get newSubject;
+
+  /// No description provided for @pagePrev.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get pagePrev;
+
+  /// No description provided for @pageNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get pageNext;
 }
 
 class _AppLocalizationsDelegate

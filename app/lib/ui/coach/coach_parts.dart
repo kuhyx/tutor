@@ -1,6 +1,7 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/coach/coach_models.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
@@ -73,6 +74,7 @@ class FoldingStatement extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         InkWell(
@@ -93,17 +95,21 @@ class FoldingStatement extends StatelessWidget {
             ),
           ),
         ),
+        // Flexible: shares a short phone screen instead of overflowing.
         if (open)
-          CappedHeight(
-            share: 0.3,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                0,
-                AppSpacing.md,
-                AppSpacing.sm,
+          Flexible(
+            child: CappedHeight(
+              share: 0.3,
+              child: fitScroll(
+                context,
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
+                child: RichMd(md),
               ),
-              child: RichMd(md),
             ),
           ),
       ],
@@ -137,7 +143,8 @@ class PinnedSnippet extends StatelessWidget {
           Expanded(
             child: CappedHeight(
               share: 0.22,
-              child: SingleChildScrollView(
+              child: fitScroll(
+                context,
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 child: RichMd(md),
               ),

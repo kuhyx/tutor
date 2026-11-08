@@ -11,6 +11,7 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 
 /// The card form.
 class CardForm extends StatefulWidget {
@@ -115,32 +116,34 @@ class _CardFormState extends State<CardForm> {
   @override
   Widget build(BuildContext context) {
     final problems = _problems;
+    final fields = [
+      _field(_front, 'Front (question, <=$kFrontWords words)'),
+      _field(_back, 'Back (answer, <=$kBackWords words)', lines: 3),
+      _field(_source, 'Source (https link)', lines: 1),
+      _field(_excerpt, 'Excerpt (verbatim from the source)', lines: 4),
+      _field(_requires, 'Requires (card ids, comma separated)', lines: 1),
+      _field(_mnemonic, 'Mnemonic (optional, one line)', lines: 1),
+      for (final p in problems)
+        Text(p, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+    ];
+    final status = RequestStatusLine(widget.runner);
+    // Phone: Save stays under the fields, above the keyboard.
+    final save = Align(
+      alignment: Alignment.centerRight,
+      child: FilledButton(
+        onPressed: problems.isEmpty ? _save : null,
+        child: const Text('Save card'),
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.card == null ? 'New card' : 'Edit card'),
       ),
-      body: PageList(
-        children: [
-          _field(_front, 'Front (question, <=$kFrontWords words)'),
-          _field(_back, 'Back (answer, <=$kBackWords words)', lines: 3),
-          _field(_source, 'Source (https link)', lines: 1),
-          _field(_excerpt, 'Excerpt (verbatim from the source)', lines: 4),
-          _field(_requires, 'Requires (card ids, comma separated)', lines: 1),
-          _field(_mnemonic, 'Mnemonic (optional, one line)', lines: 1),
-          for (final p in problems)
-            Text(
-              p,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          RequestStatusLine(widget.runner),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton(
-              onPressed: problems.isEmpty ? _save : null,
-              child: const Text('Save card'),
-            ),
-          ),
-        ],
+      body: fitForm(
+        context,
+        fields: fields,
+        bar: [status, save],
+        wide: (all) => PageList(children: all),
       ),
     );
   }

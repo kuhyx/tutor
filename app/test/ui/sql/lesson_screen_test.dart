@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/storage/kv_store.dart';
+import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
 import 'package:tutor/ui/sql/lesson_screen.dart';
 
@@ -206,7 +207,8 @@ void main() {
     testWidgets('the unfolded tables never fill the screen', (t) async {
       await open(t, keyboard: 800);
       final box = t.getRect(find.byKey(const ValueKey('answer')));
-      final thread = t.getSize(find.byType(ListView).last);
+      // Phone: the thread pages (the last FitPages; the tables come first).
+      final thread = t.getSize(find.byType(FitPages).last);
       expect(box.bottom, lessThanOrEqualTo((2400 - 800) / 2.625));
       expect(thread.height, greaterThan(100));
     });

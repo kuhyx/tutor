@@ -4,6 +4,7 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 
 const _strut = StrutStyle(
@@ -24,6 +25,12 @@ class SqlEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Phone, keyboard up: 3 empty lines, not 6, so the editor fits a page
+    // between the task and its pinned keys.
+    final minLines =
+        isCompact(context) && MediaQuery.viewInsetsOf(context).bottom > 0
+        ? 3
+        : 6;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -37,7 +44,7 @@ class SqlEditor extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, box) => ListenableBuilder(
                 listenable: controller,
-                builder: (context, _) => _body(box.maxWidth, scheme),
+                builder: (context, _) => _body(box.maxWidth, scheme, minLines),
               ),
             ),
           ),
@@ -46,7 +53,7 @@ class SqlEditor extends StatelessWidget {
     );
   }
 
-  Widget _body(double width, ColorScheme scheme) {
+  Widget _body(double width, ColorScheme scheme, int minLines) {
     final lines = controller.text.split('\n');
     final digits = '${lines.length}'.length;
     final gutter = _measure('0' * digits, double.infinity).width;
@@ -74,7 +81,7 @@ class SqlEditor extends StatelessWidget {
           child: TextField(
             key: const ValueKey('sql-editor'),
             controller: controller,
-            minLines: 6,
+            minLines: minLines,
             maxLines: null,
             keyboardType: TextInputType.multiline,
             autocorrect: false,

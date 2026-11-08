@@ -69,7 +69,10 @@ void main() {
     });
     await rig.say(t, 'y');
     await rig.reply(t, turnData);
-    await t.drag(find.byType(ListView).first, const Offset(0, 600));
+    // Phone: the thread pages; paging it back leaves the pin in place.
+    final prev = find.byKey(const ValueKey('fit-prev')).hitTestable();
+    expect(prev, findsWidgets);
+    await t.tap(prev.last);
     await t.pump();
     final pin = t.getRect(find.byKey(const ValueKey('pinned')));
     final box = t.getRect(find.byKey(const ValueKey('answer')));

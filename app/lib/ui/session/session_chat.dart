@@ -3,10 +3,8 @@
 /// (Next card / Stop here) above the composer, or Start.
 library;
 
-import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
-import 'package:tutor/model/message.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/relay/request_relay.dart';
@@ -14,13 +12,11 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
-import 'package:tutor/ui/nav.dart';
-import 'package:tutor/ui/session/collapsed_tile.dart';
+import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/session/composer.dart';
-import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/ui/session/session_bits.dart';
 import 'package:tutor/ui/session/session_header.dart';
-import 'package:tutor/ui/session/thinking_panel.dart';
+import 'package:tutor/ui/session/session_turns.dart';
 
 /// The chat column.
 class SessionChat extends StatefulWidget {
@@ -88,11 +84,19 @@ class SessionChat extends StatefulWidget {
 
 class _SessionChatState extends State<SessionChat> {
   int _count = -1;
+  final _pages = FitPageController();
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
 
   // New messages scroll to the bottom (offset 0: the list is reversed).
   void _follow(int count) {
     if (count == _count) return;
     _count = count;
+    _pages.toLast();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final s = widget.scroll;
       if (s.hasClients) s.jumpTo(0);
@@ -136,28 +140,16 @@ class _SessionChatState extends State<SessionChat> {
                     waiting: waiting,
                     loaded: widget.feed.loaded.value || view != null,
                   )
-                // Reversed (offset 0 = newest: late pictures above never push
-                // the bottom away); ONE SelectionArea: copies as one text.
                 : SelectionArea(
-                    child: ListView(
-                      controller: widget.scroll,
-                      reverse: true,
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      children: [
-                        for (final (i, m) in messages.indexed)
-                          _tile(
-                            m,
-                            i == messages.length - 1,
-                            boxes: boxes,
-                            sid: view.sid,
-                          ),
-                        if (busy != null && (busy.text ?? '').isNotEmpty)
-                          MessageTile(
-                            message: Message(role: 'learner', text: busy.text!),
-                            pending: true,
-                          ),
-                        if (busy != null) liveTrace(busy, view.progress),
-                      ].reversed.toList(),
+                    child: ChatTurns(
+                      messages: messages,
+                      boxes: boxes,
+                      busy: busy,
+                      view: view,
+                      services: widget.services,
+                      keyboard: widget.keyboard,
+                      pages: _pages,
+                      scroll: widget.scroll,
                     ),
                   ),
           ),
@@ -220,30 +212,4 @@ class _SessionChatState extends State<SessionChat> {
 
   // The height share the composer may take (the chat stays the scroller).
   double get _share => widget.keyboard ? 0.7 : (widget.phone ? 0.5 : 0.4);
-
-  Widget _tile(
-    KeyedMessage m,
-    bool latest, {
-    required bool boxes,
-    required String sid,
-  }) {
-    final tutor = m.message.role == 'tutor';
-    final tile = MessageTile(
-      message: m.message,
-      questionsAsBoxes: boxes && latest,
-      onReport: tutor
-          ? () => showReport(
-              context,
-              widget.services,
-              route: '/session',
-              session: sid,
-              msg: m.key,
-              preview: m.message.text,
-            )
-          : null,
-    );
-    return widget.keyboard && latest && tutor
-        ? CollapsedTile(message: m.message, full: tile)
-        : tile;
-  }
 }

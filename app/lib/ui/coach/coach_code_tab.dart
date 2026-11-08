@@ -4,6 +4,9 @@ import 'package:tutor/coach/coach_models.dart';
 import 'package:tutor/ui/coach/coach_run_view.dart';
 import 'package:tutor/ui/coach/coach_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/ui/fit_pages.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/sql_editor.dart';
 import 'package:tutor/widgets/code_symbol_bar.dart';
 
@@ -26,43 +29,55 @@ class CoachCodeTab extends StatelessWidget {
       final s = session;
       final langs = s.opened?.langs ?? [s.lang];
       final report = s.report;
-      final list = ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        children: [
-          DropdownButton<String>(
-            key: const ValueKey('lang'),
-            value: langs.contains(s.lang) ? s.lang : null,
-            items: [
-              for (final l in langs)
-                DropdownMenuItem(value: l, child: Text(coachLangs[l] ?? l)),
-            ],
-            onChanged: (l) => l == null ? null : s.setLang(l),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SqlEditor(controller: s.code),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              RunnerBuilder(
-                s.runs,
-                (_) => FilledButton(
-                  key: const ValueKey('run'),
-                  onPressed: s.runs.canSend && s.code.text.trim().isNotEmpty
-                      ? s.run
-                      : null,
-                  child: const Icon(Icons.play_arrow, semanticLabel: 'Run'),
-                ),
-              ),
-            ],
-          ),
-          RequestStatusLine(s.runs),
-          if (report != null && report.held && s.note != null)
-            Text(s.note!, key: const ValueKey('run-note')),
-          if (report != null && !report.held)
-            CoachRunView(report, key: ObjectKey(report)),
-        ],
+      final run = RunnerBuilder(
+        s.runs,
+        (_) => FilledButton(
+          key: const ValueKey('run'),
+          onPressed: s.runs.canSend && s.code.text.trim().isNotEmpty
+              ? s.run
+              : null,
+          child: const Icon(Icons.play_arrow, semanticLabel: 'Run'),
+        ),
       );
+      final top = [
+        DropdownButton<String>(
+          key: const ValueKey('lang'),
+          value: langs.contains(s.lang) ? s.lang : null,
+          items: [
+            for (final l in langs)
+              DropdownMenuItem(value: l, child: Text(coachLangs[l] ?? l)),
+          ],
+          onChanged: (l) => l == null ? null : s.setLang(l),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SqlEditor(controller: s.code),
+        const SizedBox(height: AppSpacing.sm),
+      ];
+      final results = [
+        RequestStatusLine(s.runs),
+        if (report != null && report.held && s.note != null)
+          Text(s.note!, key: const ValueKey('run-note')),
+        if (report != null && !report.held)
+          CoachRunView(report, key: ObjectKey(report)),
+      ];
+      // Phone: Run stays under the pages, above the keyboard.
+      final list = isCompact(context)
+          ? FitSplit(
+              body: FitPages(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [...top, ...results],
+              ),
+              bar: Row(children: [run]),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              children: [
+                ...top,
+                Row(children: [run]),
+                ...results,
+              ],
+            );
       return WithSymbolBar(controller: s.code, show: touch, child: list);
     },
   );

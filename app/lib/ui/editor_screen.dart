@@ -24,7 +24,9 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/card_form.dart';
 import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/editor_module.dart';
 import 'package:tutor/ui/flag_dialog.dart';
+import 'package:tutor/ui/layout.dart';
 
 /// The card editor.
 class EditorScreen extends StatefulWidget {
@@ -47,6 +49,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Map<String, SubjectData> _subjects = const {};
   FoldResult? _fold;
   String? _subject;
+  final _open = <String>{};
 
   @override
   void initState() {
@@ -153,6 +156,18 @@ class _EditorScreenState extends State<EditorScreen> {
     ],
   );
 
+  Widget _addCard(SubjectData s, Module m) => Padding(
+    padding: const EdgeInsets.all(AppSpacing.sm),
+    child: Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: () => _edit(s, m),
+        icon: const Icon(Icons.add),
+        label: const Text('Add card'),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final s = _subjects[_subject];
@@ -160,6 +175,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final progress = s == null || fold == null
         ? null
         : subjectProgress(s, fold, DateTime.now());
+    final compact = isCompact(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Edit cards')),
       body: PageList(
@@ -188,7 +204,11 @@ class _EditorScreenState extends State<EditorScreen> {
             )
           else
             for (final m in s.plan?.modules ?? const <Module>[])
-              ExpansionTile(
+              ...moduleRows(
+                compact: compact,
+                open: _open.contains(m.id),
+                onToggle: () =>
+                    setState(() => _open.remove(m.id) || _open.add(m.id)),
                 title: Text(m.title),
                 subtitle: Tooltip(
                   message: [
@@ -204,7 +224,8 @@ class _EditorScreenState extends State<EditorScreen> {
                     ].join(' · '),
                   ),
                 ),
-                children: [
+                addCard: _addCard(s, m),
+                cards: [
                   for (final c in s.cardsOf(m.id))
                     ListTile(
                       leading: CardStateIcon(progress?.cards[c.key]),
@@ -217,17 +238,6 @@ class _EditorScreenState extends State<EditorScreen> {
                       onTap: () => _edit(s, m, c),
                       trailing: _actions(s, c),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () => _edit(s, m),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add card'),
-                      ),
-                    ),
-                  ),
                 ],
               ),
         ],

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/mock/mock_models.dart';
 import 'package:tutor/mock/mock_run_view.dart';
 import 'package:tutor/mock/mock_session.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
@@ -30,61 +31,70 @@ Widget mockTaskBody({
     RichMd(task.prompt),
   ];
   if (!task.section.typed) {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      children: [
-        ...head,
-        if (task.code.isNotEmpty) CodeBlock(task.code),
-        _gap,
-        for (final (i, o) in task.options.indexed)
-          _Option(
-            i,
-            o,
-            selected: session.answers[task.id] == '$i',
-            onTap: () {
-              session.update(id: task.id, text: '$i');
-              unawaited(session.submit(task.id));
-            },
-          ),
-      ],
+    return Builder(
+      builder: (context) => fitList(
+        context,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        children: [
+          ...head,
+          if (task.code.isNotEmpty) CodeBlock(task.code),
+          _gap,
+          for (final (i, o) in task.options.indexed)
+            _Option(
+              i,
+              o,
+              selected: session.answers[task.id] == '$i',
+              onTap: () {
+                session.update(id: task.id, text: '$i');
+                unawaited(session.submit(task.id));
+              },
+            ),
+        ],
+      ),
     );
   }
   return MetricsBuilder(
     builder: (context) {
       final pinned = task.tables.isNotEmpty && keyboardUp(context);
+      final body = [
+        ...head,
+        Offstage(
+          offstage: pinned,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: tableWidgets(task.tables),
+          ),
+        ),
+        if (task.sample.isNotEmpty) ...[
+          _gap,
+          const Icon(Icons.flag_outlined, semanticLabel: 'Sample'),
+          DataGridView(columns: const [], rows: task.sample),
+        ],
+        _gap,
+        SqlEditor(controller: editor!),
+        _gap,
+      ];
+      final after = [runLine, if (out != null) MockRunView(out)];
       return WithSymbolBar(
-        controller: editor!,
+        controller: editor,
         show: true,
         child: Column(
           children: [
-            if (pinned) TableStrip(tables: task.tables),
+            if (pinned) fitFlex(context, TableStrip(tables: task.tables)),
             Expanded(
               key: const ValueKey('task-list'),
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                children: [
-                  ...head,
-                  Offstage(
-                    offstage: pinned,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: tableWidgets(task.tables),
-                    ),
-                  ),
-                  if (task.sample.isNotEmpty) ...[
-                    _gap,
-                    const Icon(Icons.flag_outlined, semanticLabel: 'Sample'),
-                    DataGridView(columns: const [], rows: task.sample),
-                  ],
-                  _gap,
-                  SqlEditor(controller: editor),
-                  _gap,
-                  _buttons(session, task, onRun),
-                  runLine,
-                  if (out != null) MockRunView(out),
-                ],
+              // Phone: the task pages; Run and Submit stay above the
+              // keyboard. Desktop: one list, buttons under the editor.
+              child: fitForm(
+                context,
+                fields: [...body, ...after],
+                bar: [_buttons(session, task, onRun)],
+                wide: (_) => ListView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  children: [...body, _buttons(session, task, onRun), ...after],
+                ),
               ),
             ),
           ],

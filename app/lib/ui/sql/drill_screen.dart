@@ -15,7 +15,9 @@ import 'package:tutor/sql/sql_drafts.dart';
 import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/sql/sql_requests.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
+import 'package:tutor/ui/sql/drill_buttons.dart';
 import 'package:tutor/ui/sql/hint_list.dart';
 import 'package:tutor/ui/sql/prediction_grid.dart';
 import 'package:tutor/ui/sql/result_view.dart';
@@ -130,7 +132,8 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
         ),
       );
     }
-    final task = ListView(
+    final task = fitList(
+      context,
       padding: const EdgeInsets.all(AppSpacing.md),
       children: taskWidgets(drill),
     );
@@ -139,10 +142,22 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
       builder: (context, _) => WithSymbolBar(
         controller: _sql,
         show: !wide && !drill.meta.predict,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          children: _work(drill),
+        // Phone: the answer pages; Run/Check and Hint stay above the
+        // keyboard.
+        child: fitForm(
+          context,
+          fields: _work(drill),
+          bar: [_buttons(drill)],
+          // Desktop as before: the buttons under the editor.
+          wide: (_) => ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              ..._work(drill).take(2),
+              _buttons(drill),
+              ..._work(drill).skip(2),
+            ],
+          ),
         ),
       ),
     );
@@ -182,6 +197,33 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
     );
   }
 
+  Widget _buttons(Drill drill) {
+    final predict = drill.meta.predict;
+    return DrillButtons(
+      run: _run,
+      hint: _hint,
+      predict: predict,
+      canRun: predict || _sql.text.trim().isNotEmpty,
+      onRun: () => unawaited(
+        _run.run(
+          predict
+              ? sqlPredict(widget.id, trimGrid(_grid))
+              : sqlRun(widget.id, _sql.text),
+        ),
+      ),
+      onHint: () => unawaited(
+        _hint.run(
+          sqlHint(
+            widget.id,
+            history: _hints,
+            sql: _sql.text,
+            lastResult: _outcome?.hintSlice(),
+          ),
+        ),
+      ),
+    );
+  }
+
   List<Widget> _work(Drill drill) {
     final predict = drill.meta.predict;
     final o = _outcome;
@@ -195,50 +237,6 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
       else
         SqlEditor(controller: _sql),
       const SizedBox(height: AppSpacing.sm),
-      Row(
-        children: [
-          RunnerBuilder(
-            _run,
-            (_) => FilledButton(
-              key: ValueKey(predict ? 'check' : 'run'),
-              onPressed:
-                  _run.canSend && (predict || _sql.text.trim().isNotEmpty)
-                  ? () => unawaited(
-                      _run.run(
-                        predict
-                            ? sqlPredict(widget.id, trimGrid(_grid))
-                            : sqlRun(widget.id, _sql.text),
-                      ),
-                    )
-                  : null,
-              child: Icon(
-                predict ? Icons.check : Icons.play_arrow,
-                semanticLabel: predict ? 'Check' : 'Run',
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          RunnerBuilder(
-            _hint,
-            (_) => OutlinedButton(
-              key: const ValueKey('hint'),
-              onPressed: _hint.canSend
-                  ? () => unawaited(
-                      _hint.run(
-                        sqlHint(
-                          widget.id,
-                          history: _hints,
-                          sql: _sql.text,
-                          lastResult: _outcome?.hintSlice(),
-                        ),
-                      ),
-                    )
-                  : null,
-              child: const Icon(Icons.lightbulb_outline, semanticLabel: 'Hint'),
-            ),
-          ),
-        ],
-      ),
       RequestStatusLine(_run),
       RequestStatusLine(_hint),
       if (_problem != null) Text(_problem!),

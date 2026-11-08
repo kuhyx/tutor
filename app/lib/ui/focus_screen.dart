@@ -218,8 +218,9 @@ class _FocusScreenState extends State<FocusScreen> {
             label: Text(running ? l.stop : l.start),
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Wraps at a large font instead of overflowing.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
           children: [
             TextButton(onPressed: _form, child: Text(l.newProject)),
             TextButton(

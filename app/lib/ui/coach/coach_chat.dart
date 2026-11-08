@@ -8,6 +8,8 @@ import 'package:tutor/ui/coach/coach_parts.dart';
 import 'package:tutor/ui/coach/coach_reveal.dart';
 import 'package:tutor/ui/coach/coach_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_pages.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
 
 /// The chat tab: thread, pinned snippet, notices, answer box and actions.
@@ -38,6 +40,8 @@ class CoachChat extends StatefulWidget {
 class _CoachChatState extends State<CoachChat> {
   final _focus = FocusNode();
   final _scroll = ScrollController();
+  final _pages = FitPageController();
+  int _turns = -1;
   bool _statementOpen = true;
 
   CoachSession get _s => widget.session;
@@ -56,12 +60,20 @@ class _CoachChatState extends State<CoachChat> {
       ..removeListener(_toEnd)
       ..dispose();
     _scroll.dispose();
+    _pages.dispose();
     super.dispose();
   }
 
-  void _toEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-  });
+  void _toEnd() {
+    // Phone: a new turn shows from its top.
+    if (_s.thread.length != _turns) {
+      _turns = _s.thread.length;
+      _pages.toLast();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    });
+  }
 
   Future<void> _reveal() async {
     if (await askReveal(context)) _s.send(coachReveal);
@@ -109,23 +121,17 @@ class _CoachChatState extends State<CoachChat> {
               title: Text(AppLocalizations.of(context).retestNoSubmit),
             ),
           if (o != null && !widget.sidePane)
-            FoldingStatement(
-              title: o.title,
-              md: o.statementMd,
-              open: _statementOpen,
-              onToggle: () => setState(() => _statementOpen = !_statementOpen),
+            _flex(
+              FoldingStatement(
+                title: o.title,
+                md: o.statementMd,
+                open: _statementOpen,
+                onToggle: () =>
+                    setState(() => _statementOpen = !_statementOpen),
+              ),
             ),
           const Divider(height: 1),
-          Expanded(
-            child: ListView(
-              controller: _scroll,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              children: [
-                for (final b in _s.thread) BubbleView(b),
-                if (_s.problem != null) Text(_s.problem!),
-              ],
-            ),
-          ),
+          Expanded(child: _thread(context)),
           if (_s.turns.busy) const LinearProgressIndicator(),
           RequestStatusLine(_s.turns),
           if (_s.note != null)
@@ -137,7 +143,7 @@ class _CoachChatState extends State<CoachChat> {
             ),
           if (_s.choices.isNotEmpty)
             ChoiceButtons(choices: _s.choices, onPick: _pick),
-          if (pin != null) PinnedSnippet(md: pin, onClose: _s.unpin),
+          if (pin != null) _flex(PinnedSnippet(md: pin, onClose: _s.unpin)),
           if (_s.state.phase == 'done')
             Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
@@ -158,6 +164,22 @@ class _CoachChatState extends State<CoachChat> {
       );
     },
   );
+
+  // Phone: capped blocks share what is left with the thread, never
+  // overflow it (the keyboard up, a large font).
+  Widget _flex(Widget child) =>
+      isCompact(context) ? Flexible(child: child) : child;
+
+  Widget _thread(BuildContext context) {
+    final items = [
+      for (final b in _s.thread) BubbleView(b),
+      if (_s.problem != null) Text(_s.problem!),
+    ];
+    const pad = EdgeInsets.all(AppSpacing.md);
+    return isCompact(context)
+        ? FitPages(controller: _pages, padding: pad, children: items)
+        : ListView(controller: _scroll, padding: pad, children: items);
+  }
 
   Widget _box() => AnswerBox(
     controller: _s.answer,

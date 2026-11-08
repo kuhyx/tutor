@@ -68,10 +68,12 @@ class _StartScreenState extends State<StartScreen> {
       _set(cached);
       return;
     }
-    final result = await _runner.run(planToday()).timeout(
-      startWait,
-      onTimeout: () => RelayNotSent(TimeoutException('plan_today')),
-    );
+    final result = await _runner
+        .run(planToday())
+        .timeout(
+          startWait,
+          onTimeout: () => RelayNotSent(TimeoutException('plan_today')),
+        );
     if (result is RelayDone) {
       final plan = TodayPlan.fromJson(result.data);
       if (plan.steps.isNotEmpty) {
@@ -107,9 +109,9 @@ class _StartScreenState extends State<StartScreen> {
     return TodayScreen(
       services: widget.services,
       plan: plan,
-      openHome: () => Navigator.of(context).push<void>(
-        MaterialPageRoute(builder: (_) => _home()),
-      ),
+      openHome: () =>
+          Navigator.of(context)
+              .push<void>(MaterialPageRoute(builder: (_) => _home())),
     );
   }
 }

@@ -36,3 +36,42 @@ class FocusGates extends StatelessWidget {
     );
   }
 }
+
+/// A date shown as a field; [onTap] picks it (null: locked).
+class DateField extends StatelessWidget {
+  /// Creates the field.
+  const new(this.label, this.text, {required this.onTap, super.key});
+
+  /// Field label.
+  final String label;
+
+  /// The date, as shown.
+  final String text;
+
+  /// Opens the picker.
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: const Icon(Icons.event),
+      ),
+      child: Text(text),
+    ),
+  );
+}
+
+/// A whole-number field.
+Widget numberField(
+  TextEditingController c,
+  String label,
+  ValueChanged<String> onChanged,
+) => TextField(
+  controller: c,
+  keyboardType: TextInputType.number,
+  decoration: InputDecoration(labelText: label),
+  onChanged: onChanged,
+);

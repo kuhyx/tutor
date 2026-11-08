@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/storage/kv_store.dart';
+import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/session/composer_parts.dart';
 
 /// The composer.
@@ -182,17 +183,17 @@ class _ComposerState extends State<Composer> {
   List<Widget> _phoneStep(TextTheme text, bool canSend) {
     final a = _asked[_step];
     return [
+      // Pages, never a scroll (build-mobile-app R7): with the keyboard up
+      // the box's page shows; the question is a page back.
       Flexible(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              QuestionLabel(a),
-              const SizedBox(height: AppSpacing.sm),
-              _chips(_step),
-              _box(_step, 'Your answer'),
-            ],
-          ),
+        child: FitPages(
+          key: ValueKey('step-$_step'),
+          children: [
+            QuestionLabel(a),
+            const SizedBox(height: AppSpacing.sm),
+            _chips(_step),
+            _box(_step, 'Your answer'),
+          ],
         ),
       ),
       StepBar(

@@ -26,10 +26,7 @@ void main() {
     final db = fixtureDb();
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
-    await pumpScreen(
-      t,
-      HomeScreen(services: s, onSignedOut: () {}),
-    );
+    await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
     final box = find.byType(TextField);
     await t.enterText(box, 'how bridges stand');
     await t.tap(find.text('Draft a plan'));

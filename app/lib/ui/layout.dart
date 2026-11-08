@@ -13,6 +13,22 @@ const kTwoColumns = 1200.0;
 /// Widest a two-column page gets.
 const kTwoColumnMaxWidth = 1360.0;
 
+/// Below this device width (dp) a screen uses its phone fit layout.
+const kCompactWidth = 600.0;
+
+/// Up to this device height (dp) a screen uses its phone fit layout.
+const kCompactHeight = 950.0;
+
+/// A phone-sized screen: fixed pages, never a scroll (build-mobile-app R7).
+/// Read from the view in device dp, before `UiScale`: the phone's default
+/// 90% zoom makes the app's logical size 457x1016, which would fail the
+/// height bound, yet only adds room to a layout that fits 411x914.
+bool isCompact(BuildContext context) {
+  final view = View.of(context);
+  final size = view.physicalSize / view.devicePixelRatio;
+  return size.width < kCompactWidth && size.height <= kCompactHeight;
+}
+
 /// [first] beside [second] on wide windows, one under the other otherwise.
 class TwoColumnPage extends StatelessWidget {
   /// Creates the page; [firstFlex] : [secondFlex] split the width.

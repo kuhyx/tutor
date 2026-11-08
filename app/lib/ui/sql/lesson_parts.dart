@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/sql/lesson_models.dart';
 import 'package:tutor/sql/sql_models.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
@@ -42,6 +43,7 @@ class PinnedTables extends StatelessWidget {
   Widget build(BuildContext context) {
     if (compact) return TableStrip(tables: tables, share: share);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         InkWell(
@@ -69,18 +71,21 @@ class PinnedTables extends StatelessWidget {
           ),
         ),
         if (open)
-          CappedHeight(
-            share: share,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                0,
-                AppSpacing.md,
-                AppSpacing.sm,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: tableWidgets(tables),
+          Flexible(
+            child: CappedHeight(
+              share: share,
+              child: fitScroll(
+                context,
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: tableWidgets(tables),
+                ),
               ),
             ),
           ),

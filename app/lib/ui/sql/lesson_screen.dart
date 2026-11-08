@@ -15,10 +15,12 @@ import 'package:tutor/sql/sql_drafts.dart';
 import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/sql/sql_requests.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
+import 'package:tutor/ui/sql/lesson_layout.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
-import 'package:tutor/ui/sql/task_view.dart';
 
 /// The lesson for [topic]; it resumes the one saved on this install.
 class SqlLessonScreen extends StatefulWidget {
@@ -45,6 +47,8 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
   final _answer = TextEditingController();
   final _focus = FocusNode();
   final _scroll = ScrollController();
+  final _pages = FitPageController();
+  int _shown = -1;
   late final List<VoidCallback> _unlisten;
   final List<Bubble> _thread = [];
   List<SqlTable> _tables = const [];
@@ -78,6 +82,7 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
       ..dispose();
     _answer.dispose();
     _scroll.dispose();
+    _pages.dispose();
     unawaited(_turns.dispose());
     super.dispose();
   }
@@ -87,9 +92,16 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
 
   void _onFocus() => setState(_toEnd);
 
-  void _toEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-  });
+  void _toEnd() {
+    // Phone: a new turn shows from its top.
+    if (_thread.length != _shown) {
+      _shown = _thread.length;
+      _pages.toLast();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    });
+  }
 
   Future<void> _start() async {
     final saved = await _drafts.lesson(_topic);
@@ -157,41 +169,14 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= kSqlTwoPanes;
-    final chat = _chat();
-    final body = !wide
-        ? Column(
-            children: [
-              if (_tables.isNotEmpty)
-                PinnedTables(
-                  tables: _tables,
-                  open: _tablesOpen,
-                  compact: _focus.hasFocus,
-                  onToggle: () => setState(() => _tablesOpen = !_tablesOpen),
-                ),
-              const Divider(height: 1),
-              Expanded(child: chat),
-            ],
-          )
-        : Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1360),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: ListView(
-                      key: const ValueKey('tables-pane'),
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      children: tableWidgets(_tables),
-                    ),
-                  ),
-                  const VerticalDivider(width: 1),
-                  Expanded(flex: 3, child: chat),
-                ],
-              ),
-            ),
-          );
+    final body = LessonLayout(
+      wide: wide,
+      tables: _tables,
+      tablesOpen: _tablesOpen,
+      typing: _focus.hasFocus,
+      onToggle: () => setState(() => _tablesOpen = !_tablesOpen),
+      chat: _chat(),
+    );
     return Scaffold(
       appBar: AppBar(title: Text(_topic)),
       body: SafeArea(child: body),
@@ -214,8 +199,10 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
             trailing: Text('${turn.index + 1}/${turn.total}'),
           ),
         Expanded(
-          child: ListView(
-            controller: _scroll,
+          child: fitList(
+            context,
+            pages: _pages,
+            scroll: _scroll,
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
               for (final b in _thread) BubbleView(b),

@@ -22,7 +22,9 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_view.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/flag_dialog.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/review_answer.dart';
 import 'package:tutor/ui/review_end.dart';
@@ -216,13 +218,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final item = run.current;
     final text = Theme.of(context).textTheme;
     if (item == null) return ReviewEnd(run, module: widget.module != null);
+    final face = [
+      Text('${item.subjectTitle} · ${run.left} left', style: text.bodySmall),
+      const SizedBox(height: AppSpacing.md),
+      CardFace(item.card, revealed: run.revealed),
+    ];
+    final bar = AnswerBar(run, onFlag: () => _flag(run));
+    // Phone: the card pages, the answer bar stays under it on every page.
+    if (isCompact(context)) {
+      return FitSplit(
+        body: PageList(children: face),
+        bar: bar,
+      );
+    }
     return PageList(
       children: [
-        Text('${item.subjectTitle} · ${run.left} left', style: text.bodySmall),
+        ...face,
         const SizedBox(height: AppSpacing.md),
-        CardFace(item.card, revealed: run.revealed),
-        const SizedBox(height: AppSpacing.md),
-        AnswerBar(run, onFlag: () => _flag(run)),
+        bar,
       ],
     );
   }

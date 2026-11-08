@@ -48,11 +48,15 @@ class StepCard extends StatelessWidget {
     required this.busy,
     required this.onStart,
     required this.onDone,
+    this.actions = true,
     super.key,
   });
 
   /// The step.
   final PlanStep step;
+
+  /// Start and Done inside the card; false where the page pins them.
+  final bool actions;
 
   /// Its 1-based position.
   final int number;
@@ -88,28 +92,65 @@ class StepCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(step.what, style: text.bodyLarge),
-            const SizedBox(height: AppSpacing.lg),
-            if (step.kind != StepKind.note)
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  key: const ValueKey('today-start'),
-                  onPressed: onStart,
-                  child: Text(l10n.start),
-                ),
+            if (actions) ...[
+              const SizedBox(height: AppSpacing.lg),
+              StepActions(
+                step: step,
+                busy: busy,
+                onStart: onStart,
+                onDone: onDone,
               ),
-            const SizedBox(height: AppSpacing.sm),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                key: const ValueKey('today-done'),
-                onPressed: busy ? null : onDone,
-                child: Text(l10n.doneStep),
-              ),
-            ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Start (not for a note) and Done, full width.
+class StepActions extends StatelessWidget {
+  /// Creates the buttons.
+  const new({
+    required this.step,
+    required this.busy,
+    required this.onStart,
+    required this.onDone,
+    super.key,
+  });
+
+  /// The step.
+  final PlanStep step;
+
+  /// A Done request is in flight.
+  final bool busy;
+
+  /// Start pressed.
+  final VoidCallback onStart;
+
+  /// Done pressed.
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (step.kind != StepKind.note)
+          FilledButton(
+            key: const ValueKey('today-start'),
+            onPressed: onStart,
+            child: Text(l10n.start),
+          ),
+        const SizedBox(height: AppSpacing.sm),
+        OutlinedButton(
+          key: const ValueKey('today-done'),
+          onPressed: busy ? null : onDone,
+          child: Text(l10n.doneStep),
+        ),
+      ],
     );
   }
 }

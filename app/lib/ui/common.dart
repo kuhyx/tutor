@@ -8,6 +8,8 @@ import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/ui/fit_pages.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Widest a reading column gets on desktop.
@@ -18,24 +20,33 @@ class PageList extends StatelessWidget {
   /// Creates the page.
   const new({required this.children, this.controller, super.key});
 
-  /// Content.
+  /// Content; on a phone ([isCompact]) shown a page at a time, never
+  /// scrolled.
   final List<Widget> children;
 
   /// Optional scroll controller.
   final ScrollController? controller;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.topCenter,
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: kPageMaxWidth),
-      child: ListView(
-        controller: controller,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: children,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => isCompact(context)
+      ? SafeArea(
+          top: false,
+          child: FitPages(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: children,
+          ),
+        )
+      : Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: kPageMaxWidth),
+            child: ListView(
+              controller: controller,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              children: children,
+            ),
+          ),
+        );
 }
 
 /// A small rounded label (paused, stalled, archived...).

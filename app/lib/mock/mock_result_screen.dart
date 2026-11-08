@@ -7,6 +7,8 @@ import 'package:tutor/mock/mock_links.dart';
 import 'package:tutor/mock/mock_models.dart';
 import 'package:tutor/mock/mock_result_detail.dart';
 import 'package:tutor/mock/mock_session.dart';
+import 'package:tutor/ui/fit_pages.dart';
+import 'package:tutor/ui/layout.dart';
 
 /// Score, per-task breakdown, and a study button on every missed item.
 class MockResultScreen extends StatelessWidget {
@@ -50,31 +52,35 @@ class MockResultScreen extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          children: [
-            for (final item in r.items)
-              ExpansionTile(
-                key: ValueKey('item-${item.id}'),
-                initiallyExpanded: !item.correct,
-                leading: Icon(
-                  item.correct ? Icons.check_circle : Icons.cancel,
-                  color: item.correct ? AppPalette.success : AppPalette.danger,
-                ),
-                title: Text(item.title),
-                subtitle: item.topic.isEmpty ? null : Text(item.topic),
-                childrenPadding: const EdgeInsets.all(AppSpacing.md),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  mockItemDetail(item),
-                  if (!item.correct && item.link != null)
-                    _StudyButton(item, links),
-                ],
+        child: _list(context, [
+          for (final item in r.items)
+            ExpansionTile(
+              key: ValueKey('item-${item.id}'),
+              initiallyExpanded: !item.correct,
+              leading: Icon(
+                item.correct ? Icons.check_circle : Icons.cancel,
+                color: item.correct ? AppPalette.success : AppPalette.danger,
               ),
-          ],
-        ),
+              title: Text(item.title),
+              subtitle: item.topic.isEmpty ? null : Text(item.topic),
+              childrenPadding: const EdgeInsets.all(AppSpacing.md),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                mockItemDetail(item),
+                if (!item.correct && item.link != null)
+                  _StudyButton(item, links),
+              ],
+            ),
+        ]),
       ),
     );
   }
+
+  // Phone: a page at a time, never a scroll.
+  static Widget _list(BuildContext context, List<Widget> items) =>
+      isCompact(context)
+      ? FitPages(children: items)
+      : ListView(children: items);
 }
 
 class _StudyButton extends StatelessWidget {

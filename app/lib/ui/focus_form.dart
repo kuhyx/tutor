@@ -9,6 +9,8 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/ui/focus_gates.dart';
 
 /// Creates or, given [edit], edits a focus project: dates, gates to turn
 /// off, minutes, subjects.
@@ -130,23 +132,13 @@ class _FocusFormState extends State<FocusFormScreen> {
     if (mounted && result is RelayDone) Navigator.of(context).pop(true);
   }
 
-  Widget _number(TextEditingController c, String label) => TextField(
-    controller: c,
-    keyboardType: TextInputType.number,
-    decoration: InputDecoration(labelText: label),
-    onChanged: (_) => setState(() {}),
-  );
+  void _edited(String _) => setState(() {});
 
   Widget _date(String label, DateTime value, {required bool start}) => Expanded(
-    child: InkWell(
+    child: DateField(
+      label,
+      _iso(value),
       onTap: start && _startLocked ? null : () => _pick(start: start),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          suffixIcon: const Icon(Icons.event),
-        ),
-        child: Text(_iso(value)),
-      ),
     ),
   );
 
@@ -155,6 +147,80 @@ class _FocusFormState extends State<FocusFormScreen> {
     final l = AppLocalizations.of(context);
     final status = widget.status;
     final text = Theme.of(context).textTheme;
+    final fields = <Widget>[
+      TextField(
+        controller: _name,
+        decoration: InputDecoration(labelText: l.projectName),
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Row(
+        spacing: AppSpacing.md,
+        children: [
+          _date(l.startDate, _start, start: true),
+          _date(l.endDate, _end, start: false),
+        ],
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Row(
+        spacing: AppSpacing.md,
+        children: [
+          Expanded(child: numberField(_daily, l.dailyMinutes, _edited)),
+          Expanded(child: numberField(_unlock, l.unlockMinutes, _edited)),
+        ],
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Text(l.gatesOff, style: text.titleSmall),
+      for (final g in status.gates)
+        CheckboxListTile(
+          dense: true,
+          value: _off.contains(g.id),
+          onChanged: g.replaceable
+              ? (v) => setState(() => _toggleGate(g.id, on: v ?? false))
+              : null,
+          title: Text(g.label),
+          subtitle: g.replaceable ? null : Text(l.gateKept),
+        ),
+      if (status.subjects.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.sm),
+        Text(l.subjects, style: text.titleSmall),
+        Wrap(
+          spacing: AppSpacing.sm,
+          children: [
+            for (final s in status.subjects)
+              FilterChip(
+                label: Text(s.title),
+                selected: _linked.contains(s.id),
+                onSelected: (v) => setState(
+                  () => v ? _linked.add(s.id) : _linked.remove(s.id),
+                ),
+              ),
+          ],
+        ),
+      ],
+      const SizedBox(height: AppSpacing.md),
+      TextField(
+        controller: _sites,
+        decoration: InputDecoration(labelText: l.sites),
+      ),
+      TextField(
+        controller: _workUrl,
+        keyboardType: TextInputType.url,
+        decoration: InputDecoration(labelText: l.workUrl),
+        onChanged: (_) => setState(() {}),
+      ),
+    ];
+    final bar = <Widget>[
+      RequestStatusLine(_runner),
+      const SizedBox(height: AppSpacing.sm),
+      RunnerBuilder(
+        _runner,
+        (_) => FilledButton(
+          onPressed: _valid && _runner.canSend ? _submit : null,
+          child: Text(_edit == null ? l.createProject : l.saveProject),
+        ),
+      ),
+    ];
     return Scaffold(
       appBar: AppBar(title: Text(_edit == null ? l.newProject : l.editProject)),
       body: SafeArea(
@@ -162,84 +228,16 @@ class _FocusFormState extends State<FocusFormScreen> {
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: ListView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              children: [
-                TextField(
-                  controller: _name,
-                  decoration: InputDecoration(labelText: l.projectName),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  spacing: AppSpacing.md,
-                  children: [
-                    _date(l.startDate, _start, start: true),
-                    _date(l.endDate, _end, start: false),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  spacing: AppSpacing.md,
-                  children: [
-                    Expanded(child: _number(_daily, l.dailyMinutes)),
-                    Expanded(child: _number(_unlock, l.unlockMinutes)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(l.gatesOff, style: text.titleSmall),
-                for (final g in status.gates)
-                  CheckboxListTile(
-                    dense: true,
-                    value: _off.contains(g.id),
-                    onChanged: g.replaceable
-                        ? (v) =>
-                              setState(() => _toggleGate(g.id, on: v ?? false))
-                        : null,
-                    title: Text(g.label),
-                    subtitle: g.replaceable ? null : Text(l.gateKept),
-                  ),
-                if (status.subjects.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(l.subjects, style: text.titleSmall),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    children: [
-                      for (final s in status.subjects)
-                        FilterChip(
-                          label: Text(s.title),
-                          selected: _linked.contains(s.id),
-                          onSelected: (v) => setState(
-                            () => v ? _linked.add(s.id) : _linked.remove(s.id),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                TextField(
-                  controller: _sites,
-                  decoration: InputDecoration(labelText: l.sites),
-                ),
-                TextField(
-                  controller: _workUrl,
-                  keyboardType: TextInputType.url,
-                  decoration: InputDecoration(labelText: l.workUrl),
-                  onChanged: (_) => setState(() {}),
-                ),
-                RequestStatusLine(_runner),
-                const SizedBox(height: AppSpacing.sm),
-                RunnerBuilder(
-                  _runner,
-                  (_) => FilledButton(
-                    onPressed: _valid && _runner.canSend ? _submit : null,
-                    child: Text(
-                      _edit == null ? l.createProject : l.saveProject,
-                    ),
-                  ),
-                ),
-              ],
+            child: fitForm(
+              context,
+              fields: fields,
+              bar: bar,
+              wide: (all) => ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                children: all,
+              ),
             ),
           ),
         ),

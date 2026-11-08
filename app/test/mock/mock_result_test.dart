@@ -8,6 +8,7 @@ import 'package:tutor/mock/mock_result_screen.dart';
 import 'package:tutor/ui/coach/coach_screen.dart';
 import 'package:tutor/ui/sql/lesson_screen.dart';
 
+import '../support/fit.dart';
 import '../support/ui.dart';
 import 'mock_fixtures.dart';
 import 'mock_support.dart';
@@ -50,11 +51,9 @@ void main() {
     await pumpResult(t);
     expect(key('study-q2'), findsNothing);
     expect(key('study-q1'), findsNothing);
-    await t.ensureVisible(key('study-p1'));
-    await t.pump();
+    await pageTo(t, key('study-p1'));
     await t.tap(key('study-p1'));
-    await t.ensureVisible(key('study-s1'));
-    await t.pump();
+    await pageTo(t, key('study-s1'));
     await t.tap(key('study-s1'));
     expect(rig.opened, [
       'coach:longest-palindromic-substring',

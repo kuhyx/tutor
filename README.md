@@ -96,7 +96,7 @@ scripts/e2e_sandbox.sh flow F3 send   # card end: a follow-up (then wait, check)
                                         # with a trace and Thinking panel; credit goes on
 scripts/e2e_sandbox.sh flow F4 send   # Stop here, History -> "Ask a follow-up" (then wait,
                                         # check): answered
-scripts/e2e_sandbox.sh up --struggle                            # F5: 2 Again seeded
+scripts/e2e_sandbox.sh up --struggle --as-of "2026-10-20 17:24:30"  # F5: 2 Again seeded
 scripts/e2e_sandbox.sh flow F5 send   # Review (N due) -> Again -> "Get help" (then wait,
                                         # check): struggle start + rule 16; untaught refused
 scripts/e2e_sandbox.sh up --as-of "2026-10-24 20:00" --carry 130  # F6: fake clock, 130 min
@@ -111,10 +111,9 @@ scripts/e2e_sandbox.sh down
 
 `--as-of` (`HH:MM` or `HH:MM:SS`) rewinds the copy to a reported moment:
 later log events, transcripts and drill logs are dropped, and so are the
-later events of an earlier transcript. A future `--as-of` has nothing to
-drop: the sandbox worker runs under libfaketime from that moment (its
-"today"); the app and the emulator keep the real clock, so a flow on it
-sends no app requests. `--new-cap N` adds a Settings `new_cap` event.
+later events of an earlier transcript. The sandbox worker runs under
+libfaketime from that moment (its "today"), past or future; the app and
+the emulator keep the real clock. `--new-cap N` adds a Settings `new_cap` event.
 `--struggle` (`scripts/e2e_seed.py`) gives the subject's first due card two
 Again ratings from a fresh device, so F5's Again in the app is the third and
 Review offers help; `<sandbox>/f5_seed.json` names the card and a known

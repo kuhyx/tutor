@@ -1,6 +1,7 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/sql/sql_models.dart';
+import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 
@@ -18,7 +19,8 @@ class TableStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CappedHeight(
     share: share,
-    child: SingleChildScrollView(
+    child: fitScroll(
+      context,
       key: const ValueKey('table-strip'),
       child: SingleChildScrollView(
         key: const ValueKey('table-strip-x'),

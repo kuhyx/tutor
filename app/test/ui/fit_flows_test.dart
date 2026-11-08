@@ -31,6 +31,12 @@ Future<void> _tap(WidgetTester t, Finder f) async {
   await t.pumpAndSettle();
 }
 
+/// Phone: Refresh sits in the ⋮ menu.
+Future<void> _refresh(WidgetTester t) async {
+  await _tap(t, find.byTooltip('More'));
+  await _tap(t, find.byIcon(Icons.refresh));
+}
+
 Finder _subject(String id) => find.byKey(ValueKey('subject-tile-$id'));
 
 Future<TutorServices> _home(WidgetTester t, FakeRtdb db, FakeStream s) async {
@@ -63,7 +69,7 @@ void main() {
 
     db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'active');
     db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
-    await _tap(t, find.byTooltip('Refresh'));
+    await _refresh(t);
     await _tap(t, _subject('garden'));
     expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');
   });
@@ -94,7 +100,7 @@ void main() {
     await s.events.record(
       TaughtEvent(subject: 'car', card: 'eng-crank', at: month),
     );
-    await _tap(t, find.byTooltip('Refresh'));
+    await _refresh(t);
     await _longPress(t, _subject('car'));
     await _tap(t, find.text('Cards'));
     expect(find.byType(EditorScreen), findsOneWidget);
@@ -109,7 +115,7 @@ void main() {
     db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'active');
     db.root = setAt(db.root, 'tutor/v1/subjects/car/meta/status', 'completed');
     db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
-    await _tap(t, find.byTooltip('Refresh'));
+    await _refresh(t);
     await _longPress(t, _subject('garden'));
     await _tap(t, find.text('Learn this next'));
     expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');

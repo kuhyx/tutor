@@ -11,6 +11,7 @@ import 'package:tutor/mock/mock_session.dart';
 import 'package:tutor/mock/mock_task_views.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
 
 /// Retry grading every this many seconds once time is up.
@@ -169,6 +170,8 @@ class _MockTestScreenState extends State<MockTestScreen> {
   Widget build(BuildContext context) {
     final task = _s.paper.tasks[_s.index];
     final editor = task.section.typed ? _editor(task) : null;
+    final typing =
+        isCompact(context) && MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       appBar: AppBar(
         title: Text(_clockText, key: const ValueKey('clock')),
@@ -183,8 +186,10 @@ class _MockTestScreenState extends State<MockTestScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            MockNavBar(_s),
-            if (_notes && _s.paper.notes.isNotEmpty)
+            // Phone, typing: the task and its keys get the room; the
+            // task chips and notes return with the keyboard down.
+            if (!typing) MockNavBar(_s),
+            if (_notes && !typing && _s.paper.notes.isNotEmpty)
               ListTile(
                 dense: true,
                 title: Text(_s.paper.notes.join(' ')),

@@ -158,4 +158,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newSubject => 'New subject';
+
+  @override
+  String get pagePrev => 'Previous page';
+
+  @override
+  String get pageNext => 'Next page';
 }

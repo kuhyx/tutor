@@ -10,6 +10,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
 
 /// Card done: Next card / Stop here.
@@ -24,15 +25,34 @@ class CardEnd extends StatelessWidget {
   final VoidCallback onStop;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const Expanded(child: Text('Card done ✓')),
-      OutlinedButton(onPressed: onStop, child: const Text('Stop here')),
-      const SizedBox(width: AppSpacing.sm),
-      // No autofocus: the follow-up composer below takes the keys.
-      FilledButton(onPressed: onNext, child: const Text('Next card')),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final stop = OutlinedButton(
+      onPressed: onStop,
+      child: const Text('Stop here'),
+    );
+    // No autofocus: the follow-up composer below takes the keys.
+    final next = FilledButton(
+      onPressed: onNext,
+      child: const Text('Next card'),
+    );
+    // Phone: wraps at a large font instead of overflowing.
+    if (isCompact(context)) {
+      return Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: AppSpacing.sm,
+        children: [const Text('Card done ✓'), stop, next],
+      );
+    }
+    return Row(
+      children: [
+        const Expanded(child: Text('Card done ✓')),
+        stop,
+        const SizedBox(width: AppSpacing.sm),
+        next,
+      ],
+    );
+  }
 }
 
 /// Start session (or continue the subject's open one).
