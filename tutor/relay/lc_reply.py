@@ -19,6 +19,11 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 TRIES: Final = 3
 MAX_BELIEF: Final = 200
+HINTS: Final = {"hint": 1, "hint!": 2}
+# A one-word "ok" must not back ~20 min of focus time; this many stripped chars
+# of kuhy's own text (or a deliberate word below) is a turn worth counting.
+MIN_BEAT_CHARS: Final = 20
+_BEAT_WORDS: Final = frozenset({"reveal", "write it", *HINTS})
 
 
 def heartbeat() -> None:
@@ -29,6 +34,15 @@ def heartbeat() -> None:
             fp.record_activity("tutor", "heartbeat")
     except focus_hook.BROKEN:
         _logger.exception("coach heartbeat skipped")
+
+
+def turn_counts(text: str, intent: str, out: dict[str, Any]) -> bool:
+    """Whether this ``lc_turn`` backs the focus timer (a held one never does)."""
+    if out.get("held"):
+        return False
+    said = text.strip()
+    deliberate = intent == "solved" or said.lower() in _BEAT_WORDS
+    return deliberate or len(said) >= MIN_BEAT_CHARS
 
 
 def log(state: State, event: str, **fields: object) -> None:

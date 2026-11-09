@@ -15,12 +15,13 @@ def test_code_is_held_before_the_requirement_list(
     fakes = s.install(monkeypatch)
     lc_id = s.open_session(fakes)
     fakes.prompts.clear()
+    fakes.fp.activity.clear()
     got = s.turn(lc_id, "def f(nums):\n    return 1")
     assert (got["held"], "reply_md" in got) == (True, False)
     assert "requirement list" in got["note"]
     assert not fakes.prompts
     assert s.stored(lc_id)["turns"] == 0
-    assert fakes.fp.activity[-1] == {"source": "tutor", "kind": "heartbeat"}
+    assert fakes.fp.activity == []
 
 
 def test_plain_chat_is_allowed_in_the_gate_phase(

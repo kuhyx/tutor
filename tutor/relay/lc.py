@@ -165,7 +165,6 @@ async def lc_run(ctx: RequestContext) -> Json:
         raise _bad(msg)
     gate = state["gate"]
     if not gate["open"]:
-        lc_reply.heartbeat()
         note = "[code held back: pass the requirement list first]"
         return {"state": lc_state.view(state), "held": True, "note": note}
     try:

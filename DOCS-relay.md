@@ -61,6 +61,8 @@ seeder once to give the tutor its own refresh token.
   every session whose `session_index/{sid}/rev` is lower.
 - HTTP turns (`tutor.scripted` runs) are picked up by a 30 s refresh of the live
   session.
+- An `lc_turn` beats the focus timer only if unheld and `solved`, a hint,
+  `reveal`, `write it`, or >= 20 stripped chars (`lc_reply.turn_counts`).
 
 ## Curriculum (`tutor.curriculum.handlers`; was `DOCS-contract-curriculum.md` §9)
 - `Context(data_dir, clock=ms, model=, fetch=, check=, device=)`; defaults are

@@ -170,7 +170,7 @@ Codes as `DOCS-contract.md` §4, no new ones: `bad_request` (shape, unknown
 `lc_id`, wrong phase, language mismatch), `worker_error` + `retry:true`
 (LeetCode, Docker, runner down or timed out), `model_error` + `retry:true`,
 `claude_unavailable` (+ `reason`, `resets_at`; model kinds only). A successful
-`lc_turn` or `lc_run` (also a held one) calls
+`lc_open`, unheld `lc_run` or counted `lc_turn` (see `DOCS-relay.md`) calls
 `focus_project.record_activity("tutor","heartbeat")`; failures are logged,
 never fail the request.
 

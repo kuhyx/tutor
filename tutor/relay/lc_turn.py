@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 from tutor import outage
 from tutor.curriculum.modelcall import ask_model
@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from tutor.relay.context import RequestContext
 
 type Json = Any
-HINTS: Final = {"hint": 1, "hint!": 2}
 
 
 def _held(state: lc_state.State, note: str) -> dict[str, Any]:
@@ -95,7 +94,7 @@ async def _coach_turn(
     ctx: RequestContext, state: lc_state.State, text: str, word: str
 ) -> dict[str, Any]:
     outage.ensure_available(ctx.now())
-    revealed, hint = word == "reveal", HINTS.get(word, 0)
+    revealed, hint = word == "reveal", lc_reply.HINTS.get(word, 0)
     if revealed:
         lc_reply.log(state, "reveal")
         state.update(revealed=True, phase="exit")
@@ -133,7 +132,7 @@ async def _word(
     word = text.strip().lower()
     if intent == "solved":
         return await lc_exit.solved(ctx, state, text)
-    if word in {"reveal", *HINTS}:
+    if word in {"reveal", *lc_reply.HINTS}:
         return await _coach_turn(ctx, state, text, word)
     if word == "write it":
         return _write_it(state, text)
@@ -165,6 +164,7 @@ async def lc_turn(ctx: RequestContext) -> Json:
     out = await _route(ctx, state, body["text"], body["intent"])
     if not out.get("held"):
         lc_state.save(body["lc_id"], state, int(ctx.now() * 1000))
-    lc_reply.heartbeat()
+    if lc_reply.turn_counts(body["text"], body["intent"], out):
+        lc_reply.heartbeat()
     out["state"] = lc_state.view(state)
     return out
