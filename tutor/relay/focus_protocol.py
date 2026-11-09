@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING, Final
 from urllib.parse import urlsplit
 
-from tutor.curriculum.ids import SLUG_CHARS
+from tutor.curriculum.ids import SLUG_CHARS, valid_id
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -34,6 +34,15 @@ MAX_URL: Final = 2000
 def _slug(value: object) -> str:
     if isinstance(value, str) and len(value) <= MAX_SLUG and _SLUG.fullmatch(value):
         return value
+    raise ValueError
+
+
+def _opt_id(value: object) -> str | None:
+    """An optional subject / card id (``card`` events name the card)."""
+    if value is None:
+        return None
+    if valid_id(value):
+        return str(value)
     raise ValueError
 
 
@@ -137,9 +146,12 @@ _CREATE: Final[dict[str, Callable[[object], object]]] = {
 FIELDS: Final[dict[str, dict[str, Callable[[object], object]]]] = {
     "focus_status": {},
     "focus_event": {
-        "event": _choice("start", "checkin", "stop"),
+        "event": _choice("start", "checkin", "stop", "card"),
         "ts": _ms,  # the client's tap time, unix ms (clamped by the handler)
         "platform": _choice("phone", "pc"),
+        # ``card`` only: the graded check-in card (the handler requires both).
+        "subject": _opt_id,
+        "card": _opt_id,
     },
     "focus_create": _CREATE,
     # The whole editable set again (absent lists = []), so a stale client

@@ -14,11 +14,11 @@ import android.os.Build
 /**
  * The "Still working?" check-in outside the app (focus timer, DOCS-contract-focus.md).
  *
- * An exact alarm posts the prompt even with the app dead or the screen off;
- * its "Still working" action lands in [FocusActionReceiver], which stores the
- * tap time natively (the Flutter engine may not be running) and arms the next
- * prompt itself, so a phone left in a pocket keeps counting. Dart drains the
- * stored taps with [takePending].
+ * An exact alarm posts the prompt even with the app dead or the screen off.
+ * Since the check-in card (2026-11-08) the prompt only opens the app, where
+ * the check-in is a graded recall card; it has no "Still working" action.
+ * [FocusActionReceiver] stays for a prompt an older build already posted:
+ * its stored taps are drained by Dart and no longer counted.
  */
 object FocusCheckin {
     const val CHANNEL_PROMPT = "focus_checkin_v1"
@@ -121,16 +121,12 @@ object FocusCheckin {
         raw.split(',').mapNotNull { it.toLongOrNull() }
     }
 
-    /** The alarm fired: show "Still working?" with its action. */
+    /** The alarm fired: show "Still working?"; a tap opens the app. */
     fun showPrompt(ctx: Context) {
         if (!prefs(ctx).getBoolean(KEY_ARMED, false) || !notificationsAllowed(ctx)) return
         ensureChannels(ctx)
         val open = PendingIntent.getActivity(
             ctx, 0, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val still = PendingIntent.getBroadcast(
-            ctx, 1, Intent(ctx, FocusActionReceiver::class.java).setAction(ACTION_STILL),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val n = Notification.Builder(ctx, CHANNEL_PROMPT)
@@ -139,7 +135,6 @@ object FocusCheckin {
             .setContentText("Tap to keep the focus timer counting")
             .setContentIntent(open)
             .setCategory(Notification.CATEGORY_REMINDER)
-            .addAction(Notification.Action.Builder(null, "Still working", still).build())
             .build()
         notifications(ctx).notify(ID_PROMPT, n)
     }

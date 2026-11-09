@@ -3,9 +3,10 @@
 ///
 /// The screen's own prompt (focus screen) is the primary ask; this adds the
 /// system notification so a check-in is still possible with the tab behind
-/// another window. Clicking the notification is the check-in, stamped with
-/// the click time. Permission is requested when the timer arms the first
-/// prompt (that call follows the Start tap, so Chrome allows the dialog);
+/// another window. Clicking it only brings the app to the Focus screen, where
+/// the check-in is a graded card (or the old tap). Permission is requested
+/// when the timer arms the first prompt (that call follows the Start tap, so
+/// Chrome allows the dialog);
 /// when it is denied or missing the notifier does nothing and the in-app
 /// prompt carries on alone.
 library;

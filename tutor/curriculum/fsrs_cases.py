@@ -175,6 +175,13 @@ CASES: Final[dict[str, Spec]] = {
         ],
         {"x": 1},
     ),
+    "focus check-in Good (src checkin): reviewed like an app Good": (
+        [
+            ("taught", "x", 0, W, {}),
+            ("review", "x", H, A, {"r": 3, "src": "checkin"}),
+        ],
+        {"x": 1},
+    ),
     "unknown src is no drill: reviewed": (
         [
             ("taught", "x", 0, W, {}),

@@ -12,11 +12,12 @@ Runs on a sandbox that is ``up`` (``e2e_sandbox.sh``): the worker's
    ``Notification`` (permission granted) and the 7-minute check-in timer
    shortened, so the run needs seconds, not minutes;
 3. Start -> the worker records ``timer/start`` in ``activity.jsonl``;
-4. the check-in is due: the browser notification fires (``Still working?``)
-   and clicking it records ``timer/checkin``; so does the screen's own
-   "Still working" button;
-5. Stop -> ``timer/stop``. The file must hold start, checkin, checkin, stop
-   in order, each ``dev == "pc"``; the screen shows the day's minutes.
+4. the check-in is due: the browser notification fires (``Still working?``);
+   clicking it records nothing (it only opens the Focus screen). The project
+   has no subjects, so no check-in card: the screen's own "Still working"
+   button is the check-in and records ``timer/checkin``;
+5. Stop -> ``timer/stop``. The file must hold start, checkin, stop in order,
+   each ``dev == "pc"``; the screen shows the day's minutes.
 """
 
 from __future__ import annotations
@@ -87,9 +88,9 @@ def _wait_events(flow: Flow, path: Path, want: list[str], timeout: float = 20) -
     raise FlowError(msg)
 
 
-def _create_project(flow: Flow) -> None:
+def _create_project(flow: Flow, subjects: list[str] | None = None) -> None:
     """Send ``focus_create`` for a project covering today and wait for ok."""
-    flow.step("focus_create: a project covering today")
+    flow.step(f"focus_create: a project covering today, subjects {subjects or []}")
     now = int(time.time() * 1000)
     rid = ulid(now)
     today = datetime.now().astimezone().date()  # the worker's local day
@@ -106,6 +107,7 @@ def _create_project(flow: Flow) -> None:
                 "replaces": ["leetcode"],
                 "daily_minutes": 60,
                 "unlock_minutes": 10,
+                "subjects": subjects or [],
             },
         },
     )
@@ -155,7 +157,7 @@ def _skew(flow: Flow) -> None:
 
 
 def f7(flow: Flow) -> None:
-    """Focus screen: start, notification check-in, button check-in, stop."""
+    """Focus screen: start, notification click, button check-in, stop."""
     activity = Path(flow.args.focus) / "activity.jsonl"
     flow.step(f"precondition: {activity} has no timer events")
     if any(r["source"] == "timer" for r in _activity(activity)):
@@ -174,14 +176,14 @@ def f7(flow: Flow) -> None:
     flow.expect(STOP)
     flow.shot("running")
     _notification_click(flow)
-    _wait_events(flow, activity, ["start", "checkin"])
-    _skew(flow)
+    time.sleep(2)
+    _wait_events(flow, activity, ["start"], timeout=2)  # the click is no check-in
     flow.expect(CHECKIN)
     flow.shot("prompt")
     flow.tap(CHECKIN)
-    _wait_events(flow, activity, ["start", "checkin", "checkin"])
+    _wait_events(flow, activity, ["start", "checkin"])
     flow.tap(STOP)
-    _wait_events(flow, activity, ["start", "checkin", "checkin", "stop"])
+    _wait_events(flow, activity, ["start", "checkin", "stop"])
     rows = [r for r in _activity(activity) if r["source"] == "timer"]
     if bad := [r for r in rows if r.get("dev") != "pc"]:
         msg = f"events not tagged dev=pc: {bad}"

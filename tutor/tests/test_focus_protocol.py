@@ -35,8 +35,13 @@ def test_the_kinds_are_chat_lane_kinds() -> None:
 
 def test_an_event_needs_a_known_event_platform_and_ms_ts() -> None:
     good = {"event": "checkin", "ts": CREATED, "platform": "phone"}
-    assert validate("focus_event", good).body == good
+    no_card = {"subject": None, "card": None}  # only ``card`` events name one
+    assert validate("focus_event", good).body == good | no_card
+    card = good | {"event": "card", "subject": "sql", "card": "joins"}
+    assert validate("focus_event", card).body == card
     for field, value in (
+        ("subject", "Bad Id"),
+        ("card", 7),
         ("event", "pause"),
         ("platform", "tablet"),
         ("ts", -1),

@@ -148,14 +148,22 @@ class RequestBody {
   /// `focus_status`.
   factory focusStatus() => const RequestBody._(RequestKind.focusStatus, {});
 
-  /// `focus_event`: [event] is `start`, `checkin` or `stop`, [tsMs] the tap
-  /// time on this device (kept when the event is delivered late).
-  factory focusEvent(String event, int tsMs, {required String platform}) =>
-      RequestBody._(RequestKind.focusEvent, {
-        'event': event,
-        'ts': tsMs,
-        'platform': platform,
-      });
+  /// `focus_event`: [event] is `start`, `checkin`, `stop` or `card` (a graded
+  /// check-in card, naming its [subject] and [card]), [tsMs] the tap time on
+  /// this device (kept when the event is delivered late).
+  factory focusEvent(
+    String event,
+    int tsMs, {
+    required String platform,
+    String? subject,
+    String? card,
+  }) => RequestBody._(RequestKind.focusEvent, {
+    'event': event,
+    'ts': tsMs,
+    'platform': platform,
+    'subject': ?subject,
+    'card': ?card,
+  });
 
   /// `focus_create` (DOCS-contract-focus.md).
   factory focusCreate({

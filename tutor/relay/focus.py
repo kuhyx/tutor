@@ -109,16 +109,43 @@ async def focus_status(ctx: RequestContext) -> dict[str, Any]:
     }
 
 
+def _check_card(ctx: RequestContext, fp: FocusApi, today: date) -> None:
+    """A ``card`` names a card of a subject of today's project, or ``bad_request``."""
+    body = ctx.body
+    subject, card = body["subject"], body["card"]
+    if subject is None or card is None:
+        msg = "focus_event: a card event needs subject and card"
+        raise RequestError(msg, code="bad_request")
+    try:
+        active = fp.active(today)
+    except (OSError, ValueError) as exc:
+        raise _unreadable(exc) from exc
+    if active is None or subject not in active.subjects:
+        msg = f"focus_event: {subject!r} is not a subject of today's project"
+        raise RequestError(msg, code="bad_request")
+    if card not in ctx.engine.ctx.subjects.cards(subject):
+        msg = f"focus_event: unknown card {subject}/{card}"
+        raise RequestError(msg, code="bad_request")
+
+
 async def focus_event(ctx: RequestContext) -> dict[str, Any]:
-    """One timer tap, kept at the client's time; today's figures come back."""
+    """One timer tap, kept at the client's time; today's figures come back.
+
+    ``card`` (a graded check-in card) is a ``tutor`` heartbeat at the answer
+    time: focus_project 0.8.0 chains it into the open timer segment.
+    """
     fp, today = _fp(), _today(ctx)
     body, created = ctx.body, ctx.request.created_ms
     if body["ts"] < created - MAX_EVENT_AGE_MS:
         msg = "focus_event: ts is more than 48 h old"
         raise RequestError(msg, code="bad_request")
     ts = min(body["ts"], created) / 1000  # a client clock ahead is clamped
+    card = body["event"] == "card"
+    if card:
+        _check_card(ctx, fp, today)
+    source, kind = ("tutor", "heartbeat") if card else ("timer", body["event"])
     try:
-        fp.record_activity("timer", body["event"], ts=ts, dev=body["platform"])
+        fp.record_activity(source, kind, ts=ts, dev=body["platform"])
         status = fp.status(today)
     except (OSError, ValueError) as exc:
         raise _unreadable(exc) from exc

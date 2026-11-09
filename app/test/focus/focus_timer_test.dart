@@ -156,30 +156,37 @@ void main() {
     t.dispose();
   });
 
-  test('a run survives a restart; off-screen taps are checked in', () async {
-    final first = open();
-    await first.start();
-    first.dispose();
-    clock += 8 * min;
-    notifier.pending = [clock - 2 * min];
-    final second = open();
-    await second.load();
-    expect(second.isRunning, isTrue);
-    await second.flush();
-    expect(sent.last, 'checkin@${1006 * min}');
-    expect(second.counted, const Duration(minutes: 6 + 2));
-    second.dispose();
-  });
+  test(
+    'a run survives a restart; off-screen taps no longer check in',
+    () async {
+      final first = open();
+      await first.start();
+      first.dispose();
+      clock += 8 * min;
+      notifier.pending = [clock - 2 * min];
+      final second = open();
+      await second.load();
+      expect(second.isRunning, isTrue);
+      await second.flush();
+      expect(sent, ['start@${1000 * min}']);
+      expect(notifier.pending, isEmpty); // drained, not counted
+      expect(second.checkinDue, isTrue);
+      second.dispose();
+    },
+  );
 
-  test('a tap on the notification while the app is open checks in', () async {
+  test('a tap on the notification only asks to open the app', () async {
     final t = open();
     await t.load();
     await t.start();
-    clock += 5 * min;
+    clock += 7 * min;
+    final opened = <void>[];
+    t.openRequests.listen(opened.add);
     notifier.taps.add(clock);
     await Future<void>.delayed(Duration.zero);
     await t.flush();
-    expect(sent.last, 'checkin@${1005 * min}');
+    expect(sent, ['start@${1000 * min}']);
+    expect(opened, hasLength(1));
     t.dispose();
   });
 

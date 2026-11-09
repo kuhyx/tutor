@@ -9,6 +9,10 @@ export 'package:tutor/model/grade.dart';
 /// `src` of a review the PC drill wrote (`tutor/drill.py`).
 const String drillSource = 'drill';
 
+/// `src` of a focus check-in card's review (DOCS-contract-focus.md): an
+/// ordinary review, tagged so the log shows where it came from.
+const String checkinSource = 'checkin';
+
 /// One log event. [subject] and [card] say which card; [at] is the device
 /// wall clock when it happened (ms).
 sealed class LogEvent {
@@ -96,8 +100,8 @@ class ReviewEvent extends LogEvent {
   /// Time to answer.
   final int? durMs;
 
-  /// Where it came from: [drillSource] for a PC drill pick; the app sends
-  /// none (a Review rating).
+  /// Where it came from: [drillSource] for a PC drill pick,
+  /// [checkinSource] for a focus check-in card; a Review rating sends none.
   final String? src;
 
   /// A pick in the PC's multiple-choice drill: it schedules like any

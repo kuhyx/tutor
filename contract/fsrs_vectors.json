@@ -1254,6 +1254,51 @@
   "undone": []
  },
  {
+  "name": "focus check-in Good (src checkin): reviewed like an app Good",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4QX2B40X19WGW9JTFBTMZHE",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "rev": 1,
+    "r": 3,
+    "src": "checkin"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0AHQ2JR28C90T0N03",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791976400000,
+    "stability": 2.3065,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": true,
+    "struggle": 0
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
   "name": "unknown src is no drill: reviewed",
   "events": [
    {

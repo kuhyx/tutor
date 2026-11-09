@@ -132,4 +132,24 @@ void main() {
     await queue.enqueue('start');
     expect(await queue.pending(), hasLength(1));
   });
+
+  test(
+    'a card event carries its subject and card; old entries parse',
+    () async {
+      final kv = MemoryKv();
+      final q = FocusEventQueue(kv, now: () => 5);
+      await q.enqueue('card', subject: 'sql', card: 'joins');
+      final e = (await q.pending()).single;
+      expect((e.event, e.subject, e.card, e.ts), ('card', 'sql', 'joins', 5));
+      expect(e.toJson(), containsPair('subject', 'sql'));
+      final old = QueuedFocusEvent.fromJson({
+        'rid': 'r',
+        'event': 'checkin',
+        'ts': 1,
+        'platform': 'pc',
+      });
+      expect((old.subject, old.card), (null, null));
+      expect(old.toJson().containsKey('subject'), isFalse);
+    },
+  );
 }

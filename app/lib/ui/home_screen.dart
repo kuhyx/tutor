@@ -58,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final _snapshot = Refresher<HomeSnapshot>(widget.services.home.load);
   late final StreamSubscription<int> _changes;
   late final AppLifecycleListener _lifecycle;
+  late final StreamSubscription<void> _opens;
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
 
   TutorServices get _s => widget.services;
@@ -74,12 +75,22 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) _refresh();
     });
     _presence.start();
-    unawaited(_s.focus.load());
+    final route = widget.initialRoute;
+    // The focus check-in is a card on the Focus screen: a click on its
+    // notification, or opening the app while it is due, shows that screen.
+    _opens = _s.focus.openRequests.listen((_) => _openCheckin(force: true));
+    unawaited(
+      _s.focus.load().then((_) {
+        if (route == null) _openCheckin();
+      }),
+    );
     _lifecycle = AppLifecycleListener(
-      onShow: _presence.start,
+      onShow: () {
+        _presence.start();
+        _openCheckin();
+      },
       onHide: () => unawaited(_presence.stop()),
     );
-    final route = widget.initialRoute;
     if (route != null) {
       forgetDeepLink();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -88,8 +99,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openCheckin({bool force = false}) {
+    if (!mounted || _s.focus.onScreen) return;
+    if (!force && !_s.focus.checkinDue) return;
+    unawaited(openFocus(context, _s).then(_back));
+  }
+
   @override
   void dispose() {
+    unawaited(_opens.cancel());
     _lifecycle.dispose();
     unawaited(_changes.cancel());
     _snapshot.dispose();

@@ -64,5 +64,6 @@ extension FocusBackground on FocusTimer {
     if (_started && !_tooLate(ts - _lastMs)) _countedMs += ts - _lastMs;
     _started = false;
     _lastMs = ts;
+    _dropCard();
   }
 }

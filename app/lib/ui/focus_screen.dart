@@ -7,18 +7,22 @@ import 'package:tutor/focus/focus_models.dart';
 import 'package:tutor/focus/focus_send.dart';
 import 'package:tutor/focus/focus_timer.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
+import 'package:tutor/model/log_event.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/focus_form.dart';
 import 'package:tutor/ui/focus_gates.dart';
 import 'package:tutor/ui/focus_ring.dart';
+import 'package:tutor/ui/review_answer.dart';
 
 /// The most overtime the server banks for the next day (`focus_project`).
 const int _bankCap = 60;
 
-/// The focus project: today's ring, the timer and its check-in.
+/// The focus project: today's ring, the timer and its check-in: one recall
+/// card inline (in the ring's place), or the old "Still working" tap.
 class FocusScreen extends StatefulWidget {
   /// Creates the screen; [autoStart] (the `/focus?start=1` deep link)
   /// starts the timer once, unless it is already running.
@@ -39,6 +43,7 @@ class _FocusScreenState extends State<FocusScreen> {
   FocusStatus? _status;
   int _countedAtLoad = 0;
   bool _autoStarted = false;
+  ReviewSession? _card; // the check-in card's one-card review run
 
   TutorServices get _s => widget.services;
   FocusTimer get _timer => _s.focus;
@@ -46,14 +51,35 @@ class _FocusScreenState extends State<FocusScreen> {
   @override
   void initState() {
     super.initState();
+    _timer.attach();
     unawaited(_timer.load());
     unawaited(_load());
   }
 
   @override
   void dispose() {
+    _timer.detach();
     unawaited(_runner.dispose());
+    _card?.dispose();
     super.dispose();
+  }
+
+  // The review run of the timer's check-in card (one per pick); its rating
+  // is an ordinary review tagged `checkin`, and its time is the beat's.
+  ReviewSession? _cardRun() {
+    // A replaced run is left to the GC, not disposed: its rating may still
+    // be finishing (it notifies after the timer has moved on).
+    final item = _timer.checkinCard;
+    if (item == null) return _card = null;
+    final run = _card;
+    if (run != null && run.items.single == item) return run;
+    return _card = ReviewSession(
+      items: [item],
+      events: _s.events,
+      src: checkinSource,
+      onRated: (at) => unawaited(_timer.cardRated(at)),
+      now: () => DateTime.fromMillisecondsSinceEpoch(_timer.nowMs()),
+    );
   }
 
   Future<void> _load() async {
@@ -181,24 +207,27 @@ class _FocusScreenState extends State<FocusScreen> {
     // Real minutes, never capped (121/120): the overtime banks for tomorrow.
     final shown = project.minutes + live;
     final banked = (shown - project.dailyMinutes).clamp(0, _bankCap);
+    final card = _cardRun();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(project.name, style: text.headlineSmall),
         Text(l.daysLeft(project.daysLeft), style: text.bodyMedium),
         Expanded(
-          child: Center(
-            child: FocusRing(
-              minutes: shown,
-              goal: project.dailyMinutes,
-              banked: banked > 0 ? l.banked(banked) : null,
-              caption: running ? focusClock(_timer.counted) : null,
-            ),
-          ),
+          child: card != null
+              ? _checkinCard(card)
+              : Center(
+                  child: FocusRing(
+                    minutes: shown,
+                    goal: project.dailyMinutes,
+                    banked: banked > 0 ? l.banked(banked) : null,
+                    caption: running ? focusClock(_timer.counted) : null,
+                  ),
+                ),
         ),
         FocusGates(status),
         const SizedBox(height: AppSpacing.sm),
-        if (_timer.checkinDue)
+        if (_timer.wantsTap)
           FilledButton.icon(
             onPressed: _timer.checkin,
             icon: const Icon(Icons.check),
@@ -237,4 +266,24 @@ class _FocusScreenState extends State<FocusScreen> {
       ],
     );
   }
+
+  // Review's own card UI, without Back and Flag: the card leaves on its
+  // rating. Scrolls, as a revealed card can outgrow a phone screen.
+  Widget _checkinCard(ReviewSession run) => ListenableBuilder(
+    listenable: run,
+    builder: (context, _) {
+      final item = run.current;
+      if (item == null) return const SizedBox.shrink();
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CardFace(item.card, revealed: run.revealed),
+            const SizedBox(height: AppSpacing.sm),
+            AnswerBar(run, onFlag: null),
+          ],
+        ),
+      );
+    },
+  );
 }

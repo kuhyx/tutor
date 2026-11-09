@@ -69,10 +69,11 @@ def test_parse_keeps_contract_fields_only() -> None:
     )
 
 
-def test_parse_keeps_a_drill_source_only() -> None:
+def test_parse_keeps_the_known_sources_only() -> None:
     raw = {**BASE, "k": "review", "r": 3}
     assert _clean({**raw, "src": "drill"})["src"] == "drill"
-    assert "src" not in _clean({**raw, "src": "app"})  # untrusted: drill only
+    assert _clean({**raw, "src": "checkin"})["src"] == "checkin"  # focus card
+    assert "src" not in _clean({**raw, "src": "app"})  # untrusted: known only
     assert "src" not in _clean({**BASE, "src": "drill"})  # reviews only
 
 

@@ -13,7 +13,13 @@ const _statusKey = 'focus.status';
 
 /// Delivers a queued tap as `requests/{rid}/req`, same rid, tap time kept.
 FocusSender relaySender(RequestRelay relay) => (e) async {
-  final body = RequestBody.focusEvent(e.event, e.ts, platform: e.platform);
+  final body = RequestBody.focusEvent(
+    e.event,
+    e.ts,
+    platform: e.platform,
+    subject: e.subject,
+    card: e.card,
+  );
   final req = RequestReq(
     kind: body.kind,
     dev: relay.dev,

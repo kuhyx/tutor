@@ -1,10 +1,9 @@
 /// Android side of `FocusCheckinNotifier`: the native `FocusCheckin` (exact
-/// alarms for the prompt and the lapse cleanup, the "Still working" action and
-/// the foreground timer service) in `android/.../com/kuhy/tutor/` behind one
-/// method channel.
+/// alarms for the prompt and the lapse cleanup, and the foreground timer
+/// service) in `android/.../com/kuhy/tutor/` behind one method channel.
 ///
-/// Taps are stored natively first, so one made with the app dead or the
-/// screen off is never lost; `takePending` drains them.
+/// The prompt only opens the app (the check-in is a graded card); taps an
+/// older build's "Still working" action stored are drained by `takePending`.
 library;
 
 import 'dart:async';

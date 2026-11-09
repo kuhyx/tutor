@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/home_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/services.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -112,6 +116,27 @@ void main() {
     await t.pump(const Duration(milliseconds: 200));
     final focus = t.widget<FocusScreen>(find.byType(FocusScreen));
     expect(focus.autoStart, isTrue);
+  });
+
+  testWidgets('a check-in due on open shows the focus screen', (t) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final kv = MemoryKv();
+    final last = DateTime.now().millisecondsSinceEpoch - 450000;
+    await kv.set(
+      'focus.timer',
+      jsonEncode({'running': true, 'last': last, 'counted': 0}),
+    );
+    final s = services(db, stream, kv: kv);
+    await pumpScreen(
+      t,
+      HomeScreen(services: s, onSignedOut: () {}),
+      settle: false,
+    );
+    await t.pump(const Duration(milliseconds: 200));
+    expect(find.byType(FocusScreen), findsOneWidget);
+    s.focus.dispose();
+    await t.pumpWidget(const SizedBox());
   });
 
   testWidgets('the plain focus route does not start the timer', (t) async {

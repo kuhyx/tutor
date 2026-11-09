@@ -65,6 +65,11 @@ class Subjects:
     def meta(self, subject: str) -> SimpleNamespace:
         return SimpleNamespace(title=subject.upper())
 
+    def cards(self, subject: str) -> dict[str, SimpleNamespace]:
+        """Cards by id: ``sql`` has ``joins`` and ``keys``, ``go`` has ``chan``."""
+        ids = {"sql": ["joins", "keys"], "go": ["chan"]}.get(subject, [])
+        return {cid: SimpleNamespace(rev=1) for cid in ids}
+
 
 def install_fake_fp(monkeypatch: pytest.MonkeyPatch) -> FakeFp:
     """Make ``focus_hook.load_fp`` return a fresh fake."""

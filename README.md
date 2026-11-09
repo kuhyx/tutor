@@ -104,8 +104,11 @@ scripts/e2e_sandbox.sh flow F6         # carry-<day>-m<n> row, stats, "Banked B 
 scripts/e2e_sandbox.sh restart         # a second worker start on the same sandbox
 scripts/e2e_sandbox.sh flow F6 again   # the ledger is unchanged: no duplicate carry row
 scripts/e2e_sandbox.sh up                                       # F7: the desktop Focus screen
-scripts/e2e_sandbox.sh flow F7   # project -> Start -> notification + button check-ins -> Stop;
-                                   # activity.jsonl in <sandbox>/focus (never the live dir)
+scripts/e2e_sandbox.sh flow F7   # project, no subjects -> Start -> notification click (no
+                                   # check-in) -> "Still working" tap -> Stop; activity.jsonl
+                                   # in <sandbox>/focus (never the live dir)
+scripts/e2e_sandbox.sh flow F9   # fresh `up` each: check-in card at 421 s, rated -> tutor/heartbeat
+scripts/e2e_sandbox.sh flow F10  # card rated at 650 s (lapsed) -> start, start; still graded
 scripts/e2e_sandbox.sh down
 ```
 

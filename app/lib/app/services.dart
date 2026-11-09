@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
 import 'package:tutor/focus/android_checkin_notifier.dart';
+import 'package:tutor/focus/checkin_card.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
 import 'package:tutor/focus/event_queue.dart';
 import 'package:tutor/focus/focus_send.dart';
@@ -17,6 +18,7 @@ import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/review/review_items.dart';
 import 'package:tutor/storage/device_id.dart';
 import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/storage/kv_store.dart';
@@ -166,8 +168,18 @@ class TutorServices {
       send: relaySender(relay),
       notifier: checkinNotifier,
       platform: kIsWeb ? 'pc' : 'phone',
+      pick: _pickCheckinCard,
     );
     if (checkinNotifier is AndroidCheckinNotifier) timer.watchLifecycle();
     return timer;
   }
+
+  // The check-in card, from local state only: the last cached focus status
+  // names the active project's subjects (the Focus screen caches it).
+  Future<ReviewItem?> _pickCheckinCard() async => await pickCheckinCard(
+    catalog: catalog,
+    events: events,
+    subjects: (await cachedStatus(kv))?.active?.subjects ?? const [],
+    now: DateTime.now().toUtc(),
+  );
 }

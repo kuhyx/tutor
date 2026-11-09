@@ -24,6 +24,8 @@ class ReviewSession extends ChangeNotifier {
     required this.items,
     required this.events,
     this.requeue = false,
+    this.src,
+    this.onRated,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now,
        _queue = [...items] {
@@ -38,6 +40,12 @@ class ReviewSession extends ChangeNotifier {
 
   /// Again/Hard put the card back at the end.
   final bool requeue;
+
+  /// The reviews' `src` ([checkinSource] for the focus check-in card).
+  final String? src;
+
+  /// Told each rating's time (ms) once it is recorded, before the flush.
+  final void Function(int atMs)? onRated;
   final DateTime Function() _now;
   final List<ReviewItem> _queue;
   final Set<String> _finished = {};
@@ -101,8 +109,10 @@ class ReviewSession extends ChangeNotifier {
         grade: grade,
         rev: item.card.rev,
         durMs: at.difference(_shownAt).inMilliseconds,
+        src: src,
       ),
     );
+    onRated?.call(at.millisecondsSinceEpoch);
     final again = requeue && grade.value < Grade.good.value;
     final key = '${item.subject}/${item.cardId}';
     final finished = !again && _finished.add(key);

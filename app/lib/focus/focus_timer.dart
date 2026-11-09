@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
+import 'package:tutor/focus/checkin_card.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
 import 'package:tutor/focus/event_queue.dart';
+import 'package:tutor/review/review_items.dart';
 import 'package:tutor/storage/kv_store.dart';
 
 part 'focus_timer_background.dart';
@@ -18,7 +20,13 @@ const lapseAfter = Duration(minutes: 10);
 /// app left the screen.
 const backgroundGrace = Duration(seconds: 60);
 
+/// A check-in card rated sooner than this after it appeared is graded but
+/// proves no presence: it sends no beat.
+const presenceFloor = Duration(seconds: 1);
+
 /// The focus timer: taps become queued `focus_event`s with the tap time.
+/// The check-in is one recall card ([checkinCard], picked at the
+/// prompt); with none, the old "Still working" tap ([wantsTap]).
 class FocusTimer extends ChangeNotifier {
   /// Creates the timer; send delivers one queued event.
   new({
@@ -26,6 +34,7 @@ class FocusTimer extends ChangeNotifier {
     required this._queue,
     required this._send,
     this._notifier = const NoopCheckinNotifier(),
+    this._pick,
     this._platform = 'phone',
     this._background = backgroundGrace,
     int Function()? now,
@@ -35,6 +44,7 @@ class FocusTimer extends ChangeNotifier {
   final FocusEventQueue _queue;
   final FocusSender _send;
   final FocusCheckinNotifier _notifier;
+  final CheckinPicker? _pick;
   final String _platform;
   final Duration _background;
   final int Function() _now;
@@ -51,6 +61,13 @@ class FocusTimer extends ChangeNotifier {
   Timer? _grace;
   Future<void> _leaving = Future.value();
   QueuedFocusEvent? _pendingStop;
+  // The check-in card: in memory only, so a restart drops it ungraded.
+  ReviewItem? _card;
+  int _cardShownMs = 0;
+  int? _pickedFor; // the beat (_lastMs) the last pick was made for
+  bool _picking = false;
+  final _opened = StreamController<void>.broadcast();
+  int _screens = 0;
 
   int get _gapMs => _now() - _lastMs;
 
@@ -66,8 +83,30 @@ class FocusTimer extends ChangeNotifier {
   Duration get counted =>
       Duration(milliseconds: _countedMs + (isRunning ? _gapMs : 0));
 
-  /// True from [checkinEvery] after the last tap: ask "Still working?".
+  /// True from [checkinEvery] after the last tap: ask for a check-in.
   bool get checkinDue => isRunning && _gapMs >= checkinEvery.inMilliseconds;
+
+  /// The card this check-in asks (it stays after a lapse), or null.
+  ReviewItem? get checkinCard => _card;
+
+  /// The check-in is due and no card could be picked: the old tap.
+  bool get wantsTap =>
+      checkinDue && _card == null && !_picking && _pickedFor == _lastMs;
+
+  /// A notification was clicked: the app should show the Focus screen.
+  Stream<void> get openRequests => _opened.stream;
+
+  /// A Focus screen is open (it [attach]es while mounted).
+  bool get onScreen => _screens > 0;
+
+  /// A Focus screen opened.
+  void attach() => _screens++;
+
+  /// A Focus screen closed.
+  void detach() => _screens--;
+
+  /// This device's clock (ms), shared with the check-in card's review.
+  int nowMs() => _now();
 
   /// Restores the saved run, takes taps made off-screen, starts ticking.
   /// Every caller gets the same future, so a second one never sees the timer
@@ -76,13 +115,60 @@ class FocusTimer extends ChangeNotifier {
 
   Future<void> _load() async {
     await _restore();
-    _taps = _notifier.confirmations.listen((ts) => unawaited(checkin(ts)));
-    for (final ts in await _notifier.takePending()) {
-      await checkin(ts);
-    }
+    // A notification only opens the app; the check-in is the graded card.
+    _taps = _notifier.confirmations.listen((_) => _opened.add(null));
+    await _notifier.takePending(); // taps an older build stored: not counted
     _arm();
     unawaited(flush());
+    await pickIfDue();
     notifyListeners();
+  }
+
+  /// Picks the check-in card once per beat, when the check-in is due or the
+  /// run lapsed (the reopened app offers it with "Missed a check-in").
+  Future<void> pickIfDue() async {
+    final pick = _pick;
+    if (_card != null || _picking || _pickedFor == _lastMs) return;
+    if (!checkinDue && !isLapsed) return;
+    final beat = _lastMs;
+    _pickedFor = beat;
+    if (pick == null) return;
+    _picking = true;
+    final ReviewItem? item;
+    try {
+      item = await pick();
+    } finally {
+      _picking = false;
+    }
+    if (_disposed || _lastMs != beat || !_started) return;
+    _card = item;
+    _cardShownMs = _now();
+    notifyListeners();
+  }
+
+  /// The check-in card was rated at [at] (the review's own time). Within
+  /// 600 s of the last beat it is a `card` beat (unless rated under
+  /// [presenceFloor]); after the lapse it starts a new segment.
+  Future<void> cardRated(int at) async {
+    final item = _card;
+    if (item == null) return;
+    _dropCard();
+    if (!_started || _tooLate(at - _lastMs)) {
+      _countedMs = 0;
+      await _tap('start', at);
+    } else if (at - _cardShownMs < presenceFloor.inMilliseconds) {
+      notifyListeners(); // graded, but no beat: the next tick picks again
+      return;
+    } else {
+      _countedMs += at - _lastMs;
+      await _tap('card', at, item: item);
+    }
+    await _notifier.schedule(checkinEvery);
+  }
+
+  void _dropCard() {
+    _card = null;
+    _pickedFor = null;
   }
 
   /// Starts a run (also the way back after a lapse).
@@ -154,11 +240,23 @@ class FocusTimer extends ChangeNotifier {
     }),
   );
 
-  Future<void> _tap(String event, int ts, {bool started = true}) async {
+  Future<void> _tap(
+    String event,
+    int ts, {
+    bool started = true,
+    ReviewItem? item,
+  }) async {
     await _dropPendingStop();
-    await _queue.enqueue(event, ts: ts, platform: _platform);
+    await _queue.enqueue(
+      event,
+      ts: ts,
+      platform: _platform,
+      subject: item?.subject,
+      card: item?.cardId,
+    );
     _started = started;
     _lastMs = ts;
+    _dropCard();
     _lapseHandled = false;
     await _save();
     _arm();
@@ -182,6 +280,7 @@ class FocusTimer extends ChangeNotifier {
       _lapseHandled = true;
       unawaited(_notifier.cancel());
     }
+    unawaited(pickIfDue());
     notifyListeners();
   }
 
@@ -192,6 +291,7 @@ class FocusTimer extends ChangeNotifier {
     _grace?.cancel();
     _lifecycle?.dispose();
     unawaited(_taps?.cancel());
+    unawaited(_opened.close());
     super.dispose();
   }
 }

@@ -39,6 +39,8 @@ DAY: Final = re.compile(r"\d{4}-\d{2}-\d{2}")
 MAX_REASON: Final = 500
 RATINGS: Final = frozenset({1, 2, 3, 4})
 DRILL: Final = "drill"  # review ``src``: a PC drill pick (never counts as reviewed)
+CHECKIN: Final = "checkin"  # review ``src``: a focus check-in card (an ordinary review)
+SOURCES: Final = frozenset({DRILL, CHECKIN})
 _LOCK: Final = threading.Lock()
 _logger = logging.getLogger(__name__)
 
@@ -60,8 +62,8 @@ def _review(raw: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
     event["rev"] = _int(raw.get("rev")) or 1
     if (dur := _int(raw.get("dur_ms"))) is not None:
         event["dur_ms"] = dur
-    if raw.get("src") == DRILL:  # untrusted: the one known source only
-        event["src"] = DRILL
+    if (src := raw.get("src")) in SOURCES:  # untrusted: the known sources only
+        event["src"] = src
     return event
 
 

@@ -77,7 +77,8 @@ class CardFace extends StatelessWidget {
   }
 }
 
-/// Show answer, then the ratings; below, Back and Flag.
+/// Show answer, then the ratings; below, Back and Flag (none without
+/// [onFlag]: the focus check-in card).
 class AnswerBar extends StatelessWidget {
   /// Creates the bar.
   const new(this.run, {required this.onFlag, super.key});
@@ -85,8 +86,8 @@ class AnswerBar extends StatelessWidget {
   /// The run.
   final ReviewSession run;
 
-  /// Flag (asks for the reason).
-  final VoidCallback onFlag;
+  /// Flag (asks for the reason); null hides Back and Flag.
+  final VoidCallback? onFlag;
 
   @override
   Widget build(BuildContext context) {
@@ -122,19 +123,21 @@ class AnswerBar extends StatelessWidget {
             ],
           ),
         ],
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: AppSpacing.sm,
-          children: [
-            ReviewBack(run),
-            TextButton.icon(
-              onPressed: onFlag,
-              icon: const Icon(Icons.flag_outlined),
-              label: const Text('Flag (F)'),
-            ),
-          ],
-        ),
+        if (onFlag case final flag?) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: AppSpacing.sm,
+            children: [
+              ReviewBack(run),
+              TextButton.icon(
+                onPressed: flag,
+                icon: const Icon(Icons.flag_outlined),
+                label: const Text('Flag (F)'),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

@@ -144,7 +144,8 @@ pass the same vectors.
   are dropped at parse, by both sides; the app skips `cap_lift` (an unknown kind).
 - `r`: 1 Again, 2 Hard, 3 Good, 4 Easy. `at` = device wall clock when answered.
   `rev` = card rev shown. `src` (optional): `"drill"` = a PC drill pick (`tutor/drill.py`);
-  the app's ratings send none; the worker drops any other value.
+  `"checkin"` = a focus check-in card (`DOCS-contract-focus.md`), an ordinary review;
+  Review's ratings send none; the worker drops any other value.
 - Events immutable; corrections are new events. Client queues locally, PUTs
   `log/{own dev}/{eid}` in eid order (idempotent retry); never writes another
   device's subtree.

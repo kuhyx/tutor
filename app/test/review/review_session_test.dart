@@ -165,4 +165,23 @@ void main() {
     await run.flag('x');
     expect(run.canBack, isFalse);
   });
+
+  test('a check-in run tags its review and reports the answer time', () async {
+    final now = _t0.add(const Duration(days: 30));
+    final items = await dueItems(catalog: catalog, events: events, now: now);
+    final rated = <int>[];
+    final run = ReviewSession(
+      items: items.take(1).toList(),
+      events: events,
+      src: checkinSource,
+      onRated: rated.add,
+      now: () => now,
+    )..reveal();
+    await run.rate(Grade.again);
+    final review = (await events.all()).map((e) => e.event).last;
+    expect(review, isA<ReviewEvent>());
+    expect((review as ReviewEvent).src, 'checkin');
+    expect(rated, [now.millisecondsSinceEpoch]);
+    expect(review.isDrill, isFalse);
+  });
 }

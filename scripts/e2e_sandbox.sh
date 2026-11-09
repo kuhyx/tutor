@@ -13,7 +13,7 @@
 #        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1..F8 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1..F10 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -45,7 +45,7 @@ readonly SESSION="${E2E_SESSION:-20261020-172115-3f84}"
 readonly DISPLAY_ID="${E2E_DISPLAY:-:97}"
 readonly DB_UNIT="tutor-e2e-db"
 readonly SERVER_UNIT="tutor-e2e-server"
-# focus_project (F7, F8) lives outside this repo; its data dir is the sandbox's.
+# focus_project (F7-F10) lives outside this repo; its data dir is the sandbox's.
 readonly FOCUS_SRC="${E2E_FOCUS_SRC:-$HOME/src/utils/focus_project}"
 
 die() { echo "e2e_sandbox: $*" >&2; exit 1; }
@@ -189,14 +189,14 @@ cmd_restart() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F8}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F10}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
     "$PY" "$ROOT/scripts/e2e_drive.py" "$flow" "$phase" --app "http://127.0.0.1:$port/app/" \
         --db "$db" --card "$CARD" --display "$DISPLAY_ID" \
-        --data "$sandbox/data" --focus "$sandbox/focus" --session "$SESSION" \
+        --data "$sandbox/data" --focus "$sandbox/focus" --session "$SESSION" --subject "$SUBJECT" \
         --state "$(dirname "$STATE")/${flow,,}.json" --out "$SCREENS/e2e_${flow,,}"
 }
 
@@ -209,7 +209,7 @@ main() {
         restart) cmd_restart ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] | restart | flow F1..F8 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] | restart | flow F1..F10 [send|wait|check|again] | down" ;;
     esac
 }
 

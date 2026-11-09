@@ -17,7 +17,8 @@ import 'package:tutor/util/ulid.dart';
 const _key = 'focus_events';
 
 /// Wire names of `focus_event.event`.
-const focusEventNames = {'start', 'checkin', 'stop'};
+/// `card` is a graded check-in card (with its `subject` and `card`).
+const focusEventNames = {'start', 'checkin', 'stop', 'card'};
 
 /// One timer event waiting to be sent.
 class QueuedFocusEvent {
@@ -27,20 +28,24 @@ class QueuedFocusEvent {
     required this.event,
     required this.ts,
     required this.platform,
+    this.subject,
+    this.card,
   });
 
-  /// Reads one stored entry.
+  /// Reads one stored entry (entries from before `card` have no card).
   factory fromJson(Map<String, dynamic> j) => QueuedFocusEvent(
     rid: j['rid'] as String,
     event: j['event'] as String,
     ts: j['ts'] as int,
     platform: j['platform'] as String,
+    subject: j['subject'] as String?,
+    card: j['card'] as String?,
   );
 
   /// Request id, minted when the tap happened.
   final String rid;
 
-  /// `start`, `checkin` or `stop`.
+  /// `start`, `checkin`, `stop` or `card`.
   final String event;
 
   /// Client time of the tap, unix ms.
@@ -49,12 +54,20 @@ class QueuedFocusEvent {
   /// `phone` or `pc`.
   final String platform;
 
+  /// `card` only: the check-in card's subject id.
+  final String? subject;
+
+  /// `card` only: its card id.
+  final String? card;
+
   /// The stored form.
   Map<String, dynamic> toJson() => {
     'rid': rid,
     'event': event,
     'ts': ts,
     'platform': platform,
+    'subject': ?subject,
+    'card': ?card,
   };
 }
 
@@ -111,6 +124,8 @@ class FocusEventQueue {
     int? ts,
     String platform = 'phone',
     bool hold = false,
+    String? subject,
+    String? card,
   }) {
     if (!focusEventNames.contains(event)) {
       throw ArgumentError.value(event, 'event');
@@ -120,6 +135,8 @@ class FocusEventQueue {
       event: event,
       ts: ts ?? _now(),
       platform: platform,
+      subject: subject,
+      card: card,
     );
     if (hold) _held.add(e.rid);
     return _locked(() async {
