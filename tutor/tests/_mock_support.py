@@ -128,10 +128,12 @@ def model(
     monkeypatch.setattr(mock_sql, "ask_model", fake_spec)
 
 
-def call(body: dict[str, Any]) -> dict[str, Any]:
+def call(body: dict[str, Any], sent_at_ms: int | None = None) -> dict[str, Any]:
     """Validate ``body`` as a ``mock`` request and run its handler."""
     req = {"kind": "mock", "dev": DEV, "created": int(NOW * 1000), "body": body}
     ctx = SimpleNamespace(
-        now=lambda: NOW, body=protocol.validate(RID, req).body, request=None
+        now=lambda: NOW,
+        body=protocol.validate(RID, req).body,
+        request=SimpleNamespace(sent_at_ms=sent_at_ms),
     )
     return asyncio.run(CHAT_HANDLERS["mock"](cast("RequestContext", ctx)))

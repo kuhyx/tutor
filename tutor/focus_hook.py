@@ -105,8 +105,11 @@ def load_fp() -> FocusApi | None:
     return cast("FocusApi", importlib.import_module("focus_project"))
 
 
-def heartbeat(subject: str | None, now: float) -> None:
-    """Beat if ``subject`` is on the project active on ``now``'s local day."""
+def heartbeat(subject: str | None, now: float, ts: float | None) -> None:
+    """Beat at ``ts`` (``None``: the clock) if ``subject`` is on the project.
+
+    The project is the one active on ``now``'s local day.
+    """
     if not subject:
         return
     try:
@@ -115,6 +118,6 @@ def heartbeat(subject: str | None, now: float) -> None:
             return
         project = fp.active(date.fromisoformat(credit.local_day(now)[0]))
         if project is not None and subject in project.subjects:
-            fp.record_activity("tutor", "heartbeat")
+            fp.record_activity("tutor", "heartbeat", ts=ts)
     except BROKEN:
         _logger.exception("focus heartbeat for %r skipped", subject)

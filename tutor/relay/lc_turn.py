@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from tutor import outage
 from tutor.curriculum.modelcall import ask_model
 from tutor.relay import lc_backend, lc_checks, lc_exit, lc_prompt, lc_reply, lc_state
+from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
 
 if TYPE_CHECKING:
@@ -165,6 +166,6 @@ async def lc_turn(ctx: RequestContext) -> Json:
     if not out.get("held"):
         lc_state.save(body["lc_id"], state, int(ctx.now() * 1000))
     if lc_reply.turn_counts(body["text"], body["intent"], out):
-        lc_reply.heartbeat()
+        lc_reply.heartbeat(activity_ts(ctx))
     out["state"] = lc_state.view(state)
     return out

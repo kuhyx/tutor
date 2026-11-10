@@ -35,7 +35,7 @@ def test_open_fetches_and_asks_the_opener(monkeypatch: pytest.MonkeyPatch) -> No
     }
     assert got["state"]["turns"] == {"used": 0, "budget": 16, "over": False}
     assert fakes.events() == ["session_start"]
-    assert fakes.fp.activity == [{"source": "tutor", "kind": "heartbeat"}]
+    assert fakes.fp.activity == [{"source": "tutor", "kind": "heartbeat", "ts": s.NOW}]
     again = s.call("lc_list", {})
     assert [r["slug"] for r in again["recent"]] == ["two-sum"]
     assert [c["name"] for c in again["clusters"]] == ["palindromes-dp", "bits"]

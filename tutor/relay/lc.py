@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from tutor import codes, outage
 from tutor.relay import lc_backend, lc_reply, lc_state
+from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
 from tutor.relay.lc_prompt import OPENER
 from tutor.relay.lc_protocol import SQL_LANGS
@@ -126,7 +127,7 @@ async def lc_open(ctx: RequestContext) -> Json:
     got = await lc_reply.ask_reply(state, OPENER, lc_reply.Rules(-1))
     lc_state.say(state, mine=False, md=got["reply_md"])
     lc_state.save(lc_id, state, _now_ms(ctx))
-    lc_reply.heartbeat()
+    lc_reply.heartbeat(activity_ts(ctx))
     return {**_shown(lc_id, state), "reply_md": got["reply_md"]}
 
 
@@ -186,7 +187,7 @@ async def lc_run(ctx: RequestContext) -> Json:
     total = len(report["examples"])
     _after_run(state, body["code"], report)
     lc_state.save(lc_id, state, _now_ms(ctx))
-    lc_reply.heartbeat()
+    lc_reply.heartbeat(activity_ts(ctx))
     extra = {"note": NO_EXAMPLES} if report["no_examples"] else {}
     return {
         **extra,

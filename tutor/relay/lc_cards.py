@@ -14,6 +14,7 @@ from tutor.curriculum.modelcall import ask_model
 from tutor.curriculum.records import Meta, Module, Plan
 from tutor.curriculum.subject_store import Change
 from tutor.relay import lc_backend, lc_prompt, lc_reply, lc_state
+from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
 
 if TYPE_CHECKING:
@@ -149,7 +150,7 @@ async def lc_cards(ctx: RequestContext) -> dict[str, Any]:
     rows = await asyncio.to_thread(_fsrs, ctx.engine.ctx, entries)
     anki = await _anki(entries)
     lc_reply.log(state, "postmortem", cards=len(rows))
-    lc_reply.heartbeat()
+    lc_reply.heartbeat(activity_ts(ctx))
     return {
         "state": lc_state.view(state),
         "cards": rows,

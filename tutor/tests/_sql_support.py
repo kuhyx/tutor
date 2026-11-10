@@ -123,12 +123,14 @@ def validate(kind: str, body: dict[str, Any]) -> protocol.Request:
     return protocol.validate(RID, req)
 
 
-def call(kind: str, body: dict[str, Any]) -> dict[str, Any]:
+def call(
+    kind: str, body: dict[str, Any], sent_at_ms: int | None = None
+) -> dict[str, Any]:
     """Run the chat handler of ``kind`` on a validated body."""
     ctx = SimpleNamespace(
         engine=SimpleNamespace(ctx=make_ctx(data_dir())[0]),  # fakes: no network
         now=lambda: NOW,
-        request=SimpleNamespace(created_ms=int(NOW * 1000)),
+        request=SimpleNamespace(created_ms=int(NOW * 1000), sent_at_ms=sent_at_ms),
         body=validate(kind, body).body,
     )
     return asyncio.run(CHAT_HANDLERS[kind](cast("RequestContext", ctx)))

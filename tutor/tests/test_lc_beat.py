@@ -8,7 +8,7 @@ import pytest
 from tutor.relay import lc_reply
 from tutor.tests import _lc_support as s
 
-BEAT = {"source": "tutor", "kind": "heartbeat"}
+BEAT = {"source": "tutor", "kind": "heartbeat", "ts": s.NOW}
 
 
 @pytest.mark.parametrize(

@@ -94,6 +94,7 @@ async def focus_status(ctx: RequestContext) -> dict[str, Any]:
             shown = _project(active, today) | {
                 "minutes": status["minutes"],
                 "carry_out": status.get("carry_out", 0),
+                "unbacked_minutes": status.get("unbacked_minutes", 0),
             }
         listed = sorted(
             fp.list_projects(), key=lambda p: (p.created_ms, p.start), reverse=True
@@ -153,6 +154,7 @@ async def focus_event(ctx: RequestContext) -> dict[str, Any]:
         {k: status[k] for k in _STATUS_KEYS}
         | {"replaces": list(status["replaces"])}
         | {"carry_out": status.get("carry_out", 0)}
+        | {"unbacked_minutes": status.get("unbacked_minutes", 0)}
     )
 
 

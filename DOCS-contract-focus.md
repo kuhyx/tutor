@@ -9,7 +9,7 @@ lane. Times: `ts` unix ms, dates `YYYY-MM-DD` (PC local).
 | kind | body | result `data` |
 |---|---|---|
 | `focus_status` | `{}` | see Status |
-| `focus_event` | `{"event":"start"\|"checkin"\|"stop"\|"card","ts":ms,"platform":"phone"\|"pc","subject"?,"card"?}` (`subject`+`card` only, and both required, for `card`) | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...],"carry_out"}` (fp.status of today; name null = no active project) |
+| `focus_event` | `{"event":"start"\|"checkin"\|"stop"\|"card","ts":ms,"platform":"phone"\|"pc","subject"?,"card"?}` (`subject`+`card` only, and both required, for `card`) | `{"name","minutes","daily_minutes","unlock_minutes","ends","replaces":[...],"carry_out","unbacked_minutes"}` (fp.status of today; name null = no active project) |
 | `focus_create` | `{"name"<=80,"start","end","replaces":[leetcode\|reading\|tutor],"daily_minutes":1..720,"unlock_minutes":0..daily,"subjects":[slug],"site_patterns":[host<=100 x<=20],"work_url"?:http(s) URL or ""}` | `{"id"}` |
 | `focus_update` | `focus_create`'s body plus `"id"`; every field is sent again (absent lists = `[]`; absent `work_url` = kept) | `{"id","effective_from":"YYYY-MM-DD","message"?}` |
 | `focus_end` | `{"id","day"?}` (day = last active day, default today; a past day is `focus_refused`) | `{}` |
@@ -30,12 +30,18 @@ gate (min 30; 3 gates = 90), on create and update; below it is `focus_refused`.
 ## Status (`focus_status`)
 `minutes` is the real count (may exceed `daily_minutes`: 121/120); `carry_out`
 is the overtime banked for the next project day (max 60, `focus_project.carry`).
+`unbacked_minutes` is timer time today that no same-project beat backs, so it does
+not count (focus_project 0.10.0; 0 from an older package, or when nothing is
+unbacked). It is always sent, in `focus_status` (active) and in the `focus_event`
+reply, and is not a required status key. Beats carry the answer's own time
+(`sent_at`, clamped to `[received - 48 h, received]`), so an offline answer backs
+the time it was given.
 
 ```json
 {"day":"2026-11-02",
  "active":{"id","name","start","end","days_left","replaces":[],"daily_minutes":120,
-           "unlock_minutes":30,"subjects":[],"site_patterns":[],"work_url":"","minutes":42,"carry_out":0} | null,
- "projects":[{same as active, no "minutes"/"carry_out"}],
+           "unlock_minutes":30,"subjects":[],"site_patterns":[],"work_url":"","minutes":42,"carry_out":0,"unbacked_minutes":0} | null,
+ "projects":[{same as active, no "minutes"/"carry_out"/"unbacked_minutes"}],
  "gates":[{"id":"leetcode","label":"LeetCode","replaceable":true},
           {"id":"workout","label":"workout","replaceable":false}],
  "subjects":[{"id":"automation","title":"..."}]}

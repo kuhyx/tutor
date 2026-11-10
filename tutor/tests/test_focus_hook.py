@@ -29,28 +29,28 @@ def _use(monkeypatch: pytest.MonkeyPatch, fake: FakeFp | None) -> None:
 def test_a_listed_subject_beats_the_heart(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = FakeFp([_project("sql")])
     _use(monkeypatch, fake)
-    focus_hook.heartbeat("sql", NOON)
-    assert fake.activity == [{"source": "tutor", "kind": "heartbeat"}]
+    focus_hook.heartbeat("sql", NOON, None)
+    assert fake.activity == [{"source": "tutor", "kind": "heartbeat", "ts": None}]
 
 
 def test_an_unlisted_subject_is_silent(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = FakeFp([_project("sql")])
     _use(monkeypatch, fake)
-    focus_hook.heartbeat("automation", NOON)
-    focus_hook.heartbeat(None, NOON)
+    focus_hook.heartbeat("automation", NOON, None)
+    focus_hook.heartbeat(None, NOON, None)
     assert fake.activity == []
 
 
 def test_no_active_project_is_silent(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = FakeFp()
     _use(monkeypatch, fake)
-    focus_hook.heartbeat("sql", NOON)
+    focus_hook.heartbeat("sql", NOON, None)
     assert fake.activity == []
 
 
 def test_a_missing_package_is_a_no_op(monkeypatch: pytest.MonkeyPatch) -> None:
     _use(monkeypatch, None)
-    focus_hook.heartbeat("sql", NOON)
+    focus_hook.heartbeat("sql", NOON, None)
 
 
 def test_any_failure_is_logged_never_raised(
@@ -59,7 +59,7 @@ def test_any_failure_is_logged_never_raised(
     fake = FakeFp([_project("sql")], boom=RuntimeError("disk on fire"))
     _use(monkeypatch, fake)
     with caplog.at_level(logging.WARNING, logger="tutor.focus_hook"):
-        focus_hook.heartbeat("sql", NOON)
+        focus_hook.heartbeat("sql", NOON, None)
     assert "disk on fire" in caplog.text
 
 
@@ -69,7 +69,7 @@ def test_a_failing_import_is_swallowed(monkeypatch: pytest.MonkeyPatch) -> None:
         raise SyntaxError(msg)
 
     monkeypatch.setattr(focus_hook, "load_fp", broken)
-    focus_hook.heartbeat("sql", NOON)
+    focus_hook.heartbeat("sql", NOON, None)
 
 
 def _unit(n: int) -> BlockReady:

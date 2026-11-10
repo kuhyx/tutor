@@ -44,6 +44,8 @@ REPLY_TIMEOUT: Final = 600.0
 OUTAGE_CAP: Final = 3600.0  # a gap restarts excuse never earns more than this
 # How far back the page's first Send press may date a reply (its retry window).
 SEND_GRACE: Final = 300.0
+# How old an answer may be and still back focus time (relay ``MAX_EVENT_AGE_MS``).
+ACTIVITY_MAX_AGE: Final = 48 * 3600.0
 GENERATION_CAP: Final = 60.0
 UNIT_SECONDS: Final = 60.0  # one credited unit = one active minute
 MAX_UNITS: Final = 60  # per session; the daily cap is the ledger's
@@ -56,6 +58,19 @@ TUTOR_OVERDUE: Final = "tutor not responding"
 def reply_time(received: float, sent_at: float | None) -> float:
     """When a reply was sent: the page's first Send press if within grace."""
     if sent_at is not None and 0.0 <= received - sent_at <= SEND_GRACE:
+        return sent_at
+    return received
+
+
+def activity_time(received: float, sent_at: float | None) -> float:
+    """When an answer was given, for the focus beat it backs.
+
+    ``sent_at`` if it lies in ``[received - ACTIVITY_MAX_AGE, received]``, else
+    ``received``: an offline answer backs the time it was given, not the sync
+    time, and a clock ahead of the server never puts a beat in the future.
+    Not :func:`reply_time`, whose short grace guards the credit arithmetic.
+    """
+    if sent_at is not None and 0.0 <= received - sent_at <= ACTIVITY_MAX_AGE:
         return sent_at
     return received
 

@@ -44,11 +44,23 @@ def test_an_event_keeps_the_client_time_and_returns_the_status(fp: FakeFp) -> No
         "name": "Now",
         "minutes": 7,
         "carry_out": 0,
+        "unbacked_minutes": 0,
         "daily_minutes": 60,
         "unlock_minutes": 10,
         "ends": day(3).isoformat(),
         "replaces": ["tutor"],
     }
+
+
+def test_an_event_returns_unbacked_minutes(fp: FakeFp) -> None:
+    fp.projects = [project("now", 0, 3)]
+    fp.unbacked = 9
+    assert call("focus_event", _event(CREATED))["unbacked_minutes"] == 9
+
+
+def test_an_event_defaults_unbacked_minutes_to_zero(fp: FakeFp) -> None:
+    fp.projects = [project("now", 0, 3)]
+    assert call("focus_event", _event(CREATED))["unbacked_minutes"] == 0
 
 
 def test_an_event_with_no_project_returns_a_null_name(fp: FakeFp) -> None:

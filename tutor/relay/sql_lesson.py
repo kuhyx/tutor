@@ -14,6 +14,7 @@ from tutor import outage
 from tutor.curriculum.modelcall import ask_model
 from tutor.relay import sql_lesson_checks as checks
 from tutor.relay import sql_lesson_prompt as prompt
+from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
 from tutor.relay.sql import Json, engine_call, heartbeat, wire
 from tutor.relay.sql_lesson_cards import seed_cards
@@ -241,5 +242,5 @@ async def sql_lesson_turn(ctx: RequestContext) -> Json:
     if shown.get("summary_md"):  # a concept was just mastered (index not yet moved)
         await seed_cards(ctx, PLAN[topic][state["index"]].title)
     if answer is not None:
-        heartbeat()
+        heartbeat(activity_ts(ctx))
     return await _view(lesson_id, state, shown)

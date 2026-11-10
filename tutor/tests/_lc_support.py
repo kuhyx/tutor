@@ -158,11 +158,16 @@ def validate(kind: str, body: dict[str, Any]) -> protocol.Request:
     return protocol.validate(RID, req)
 
 
-def call(kind: str, body: dict[str, Any], engine_ctx: Any = None) -> dict[str, Any]:
+def call(
+    kind: str,
+    body: dict[str, Any],
+    engine_ctx: Any = None,
+    sent_at_ms: int | None = None,
+) -> dict[str, Any]:
     """Run the chat handler of ``kind`` on a validated body."""
     ctx = SimpleNamespace(
         now=lambda: NOW,
-        request=SimpleNamespace(created_ms=int(NOW * 1000)),
+        request=SimpleNamespace(created_ms=int(NOW * 1000), sent_at_ms=sent_at_ms),
         body=validate(kind, body).body,
         engine=SimpleNamespace(ctx=engine_ctx),
     )

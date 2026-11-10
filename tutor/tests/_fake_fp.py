@@ -48,6 +48,7 @@ class FakeFp:
     minutes: int = 0
     boom: Exception | None = None
     updated_on: date | None = None
+    unbacked: int | None = None  # None: an older focus_project (no key)
     defer: bool = False  # act like a reduction: the edit holds from tomorrow
 
     def _check(self) -> None:
@@ -82,7 +83,9 @@ class FakeFp:
                 "ends": None,
                 "replaces": [],
             }
+        extra = {} if self.unbacked is None else {"unbacked_minutes": self.unbacked}
         return {
+            **extra,
             "project": found.id,
             "name": found.name,
             "minutes": self.minutes,

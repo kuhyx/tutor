@@ -69,6 +69,7 @@ def test_status_lists_the_active_project_and_all_newest_first(fp: FakeFp) -> Non
         "work_url": "https://a.com/x",
         "minutes": 42,
         "carry_out": 0,
+        "unbacked_minutes": 0,
     }
     assert "minutes" not in got["projects"][1]
     assert [p["days_left"] for p in got["projects"]] == [3, 4, 0]
@@ -81,6 +82,17 @@ def test_status_shows_the_real_minutes_not_the_capped_pay(fp: FakeFp) -> None:
     got = call("focus_status", {})
     assert got["active"]["minutes"] == 130
     assert got["active"]["carry_out"] == 60
+
+
+def test_status_passes_unbacked_minutes_through(fp: FakeFp) -> None:
+    fp.projects = [project("now", -1, 3)]
+    fp.unbacked = 12
+    assert call("focus_status", {})["active"]["unbacked_minutes"] == 12
+
+
+def test_status_defaults_unbacked_minutes_to_zero(fp: FakeFp) -> None:
+    fp.projects = [project("now", -1, 3)]  # an older focus_project: no key
+    assert call("focus_status", {})["active"]["unbacked_minutes"] == 0
 
 
 def test_an_early_ended_project_reports_its_last_day(fp: FakeFp) -> None:

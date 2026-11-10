@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from tutor.clock import activity_time
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -40,6 +42,16 @@ class RequestContext:
     def body(self) -> dict[str, Any]:
         """The validated request body (unknown fields already dropped)."""
         return self.request.body
+
+
+def activity_ts(ctx: RequestContext) -> float:
+    """When the answer in ``ctx`` was given: its ``sent_at``, clamped to now.
+
+    The focus beat of an offline answer backs the time it was given, not the
+    sync time (``clock.activity_time``).
+    """
+    sent = ctx.request.sent_at_ms
+    return activity_time(ctx.now(), None if sent is None else sent / 1000)
 
 
 @dataclass(frozen=True)

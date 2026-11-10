@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import credit, focus_hook, ledger_pay
+from tutor import clock, credit, focus_hook, ledger_pay
 from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
 
 if TYPE_CHECKING:
@@ -88,15 +88,18 @@ def credit_units(
     active focus project lists it (``focus_hook``; never raises).
     """
     rows: list[dict[str, Any]] = []
+    beat_at: float | None = None  # when the last recorded unit was earned
     paid = credit.session_minutes(session_id)
     for group in spans(u for u in units if u.block not in paid):
         last = group[-1]
         receipt = credit.credit_span(last, len(group), session_id, now=now)
         rows.append(credit_row(last, len(group), receipt))
+        if receipt.recorded:
+            beat_at = last.ended_at
         if receipt.error == credit.DAILY_CAP_ERROR:
             break
     if subject and any(r["recorded"] for r in rows):
-        focus_hook.heartbeat(subject, now)
+        focus_hook.heartbeat(subject, now, clock.activity_time(now, beat_at))
     return rows
 
 

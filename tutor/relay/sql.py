@@ -11,6 +11,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import focus_hook
+from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
 from tutor.relay.sql_protocol import TOPICS
 
@@ -93,12 +94,12 @@ async def engine_call(
         raise _engine_error(exc, drill_id) from exc
 
 
-def heartbeat() -> None:
+def heartbeat(ts: float | None) -> None:
     """Count one attempt as focus work; never fails the request."""
     try:
         fp = focus_hook.load_fp()
         if fp is not None:
-            fp.record_activity("sql_drills", "heartbeat")
+            fp.record_activity("sql_drills", "heartbeat", ts=ts)
     except focus_hook.BROKEN:
         _logger.exception("sql heartbeat skipped")
 
@@ -120,7 +121,7 @@ async def sql_run(ctx: RequestContext) -> Json:
     """Run the user's SQL on the drill's database and diff it."""
     drill_id, text = ctx.body["id"], ctx.body["sql"]
     got = await engine_call(lambda sd: lambda: sd.run(drill_id, text), drill_id)
-    heartbeat()
+    heartbeat(activity_ts(ctx))
     return wire(got)
 
 
@@ -130,5 +131,5 @@ async def sql_predict(ctx: RequestContext) -> Json:
     got = await engine_call(
         lambda sd: lambda: sd.check_prediction(drill_id, grid), drill_id
     )
-    heartbeat()
+    heartbeat(activity_ts(ctx))
     return wire(got)

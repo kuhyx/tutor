@@ -26,12 +26,12 @@ MIN_BEAT_CHARS: Final = 20
 _BEAT_WORDS: Final = frozenset({"reveal", "write it", *HINTS})
 
 
-def heartbeat() -> None:
+def heartbeat(ts: float | None) -> None:
     """Count one coach turn or run as focus work; never fails the request."""
     try:
         fp = focus_hook.load_fp()
         if fp is not None:
-            fp.record_activity("tutor", "heartbeat")
+            fp.record_activity("tutor", "heartbeat", ts=ts)
     except focus_hook.BROKEN:
         _logger.exception("coach heartbeat skipped")
 

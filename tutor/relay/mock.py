@@ -22,6 +22,7 @@ from tutor.relay import (
     mock_sql,
     mock_store,
 )
+from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
 from tutor.relay.sql import engine_call, heartbeat, wire
 
@@ -157,7 +158,7 @@ async def answer(ctx: RequestContext) -> Json:
     if not late:
         mock["answers"][body["task"]] = {"text": body["answer"], "ts": ts}
         mock_store.save(mock)
-    heartbeat()
+    heartbeat(activity_ts(ctx))
     return {"ok": True, "late": late}
 
 
@@ -167,7 +168,7 @@ async def run(ctx: RequestContext) -> Json:
     _need(body, "mock_id", "answer")
     mock = mock_store.load(body["mock_id"])
     pub, priv = _task(mock, body["task"])
-    heartbeat()
+    heartbeat(activity_ts(ctx))
     if pub["section"] == "sql":
         got = wire(
             await engine_call(
