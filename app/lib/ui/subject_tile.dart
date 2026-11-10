@@ -95,7 +95,11 @@ class SubjectTile extends StatelessWidget {
               runSpacing: AppSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                StatusGlyph(status, detail: entry.meta.error),
+                StatusGlyph(
+                  status,
+                  detail: entry.meta.error,
+                  errorKind: entry.meta.errorKind,
+                ),
                 // Modules reviewed, and per card a separate stat.
                 if (total > 0)
                   SpokenLabel(

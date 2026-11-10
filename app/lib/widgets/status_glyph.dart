@@ -4,7 +4,9 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/subject.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 
 /// The glyph of [status].
 IconData statusIcon(SubjectStatus status) => switch (status) {
@@ -30,7 +32,13 @@ Color? statusTint(BuildContext context, SubjectStatus status) =>
 /// label.
 class StatusGlyph extends StatelessWidget {
   /// Creates the glyph.
-  const new(this.status, {this.detail, this.size, super.key});
+  const new(
+    this.status, {
+    this.detail,
+    this.errorKind = ErrorKind.other,
+    this.size,
+    super.key,
+  });
 
   /// The status.
   final SubjectStatus status;
@@ -38,12 +46,18 @@ class StatusGlyph extends StatelessWidget {
   /// Extra spoken detail (the worker's error), never painted.
   final String? detail;
 
+  /// Why a `failed` status failed: its glyph replaces the generic one
+  /// (other = the generic error glyph).
+  final ErrorKind errorKind;
+
   /// Glyph size; null = the theme's.
   final double? size;
 
   @override
   Widget build(BuildContext context) => Icon(
-    statusIcon(status),
+    status == SubjectStatus.failed && errorKind != ErrorKind.other
+        ? errorKindIcon(errorKind)
+        : statusIcon(status),
     color: statusTint(context, status),
     size: size,
     semanticLabel: [

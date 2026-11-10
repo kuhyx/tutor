@@ -1,6 +1,7 @@
 /// `subjects/{subj}/meta` (curriculum §1, worker-written).
 library;
 
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/json.dart';
 
 /// Subject lifecycle.
@@ -47,6 +48,7 @@ class SubjectMeta {
     required this.rev,
     required this.origin,
     this.error,
+    this.errorKind = ErrorKind.other,
   });
 
   /// Parses `meta`.
@@ -59,6 +61,7 @@ class SubjectMeta {
     rev: integer(j, 'rev'),
     origin: str(j, 'origin'),
     error: strOr(j, 'error'),
+    errorKind: ErrorKind.parse(j['error_kind']),
   );
 
   /// Display title.
@@ -85,6 +88,9 @@ class SubjectMeta {
   /// Why drafting failed (status `failed`).
   final String? error;
 
+  /// What kind of failure [error] is (`error_kind`); unknown = other.
+  final ErrorKind errorKind;
+
   /// Wire form.
   Json toJson() => compact({
     'title': title,
@@ -95,5 +101,6 @@ class SubjectMeta {
     'rev': rev,
     'origin': origin,
     'error': error,
+    'error_kind': errorKind == ErrorKind.other ? null : errorKind.wire,
   });
 }

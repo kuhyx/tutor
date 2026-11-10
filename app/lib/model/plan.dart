@@ -1,6 +1,7 @@
 /// `subjects/{subj}/plan` (curriculum §2, worker-written).
 library;
 
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/json.dart';
 
 /// Module status.
@@ -38,6 +39,7 @@ class Module {
     this.recall = 0,
     this.cards = 0,
     this.error,
+    this.errorKind = ErrorKind.other,
   });
 
   /// Parses a module.
@@ -54,6 +56,7 @@ class Module {
       recall: dblOr(j, 'recall') ?? 0,
       cards: intOr(j, 'cards') ?? 0,
       error: strOr(j, 'error'),
+      errorKind: ErrorKind.parse(j['error_kind']),
     );
   }
 
@@ -87,6 +90,9 @@ class Module {
   /// Why generation failed.
   final String? error;
 
+  /// What kind of failure [error] is (`error_kind`); unknown = other.
+  final ErrorKind errorKind;
+
   /// Wire form (empty lists omitted: RTDB stores none).
   Json toJson() => compact({
     'id': id,
@@ -99,6 +105,7 @@ class Module {
     'recall': recall,
     'cards': cards,
     'error': error,
+    'error_kind': errorKind == ErrorKind.other ? null : errorKind.wire,
   });
 }
 

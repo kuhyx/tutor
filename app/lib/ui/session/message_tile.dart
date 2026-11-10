@@ -9,6 +9,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/session/answers.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/ui/session/md_text.dart';
 import 'package:tutor/ui/session/media.dart';
 import 'package:tutor/ui/session/thinking_panel.dart';
@@ -154,12 +155,12 @@ class MessageTile extends StatelessWidget {
                 ],
               ),
             // Card-edit notices: worker sentences, spoken only.
-            for (final n in m.notices)
+            for (final (i, n) in m.notices.indexed)
               Align(
                 alignment: Alignment.centerLeft,
                 child: CueChip(
                   kind: CueKind.ok,
-                  icon: Icons.edit_note,
+                  icon: noticeIcon(m.noticeKind(i)),
                   semanticLabel: n,
                 ),
               ),

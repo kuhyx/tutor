@@ -7,6 +7,7 @@ import 'package:tutor/model/plan.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/terms.dart';
 import 'package:tutor/ui/card_state.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/ui/learn_bits.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/count_badge.dart';
@@ -69,7 +70,7 @@ class ModuleProgressTile extends StatelessWidget {
           RecallStat(m.recall),
           if (failed && m.error != null)
             Icon(
-              Icons.error_outline,
+              errorKindIcon(m.errorKind),
               color: Theme.of(context).colorScheme.error,
             ),
         ],

@@ -3,6 +3,7 @@ library;
 
 import 'dart:math' show max;
 
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/media.dart';
 import 'package:tutor/model/trace.dart';
@@ -39,6 +40,12 @@ List<Object?> _ordered(Map<int, Object?> slots) => [
   for (final k in slots.keys.toList()..sort()) slots[k],
 ];
 
+// `notice_kinds` only decorates the notices: a malformed one never fails the
+// message (each odd item reads as unknown, i.e. the generic chip).
+List<String> _kindsOf(Object? raw) => raw is List
+    ? List.unmodifiable(raw.map((v) => v is String ? v : ''))
+    : const [];
+
 /// One transcript message. [role] is `tutor`, `learner` or `card`.
 class Message {
   /// Creates the record.
@@ -55,6 +62,7 @@ class Message {
     this.diagrams = const [],
     this.masteredNew = const [],
     this.notices = const [],
+    this.noticeKinds = const [],
     this.cardDone = false,
     this.trace = const [],
     this.rid,
@@ -76,6 +84,7 @@ class Message {
     diagrams: listOf(j, 'diagrams', Dgm.fromJson),
     masteredNew: strings(j, 'mastered_new'),
     notices: strings(j, 'notices'),
+    noticeKinds: _kindsOf(j['notice_kinds']),
     cardDone: flag(j, 'card_done'),
     trace: parseTrace(j['trace']),
     rid: strOr(j, 'rid'),
@@ -127,6 +136,14 @@ class Message {
   /// Cards the tutor edited in this turn (`Card removed: <front>`).
   final List<String> notices;
 
+  /// What each notice did, same index as [notices] (`notice_kinds` wire
+  /// values); older messages have none.
+  final List<String> noticeKinds;
+
+  /// The kind of notice [i]; missing or unknown = [NoticeKind.other].
+  NoticeKind noticeKind(int i) =>
+      NoticeKind.parse(i < noticeKinds.length ? noticeKinds[i] : null);
+
   /// The card was finished in this turn.
   final bool cardDone;
 
@@ -157,6 +174,7 @@ class Message {
         : [for (final d in diagrams) d.toJson()],
     'mastered_new': masteredNew.isEmpty ? null : masteredNew,
     'notices': notices.isEmpty ? null : notices,
+    'notice_kinds': noticeKinds.isEmpty ? null : noticeKinds,
     'card_done': cardDone ? true : null,
     'trace': trace.isEmpty ? null : [for (final s in trace) s.toJson()],
     'at': at,

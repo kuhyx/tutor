@@ -1,6 +1,7 @@
 /// `sessions/{sid}/meta` and `user` (DOCS-contract §6).
 library;
 
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/request.dart';
 
@@ -48,6 +49,12 @@ class EngagementClock {
 
   /// Why the clock is paused, if it is.
   final String? pausedReason;
+
+  /// [pausedReason] as a code (one of two fixed sentences); null = running.
+  PauseReason? get pauseKind {
+    final why = pausedReason;
+    return why == null ? null : PauseReason.parse(why);
+  }
 
   /// Waiting for kuhy since (ms).
   final int? awaitingSince;

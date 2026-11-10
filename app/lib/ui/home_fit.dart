@@ -59,7 +59,14 @@ class HomeFit extends StatelessWidget {
       key: ValueKey('subject-tile-${s.id}'),
       title: s.meta.title,
       lines: [if (total > 0) '$reviewed/$total'],
-      meta: [StatusGlyph(status, detail: s.meta.error, size: 16)],
+      meta: [
+        StatusGlyph(
+          status,
+          detail: s.meta.error,
+          errorKind: s.meta.errorKind,
+          size: 16,
+        ),
+      ],
       corner: [
         if (current)
           const Icon(

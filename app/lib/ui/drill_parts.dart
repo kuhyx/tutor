@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/drill/drill_models.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/date_num.dart';
@@ -94,7 +95,7 @@ class DrillBanner extends StatelessWidget {
         liveRegion: true,
         child: Row(
           children: [
-            const Icon(Icons.bolt_outlined, color: AppPalette.onFill),
+            Icon(unavailableIcon(gone.kind), color: AppPalette.onFill),
             if (at != null) ...[
               const SizedBox(width: AppSpacing.sm),
               Text(
@@ -113,10 +114,13 @@ class DrillBanner extends StatelessWidget {
 /// a retry glyph.
 class DrillFailed extends StatelessWidget {
   /// Creates the block.
-  const new(this.error, this.onRetry, {super.key});
+  const new(this.error, this.onRetry, {this.icon, super.key});
 
   /// Error text (spoken only).
   final String error;
+
+  /// The failure's glyph (`code_glyphs.dart`); null = the generic one.
+  final IconData? icon;
 
   /// Sends the failed request again.
   final Future<void> Function() onRetry;
@@ -124,7 +128,7 @@ class DrillFailed extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      CueChip(kind: CueKind.error, semanticLabel: error),
+      CueChip(kind: CueKind.error, icon: icon, semanticLabel: error),
       const SizedBox(height: AppSpacing.sm),
       SpokenLabel(
         semanticLabel: 'Retry',

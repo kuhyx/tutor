@@ -62,6 +62,10 @@ class DrillSession extends ChangeNotifier {
   /// Text for the failed stage.
   String? error;
 
+  /// The worker's failure behind [error] (its codes pick the glyph); null
+  /// when the request never got a result (not sent, unreadable).
+  RelayFailed? failure;
+
   bool _disposed = false;
   Future<void> Function()? _again;
 
@@ -108,6 +112,7 @@ class DrillSession extends ChangeNotifier {
       await step();
     } on FormatException catch (e) {
       error = 'Unreadable reply: ${e.message}';
+      failure = null;
     }
     if (stage == DrillStage.loading) _stage(DrillStage.failed);
   }
@@ -116,14 +121,17 @@ class DrillSession extends ChangeNotifier {
     final status = await runner.run(body);
     switch (status) {
       case RelayDone(:final data):
-        error = null;
+        error = failure = null;
         return data;
       case RelayNotSent():
         error = status.text;
+        failure = null;
       case RelayFailed(:final text):
         error = text;
+        failure = status;
       default:
         error = 'The PC did not answer.';
+        failure = null;
     }
     return null;
   }

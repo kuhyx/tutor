@@ -3,6 +3,7 @@
 /// is out: the PC serves picks from the existing cards, no model involved.
 library;
 
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/json.dart';
 
 /// `today`: the day's minutes as the drill shows them.
@@ -53,6 +54,10 @@ class Unavailable {
 
   /// Why, as the PC worded it; null or empty when it did not say.
   final String? reason;
+
+  /// [reason] in the closed vocabulary (limit, overloaded, network; else
+  /// other): each paints its own glyph.
+  UnavailableReason get kind => UnavailableReason.parse(reason);
 
   /// The one-line banner: "Claude limit — back at HH:MM" (local time); with
   /// no reason "Claude unavailable" (and the time when it is known).

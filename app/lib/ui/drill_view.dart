@@ -16,6 +16,7 @@ import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/drill/drill_session.dart';
 import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_parts.dart';
 import 'package:tutor/ui/learn_bits.dart';
@@ -111,7 +112,14 @@ class _DrillViewState extends State<DrillView> {
                 'about right now.',
           ),
         ),
-        DrillStage.failed => DrillFailed(_run.error ?? '', _run.retry),
+        DrillStage.failed => DrillFailed(
+          _run.error ?? '',
+          _run.retry,
+          icon: switch (_run.failure) {
+            final f? => failureIcon(code: f.relayCode, reason: f.failReason),
+            null => null,
+          },
+        ),
         _ when q == null => const Center(
           child: Padding(
             padding: EdgeInsets.all(AppSpacing.xl),

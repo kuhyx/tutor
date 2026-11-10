@@ -6,9 +6,11 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/session/today_header.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
@@ -50,13 +52,11 @@ class SessionHeader extends StatelessWidget {
     );
     final t = today;
     final marks = [
-      if (clock.pausedReason != null)
+      if (clock.pauseKind case final why?
+          when !(why == PauseReason.stalled && live && clock.stalledAt(nowMs)))
         SpokenLabel(
           semanticLabel: 'Clock paused: ${clock.pausedReason}',
-          child: const Icon(
-            Icons.pause_circle_outline,
-            color: AppPalette.warning,
-          ),
+          child: Icon(pauseIcon(why), color: AppPalette.warning),
         ),
       if (live && clock.stalledAt(nowMs))
         const SpokenLabel(
