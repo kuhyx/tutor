@@ -4,7 +4,8 @@ Binding for the worker (`tutor/relay/lc*.py`) and the app (`app/lib/coach/`).
 Same envelope, `chat` lane and done-map as `DOCS-contract.md` §4; the pattern
 is `DOCS-contract-sql.md`. The coaching engine is `leetcode_coach`
 (`~/src/utils/leetcode_coach`), the runners are `sql_drills` (MySQL and
-PostgreSQL) and `code_runner` (Python 3, JavaScript, TypeScript). This file is
+PostgreSQL) and `code_runner` (Python 3, JavaScript, TypeScript; in-repo at
+`packages/code_runner`). This file is
 only the wire. Only the worker runs code, Docker or the model. Nothing here
 touches the leetcode-guard gate ledger (an AST test enforces it); a solve is
 still submitted on LeetCode itself.

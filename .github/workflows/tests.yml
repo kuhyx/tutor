@@ -39,9 +39,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ steps.py.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
+          key: venv-${{ steps.py.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'packages/code_runner/pyproject.toml') }}
       - name: Dev venv
         run: bash scripts/setup_dev.sh
+      - if: matrix.task == 'pytest'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26.13.0"
+      # code_runner's sandbox tests need bwrap; Ubuntu 24.04 blocks the
+      # unprivileged user namespaces it uses.
+      - if: matrix.task == 'pytest'
+        name: Install bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - if: matrix.task == 'pytest'
         name: Tests
         run: .venv/bin/python -m pytest -p no:cacheprovider -q

@@ -28,6 +28,9 @@ while IFS= read -r f; do
     case "$f" in
         pyproject.toml | */conftest.py | conftest.py | tests/_*.py | tutor/tests/_*.py) full=1; touched=1 ;;
         tests/test_*.py | tutor/tests/test_*.py) touched=1; tests+=("$f") ;;
+        packages/code_runner/code_runner/tests/test_*.py) touched=1; tests+=("$f") ;;
+        # code_runner's modules share one coverage gate with tutor: run all.
+        packages/code_runner/*.py | packages/code_runner/code_runner/harness/*) full=1; touched=1 ;;
         subjects/*/deck/*.json) full=1; touched=1 ;;
         tutor/*.py)
             touched=1

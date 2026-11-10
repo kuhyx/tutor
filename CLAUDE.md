@@ -40,7 +40,8 @@ Read README.md first. These are the invariants that are easy to break.
 - deploy: app build (below) first, then `scripts/tutor_deploy.sh` (refuses a missing or stale web build; smoke test, wait for idle, `systemctl --user restart tutor.service`)
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`
-- lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy tutor tests`
+- code_runner (bubblewrap example runner, was kuhyx/utils): in-repo at `packages/code_runner`, editable via `scripts/setup_dev.sh`; its tests run in the same suite and coverage gate; system python: `packages/code_runner/install.sh`
+- lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy tutor tests packages/code_runner/code_runner`
 - coverage: `.venv/bin/python -m pytest -q --cov-report=lcov:coverage.lcov`
 - coverage-gaps: `coverage-gaps coverage.lcov`
 - app deps: `cd app && fvm flutter pub get && dart run tool/write_firebase_config.dart`
