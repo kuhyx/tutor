@@ -12,14 +12,18 @@
 #                                    # --as-of rewinds the copy (e2e_prepare.py)
 #        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
 #        [--nocard due|review]      # F12: no card left (reviews due / module review)
+#        [--model-down network|refuse]  # F14: every Claude call fails: no route
+#                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1..F13 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1..F14 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
 #                                    # call it again), check (e2e_drive.py)
-#   scripts/e2e_sandbox.sh restart            # F6 again: a second worker start
+#   scripts/e2e_sandbox.sh restart [--model-down network|refuse|none]
+#                                    # F6 again: a second worker start; F14
+#                                    # switches how Claude fails in between
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
 # Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
 # E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
@@ -44,8 +48,13 @@ readonly SUBJECT="${E2E_SUBJECT:-chc-rozumie-poj-cia-z-maila-do-centrum}"
 readonly CARD="${E2E_CARD:-vhost-what}"
 readonly SESSION="${E2E_SESSION:-20261020-172115-3f84}"
 readonly DISPLAY_ID="${E2E_DISPLAY:-:97}"
-readonly DB_UNIT="tutor-e2e-db"
-readonly SERVER_UNIT="tutor-e2e-server"
+# Unit names carry this checkout's tag: parallel worktrees each run their
+# own sandbox, and one's `down` never stops another's.
+TAG="$(printf '%s' "$ROOT" | md5sum | cut -c1-8)"
+readonly TAG
+readonly DB_UNIT="tutor-e2e-db-$TAG"
+readonly SERVER_UNIT="tutor-e2e-server-$TAG"
+readonly MODEL_UNIT="tutor-e2e-model-$TAG"
 # focus_project (F7-F10) lives outside this repo; its data dir is the sandbox's.
 readonly FOCUS_SRC="${E2E_FOCUS_SRC:-$HOME/src/utils/focus_project}"
 
@@ -89,7 +98,7 @@ cmd_build() {
 
 cmd_down() {
     local unit
-    for unit in "$SERVER_UNIT" "$DB_UNIT"; do  # one by one: a
+    for unit in "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"; do  # one by one: a
         systemctl --user stop "$unit" 2>/dev/null || true    # missing unit fails all
     done
     if [[ -f "$STATE" ]]; then
@@ -105,6 +114,35 @@ cmd_down() {
     echo "e2e sandbox down"
 }
 
+# The server's -E flags for how Claude fails (F14): `network` points the
+# CLI at a closed port (an outage, reason network), `refuse` at a stub that
+# answers 400 (a model error); none = the real API.
+# Sets MODEL_ENV; fails loudly (never a silent fall back to the real API).
+MODEL_ENV=()
+model_env() {
+    local mode="$1" port
+    MODEL_ENV=()
+    systemctl --user stop "$MODEL_UNIT" 2>/dev/null || true
+    case "$mode" in
+        "" | none) return 0 ;;
+        network) port=9 ;;
+        refuse)
+            port="$(free_port)"
+            systemd-run --user --quiet --collect --unit="$MODEL_UNIT" -p RuntimeMaxSec=3600 \
+                "$PY" "$ROOT/scripts/e2e_model_stub.py" --port "$port"
+            # It answers 400 to everything: any HTTP status means it is up.
+            for _ in {1..40}; do
+                [[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/")" != 000 ]] && break
+                sleep 0.25
+            done
+            [[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/")" == 400 ]] ||
+                die "model stub did not start"
+            ;;
+        *) die "--model-down network|refuse|none, not $mode" ;;
+    esac
+    MODEL_ENV=(-E "ANTHROPIC_BASE_URL=http://127.0.0.1:$port" -E CLAUDE_CODE_MAX_RETRIES=0)
+}
+
 # Start the sandbox server on the state file's sandbox (up, restart). A
 # CLOCK runs it under libfaketime from that moment on: the worker's "today".
 start_server() {
@@ -116,6 +154,7 @@ start_server() {
     clock="$(sed -n 's/^CLOCK=//p' "$STATE")"
     local -a fake=()
     [[ -n "$clock" ]] && fake=(faketime "$clock")
+    model_env "$(sed -n 's/^MODEL=//p' "$STATE")"
     systemd-run --user --quiet --collect --unit="$SERVER_UNIT" -p RuntimeMaxSec=3600 \
         -p WorkingDirectory="$ROOT" \
         -p StandardOutput="append:$sandbox/server.log" -p StandardError="append:$sandbox/server.log" \
@@ -124,7 +163,7 @@ start_server() {
         -E TUTOR_SOURCE_CACHE="$sandbox/cache/sources" -E TUTOR_WIKI_CACHE="$sandbox/cache/wiki" \
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
         -E FOCUS_PROJECT_DATA="$sandbox/focus" \
-        -E FAKETIME_DONT_FAKE_MONOTONIC=1 \
+        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {
         tail -20 "$sandbox/server.log" >&2
@@ -140,13 +179,14 @@ start_server() {
 cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
-    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard=""
+    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model=""
     local -a pass=()
     while (($#)); do
         case "$1" in
             --struggle) struggle=1 ;;
             --carry) carry="${2:?--carry N}"; shift ;;
             --nocard) nocard="${2:?--nocard due|review}"; shift ;;
+            --model-down) model="${2:?--model-down network|refuse}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
         esac
@@ -173,8 +213,8 @@ cmd_up() {
     db_port="$(free_port)"
     port="$(free_port)"
     db="http://127.0.0.1:$db_port"
-    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\n' \
-        "$sandbox" "$db" "$port" "$dev" "$clock" > "$STATE"
+    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\n' \
+        "$sandbox" "$db" "$port" "$dev" "$clock" "$model" > "$STATE"
     systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
         java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
     wait_http "$db/.json" 40 || die "emulator did not start"
@@ -187,6 +227,9 @@ cmd_up() {
 # first, so the new worker's publish is visible.
 cmd_restart() {
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
+    if [[ "${1:-}" == --model-down ]]; then
+        sed -i "s/^MODEL=.*/MODEL=${2:?--model-down network|refuse|none}/" "$STATE"
+    fi
     systemctl --user stop "$SERVER_UNIT" 2>/dev/null || true
     curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1/stats.json" >/dev/null
     start_server
@@ -194,7 +237,7 @@ cmd_restart() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F13}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F14}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
@@ -211,10 +254,10 @@ main() {
     case "$cmd" in
         build) cmd_build ;;
         up) cmd_up "$@" ;;
-        restart) cmd_restart ;;
+        restart) cmd_restart "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] | restart | flow F1..F13 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | flow F1..F14 [send|wait|check|again] | down" ;;
     esac
 }
 
