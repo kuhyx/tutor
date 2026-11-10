@@ -25,9 +25,15 @@ const Map<String, Object> _project = {
   'site_patterns': ['hackerrank.com'],
 };
 
-Map<String, Object?> _status({bool active = true, int minutes = 42}) => {
+Map<String, Object?> _status({
+  bool active = true,
+  int minutes = 42,
+  int? unbacked,
+}) => {
   'day': '2026-11-02',
-  'active': active ? {..._project, 'minutes': minutes} : null,
+  'active': active
+      ? {..._project, 'minutes': minutes, 'unbacked_minutes': ?unbacked}
+      : null,
   'projects': [_project],
   'gates': [
     {'id': 'leetcode', 'label': 'LeetCode', 'replaceable': true},
@@ -49,12 +55,14 @@ void main() {
     bool autoStart = false,
     bool running = false,
     int minutes = 42,
+    int? unbacked,
+    int lastAgoMs = 60000,
   }) async {
     db = FakeRtdb();
     stream = FakeStream();
     final kv = MemoryKv();
     if (running) {
-      final last = DateTime.now().millisecondsSinceEpoch - 60000;
+      final last = DateTime.now().millisecondsSinceEpoch - lastAgoMs;
       await kv.set(
         'focus.timer',
         jsonEncode({'running': true, 'last': last, 'counted': 0}),
@@ -71,8 +79,18 @@ void main() {
       t,
       db,
       stream,
-      data: _status(active: active, minutes: minutes),
+      data: _status(active: active, minutes: minutes, unbacked: unbacked),
     );
+  }
+
+  int statusRequests() {
+    final reqs = getAt(db.root, 'tutor/v1/requests') as Map<String, dynamic>?;
+    return [
+      for (final r in (reqs ?? {}).values)
+        if (((r as Map<String, dynamic>)['req'] as Map)['kind'] ==
+            'focus_status')
+          r,
+    ].length;
   }
 
   List<Object?> focusEvents() {
@@ -108,6 +126,52 @@ void main() {
     expect(find.text('(+60 banked)'), findsOneWidget);
   });
 
+  testWidgets('unbacked minutes show under the ring', (t) async {
+    await open(t, unbacked: 12);
+    expect(find.text('12 min unbacked (not counted)'), findsOneWidget);
+  });
+
+  testWidgets('no unbacked minutes, no unbacked line', (t) async {
+    await open(t, unbacked: 0);
+    expect(find.textContaining('unbacked'), findsNothing);
+  });
+
+  testWidgets('an older server without the field shows no line', (t) async {
+    await open(t);
+    expect(find.textContaining('unbacked'), findsNothing);
+  });
+
+  testWidgets('no project, no unbacked line', (t) async {
+    await open(t, active: false, unbacked: 5);
+    expect(find.textContaining('unbacked'), findsNothing);
+  });
+
+  testWidgets('the ring moves on server figures, not the running clock', (
+    t,
+  ) async {
+    // 4 min 59 s into a run: the client clock reaches 5 min a second after
+    // the status loads; the ring must stay at the server's 42.
+    await open(t, running: true, lastAgoMs: 299000);
+    await t.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 1500)),
+    );
+    await t.pump(const Duration(seconds: 2));
+    expect(find.text('42'), findsOneWidget);
+    expect(find.text('43'), findsNothing);
+    await t.tap(find.text('Stop'));
+    await t.pump(const Duration(milliseconds: 50));
+  });
+
+  testWidgets('Start refreshes the status', (t) async {
+    await open(t);
+    final before = statusRequests();
+    await t.tap(find.text('Start'));
+    await t.pump(const Duration(milliseconds: 50));
+    expect(statusRequests(), before + 1);
+    await t.tap(find.text('Stop'));
+    await t.pump(const Duration(milliseconds: 50));
+  });
+
   testWidgets('no overtime, no bank line', (t) async {
     await open(t);
     expect(find.textContaining('banked'), findsNothing);
@@ -120,9 +184,8 @@ void main() {
     await t.tap(find.text('Start'));
     await t.pump(const Duration(milliseconds: 50));
     expect(find.text('Stop'), findsOneWidget);
-    final (_, req) = lastRequest(db);
-    expect(req['kind'], 'focus_event');
-    final body = req['body'] as Map<String, dynamic>;
+    // The status is asked again after the tap, so it is not the last request.
+    final body = focusEvents().single! as Map<String, dynamic>;
     expect(body['event'], 'start');
     expect(body['platform'], 'phone');
     expect(body['ts'], isA<int>());

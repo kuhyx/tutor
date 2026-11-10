@@ -30,6 +30,12 @@ void main() {
     expect(got.projects.single.workUrl, 'https://a.com/x');
   });
 
+  test('unbacked minutes are parsed, 0 when the PC sends none', () {
+    final got = _parse(_project({'unbacked_minutes': 7}));
+    expect(got.active!.unbackedMinutes, 7);
+    expect(_parse(_project({})).active!.unbackedMinutes, 0);
+  });
+
   test('a PC that sends no work URL reads as empty', () {
     expect(_parse(_project({})).active!.workUrl, '');
   });

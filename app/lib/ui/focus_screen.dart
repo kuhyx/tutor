@@ -41,7 +41,6 @@ class FocusScreen extends StatefulWidget {
 class _FocusScreenState extends State<FocusScreen> {
   late final RequestRunner _runner = RequestRunner(_s.relay);
   FocusStatus? _status;
-  int _countedAtLoad = 0;
   bool _autoStarted = false;
   ReviewSession? _card; // the check-in card's one-card review run
 
@@ -77,7 +76,7 @@ class _FocusScreenState extends State<FocusScreen> {
       items: [item],
       events: _s.events,
       src: checkinSource,
-      onRated: (at) => unawaited(_timer.cardRated(at)),
+      onRated: (at) => unawaited(_then(_timer.cardRated(at))),
       now: () => DateTime.fromMillisecondsSinceEpoch(_timer.nowMs()),
     );
   }
@@ -94,7 +93,6 @@ class _FocusScreenState extends State<FocusScreen> {
     await cacheStatus(_s.kv, result.data);
     setState(() {
       _status = parseStatus(result.data);
-      _countedAtLoad = _timer.counted.inMinutes;
     });
     await _autoStart();
   }
@@ -112,9 +110,15 @@ class _FocusScreenState extends State<FocusScreen> {
       await _timer.stop();
       await _load();
     } else {
-      _countedAtLoad = 0;
       await _timer.start();
+      await _load();
     }
+  }
+
+  // A tap or an answer changed what the server counts: ask it again.
+  Future<void> _then(Future<void> tap) async {
+    await tap;
+    if (mounted) await _load();
   }
 
   Future<void> _form({FocusProject? edit}) async {
@@ -203,9 +207,9 @@ class _FocusScreenState extends State<FocusScreen> {
     final text = Theme.of(context).textTheme;
     final running = _timer.isRunning;
     final lapsed = _timer.isLapsed;
-    final live = (_timer.counted.inMinutes - _countedAtLoad).clamp(0, 999);
     // Real minutes, never capped (121/120): the overtime banks for tomorrow.
-    final shown = project.minutes + live;
+    // Server figures only: the client clock never moves the ring.
+    final shown = project.minutes;
     final banked = (shown - project.dailyMinutes).clamp(0, _bankCap);
     final card = _cardRun();
     return Column(
@@ -225,11 +229,18 @@ class _FocusScreenState extends State<FocusScreen> {
                   ),
                 ),
         ),
+        if (project.unbackedMinutes > 0)
+          Text(
+            l.unbackedMinutes(project.unbackedMinutes),
+            style: text.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        if (project.unbackedMinutes > 0) const SizedBox(height: AppSpacing.xs),
         FocusGates(status),
         const SizedBox(height: AppSpacing.sm),
         if (_timer.wantsTap)
           FilledButton.icon(
-            onPressed: _timer.checkin,
+            onPressed: () => _then(_timer.checkin()),
             icon: const Icon(Icons.check),
             label: Text(l.stillWorking),
           ),

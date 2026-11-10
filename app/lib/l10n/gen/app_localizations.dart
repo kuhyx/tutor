@@ -172,6 +172,12 @@ abstract class AppLocalizations {
   /// **'(+{n} banked)'**
   String banked(int n);
 
+  /// Timer minutes no beat backs
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min unbacked (not counted)'**
+  String unbackedMinutes(int n);
+
   /// No description provided for @dailyMinutes.
   ///
   /// In en, this message translates to:

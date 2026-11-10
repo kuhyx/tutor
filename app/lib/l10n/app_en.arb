@@ -15,6 +15,8 @@
   "@daysLeft": {"placeholders": {"n": {"type": "int"}}},
   "banked": "(+{n} banked)",
   "@banked": {"placeholders": {"n": {"type": "int"}}},
+  "unbackedMinutes": "{n} min unbacked (not counted)",
+  "@unbackedMinutes": {"description": "Timer minutes no beat backs", "placeholders": {"n": {"type": "int"}}},
   "dailyMinutes": "Minutes per day",
   "unlockMinutes": "Unlock minutes",
   "gatesOff": "Turned off",

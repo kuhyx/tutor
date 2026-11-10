@@ -32,6 +32,7 @@ const FocusProject _edited = (
   sitePatterns: ['a.com', 'b.com'],
   workUrl: 'https://a.com/start',
   minutes: 10,
+  unbackedMinutes: 0,
 );
 
 void main() {
@@ -185,6 +186,7 @@ void main() {
       sitePatterns: <String>[],
       workUrl: '',
       minutes: 0,
+      unbackedMinutes: 0,
     );
     await pumpScreen(
       t,

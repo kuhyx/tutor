@@ -1,6 +1,7 @@
 import 'package:tutor/model/json.dart';
 
-/// A focus project; `minutes` is today's count (active project only).
+/// A focus project; `minutes` is today's count and `unbackedMinutes` the
+/// timer time no beat backs, so it is not counted (active project only).
 typedef FocusProject = ({
   String id,
   String name,
@@ -14,6 +15,7 @@ typedef FocusProject = ({
   List<String> sitePatterns,
   String workUrl,
   int minutes,
+  int unbackedMinutes,
 });
 
 /// A gate from the earner registry; `replaceable: false` is always kept.
@@ -44,6 +46,7 @@ FocusProject _project(Json j) => (
   sitePatterns: strings(j, 'site_patterns'),
   workUrl: strOr(j, 'work_url') ?? '',
   minutes: intOr(j, 'minutes') ?? 0,
+  unbackedMinutes: intOr(j, 'unbacked_minutes') ?? 0,
 );
 
 /// Parses the result `data` of `focus_status`.
