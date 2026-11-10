@@ -11,7 +11,7 @@ import android.os.IBinder
 /**
  * Foreground service that exists only while the focus timer runs: it keeps
  * the process (and the Dart timer) alive with the screen off and shows the
- * ongoing "Focus timer running" notification.
+ * ongoing notification, icon only (textgate: no title or body).
  */
 class FocusTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -24,7 +24,6 @@ class FocusTimerService : Service() {
         )
         val n = Notification.Builder(this, FocusCheckin.CHANNEL_TIMER)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Focus timer running")
             .setContentIntent(open)
             .setOngoing(true)
             .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)

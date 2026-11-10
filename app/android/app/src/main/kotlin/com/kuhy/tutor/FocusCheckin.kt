@@ -121,7 +121,10 @@ object FocusCheckin {
         raw.split(',').mapNotNull { it.toLongOrNull() }
     }
 
-    /** The alarm fired: show "Still working?"; a tap opens the app. */
+    /**
+     * The alarm fired: post the check-in prompt, icon only (textgate: no
+     * title or body); a tap opens the app, where the check-in card waits.
+     */
     fun showPrompt(ctx: Context) {
         if (!prefs(ctx).getBoolean(KEY_ARMED, false) || !notificationsAllowed(ctx)) return
         ensureChannels(ctx)
@@ -131,21 +134,20 @@ object FocusCheckin {
         )
         val n = Notification.Builder(ctx, CHANNEL_PROMPT)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Still working?")
-            .setContentText("Tap to keep the focus timer counting")
             .setContentIntent(open)
             .setCategory(Notification.CATEGORY_REMINDER)
             .build()
         notifications(ctx).notify(ID_PROMPT, n)
     }
 
+    /** Channel names are one glyph each (settings shows them; textgate). */
     fun ensureChannels(ctx: Context) {
         val nm = notifications(ctx)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_PROMPT, "Focus check-in", NotificationManager.IMPORTANCE_HIGH)
+            NotificationChannel(CHANNEL_PROMPT, "🔔", NotificationManager.IMPORTANCE_HIGH)
         )
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_TIMER, "Focus timer", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_TIMER, "⏱", NotificationManager.IMPORTANCE_LOW)
         )
     }
 
