@@ -128,7 +128,7 @@ void main() {
       expect(f.kind, row['kind']);
       expect(f.text, isNot(contains(_sentinel)), reason: '$row');
       expect(relayCue(f)!.semanticLabel, isNot(contains(_sentinel)));
-      expect(relayCue(f)!.icon, kindIcon(row['kind'] as String));
+      expect(relayCue(f)!.icon, failureIcon(f));
     }
     final future = _failed({'code': 'model_error', 'kind': 'err_new_thing'});
     expect(relayCue(future)!.icon, fallbackErrorIcon);
