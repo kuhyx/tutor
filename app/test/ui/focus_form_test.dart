@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/focus/focus_models.dart';
 import 'package:tutor/ui/focus_form.dart';
+import 'package:tutor/ui/numeric_date_picker.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/fake_rtdb.dart';
@@ -121,7 +122,7 @@ void main() {
     // A started project's start date is fixed.
     await t.tap(find.text('2026-11-01'));
     await t.pump();
-    expect(find.byType(DatePickerDialog), findsNothing);
+    expect(find.byType(NumericDatePicker), findsNothing);
     await t.enterText(find.byType(TextField).first, 'HR prep 2');
     await t.tap(find.text('Automation'));
     await t.pump();
@@ -196,6 +197,6 @@ void main() {
     );
     await t.tap(find.text('2026-11-04'));
     await t.pumpAndSettle();
-    expect(find.byType(DatePickerDialog), findsOneWidget);
+    expect(find.byType(NumericDatePicker), findsOneWidget);
   });
 }

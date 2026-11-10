@@ -11,6 +11,7 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/focus_gates.dart';
+import 'package:tutor/ui/numeric_date_picker.dart';
 import 'package:tutor/widgets/content_text.dart';
 
 /// Creates or, given [edit], edits a focus project: dates, gates to turn
@@ -73,7 +74,7 @@ class _FocusFormState extends State<FocusFormScreen> {
   }
 
   Future<void> _pick({required bool start}) async {
-    final picked = await showDatePicker(
+    final picked = await showNumericDatePicker(
       context: context,
       initialDate: start ? _start : _end,
       firstDate: _today,
