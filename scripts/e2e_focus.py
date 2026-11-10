@@ -25,9 +25,10 @@ Runs on a sandbox that is ``up`` (``e2e_sandbox.sh``): the worker's
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import json
 from pathlib import Path
+import re
 import time
 from typing import Any
 import uuid
@@ -38,6 +39,7 @@ from tutor.curriculum.ids import ulid
 
 ROUTE = "/focus"
 START, CHECKIN, STOP = "Start", "Still working", "Stop"
+END = "Until"  # the form's end-date field
 # Page-side, before the app boots: a Notification that is granted, recorded
 # in ``window.__notes`` and clickable by the script; timers of 60 s or more
 # run 100x faster (the notifier's 7 minutes become 4.2 s); ``__skew(ms)``
@@ -195,6 +197,18 @@ def f7(flow: Flow) -> None:
     _date_picker(flow)
 
 
+def _end_shows(flow: Flow, day: date) -> None:
+    """The form's end field (spoken ``Until`` + its date) holds ``day``."""
+    flow.step(f"the end field shows {day}")
+    want = re.compile(rf"{END}\s*{day.isoformat()}")
+    deadline = time.monotonic() + 10
+    while not want.search(text := flow.browser.page_text()):
+        if time.monotonic() > deadline:
+            msg = f"end field is not {day}; saw: {text[:300]!a}"
+            raise FlowError(msg)
+        time.sleep(0.25)
+
+
 def _date_picker(flow: Flow) -> None:
     """Edit form: the numeric date picker moves the end date; ✕ keeps it.
 
@@ -206,19 +220,20 @@ def _date_picker(flow: Flow) -> None:
     nxt = (end.replace(day=1) + timedelta(days=32)).replace(day=15)
     flow.step(f"edit form: pick {nxt} for the end date ({end})")
     flow.tap("Edit")
-    flow.tap(end.isoformat())
+    _end_shows(flow, end)
+    flow.tap(END)
     flow.expect("Next month", "Confirm", "Cancel", end.isoformat())
     flow.shot("picker")
     flow.tap("Next month")
     flow.tap(nxt.isoformat())
     flow.shot("picker-next")
     flow.tap("Confirm")
-    flow.expect(nxt.isoformat())
+    _end_shows(flow, nxt)
     flow.step("reopen, then ✕: the end date stays")
-    flow.tap(nxt.isoformat())
-    flow.expect("Cancel")
+    flow.tap(END)
+    flow.expect("Cancel", nxt.isoformat())
     flow.tap("Cancel")
-    flow.expect(nxt.isoformat())
+    _end_shows(flow, nxt)
     flow.shot("picked")
     flow.tap("Back")
     flow.expect(START)
