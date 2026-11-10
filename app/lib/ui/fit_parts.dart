@@ -8,13 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/widgets/content_text.dart';
 
-/// [narrow] on phones (below [kTwoColumns]), [wide] on the desktop.
+/// [narrow] on phones ([isCompact]), [wide] (the old layout) otherwise.
 Widget widthSwitch({
   required WidgetBuilder narrow,
   required WidgetBuilder wide,
-}) => LayoutBuilder(
-  builder: (context, box) =>
-      box.maxWidth < kTwoColumns ? narrow(context) : wide(context),
+}) => Builder(
+  builder: (context) => isCompact(context) ? narrow(context) : wide(context),
 );
 
 /// A phone page inside the safe area; the last child usually `Expanded`.
