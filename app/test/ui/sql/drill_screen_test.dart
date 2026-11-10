@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
 import 'package:tutor/ui/sql/result_view.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../../sql/sql_fixtures.dart';
 import '../../support/fake_rtdb.dart';
 import '../../support/fake_stream.dart';
+import '../../support/label_finders.dart';
 import '../../support/services.dart';
 import '../../support/ui.dart';
 
@@ -102,7 +104,7 @@ void main() {
     await open(t);
     await run(t, 'select 1');
     await answer(t, db, stream, data: {'rows': 5});
-    expect(find.textContaining('expected array'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 
   testWidgets('Hint sends the SQL, last result and history', (t) async {

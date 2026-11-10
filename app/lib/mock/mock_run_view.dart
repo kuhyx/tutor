@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/mock/mock_models.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The actual output of a Run: an error, a SQL grid or example verdicts.
 class MockRunView extends StatelessWidget {
@@ -15,7 +16,7 @@ class MockRunView extends StatelessWidget {
   Widget build(BuildContext context) {
     final error = run.error;
     if (error != null) {
-      return Text(
+      return ContentText(
         error,
         style: sqlMono.copyWith(color: Theme.of(context).colorScheme.error),
       );
@@ -49,7 +50,7 @@ class _Example extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: Text(
+          child: ContentText(
             '${e.input}\n=> ${e.actual}'
             '${e.ok ? '' : '\n!= ${e.expected}'}'
             '${e.error == null ? '' : '\n${e.error}'}',

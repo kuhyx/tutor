@@ -5,6 +5,7 @@ import 'package:tutor/model/log_event.dart';
 import 'package:tutor/ui/session/session_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -36,14 +37,14 @@ void main() {
       settle: false, // the empty chat's spinner never settles
     );
     expect(
-      find.textContaining('No card left to teach in How a car works'),
+      cueContaining('No card left to teach in How a car works'),
       findsOneWidget,
     );
-    expect(find.textContaining('left in car'), findsNothing);
-    await t.tap(find.text('Review Fuel and ignition'));
+    expect(cueContaining('left in car'), findsNothing);
+    await t.tap(controlByLabel('Review Fuel and ignition'));
     await sent(t);
     await sent(t);
-    expect(find.text('Review: Fuel and ignition'), findsOneWidget);
+    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
     expect(find.text('What ignites the mixture?'), findsOneWidget);
   });
 
@@ -68,8 +69,8 @@ void main() {
     );
     final hh = due.hour.toString().padLeft(2, '0');
     final mm = due.minute.toString().padLeft(2, '0');
-    expect(find.textContaining('Reviews due on'), findsOneWidget);
-    expect(find.textContaining('at $hh:$mm.'), findsOneWidget);
-    expect(find.textContaining(RegExp('^Review ')), findsNothing);
+    expect(cueContaining('Reviews due on'), findsOneWidget);
+    expect(cueContaining('at $hh:$mm.'), findsOneWidget);
+    expect(glyphsLabelled('Review Fuel and ignition'), findsNothing);
   });
 }

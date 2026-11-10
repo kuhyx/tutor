@@ -21,6 +21,8 @@ import 'package:tutor/ui/sql/done_listener.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
 import 'package:tutor/ui/sql/lesson_layout.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The lesson for [topic]; it resumes the one saved on this install.
 class SqlLessonScreen extends StatefulWidget {
@@ -178,7 +180,7 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
       chat: _chat(),
     );
     return Scaffold(
-      appBar: AppBar(title: Text(_topic)),
+      appBar: AppBar(title: ContentText(_topic)),
       body: SafeArea(child: body),
     );
   }
@@ -195,7 +197,7 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
               turn.check ? Icons.quiz_outlined : Icons.school_outlined,
               semanticLabel: turn.check ? 'Check' : 'Lesson',
             ),
-            title: Text(turn.concept),
+            title: ContentText(turn.concept),
             trailing: Text('${turn.index + 1}/${turn.total}'),
           ),
         Expanded(
@@ -206,7 +208,7 @@ class _SqlLessonScreenState extends State<SqlLessonScreen>
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
               for (final b in _thread) BubbleView(b),
-              if (_problem != null) Text(_problem!),
+              if (_problem != null) problemCue(_problem!),
             ],
           ),
         ),

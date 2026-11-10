@@ -1,11 +1,11 @@
 // build-mobile-app R7: Review fits one Pixel 6a screen in every state.
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/ui/review_screen.dart';
 
 import '../support/fake_stream.dart';
 import '../support/fit.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -22,22 +22,22 @@ void main() {
     );
     await pumpFit(t, ReviewScreen(services: s, now: () => then));
     expectFits(t, state: 'front');
-    expectReachable(t, find.text('Show answer (Space)'));
-    await t.tap(find.text('Show answer (Space)'));
+    expectReachable(t, spoken('Show answer (Space)'));
+    await t.tap(spoken('Show answer (Space)'));
     await t.pumpAndSettle();
     expectFits(t, state: 'back');
-    expectReachable(t, find.text('3 Good'));
-    await t.tap(find.text('Flag (F)'));
+    expectReachable(t, spoken('3 Good'));
+    await t.tap(spoken('Flag (F)'));
     await t.pumpAndSettle();
     pixelView(t, scale: scale, keyboard: fitKeyboard);
     await t.pumpAndSettle();
     expectFits(t, state: 'flag + keyboard');
-    expectReachable(t, find.widgetWithText(FilledButton, 'Flag'));
-    await t.tap(find.widgetWithText(FilledButton, 'Flag'));
+    expectReachable(t, spoken('Flag'));
+    await t.tap(spoken('Flag'));
     pixelView(t, scale: scale);
     await t.pumpAndSettle();
     // Flagging retires the only card.
-    expect(find.text('All done'), findsOneWidget);
+    expect(spokenHas('All done'), findsOneWidget);
     expectFits(t, state: 'done');
   });
 

@@ -2,10 +2,12 @@
 // composer (focus, step, typed text) surviving the layout change.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tutor/ui/session/collapsed_tile.dart';
 import 'package:tutor/ui/session/composer.dart';
 import 'package:tutor/util/device.dart';
 
 import '../support/composer.dart';
+import '../support/label_finders.dart';
 
 void main() {
   tearDown(() => debugPhone = false);
@@ -14,7 +16,7 @@ void main() {
     t,
   ) async {
     await openComposer(t, phone: true);
-    expect(find.textContaining('This card:'), findsOneWidget);
+    expect(bySpoken('This card:', prefix: true), findsOneWidget);
     expect(rich('Good. Now three quick ones'), findsOneWidget);
     double scale() =>
         MediaQuery.of(t.element(find.byType(Composer))).textScaler.scale(1);
@@ -23,21 +25,27 @@ void main() {
     t.view.viewInsets = const FakeViewPadding(bottom: 300);
     addTearDown(t.view.resetViewInsets);
     await t.pumpAndSettle();
-    expect(find.textContaining('This card:'), findsNothing);
-    expect(find.textContaining('Today:'), findsNothing);
+    expect(bySpoken('This card:', prefix: true), findsNothing);
+    expect(bySpoken('Today:', prefix: true), findsNothing);
     expect(rich('Good. Now three quick ones'), findsNothing);
     expect(rich('a guess is fine.'), findsOneWidget);
     expect(scale(), closeTo(0.85, 1e-9));
     // The question and its box are still there.
     expect(find.text('1/3'), findsOneWidget);
 
-    await t.tap(find.byIcon(Icons.expand_more));
+    // The folded tile's own chevron (the Thinking panel has one too).
+    await t.tap(
+      find.descendant(
+        of: find.byType(CollapsedTile),
+        matching: find.byIcon(Icons.expand_more),
+      ),
+    );
     await t.pumpAndSettle();
     expect(rich('Good. Now three quick ones'), findsOneWidget);
 
     t.view.resetViewInsets();
     await t.pumpAndSettle();
-    expect(find.textContaining('This card:'), findsOneWidget);
+    expect(bySpoken('This card:', prefix: true), findsOneWidget);
     expect(scale(), 1);
   });
 
@@ -45,7 +53,7 @@ void main() {
     t,
   ) async {
     await openComposer(t, phone: true);
-    await t.tap(find.text('Next')); // 2/3
+    await t.tap(controlByLabel('Next')); // 2/3
     await t.pumpAndSettle();
     await t.tap(find.byType(TextField)); // focus the box
     await t.enterText(find.byType(TextField), 'half typed');

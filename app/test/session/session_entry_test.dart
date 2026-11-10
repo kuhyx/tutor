@@ -8,19 +8,22 @@ const _car = Live(session: '20261012-195411-37f4', subject: 'how-a-car-works');
 void main() {
   test('no subject picked: whatever is live, or Learn', () {
     final none = sessionEntry(null, null);
-    expect((none.label, none.subject, none.resume), ('Learn', null, false));
+    expect(
+      (none.kind, none.subject, none.resume),
+      (SessionKind.learn, null, false),
+    );
     final live = sessionEntry(_car, null);
     expect(
-      (live.label, live.subject, live.resume),
-      ('Continue session', null, false),
+      (live.kind, live.subject, live.resume),
+      (SessionKind.live, null, false),
     );
   });
 
   test('the live session is of the picked subject: continue it', () {
     final e = sessionEntry(_car, 'how-a-car-works');
     expect(
-      (e.label, e.subject, e.resume),
-      ('Continue session', 'how-a-car-works', false),
+      (e.kind, e.subject, e.resume),
+      (SessionKind.live, 'how-a-car-works', false),
     );
   });
 
@@ -29,10 +32,16 @@ void main() {
     for (final live in [_car, null]) {
       final e = sessionEntry(live, 'automation');
       expect(
-        (e.label, e.subject, e.resume),
-        ('Continue learning', 'automation', true),
+        (e.kind, e.subject, e.resume),
+        (SessionKind.resume, 'automation', true),
       );
     }
+  });
+
+  test('the spoken labels are the old button words', () {
+    expect(sessionEntry(null, null).semanticLabel, 'Learn');
+    expect(sessionEntry(_car, null).semanticLabel, 'Continue session');
+    expect(sessionEntry(null, 'x').semanticLabel, 'Continue learning');
   });
 
   test('session_start carries resume only when asked', () {

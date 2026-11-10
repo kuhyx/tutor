@@ -89,9 +89,10 @@ throwaway key.
   included.
 - `prepaid`: the carry minutes the ledger pays today.
 
-The app shows "Banked N min · prepaid M" next to the credited counter (the
-Session header and Home), only when either is > 0. An older worker sends
-neither key.
+The app shows a savings glyph with "N · M" next to the credited counter (the
+Session header and Home), only when either is > 0; the words "Banked N min ·
+prepaid M" are its spoken label (the text-free UI, textgate). An older worker
+sends neither key.
 
 ## Leftover rows
 

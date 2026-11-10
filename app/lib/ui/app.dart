@@ -10,6 +10,8 @@ import 'package:tutor/ui/sign_in_screen.dart';
 import 'package:tutor/ui/start_screen.dart';
 import 'package:tutor/ui/ui_scale.dart';
 import 'package:tutor/ui/ui_zoom.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 /// The app.
 class TutorApp extends StatelessWidget {
@@ -37,11 +39,11 @@ class TutorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Tutor',
+    title: 'Tutor', // the proper noun: window / tab title
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    theme: buildLightTheme(),
-    darkTheme: buildDarkTheme(),
+    theme: textFreeTheme(buildLightTheme()),
+    darkTheme: textFreeTheme(buildDarkTheme()),
     builder: (context, child) => UiZoomHost(
       zoom: zoom,
       child: UiScale(child: child!),
@@ -108,17 +110,15 @@ class _Loading extends StatelessWidget {
 class _Message extends StatelessWidget {
   const new(this.text);
 
+  /// The spoken detail; the screen paints an error cue only.
   final String text;
 
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kProseMaxWidth),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Text(text, textAlign: TextAlign.center),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: CueChip(kind: CueKind.error, semanticLabel: text),
       ),
     ),
   );

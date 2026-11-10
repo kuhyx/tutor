@@ -8,11 +8,13 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/model/message.dart';
-import 'package:tutor/progress/terms.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/ui/session/md_text.dart';
 import 'package:tutor/ui/session/media.dart';
 import 'package:tutor/ui/session/thinking_panel.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// A message bubble.
 class MessageTile extends StatelessWidget {
@@ -53,10 +55,23 @@ class MessageTile extends StatelessWidget {
               flex: 4,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                child: Text(
-                  'Next card: ${m.text}',
-                  style: text.labelLarge,
-                  textAlign: TextAlign.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SpokenLabel(
+                      // Longer than the Next card button's own label.
+                      semanticLabel: 'Next card: ${m.text}',
+                      child: const Icon(Icons.skip_next),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Flexible(
+                      child: ContentText(
+                        m.text,
+                        style: text.labelLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -86,22 +101,36 @@ class MessageTile extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      m.lowEffort
-                          ? 'Tutor (last reply was low effort)'
-                          : 'Tutor',
-                      style: text.labelMedium,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SpokenLabel(
+                        semanticLabel: m.lowEffort
+                            ? 'Tutor (last reply was low effort)'
+                            : 'Tutor',
+                        child: Icon(
+                          m.lowEffort
+                              ? Icons.sentiment_dissatisfied_outlined
+                              : Icons.school_outlined,
+                          size: AppTextSize.body,
+                          color: m.lowEffort ? AppPalette.warning : null,
+                        ),
+                      ),
                     ),
                   ),
                   if (onReport != null)
-                    TextButton(
+                    GlyphButton(
+                      icon: Icons.flag_outlined,
+                      semanticLabel: '⚑ Report',
                       onPressed: onReport,
-                      child: const Text('⚑ Report'),
                     ),
                 ],
               )
             else if (pending)
-              Text('You (sending...)', style: text.labelMedium),
+              const SpokenLabel(
+                semanticLabel: 'You (sending...)',
+                liveRegion: true,
+                child: Icon(Icons.schedule_send_outlined, size: 16),
+              ),
             MarkdownText(m.text),
             for (final img in m.images) CommonsFigure(img),
             for (final d in m.diagrams) DiagramView(d),
@@ -109,15 +138,37 @@ class MessageTile extends StatelessWidget {
             if (!questionsAsBoxes)
               for (final a in askedOf(m)) _Question(a),
             if (m.masteredNew.isNotEmpty)
-              Tooltip(
-                message: knownHelp,
-                child: Text(
-                  'Known: ${m.masteredNew.join(', ')}',
-                  style: text.bodySmall,
+              Row(
+                children: [
+                  const SpokenLabel(
+                    semanticLabel: 'Known',
+                    child: Icon(Icons.lightbulb_outline, size: 16),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: ContentText(
+                      m.masteredNew.join(', '),
+                      style: text.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            // Card-edit notices: worker sentences, spoken only.
+            for (final n in m.notices)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: CueChip(
+                  kind: CueKind.ok,
+                  icon: Icons.edit_note,
+                  semanticLabel: n,
                 ),
               ),
-            for (final n in m.notices) Text(n, style: text.labelMedium),
-            if (m.cardDone) const _Banner('Card done ✓', ok: true),
+            if (m.cardDone)
+              const _Banner(
+                icon: Icons.check_circle,
+                spoken: 'Card done ✓',
+                ok: true,
+              ),
             if (tutor && m.trace.isNotEmpty) ThinkingPanel(steps: m.trace),
           ],
         ),
@@ -136,8 +187,10 @@ class _CheckResult extends StatelessWidget {
     final passed = result['passed'] == true;
     final feedback = result['feedback'];
     return _Banner(
-      'Check ${passed ? 'passed' : 'not yet'}: '
-      '${feedback is String ? feedback : ''}',
+      icon: passed ? Icons.fact_check : Icons.replay,
+      spoken: 'Check ${passed ? 'passed' : 'not yet'}',
+      // The tutor's feedback on the answer: content.
+      feedback: feedback is String ? feedback : null,
       ok: passed,
     );
   }
@@ -163,18 +216,37 @@ class _Question extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(asked.heading, style: Theme.of(context).textTheme.labelMedium),
-        Text(asked.text),
+        Row(
+          children: [
+            SpokenLabel(
+              semanticLabel: asked.heading,
+              child: Text(
+                asked.label,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            if (asked.check)
+              const Icon(Icons.fact_check_outlined, size: AppTextSize.label),
+          ],
+        ),
+        ContentText(asked.text),
       ],
     ),
   );
 }
 
 class _Banner extends StatelessWidget {
-  const new(this.text, {required this.ok});
+  const new({
+    required this.icon,
+    required this.spoken,
+    required this.ok,
+    this.feedback,
+  });
 
-  final String text;
+  final IconData icon;
+  final String spoken;
   final bool ok;
+  final String? feedback;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -185,6 +257,22 @@ class _Banner extends StatelessWidget {
       color: ok ? AppPalette.success : AppPalette.warning,
       borderRadius: BorderRadius.circular(AppRadius.sm),
     ),
-    child: Text(text, style: const TextStyle(color: AppPalette.onFill)),
+    child: Row(
+      children: [
+        SpokenLabel(
+          semanticLabel: spoken,
+          child: Icon(icon, color: AppPalette.onFill),
+        ),
+        if (feedback != null && feedback!.isNotEmpty) ...[
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: ContentText(
+              feedback!,
+              style: const TextStyle(color: AppPalette.onFill),
+            ),
+          ),
+        ],
+      ],
+    ),
   );
 }

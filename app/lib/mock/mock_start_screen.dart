@@ -12,6 +12,7 @@ import 'package:tutor/model/json.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
 
 const List<int> _lengths = [30, 45, mockMinutes, 90];
 
@@ -104,7 +105,7 @@ class _MockStartScreenState extends State<MockStartScreen> {
           ),
         ),
         RequestStatusLine(_start),
-        if (_problem != null) Text(_problem!),
+        if (_problem != null) problemCue(_problem!),
       ],
     ),
   );

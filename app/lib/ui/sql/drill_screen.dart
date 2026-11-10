@@ -20,10 +20,12 @@ import 'package:tutor/ui/sql/done_listener.dart';
 import 'package:tutor/ui/sql/drill_buttons.dart';
 import 'package:tutor/ui/sql/hint_list.dart';
 import 'package:tutor/ui/sql/prediction_grid.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
 import 'package:tutor/ui/sql/result_view.dart';
 import 'package:tutor/ui/sql/sql_editor.dart';
 import 'package:tutor/ui/sql/task_view.dart';
 import 'package:tutor/widgets/code_symbol_bar.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// From this width the task and the work sit side by side.
 const kSqlTwoPanes = 900.0;
@@ -120,14 +122,14 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
   Widget build(BuildContext context) {
     final drill = _drill;
     final wide = MediaQuery.sizeOf(context).width >= kSqlTwoPanes;
-    final title = Text(drill?.meta.title ?? widget.title);
+    final title = ContentText(drill?.meta.title ?? widget.title);
     if (drill == null) {
       return Scaffold(
         appBar: AppBar(title: title),
         body: PageList(
           children: [
             RequestStatusLine(_get),
-            if (_problem != null) Text(_problem!),
+            if (_problem != null) problemCue(_problem!),
           ],
         ),
       );
@@ -239,7 +241,7 @@ class _SqlDrillScreenState extends State<SqlDrillScreen> {
       const SizedBox(height: AppSpacing.sm),
       RequestStatusLine(_run),
       RequestStatusLine(_hint),
-      if (_problem != null) Text(_problem!),
+      if (_problem != null) problemCue(_problem!),
       if (o != null) ResultView(o, key: ObjectKey(o)),
       const SizedBox(height: AppSpacing.md),
       HintList(_hints),

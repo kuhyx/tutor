@@ -9,6 +9,7 @@ import 'package:tutor/ui/transcript_screen.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
 import '../support/fit.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _old = '20261011-090000-a1b2';
@@ -65,6 +66,6 @@ void main() {
     final s = await fixtureServices(_db(extra: 0), FakeStream());
     await pumpFit(t, TranscriptScreen(services: s, sid: _old));
     expectFits(t, state: 'transcript');
-    expectReachable(t, find.text('Repeat'));
+    expectReachable(t, controlByLabel('Repeat'));
   });
 }

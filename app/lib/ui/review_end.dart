@@ -1,11 +1,12 @@
 /// Review's end of run: nothing due / nothing to review, or All done.
 library;
 
-import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/learn_bits.dart';
 import 'package:tutor/ui/review_answer.dart';
+import 'package:tutor/widgets/count_badge.dart';
 
 /// The screen once [run] has no card left (or never had one).
 class ReviewEnd extends StatelessWidget {
@@ -24,17 +25,20 @@ class ReviewEnd extends StatelessWidget {
     final empty = run.items.isEmpty;
     return PageList(
       children: [
-        EmptyState(
-          icon: Icons.check_circle_outline,
-          title: empty
-              ? (module ? 'Nothing to review' : 'Nothing due')
-              : 'All done',
-          message: empty
-              ? (module
-                    ? 'No card of this module is taught yet.'
-                    : 'Cards come back here when they are due.')
-              : 'Reviewed $n card${n == 1 ? '' : 's'}. '
-                    'Reviews sync when online.',
+        SizedBox(
+          height: 240,
+          child: GlyphEmpty(
+            icon: empty ? Icons.event_available : Icons.check_circle_outline,
+            semanticLabel: empty
+                ? (module
+                      ? 'Nothing to review. No card of this module is '
+                            'taught yet.'
+                      : 'Nothing due. Cards come back here when they are '
+                            'due.')
+                : 'All done. Reviewed $n card${n == 1 ? '' : 's'}. '
+                      'Reviews sync when online.',
+            stats: [if (!empty) GlyphStat(Icons.style_outlined, '$n')],
+          ),
         ),
         // A mistaken rating on the last card is fixed from here.
         Center(child: ReviewBack(run)),

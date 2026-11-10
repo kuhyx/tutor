@@ -13,6 +13,8 @@ import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/session/composer.dart';
 
+import '../support/label_finders.dart';
+
 const _sid = '20261017-120000-abcd';
 
 KeyedMessage _msg(String key, List<String> questions) => KeyedMessage(
@@ -77,9 +79,11 @@ Future<List<String>> _pump(
 String _box(WidgetTester t, int i) =>
     t.widget<TextField>(find.byType(TextField).at(i)).controller!.text;
 
-VoidCallback? _chip(WidgetTester t, String label) => t
-    .widget<ActionChip>(find.widgetWithText(ActionChip, label).first)
-    .onPressed;
+VoidCallback? _chip(WidgetTester t, String label) => label == 'Hint'
+    ? pressOf(t, 'Hint')
+    : t
+          .widget<ActionChip>(find.widgetWithText(ActionChip, label).first)
+          .onPressed;
 
 void main() {
   testWidgets('busy: boxes typeable; Send, Ctrl+Enter, Hint wait', (t) async {
@@ -92,8 +96,7 @@ void main() {
     await t.enterText(boxes.at(1), 'typed while busy');
     await t.pump();
     expect(_box(t, 1), 'typed while busy');
-    final send = find.widgetWithText(FilledButton, 'Send');
-    expect(t.widget<FilledButton>(send).onPressed, isNull);
+    expect(pressOf(t, 'Send'), isNull);
     expect(_chip(t, 'Hint'), isNull);
     expect(_chip(t, 'a'), isNotNull); // a choice only fills the box
     await t.tap(find.text('a'));
@@ -107,7 +110,7 @@ void main() {
 
     await _pump(t, latest: msg, kv: kv); // the turn is over
     expect(_box(t, 1), 'typed while busy');
-    expect(t.widget<FilledButton>(send).onPressed, isNotNull);
+    expect(pressOf(t, 'Send'), isNotNull);
   });
 
   testWidgets('a late draft load never clobbers typed text', (t) async {

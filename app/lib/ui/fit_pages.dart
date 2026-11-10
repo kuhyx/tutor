@@ -148,13 +148,19 @@ class FitPagerBar extends StatelessWidget {
               IconButton(
                 key: const ValueKey('fit-prev'),
                 onPressed: c.page > 0 ? c.prev : null,
-                icon: Icon(Icons.chevron_left, semanticLabel: l10n.pagePrev),
+                icon: const Icon(
+                  Icons.chevron_left,
+                  semanticLabel: 'Previous page',
+                ),
               ),
               Text(l10n.stepOf(c.page + 1, c.count)),
               IconButton(
                 key: const ValueKey('fit-next'),
                 onPressed: c.page < c.count - 1 ? c.next : null,
-                icon: Icon(Icons.chevron_right, semanticLabel: l10n.pageNext),
+                icon: const Icon(
+                  Icons.chevron_right,
+                  semanticLabel: 'Next page',
+                ),
               ),
             ],
           ),

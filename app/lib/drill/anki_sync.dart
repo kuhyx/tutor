@@ -54,6 +54,21 @@ class ChannelAnkiLauncher implements AnkiLauncher {
   }
 }
 
+/// How the last sync run stands, for the glyph that shows it.
+enum AnkiOutcome {
+  /// Syncing, waiting for the credit to rise.
+  syncing,
+
+  /// The credit rose ([AnkiSync.gained] minutes).
+  gained,
+
+  /// The wait ran out with no new credit.
+  none,
+
+  /// AnkiDroid did not start a sync.
+  notStarted,
+}
+
 /// One sync-and-wait run at a time.
 class AnkiSync extends ChangeNotifier {
   /// Creates the sync; [interval]/[timeout]/[callTimeout]/[now] are injectable for tests.
@@ -90,6 +105,12 @@ class AnkiSync extends ChangeNotifier {
   /// The result line ("+3 min from Anki", or why not); null before a run.
   String? message;
 
+  /// How the last run stands; null before a run. [message] says it in words.
+  AnkiOutcome? outcome;
+
+  /// Minutes the last run credited (with [AnkiOutcome.gained]).
+  int gained = 0;
+
   /// Set when the PC says Claude is out.
   Unavailable? unavailable;
 
@@ -99,9 +120,12 @@ class AnkiSync extends ChangeNotifier {
     if (running) return;
     running = true;
     final deadline = _now().add(timeout);
+    gained = 0;
+    outcome = AnkiOutcome.syncing;
     _say('Syncing AnkiDroid...');
     final baseline = _credited();
     if (!await launcher.sync()) {
+      outcome = AnkiOutcome.notStarted;
       _end('AnkiDroid did not start a sync. Is it installed?');
     } else {
       _end(await _wait(await baseline, deadline));
@@ -118,9 +142,12 @@ class AnkiSync extends ChangeNotifier {
       final credited = await _credited();
       from ??= credited;
       if (credited != null && credited > from!) {
-        return '+${credited - from} min from Anki';
+        gained = credited - from;
+        outcome = AnkiOutcome.gained;
+        return '+$gained min from Anki';
       }
     }
+    outcome = AnkiOutcome.none;
     return 'No new credit from Anki yet. AnkiDroid syncs at most every 2 min.';
   }
 

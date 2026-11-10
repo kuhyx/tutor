@@ -7,8 +7,10 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/layout.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
 import 'package:tutor/ui/sql/sql_editor.dart';
 import 'package:tutor/widgets/code_symbol_bar.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The code tab: language, editor with line numbers, Run, per-example
 /// results. `touch` adds the symbol row a phone keyboard lacks.
@@ -45,7 +47,10 @@ class CoachCodeTab extends StatelessWidget {
           value: langs.contains(s.lang) ? s.lang : null,
           items: [
             for (final l in langs)
-              DropdownMenuItem(value: l, child: Text(coachLangs[l] ?? l)),
+              DropdownMenuItem(
+                value: l,
+                child: ContentText(coachLangs[l] ?? l),
+              ),
           ],
           onChanged: (l) => l == null ? null : s.setLang(l),
         ),
@@ -56,7 +61,7 @@ class CoachCodeTab extends StatelessWidget {
       final results = [
         RequestStatusLine(s.runs),
         if (report != null && report.held && s.note != null)
-          Text(s.note!, key: const ValueKey('run-note')),
+          noteCue(s.note!, key: const ValueKey('run-note')),
         if (report != null && !report.held)
           CoachRunView(report, key: ObjectKey(report)),
       ];

@@ -4,6 +4,7 @@ import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/progress_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -16,9 +17,10 @@ void main() {
       ProgressScreen(services: s),
       size: const Size(1366, 2400),
     );
-    expect(find.text('Credited minutes per day'), findsOneWidget);
+    expect(spoken('Credited minutes per day'), findsOneWidget);
     expect(find.text('2026-10-12'), findsOneWidget);
-    expect(find.textContaining('85% · reviewed'), findsOneWidget);
+    expect(spoken('recall 85%'), findsOneWidget);
+    expect(spokenHas('Reviewed: every card'), findsWidgets);
   });
 
   testWidgets('no days yet; unreachable', (t) async {
@@ -27,9 +29,9 @@ void main() {
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, ProgressScreen(services: s));
-    expect(find.text('No days yet'), findsOneWidget);
+    expect(spokenHas('No days yet'), findsOneWidget);
     db.offline = true;
     await pumpScreen(t, ProgressScreen(services: s, key: UniqueKey()));
-    expect(find.textContaining('Could not load'), findsOneWidget);
+    expect(cueHas('Could not load'), findsOneWidget);
   });
 }

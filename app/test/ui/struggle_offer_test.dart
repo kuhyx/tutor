@@ -3,7 +3,6 @@
 // dismissable "Struggling with this card?" offer; "Get help" sends
 // `session_start` `struggle: true` and opens the session; greyed out while
 // the PC is offline. Dismissing records nothing.
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/app/services.dart';
@@ -16,6 +15,7 @@ import 'package:tutor/ui/session/session_screen.dart';
 
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _cardPath = 'tutor/v1/subjects/car/cards/eng-crank';
@@ -51,7 +51,7 @@ Future<(FakeRtdb, FakeStream, TutorServices)> _setUp(int misses) async {
 Future<void> _rate(WidgetTester t, String grade) async {
   await t.sendKeyEvent(LogicalKeyboardKey.space);
   await t.pumpAndSettle();
-  await t.tap(find.text(grade));
+  await t.tap(controlByLabel(grade));
   await t.pumpAndSettle();
 }
 
@@ -65,23 +65,23 @@ void main() {
     await t.sendKeyEvent(LogicalKeyboardKey.space);
     await t.pumpAndSettle();
     expect(find.text(_mnemonic), findsOneWidget);
-    expect(find.text(_offer), findsNothing);
-    await t.tap(find.text('1 Again'));
+    expect(bySpoken(_offer), findsNothing);
+    await t.tap(controlByLabel('1 Again'));
     await t.pumpAndSettle();
-    expect(find.text('All done'), findsOneWidget); // never blocks the queue
-    expect(find.text(_offer), findsOneWidget);
+    expect(bySpoken('All done', prefix: true), findsOneWidget); // never blocks
+    expect(bySpoken(_offer), findsOneWidget);
     expect(find.textContaining('What does the crankshaft do?'), findsWidgets);
     final logged = (await s.events.all()).length;
 
-    await t.tap(find.text('Back'));
+    await t.tap(controlByLabel('Back'));
     await t.pumpAndSettle();
-    expect(find.text(_offer), findsNothing); // the Again is undone
-    await t.tap(find.text('1 Again'));
+    expect(bySpoken(_offer), findsNothing); // the Again is undone
+    await t.tap(controlByLabel('1 Again'));
     await t.pumpAndSettle();
-    expect(find.text(_offer), findsOneWidget);
-    await t.tap(find.text('Dismiss'));
+    expect(bySpoken(_offer), findsOneWidget);
+    await t.tap(controlByLabel('Dismiss'));
     await t.pumpAndSettle();
-    expect(find.text(_offer), findsNothing);
+    expect(bySpoken(_offer), findsNothing);
     // Back's undo and the new Again; the dismissal itself writes nothing.
     expect((await s.events.all()).length, logged + 2);
   });
@@ -100,18 +100,18 @@ void main() {
     );
     await _rate(t, '1 Again');
     await _rate(t, '1 Again');
-    expect(find.text(_offer), findsNothing);
+    expect(bySpoken(_offer), findsNothing);
     await _rate(t, '1 Again');
-    expect(find.text(_offer), findsOneWidget);
+    expect(bySpoken(_offer), findsOneWidget);
     await _rate(t, '3 Good'); // the next rating replaces the offer
-    expect(find.text(_offer), findsNothing);
+    expect(bySpoken(_offer), findsNothing);
   });
 
   testWidgets('Get help: session_start struggle, then the session', (t) async {
     final (db, stream, s) = await _setUp(2);
     await pumpScreen(t, ReviewScreen(services: s, now: () => _then));
     await _rate(t, '1 Again');
-    await t.tap(find.text('Get help'));
+    await t.tap(controlByLabel('Get help'));
     await sent(t);
     final req = await answer(t, db, stream, settle: false);
     expect(req['kind'], 'session_start');
@@ -128,13 +128,10 @@ void main() {
     await pumpScreen(t, ReviewScreen(services: s, now: () => _then));
     s.presence.state.value = PcPresence.offline;
     await _rate(t, '1 Again');
-    expect(find.text('Get help'), findsNothing);
-    final button = t.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'PC offline'),
-    );
-    expect(button.onPressed, isNull);
+    expect(controlByLabel('Get help'), findsNothing);
+    expect(pressOf(t, 'PC offline'), isNull);
     s.presence.state.value = PcPresence.online;
     await t.pumpAndSettle();
-    expect(find.text('Get help'), findsOneWidget);
+    expect(controlByLabel('Get help'), findsOneWidget);
   });
 }

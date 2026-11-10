@@ -11,17 +11,29 @@ class MockNavBar extends StatelessWidget {
   /// The test.
   final MockSession s;
 
-  String _label(int i) {
+  /// The task's section glyph and its number within the section (the code
+  /// section has one task: no number).
+  Widget _label(int i) {
     final t = s.paper.tasks[i];
     final n = s.paper.tasks
         .take(i + 1)
         .where((o) => o.section == t.section)
         .length;
-    return switch (t.section) {
-      MockSection.pyMcq => 'M$n',
-      MockSection.pyCode => 'PY',
-      MockSection.sql => 'S$n',
+    final (icon, spoken) = switch (t.section) {
+      MockSection.pyMcq => (Icons.quiz_outlined, 'Multiple choice'),
+      MockSection.pyCode => (Icons.code, 'Python code'),
+      MockSection.sql => (Icons.storage_outlined, 'SQL'),
     };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, semanticLabel: spoken),
+        if (t.section != MockSection.pyCode) ...[
+          const SizedBox(width: AppSpacing.xs),
+          Text('$n'),
+        ],
+      ],
+    );
   }
 
   @override
@@ -40,7 +52,7 @@ class MockNavBar extends StatelessWidget {
               avatar: s.isSubmitted(t.id)
                   ? const Icon(Icons.check_circle, size: 16)
                   : null,
-              label: Text(_label(i)),
+              label: _label(i),
               onSelected: (_) => s.update(go: i),
             ),
           ),

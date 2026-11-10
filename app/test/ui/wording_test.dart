@@ -15,9 +15,12 @@ import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/ui/session/session_screen.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 final Finder _mastered = find.textContaining(RegExp('[Mm]aster'));
@@ -26,8 +29,7 @@ void main() {
   testWidgets('Home: n/m modules reviewed, explained', (t) async {
     final s = await fixtureServices(fixtureDb(), FakeStream());
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
-    expect(find.textContaining('1/4 modules reviewed'), findsOneWidget);
-    expect(find.byTooltip(reviewedModuleHelp), findsWidgets);
+    expect(bySpoken('1/4 modules reviewed'), findsOneWidget);
     expect(_mastered, findsNothing);
   });
 
@@ -51,11 +53,14 @@ void main() {
     );
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
     expect(
-      find.textContaining(RegExp(r'^1/\d+ cards recalled')),
+      find.byWidgetPredicate(
+        (w) =>
+            w is SpokenLabel &&
+            RegExp(r'^1/\d+ cards recalled').hasMatch(w.semanticLabel),
+      ),
       findsOneWidget,
     );
-    expect(find.byTooltip(recalledHelp), findsWidgets);
-    expect(find.textContaining('1/4 modules reviewed'), findsOneWidget);
+    expect(bySpoken('1/4 modules reviewed'), findsOneWidget);
     expect(_mastered, findsNothing);
   });
 
@@ -66,13 +71,14 @@ void main() {
       TaughtEvent(subject: 'car', card: 'fuel-spark', at: fixtureNow),
     );
     await pumpScreen(t, PlanScreen(services: s, subject: 'car'));
-    expect(find.textContaining(RegExp('^reviewed · 3 cards')), findsOneWidget);
-    expect(find.textContaining(RegExp('^done · 3 cards')), findsOneWidget);
-    expect(find.byTooltip(RegExp('^Reviewed: every card')), findsWidgets);
-    expect(find.byTooltip(RegExp('^Done: ')), findsWidgets);
+    expect(bySpoken('reviewed · 3 cards', prefix: true), findsOneWidget);
+    expect(bySpoken('done · 3 cards', prefix: true), findsOneWidget);
+    expect(spokenHas('Reviewed: every card'), findsWidgets);
+    expect(spokenHas('Done: '), findsWidgets);
     expect(_mastered, findsNothing);
     await pumpScreen(t, ProgressScreen(services: s));
-    expect(find.textContaining('85% · reviewed'), findsOneWidget);
+    expect(spoken('recall 85%'), findsOneWidget);
+    expect(spokenHas('Reviewed: every card'), findsWidgets);
     expect(_mastered, findsNothing);
   });
 
@@ -93,9 +99,9 @@ void main() {
       ),
     );
     await pumpScreen(t, EditorScreen(services: s, subject: 'car'));
-    expect(find.textContaining('1 recalled'), findsWidgets);
-    expect(find.byTooltip(RegExp(recalledHelp)), findsWidgets);
-    expect(find.byTooltip(RegExp(doneHelp)), findsWidgets);
+    expect(spokenHas('1 recalled'), findsWidgets);
+    expect(spokenHas(recalledHelp), findsWidgets);
+    expect(spokenHas(doneHelp), findsWidgets);
     expect(_mastered, findsNothing);
   });
 
@@ -114,8 +120,7 @@ void main() {
       await t.pump();
     }
     await t.pumpAndSettle();
-    expect(find.text('Known'), findsOneWidget);
-    expect(find.byTooltip(knownHelp), findsWidgets);
+    expect(bySpoken('Known'), findsWidgets);
     expect(_mastered, findsNothing);
   });
 
@@ -132,8 +137,8 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Known: intake stroke'), findsOneWidget);
-    expect(find.byTooltip(knownHelp), findsOneWidget);
+    expect(find.text('intake stroke'), findsOneWidget);
+    expect(bySpoken('Known'), findsOneWidget);
   });
 
   test('locked reads "reviewed"', () {

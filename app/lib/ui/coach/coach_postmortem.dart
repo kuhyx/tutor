@@ -9,7 +9,9 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// After the exit: the summary table, the cards made (tutor FSRS and Anki),
 /// and the toolbox entries the coach proposes, each to confirm or skip.
@@ -98,7 +100,7 @@ class _PostMortemState extends State<CoachPostMortemScreen> {
                 ? const LinearProgressIndicator()
                 : const SizedBox.shrink(),
           ),
-          if (_problem != null) Text(_problem!),
+          if (_problem != null) problemCue(_problem!),
           if (r != null) ..._body(r),
         ],
       ),
@@ -112,8 +114,8 @@ class _PostMortemState extends State<CoachPostMortemScreen> {
           c.isNew ? Icons.fiber_new_outlined : Icons.style_outlined,
           semanticLabel: c.isNew ? 'New' : 'Card',
         ),
-        title: Text(c.front),
-        subtitle: Text(c.back, style: sqlMono),
+        title: ContentText(c.front),
+        subtitle: ContentText(c.back, style: sqlMono),
       ),
     for (final p in r.proposals)
       CheckboxListTile(
@@ -122,8 +124,8 @@ class _PostMortemState extends State<CoachPostMortemScreen> {
         onChanged: (on) => setState(
           () => (on ?? false) ? _skipped.remove(p.name) : _skipped.add(p.name),
         ),
-        title: Text(p.name),
-        subtitle: Text(p.properties.join(', '), style: sqlMono),
+        title: ContentText(p.name),
+        subtitle: ContentText(p.properties.join(', '), style: sqlMono),
       ),
     if (r.proposals.isNotEmpty)
       RunnerBuilder(
@@ -144,9 +146,9 @@ class _PostMortemState extends State<CoachPostMortemScreen> {
     for (final f in r.refused)
       ListTile(
         leading: const Icon(Icons.block, semanticLabel: 'Refused'),
-        title: Text(f.name),
-        subtitle: Text(f.reason),
+        title: ContentText(f.name),
+        subtitle: ContentText(f.reason),
       ),
-    if (r.ankiLine != null) Text(r.ankiLine!),
+    if (r.ankiLine != null) noteCue(r.ankiLine!),
   ];
 }

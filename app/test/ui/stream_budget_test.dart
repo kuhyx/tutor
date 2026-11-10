@@ -16,10 +16,12 @@ import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/util/device.dart';
+import 'package:tutor/widgets/icon_field.dart';
 
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 /// The most streams the app may hold at once.
@@ -89,21 +91,22 @@ Future<void> _settle(WidgetTester t) async {
 BuildContext _top(WidgetTester t) =>
     t.element(find.byType(Scaffold, skipOffstage: false).last);
 
-final Finder _answerBox = find.byWidgetPredicate(
-  (w) =>
-      w is TextField &&
-      (w.decoration?.labelText ?? '').startsWith('Your answer'),
+final Finder _answerBox = find.descendant(
+  of: find.byWidgetPredicate(
+    (w) => w is FieldLabel && w.semanticLabel.startsWith('Your answer'),
+  ),
+  matching: find.byType(TextField),
 );
 
 /// Types into the first answer box and taps Send; the turn is in flight.
 Future<void> _send(WidgetTester t, String text) async {
-  final send = find.widgetWithText(FilledButton, 'Send');
+  final send = controlByLabel('Send');
   // The phone pages through the questions: Next until the last one.
   for (var page = 0; page < 5; page++) {
     await t.enterText(_answerBox.first, text);
     await t.pump();
     if (send.evaluate().isNotEmpty) break;
-    await t.tap(find.widgetWithText(FilledButton, 'Next'));
+    await t.tap(controlByLabel('Next'));
     await _settle(t);
   }
   // The phone's caret handle can sit over Send: leave the box first.
@@ -144,7 +147,7 @@ void main() {
       unawaited(openSession(_top(t), s));
       await _settle(t);
       await _sync(t, db, stream);
-      expect(find.text('Next card'), findsWidgets);
+      expect(controlByLabel('Next card'), findsWidgets);
       _within(stream, 'Session at card end');
       await _send(t, 'what if I forge it?');
       await _sync(t, db, stream);
@@ -165,10 +168,10 @@ void main() {
       await _settle(t);
       _within(stream, 'transcript');
       await t.enterText(
-        find.widgetWithText(TextField, 'Ask a follow-up'),
+        fieldByLabel('Ask a follow-up'),
         'what if I write the name myself?',
       );
-      await t.tap(find.text('Ask'));
+      await t.tap(controlByLabel('Ask'));
       await sent(t);
       _within(stream, 'follow_up_open in flight');
       _holds(stream, {_workers, _requests});
@@ -186,17 +189,17 @@ void main() {
       t,
     ) async {
       final (db, stream, s) = await _home(t, size);
-      final plus = find.byTooltip('New subject');
+      final plus = controlByLabel('New subject');
       if (plus.evaluate().isNotEmpty) {
         await t.tap(plus); // phone: the field sits in the "+" dialog
         await t.pumpAndSettle();
       }
-      final field = find.widgetWithText(TextField, 'I want to learn...');
+      final field = fieldByLabel('I want to learn...');
       await t.ensureVisible(field);
       await t.enterText(field, 'how a boat floats');
-      await t.ensureVisible(find.text('Draft a plan'));
+      await t.ensureVisible(controlByLabel('Draft a plan'));
       await t.pump();
-      await t.tap(find.text('Draft a plan'));
+      await t.tap(controlByLabel('Draft a plan'));
       await sent(t);
       _within(stream, 'Home, subject_new in flight');
       unawaited(openSession(_top(t), s));

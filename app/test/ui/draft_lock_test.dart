@@ -10,16 +10,13 @@ import 'package:tutor/ui/new_subject_field.dart';
 import 'package:tutor/ui/plan_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 const _comment = 'Comment (e.g. "less history, more maintenance")';
 
 TextField _field(WidgetTester t, Finder f) => t.widget<TextField>(f);
-
-VoidCallback? _button<T extends ButtonStyleButton>(
-  WidgetTester t,
-  String label,
-) => t.widget<T>(find.widgetWithText(T, label)).onPressed;
 
 void main() {
   testWidgets('home: locked while drafting, cleared on success', (t) async {
@@ -29,17 +26,17 @@ void main() {
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
     final box = find.byType(TextField);
     await t.enterText(box, 'how bridges stand');
-    await t.tap(find.text('Draft a plan'));
+    await t.tap(glyphsLabelled('Draft a plan'));
     await sent(t);
     expect(_field(t, box).enabled, isFalse);
-    expect(_button<FilledButton>(t, 'Draft a plan'), isNull);
+    expect(pressOf(t, 'Draft a plan'), isNull);
 
     await answer(t, db, stream, code: 'bad_request');
     expect(_field(t, box).enabled, isTrue);
     expect(_field(t, box).controller!.text, 'how bridges stand');
-    expect(_button<FilledButton>(t, 'Draft a plan'), isNotNull);
+    expect(pressOf(t, 'Draft a plan'), isNotNull);
 
-    await t.tap(find.text('Draft a plan'));
+    await t.tap(glyphsLabelled('Draft a plan'));
     await sent(t);
     await answer(t, db, stream, data: {'subject': 'garden'});
     await t.pageBack();
@@ -60,10 +57,10 @@ void main() {
     );
     runner.status.value = const RelayQueued();
     await t.pump();
-    expect(_button<FilledButton>(t, 'Draft a plan'), isNull);
+    expect(pressOf(t, 'Draft a plan'), isNull);
     runner.stalled.value = true;
     await t.pump();
-    expect(_button<FilledButton>(t, 'Draft a plan'), isNotNull);
+    expect(pressOf(t, 'Draft a plan'), isNotNull);
     expect(_field(t, find.byType(TextField)).enabled, isFalse);
   });
 
@@ -76,16 +73,16 @@ void main() {
       PlanScreen(services: s, subject: 'garden'),
       size: const Size(1000, 2400),
     );
-    final box = find.widgetWithText(TextField, _comment);
+    final box = fieldLabelled(_comment);
     await t.enterText(box, 'less soil');
-    await t.tap(find.text('Redraft with this comment'));
+    await t.tap(spoken('Redraft with this comment'));
     await sent(t);
     expect(_field(t, box).enabled, isFalse);
-    expect(_button<OutlinedButton>(t, 'Redraft with this comment'), isNull);
+    expect(pressable(t, 'Redraft with this comment'), isFalse);
 
     await answer(t, db, stream, code: 'plan_conflict');
     expect(_field(t, box).enabled, isTrue);
     expect(_field(t, box).controller!.text, 'less soil');
-    expect(_button<OutlinedButton>(t, 'Redraft with this comment'), isNotNull);
+    expect(pressable(t, 'Redraft with this comment'), isTrue);
   });
 }

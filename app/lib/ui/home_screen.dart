@@ -14,15 +14,17 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
-import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/home_icons.dart';
+import 'package:tutor/ui/home_menu.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/new_cap_dialog.dart';
 import 'package:tutor/util/refresher.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Home screen.
 class HomeScreen extends StatefulWidget {
@@ -151,8 +153,14 @@ class _HomeScreenState extends State<HomeScreen> {
     } on Object catch (error) {
       // `on Object`: shown, never swallowed; the pick is simply not saved.
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Not saved: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: CueChip(
+              kind: CueKind.error,
+              semanticLabel: 'Not saved: $error',
+            ),
+          ),
+        );
       }
       return;
     }
@@ -164,19 +172,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Tutor'),
       actions: [
         PresenceChip(_presence.state),
         ...homeIcons(context, _s, _go),
         // Phone: no room beside the presence pill at 1.15 font; in the menu.
         if (!isCompact(context))
-          IconButton(
-            tooltip: 'Refresh',
+          GlyphButton(
+            icon: Icons.refresh,
+            semanticLabel: 'Refresh',
             onPressed: _refresh,
-            icon: const Icon(Icons.refresh),
           ),
         PopupMenuButton<String>(
-          tooltip: 'More',
+          // Spoken only: the framework's own tooltip would paint on hover.
+          tooltip: '',
+          icon: const Icon(Icons.more_vert, semanticLabel: 'More'),
           onSelected: (v) => switch (v) {
             'mock' => _go(() => openMock(context, _s)),
             'history' => _go(() => openHistory(context, _s)),
@@ -188,42 +197,26 @@ class _HomeScreenState extends State<HomeScreen> {
             'refresh' => _refresh(),
             _ => _signOut(),
           },
-          itemBuilder: (_) => [
-            if (isCompact(context))
-              const PopupMenuItem(
-                value: 'refresh',
-                child: Icon(Icons.refresh, semanticLabel: 'Refresh'),
-              ),
-            const PopupMenuItem(
-              value: 'mock',
-              child: Icon(Icons.quiz_outlined, semanticLabel: 'Mock test'),
-            ),
-            const PopupMenuItem(value: 'history', child: Text('History')),
-            const PopupMenuItem(value: 'progress', child: Text('Progress')),
-            const PopupMenuItem(value: 'editor', child: Text('Edit cards')),
-            const PopupMenuItem(value: 'display', child: Text('Display size')),
-            const PopupMenuItem(
-              value: 'newcap',
-              child: Text('New cards per day'),
-            ),
-            const PopupMenuItem(
-              value: 'report',
-              child: Text('Report a problem'),
-            ),
-            if (widget.allowSignOut)
-              const PopupMenuItem(value: 'signout', child: Text('Sign out')),
-          ],
+          itemBuilder: (_) => homeMenuItems(
+            compact: isCompact(context),
+            signOut: widget.allowSignOut,
+          ),
         ),
       ],
     ),
     body: ListenableBuilder(
       listenable: _snapshot,
       builder: (context, _) {
-        // A failed load shows its error (the loader already falls back to
-        // the cache when offline, so what is left is worth reading).
+        // A failed load shows an error cue (the loader already falls back
+        // to the cache when offline, so what is left is worth reading).
         final error = _snapshot.error;
         if (error != null) {
-          return PageList(children: [Text('Could not load: $error')]);
+          return Center(
+            child: CueChip(
+              kind: CueKind.error,
+              semanticLabel: 'Could not load: $error',
+            ),
+          );
         }
         if (!_snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());

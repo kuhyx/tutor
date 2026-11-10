@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/ui/ui_zoom.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 /// Pixel 6a density.
 const fitDpr = 2.625;
@@ -49,7 +50,7 @@ Future<void> pumpFit(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: buildLightTheme(),
+      theme: textFreeTheme(buildLightTheme()),
       builder: (context, child) => UiZoomHost(child: child!),
       home: screen,
     ),

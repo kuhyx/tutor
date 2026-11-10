@@ -8,7 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/plan/plan_ops.dart';
 import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/ui/learn_tiles.dart';
 import 'package:tutor/ui/module_dialog.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Editable module list.
 class PlanEditor extends StatefulWidget {
@@ -91,30 +97,37 @@ class _PlanEditorState extends State<PlanEditor> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SectionHeader('Modules (teaching order)'),
+            const LearnHeader(
+              Icons.format_list_numbered,
+              'Modules (teaching order)',
+            ),
             for (final (i, m) in _modules.indexed) _tile(i, m),
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _add,
-                    decoration: const InputDecoration(
-                      labelText: 'Add a module (title)',
+                  child: FieldLabel(
+                    semanticLabel: 'Add a module (title)',
+                    child: TextField(
+                      controller: _add,
+                      decoration: iconDecoration(Icons.add_box_outlined),
+                      onSubmitted: (_) => _addModule(),
                     ),
-                    onSubmitted: (_) => _addModule(),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Add module',
+                GlyphButton(
+                  icon: Icons.add,
+                  semanticLabel: 'Add module',
                   onPressed: _addModule,
-                  icon: const Icon(Icons.add),
                 ),
               ],
             ),
-            for (final p in problems)
-              Text(
-                p,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+            if (problems.isNotEmpty)
+              Wrap(
+                spacing: AppSpacing.sm,
+                children: [
+                  for (final p in problems)
+                    CueChip(kind: CueKind.error, semanticLabel: p),
+                ],
               ),
             const SizedBox(height: AppSpacing.md),
             Wrap(
@@ -122,19 +135,23 @@ class _PlanEditorState extends State<PlanEditor> {
               spacing: AppSpacing.sm,
               children: [
                 if (_dirty)
-                  TextButton(
+                  GlyphButton(
+                    icon: Icons.undo,
+                    semanticLabel: 'Undo edits',
                     onPressed: () => _set(widget.plan.modules),
-                    child: const Text('Undo edits'),
                   ),
-                OutlinedButton(
+                GlyphButton(
+                  icon: Icons.save_outlined,
+                  semanticLabel: 'Save edits',
                   onPressed: _dirty && problems.isEmpty && !busy
                       ? () => widget.onSave(_modules)
                       : null,
-                  child: const Text('Save edits'),
                 ),
-                FilledButton(
+                GlyphButton(
+                  icon: Icons.done_all,
+                  semanticLabel: 'Approve plan',
+                  filled: true,
                   onPressed: _dirty || busy ? null : widget.onApprove,
-                  child: const Text('Approve plan'),
                 ),
               ],
             ),
@@ -161,43 +178,66 @@ class _PlanEditorState extends State<PlanEditor> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListTile(
-            title: Text('${i + 1}. ${m.title}'),
-            subtitle: Text(
-              [
-                if (m.summary.isNotEmpty) m.summary,
-                if (m.requires.isNotEmpty) 'requires: ${_names(m, names)}',
-                if (m.cards > 0) '${m.cards} cards (cannot be removed)',
-              ].join('\n'),
+            leading: CountBadge(i + 1),
+            title: ContentText(m.title),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (m.summary.isNotEmpty) ContentText(m.summary),
+                if (m.requires.isNotEmpty)
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.account_tree_outlined,
+                        size: AppTextSize.label,
+                        semanticLabel: 'requires',
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(child: ContentText(_names(m, names))),
+                    ],
+                  ),
+                if (m.cards > 0)
+                  SpokenLabel(
+                    semanticLabel: '${m.cards} cards (cannot be removed)',
+                    child: Wrap(
+                      spacing: AppSpacing.sm,
+                      children: [
+                        GlyphStat(Icons.style_outlined, '${m.cards}'),
+                        const Icon(Icons.lock_outline, size: AppTextSize.label),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
           Wrap(
             alignment: WrapAlignment.end,
             children: [
-              IconButton(
-                tooltip: 'Move up',
+              GlyphButton(
+                icon: Icons.arrow_upward,
+                semanticLabel: 'Move up',
                 onPressed: i == 0
                     ? null
                     : () => _set(moveModule(_modules, i, i - 1)),
-                icon: const Icon(Icons.arrow_upward),
               ),
-              IconButton(
-                tooltip: 'Move down',
+              GlyphButton(
+                icon: Icons.arrow_downward,
+                semanticLabel: 'Move down',
                 onPressed: i == _modules.length - 1
                     ? null
                     : () => _set(moveModule(_modules, i, i + 1)),
-                icon: const Icon(Icons.arrow_downward),
               ),
-              IconButton(
-                tooltip: 'Edit',
+              GlyphButton(
+                icon: Icons.edit,
+                semanticLabel: 'Edit',
                 onPressed: () => _edit(i),
-                icon: const Icon(Icons.edit),
               ),
-              IconButton(
-                tooltip: 'Remove',
+              GlyphButton(
+                icon: Icons.delete_outline,
+                semanticLabel: 'Remove',
                 onPressed: editable(m)
                     ? () => _set(removeModule(_modules, i))
                     : null,
-                icon: const Icon(Icons.delete_outline),
               ),
             ],
           ),

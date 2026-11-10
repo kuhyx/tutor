@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tutor/progress/terms.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/plan_screen.dart';
 
@@ -6,6 +7,7 @@ import '../../tool/fixture/fixture_data.dart';
 import '../../tool/fixture/fixture_live.dart';
 import '../../tool/fixture/fixture_stream.dart';
 import '../support/fake_rtdb.dart';
+import '../support/learn_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -37,11 +39,12 @@ void main() {
       settle: false,
     );
     await t.pump(const Duration(seconds: 10));
-    expect(find.textContaining('generating'), findsOneWidget);
+    expect(markOf(ModuleMark.generating), findsOneWidget);
     await t.pump(const Duration(seconds: 11));
     await t.pumpAndSettle();
-    expect(find.textContaining('generating'), findsNothing);
-    expect(find.textContaining('ready · 3 cards'), findsNWidgets(2));
+    expect(markOf(ModuleMark.generating), findsNothing);
+    expect(spokenHas('ready · 3 cards'), findsNWidgets(2));
+    expect(markOf(ModuleMark.ready), findsNWidgets(2));
     expect(getAt(db.root, 'tutor/v1/rev/catalog'), 8);
     expect(
       getAt(db.root, 'tutor/v1/subjects/car/cards/drv-gears/module'),

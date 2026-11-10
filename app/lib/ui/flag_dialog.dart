@@ -2,6 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Shows the dialog; returns the reason (may be empty) or null. The
 /// controller is left to the GC: disposing it when the future completes
@@ -11,24 +13,27 @@ Future<String?> askFlagReason(BuildContext context) {
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Flag this card'),
-      content: TextField(
-        controller: reason,
-        autofocus: true,
-        maxLines: 3,
-        decoration: const InputDecoration(
-          labelText: 'What is wrong? (e.g. "the answer is wrong")',
+      content: FieldLabel(
+        semanticLabel: 'What is wrong? (e.g. "the answer is wrong")',
+        child: TextField(
+          controller: reason,
+          autofocus: true,
+          maxLines: 3,
+          decoration: iconDecoration(Icons.flag_outlined),
+          onSubmitted: (v) => Navigator.pop(context, v.trim()),
         ),
-        onSubmitted: (v) => Navigator.pop(context, v.trim()),
       ),
       actions: [
-        TextButton(
+        GlyphButton(
+          icon: Icons.close,
+          semanticLabel: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
         ),
-        FilledButton(
+        GlyphButton(
+          icon: Icons.check,
+          semanticLabel: 'Flag',
+          filled: true,
           onPressed: () => Navigator.pop(context, reason.text.trim()),
-          child: const Text('Flag'),
         ),
       ],
     ),

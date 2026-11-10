@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +46,25 @@ void main() {
     await t.tap(key('item-q1'));
     await t.pumpAndSettle();
     expect(find.text('[2, 1]'), findsWidgets);
+  });
+
+  testWidgets('a failed SQL item shows its database error as content', (
+    t,
+  ) async {
+    final data = jsonDecode(jsonEncode(resultData)) as Map<String, dynamic>;
+    for (final i in data['tasks'] as List<dynamic>) {
+      final item = i as Map<String, dynamic>;
+      if (item['section'] == 'sql') {
+        item['detail'] = {'error': 'syntax boom'};
+      }
+    }
+    final m = rig.session()..finished(data);
+    await pumpScreen(
+      t,
+      MockResultScreen(services: rig.s, session: m, links: rig.links),
+      size: phone,
+    );
+    expect(find.text('syntax boom'), findsOneWidget);
   });
 
   testWidgets('only missed items with a link get a study button', (t) async {

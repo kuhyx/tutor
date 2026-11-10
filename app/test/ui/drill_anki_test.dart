@@ -4,10 +4,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/drill/anki_sync.dart';
 import 'package:tutor/ui/review_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/drill.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 const _sync = 'Sync Anki & credit';
@@ -51,14 +54,15 @@ void main() {
   ) async {
     final launcher = FakeLauncher();
     final (db, stream, _) = await _open(t, launcher);
-    await t.tap(find.text(_sync));
+    await t.tap(spoken(_sync));
     await sent(t);
     // The baseline comes first, so a fast sync cannot be missed.
     expect(lastRequest(db).$2['kind'], 'anki_status');
     await answer(t, db, stream, data: ankiStatus(5), settle: false);
     await sent(t);
     expect(launcher.launches, 1);
-    expect(find.text('Syncing AnkiDroid...'), findsOne);
+    expect(cueOfKind(CueKind.pending), findsOne);
+    expect(cueLabelled('Syncing AnkiDroid...'), findsOne);
     // Not yet: the same 5, so it polls again a second later.
     await _tick(t);
     await answer(t, db, stream, data: ankiStatus(5), settle: false);
@@ -72,10 +76,12 @@ void main() {
         'unavailable': {'until': 1792000000, 'reason': 'limit'},
       },
     );
-    expect(find.text('+3 min from Anki'), findsOne);
+    expect(cueLabelled('+3 min from Anki'), findsOne);
+    expect(cueOfKind(CueKind.ok), findsOne);
+    expect(find.text('3'), findsOne);
     // The PC's Claude-out marker reaches the banner.
-    expect(find.textContaining('Claude limit'), findsOne);
-    expect(find.text(_sync), findsOne);
+    expect(spokenHas('Claude limit'), findsOne);
+    expect(spoken(_sync), findsOne);
   });
 
   testWidgets('gives up after the timeout, tolerating a bad poll', (t) async {
@@ -87,12 +93,12 @@ void main() {
       // The deadline is +60 s; the checks read +30 s, then +60 s: one poll.
       now: () => clock.add(Duration(seconds: 30 * calls++)),
     );
-    await t.tap(find.text(_sync));
+    await t.tap(spoken(_sync));
     await sent(t);
     await answer(t, db, stream, data: ankiStatus(5), settle: false);
     await _tick(t);
     await answer(t, db, stream, data: {'credited_today_min': 'x'});
-    expect(find.textContaining('No new credit from Anki yet'), findsOne);
+    expect(cueLabelled('No new credit from Anki yet', prefix: true), findsOne);
   });
 
   testWidgets('a failed baseline still syncs; the wait ends at the timeout', (
@@ -100,29 +106,30 @@ void main() {
   ) async {
     final launcher = FakeLauncher();
     final (db, stream, _) = await _open(t, launcher, now: _jump());
-    await t.tap(find.text(_sync));
+    await t.tap(spoken(_sync));
     await sent(t);
     await answer(t, db, stream, code: 'worker_error');
     expect(launcher.launches, 1);
-    expect(find.textContaining('No new credit from Anki yet'), findsOne);
+    expect(cueLabelled('No new credit from Anki yet', prefix: true), findsOne);
   });
 
   testWidgets('a PC that never answers cannot hold the run', (t) async {
     final launcher = FakeLauncher();
     final (_, _, _) = await _open(t, launcher, now: _jump());
-    await t.tap(find.text(_sync));
+    await t.tap(spoken(_sync));
     await sent(t);
     // The intent did not wait for the baseline.
     expect(launcher.launches, 1);
-    expect(find.text('Syncing AnkiDroid...'), findsOne);
+    expect(cueOfKind(CueKind.pending), findsOne);
+    expect(cueLabelled('Syncing AnkiDroid...'), findsOne);
     await t.pump(const Duration(seconds: 11));
-    expect(find.textContaining('No new credit from Anki yet'), findsOne);
-    expect(find.text(_sync), findsOne);
+    expect(cueLabelled('No new credit from Anki yet', prefix: true), findsOne);
+    expect(spoken(_sync), findsOne);
   });
 
   testWidgets('leaving during the wait stops the polls', (t) async {
     final (db, stream, anki) = await _open(t, FakeLauncher());
-    await t.tap(find.text(_sync));
+    await t.tap(spoken(_sync));
     await sent(t);
     await answer(t, db, stream, data: ankiStatus(5), settle: false);
     await sent(t);
@@ -136,9 +143,13 @@ void main() {
   testWidgets('without AnkiDroid it says so', (t) async {
     final missing = FakeLauncher(ok: false);
     final (_, _, _) = await _open(t, missing);
-    await t.tap(find.text(_sync));
+    await t.tap(spoken(_sync));
     await sent(t);
-    expect(find.textContaining('did not start a sync'), findsOne);
+    expect(
+      cueLabelled('AnkiDroid did not start a sync', prefix: true),
+      findsOne,
+    );
+    expect(cueOfKind(CueKind.error), findsOne);
     expect(missing.launches, 1);
     // The unanswered baseline gives up on its own.
     await t.pump(const Duration(seconds: 11));
@@ -146,7 +157,7 @@ void main() {
 
   testWidgets('the button is hidden where the intent cannot run', (t) async {
     await _open(t, FakeLauncher(supported: false));
-    expect(find.text(_sync), findsNothing);
+    expect(spoken(_sync), findsNothing);
   });
 
   group('ChannelAnkiLauncher', () {

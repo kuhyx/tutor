@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/coach/coach_drafts.dart';
 import 'package:tutor/coach/coach_requests.dart';
 import 'package:tutor/ui/coach/coach_postmortem.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../../coach/coach_fixtures.dart';
+import '../../support/label_finders.dart';
 import 'coach_support.dart';
 
 void main() {
@@ -26,7 +28,7 @@ void main() {
     await rig.open(t, first: null);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     await rig.reply(t, {...openData, 'langs': 5});
-    expect(find.textContaining('expected array'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 
   testWidgets('a message goes as lc_turn; the reply pins its code', (t) async {
@@ -117,17 +119,17 @@ void main() {
     await rig.type(t, 'x = 1');
     await rig.tap(t, 'send');
     await rig.reply(t, {'held': true, 'note': 'Open the gate first'});
-    expect(find.text('Open the gate first'), findsOneWidget);
+    expect(cueLabelled('Open the gate first'), findsOneWidget);
     await rig.type(t, 'because');
     await rig.tap(t, 'solved');
     await rig.reply(t, {
       'reply_md': 'Close.',
       'exit': {'ok': false, 'missing': 'the ELSE branch'},
     });
-    expect(find.text('the ELSE branch'), findsOneWidget);
+    expect(cueLabelled('the ELSE branch'), findsOneWidget);
     await rig.type(t, 'again');
     await rig.tap(t, 'send');
-    expect(find.text('the ELSE branch'), findsNothing);
+    expect(cueLabelled('the ELSE branch'), findsNothing);
   });
 
   testWidgets('past the budget the counter turns red', (t) async {

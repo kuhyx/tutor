@@ -30,6 +30,12 @@ import 'package:tutor/ui/review_answer.dart';
 import 'package:tutor/ui/review_end.dart';
 import 'package:tutor/ui/struggle_offer.dart';
 import 'package:tutor/util/device.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+
+part 'review_screen_parts.dart';
 
 /// The Review screen.
 class ReviewScreen extends StatefulWidget {
@@ -143,19 +149,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(
-        _drill
-            ? 'Drill'
-            : widget.module != null
-            ? 'Review: ${widget.module!.title}'
-            : widget.subject != null
-            ? 'Review: ${widget.subjectTitle ?? 'this subject'}'
-            : 'Review',
-      ),
+      title: _title(),
       actions: [
-        TextButton(
+        GlyphButton(
+          icon: _drill ? Icons.replay : Icons.quiz_outlined,
+          semanticLabel: _drill ? 'Review' : 'Drill',
           onPressed: () => setState(() => _drill = !_drill),
-          child: Text(_drill ? 'Review' : 'Drill'),
         ),
       ],
     ),
@@ -175,7 +174,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
         return const Center(child: CircularProgressIndicator());
       }
       if (snap.hasError) {
-        return PageList(children: [Text('Could not load: ${snap.error}')]);
+        return PageList(
+          children: [
+            CueChip(
+              kind: CueKind.error,
+              semanticLabel: 'Could not load: ${snap.error}',
+            ),
+          ],
+        );
       }
       final run = snap.requireData;
       return ListenableBuilder(
@@ -213,30 +219,4 @@ class _ReviewScreenState extends State<ReviewScreen> {
       );
     },
   );
-
-  Widget _body(BuildContext context, ReviewSession run) {
-    final item = run.current;
-    final text = Theme.of(context).textTheme;
-    if (item == null) return ReviewEnd(run, module: widget.module != null);
-    final face = [
-      Text('${item.subjectTitle} · ${run.left} left', style: text.bodySmall),
-      const SizedBox(height: AppSpacing.md),
-      CardFace(item.card, revealed: run.revealed),
-    ];
-    final bar = AnswerBar(run, onFlag: () => _flag(run));
-    // Phone: the card pages, the answer bar stays under it on every page.
-    if (isCompact(context)) {
-      return FitSplit(
-        body: PageList(children: face),
-        bar: bar,
-      );
-    }
-    return PageList(
-      children: [
-        ...face,
-        const SizedBox(height: AppSpacing.md),
-        bar,
-      ],
-    );
-  }
 }

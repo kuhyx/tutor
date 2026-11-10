@@ -9,6 +9,7 @@ import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/editor_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 Map<String, Object?> _card(
@@ -57,18 +58,18 @@ void main() {
     );
     await t.tap(find.text('The four-stroke engine'));
     await t.pumpAndSettle();
-    expect(find.textContaining('Removed by tutor'), findsOneWidget);
+    expect(iconSpoken('Removed by tutor'), findsOneWidget);
     // Only tutor-added, live cards get Remove; only tutor-removed get Restore.
-    expect(find.byTooltip('Remove'), findsOneWidget);
-    expect(find.widgetWithText(TextButton, 'Restore'), findsOneWidget);
+    expect(spoken('Remove'), findsOneWidget);
+    expect(spoken('Restore'), findsOneWidget);
 
-    await t.tap(find.widgetWithText(TextButton, 'Restore'));
+    await t.tap(spoken('Restore'));
     await sent(t);
     final restore = await answer(t, db, stream, data: {'card': 'eng-old'});
     expect(restore['kind'], 'card_restore');
     expect(restore['body'], {'subject': 'car', 'card': 'eng-old'});
 
-    await t.tap(find.byTooltip('Remove'));
+    await t.tap(spoken('Remove'));
     await sent(t);
     final remove = await answer(t, db, stream, data: {'card': 'eng-new'});
     expect(remove['kind'], 'card_remove');
@@ -103,22 +104,22 @@ void main() {
     );
     await t.tap(find.text('The four-stroke engine'));
     await t.pumpAndSettle();
-    expect(find.textContaining('Removed by tutor'), findsNothing);
-    expect(find.textContaining('· Removed'), findsNWidgets(2));
-    expect(find.widgetWithText(TextButton, 'Restore'), findsNWidgets(2));
+    expect(iconSpoken('Removed by tutor'), findsNothing);
+    expect(iconSpoken('Removed'), findsNWidgets(2));
+    expect(spoken('Restore'), findsNWidgets(2));
     expect(
-      find.byTooltip('Puts the card and its prerequisites back'),
+      hinted('Puts the card and its prerequisites back'),
       findsOneWidget,
     );
     expect(
-      find.byTooltip(
+      hinted(
         'Removed before the Editor kept a record: only un-suspends it, '
         'prerequisites are not restored',
       ),
       findsOneWidget,
     );
 
-    await t.tap(find.widgetWithText(TextButton, 'Restore').first);
+    await t.tap(spoken('Restore').first);
     await sent(t);
     final restore = await answer(t, db, stream, data: {'card': 'eng-mine'});
     expect(restore['kind'], 'card_restore');

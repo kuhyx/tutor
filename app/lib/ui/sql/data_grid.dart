@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/sql/sql_models.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Monospace text at table size.
 const TextStyle sqlMono = TextStyle(
@@ -59,7 +60,7 @@ class DataGridView extends StatelessWidget {
                 : null,
             border: hit ? Border.all(color: AppPalette.danger, width: 2) : null,
           ),
-          child: Text(
+          child: ContentText(
             text,
             style: (dense ? sqlMonoDense : sqlMono).copyWith(
               fontWeight: head || hit ? FontWeight.w700 : null,

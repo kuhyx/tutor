@@ -14,6 +14,10 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/blocked.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+
+typedef _Act = Future<void> Function(BuildContext);
 
 /// The call to action for [blocked].
 class BlockedPanel extends StatelessWidget {
@@ -53,28 +57,40 @@ class BlockedPanel extends StatelessWidget {
     final b = blocked;
     final due = b.dueInSubject ?? 0;
     final primary = switch (b) {
-      Blocked(code: dailyNewCap) => ('Learn more anyway', _liftCap),
+      Blocked(code: dailyNewCap) => (
+        'Learn more anyway',
+        Icons.lock_open,
+        0,
+        _liftCap,
+      ),
       Blocked(reviewsModule: true) => (
         'Review ${b.moduleTitle ?? 'this module'}',
+        Icons.menu_book_outlined,
+        0,
         _reviewModule,
       ),
       _ => null,
     };
     final review = due > 0
-        ? ('Review this subject ($due due)', _reviewSubject)
+        ? ('Review this subject ($due due)', Icons.style, due, _reviewSubject)
         : null;
-    // The first action is the prominent one (right); a second is outlined.
-    final actions = <(String, Future<void> Function(BuildContext))>[
-      ?primary,
-      ?review,
-    ];
+    // The first action is the prominent one (right); a second is plain.
+    final actions = <(String, IconData, int, _Act)>[?primary, ?review];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(text, style: Theme.of(context).textTheme.bodyLarge),
+            // Why: the call-to-action glyph on an amber chip, not a sentence.
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: CueChip(
+                kind: CueKind.blocked,
+                icon: _whyIcon(b),
+                semanticLabel: text,
+              ),
+            ),
             if (actions.isNotEmpty) const SizedBox(height: AppSpacing.md),
             if (actions.isNotEmpty)
               Wrap(
@@ -82,15 +98,19 @@ class BlockedPanel extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  for (final (label, act) in actions.skip(1))
-                    OutlinedButton(
+                  for (final (label, icon, n, act) in actions.skip(1))
+                    GlyphButton(
+                      icon: icon,
+                      semanticLabel: label,
+                      count: n > 0 ? n : null,
                       onPressed: () => unawaited(act(context)),
-                      child: Text(label),
                     ),
-                  FilledButton(
-                    autofocus: true,
-                    onPressed: () => unawaited(actions.first.$2(context)),
-                    child: Text(actions.first.$1),
+                  GlyphButton(
+                    icon: actions.first.$2,
+                    semanticLabel: actions.first.$1,
+                    count: actions.first.$3 > 0 ? actions.first.$3 : null,
+                    filled: true,
+                    onPressed: () => unawaited(actions.first.$4(context)),
                   ),
                 ],
               ),
@@ -99,6 +119,12 @@ class BlockedPanel extends StatelessWidget {
       ),
     );
   }
+
+  static IconData _whyIcon(Blocked b) => switch (b.code) {
+    dailyNewCap => Icons.speed,
+    lockedCode => Icons.lock_outline,
+    _ => Icons.inbox_outlined,
+  };
 
   // The blocked `session_start` again with `lift_cap`; anything else (Next
   // card) starts the subject's next card with the cap lifted.

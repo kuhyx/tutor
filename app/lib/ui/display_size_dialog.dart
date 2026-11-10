@@ -1,11 +1,11 @@
 /// The "Display size" setting (Home's ⋮ menu): a slider over `UiZoom`,
-/// 50%-200% of the automatic size for this screen, plus Reset to auto.
+/// 50%-200% of the automatic size for this screen, plus a reset glyph.
 library;
 
-import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 import 'package:tutor/util/ui_scale.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Opens the setting over [context]'s route.
 Future<void> showDisplaySize(BuildContext context) => showDialog<void>(
@@ -34,7 +34,6 @@ class _DisplaySizeDialogState extends State<DisplaySizeDialog> {
     final shown = _drag ?? UiZoom.of(context);
     final percent = '${(shown * 100).round()}%';
     return AlertDialog(
-      title: const Text('Display size'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,18 +51,19 @@ class _DisplaySizeDialogState extends State<DisplaySizeDialog> {
               if (mounted) setState(() => _drag = null);
             },
           ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Of the automatic size for this screen, on this device only. '
-            'Keyboard: Ctrl + / Ctrl - / Ctrl 0.',
-          ),
         ],
       ),
       actions: [
-        TextButton(onPressed: zoom.reset, child: const Text('Reset to auto')),
-        FilledButton(
+        GlyphButton(
+          icon: Icons.restart_alt,
+          semanticLabel: 'Reset to auto',
+          onPressed: zoom.reset,
+        ),
+        GlyphButton(
+          icon: Icons.check,
+          semanticLabel: 'Done',
+          filled: true,
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
         ),
       ],
     );

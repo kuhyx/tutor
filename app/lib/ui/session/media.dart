@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// One Commons picture with its attribution.
 class CommonsFigure extends StatelessWidget {
@@ -35,9 +37,12 @@ class CommonsFigure extends StatelessWidget {
                   img.url,
                   semanticLabel: img.title,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stack) => Text(
-                    'Picture did not load: ${img.title}',
-                    style: caption,
+                  errorBuilder: (context, error, stack) => SpokenLabel(
+                    semanticLabel: 'Picture did not load: ${img.title}',
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ),
               ),
@@ -47,10 +52,17 @@ class CommonsFigure extends StatelessWidget {
             spacing: AppSpacing.xs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('${img.title} - ${img.author} ·', style: caption),
-              LinkText(img.licence, img.licenceUrl ?? img.pageUrl),
+              // Attribution is the picture's own metadata: content.
+              ContentText('${img.title} - ${img.author} ·', style: caption),
+              ContentScope(
+                child: LinkText(img.licence, img.licenceUrl ?? img.pageUrl),
+              ),
               Text('·', style: caption),
-              LinkText('Wikimedia Commons', img.pageUrl),
+              GlyphButton(
+                icon: Icons.open_in_new,
+                semanticLabel: 'Wikimedia Commons',
+                onPressed: () => openLink(img.pageUrl),
+              ),
             ],
           ),
         ],
@@ -80,13 +92,29 @@ class DiagramView extends StatelessWidget {
           child: SvgPicture.string(
             diagram.svg,
             semanticsLabel: diagram.title,
-            errorBuilder: (context, error, stack) =>
-                const Text('Diagram could not be drawn.'),
+            errorBuilder: (context, error, stack) => SpokenLabel(
+              semanticLabel: 'Diagram could not be drawn.',
+              child: Icon(
+                Icons.broken_image_outlined,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
           ),
         ),
-        Text(
-          '${diagram.title} - drawn by code (schemdraw)',
-          style: Theme.of(context).textTheme.bodySmall,
+        Row(
+          children: [
+            const SpokenLabel(
+              semanticLabel: 'drawn by code (schemdraw)',
+              child: Icon(Icons.draw_outlined, size: AppTextSize.label),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: ContentText(
+                diagram.title,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
         ),
       ],
     ),

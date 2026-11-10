@@ -22,6 +22,7 @@ import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_side.dart';
 import 'package:tutor/ui/session/session_subjects.dart';
 import 'package:tutor/util/device.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Width from which the side panel sits beside the chat.
 const kWideLayout = 900.0;
@@ -212,7 +213,8 @@ class _SessionScreenState extends State<SessionScreen> {
           final wide = box.maxWidth >= kWideLayout;
           return Scaffold(
             appBar: AppBar(
-              title: Text(subject?.meta.title ?? 'Session'),
+              // The subject's name (content); none before it loads.
+              title: subject == null ? null : ContentText(subject.meta.title),
               actions: sessionActions(sid: view?.sid, wide: wide),
             ),
             endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),

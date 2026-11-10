@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/widgets/date_num.dart';
 
 /// The chart.
 class ProgressChart extends StatelessWidget {
@@ -158,11 +159,15 @@ class _ChartPainter extends CustomPainter {
     for (var i = 0; i <= last; i++) {
       if (i % every != 0 && i != last) continue;
       final day = labels[i];
-      _label(
-        canvas,
-        i == last ? 'today' : (day.length > 5 ? day.substring(5) : day),
-        Offset(x(i), size.height - _b / 2),
-      );
+      final at = Offset(x(i), size.height - _b / 2);
+      if (i == last) {
+        // Today: a filled dot, not a word.
+        canvas.drawCircle(at, 4, fill);
+      } else {
+        // `11/09`, as dates read everywhere else (DateNum).
+        final d = DateTime.tryParse(day);
+        _label(canvas, d == null ? day : dateNum(d), at);
+      }
     }
   }
 

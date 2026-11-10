@@ -24,6 +24,7 @@ import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/sql/lesson_screen.dart';
 import 'package:tutor/ui/today_parts.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 /// The Today screen.
 class TodayScreen extends StatefulWidget {
@@ -168,11 +169,14 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ),
           ),
-          IconButton(
-            key: const ValueKey('today-home'),
-            tooltip: l10n.homeTooltip,
-            icon: const Icon(Icons.home_outlined),
-            onPressed: widget.openHome,
+          // "Home" is ledger-approved: its tooltip stays (text-approvals).
+          approvedTooltip(
+            message: l10n.homeTooltip,
+            child: IconButton(
+              key: const ValueKey('today-home'),
+              icon: const Icon(Icons.home_outlined),
+              onPressed: widget.openHome,
+            ),
           ),
         ],
       ),

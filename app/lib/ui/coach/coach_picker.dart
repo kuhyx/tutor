@@ -14,6 +14,9 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/coach/coach_screen.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/icon_field.dart';
 
 /// The picker.
 class CoachPickerScreen extends StatefulWidget {
@@ -88,16 +91,16 @@ class _CoachPickerScreenState extends State<CoachPickerScreen> {
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  key: const ValueKey('problem'),
-                  controller: _input,
-                  autocorrect: false,
-                  textInputAction: TextInputAction.go,
-                  onSubmitted: (_) => _go(),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.link),
-                    border: const OutlineInputBorder(),
-                    errorText: _bad ? '' : null,
+                child: FieldLabel(
+                  semanticLabel: 'LeetCode problem',
+                  child: TextField(
+                    key: const ValueKey('problem'),
+                    controller: _input,
+                    autocorrect: false,
+                    textInputAction: TextInputAction.go,
+                    onSubmitted: (_) => _go(),
+                    decoration: iconDecoration(Icons.link)
+                        .copyWith(errorText: _bad ? '' : null),
                   ),
                 ),
               ),
@@ -110,7 +113,7 @@ class _CoachPickerScreenState extends State<CoachPickerScreen> {
             ],
           ),
           RequestStatusLine(_list),
-          if (_problem != null) Text(_problem!),
+          if (_problem != null) problemCue(_problem!),
           if (lists != null) ..._sections(lists),
         ],
       ),
@@ -125,7 +128,7 @@ class _CoachPickerScreenState extends State<CoachPickerScreen> {
       ),
       for (final d in lists.due)
         ListTile(
-          title: Text(d.title),
+          title: ContentText(d.title),
           onTap: () =>
               unawaited(_open(lcOpen(problem: d.slug), title: d.title)),
         ),
@@ -136,16 +139,16 @@ class _CoachPickerScreenState extends State<CoachPickerScreen> {
           r.phase == 'done' ? Icons.check_circle_outline : Icons.history,
           semanticLabel: r.phase,
         ),
-        title: Text(r.title),
+        title: ContentText(r.title),
         onTap: () => unawaited(_open(lcOpen(lcId: r.lcId), title: r.title)),
       ),
     for (final c in lists.clusters)
       ExpansionTile(
-        title: Text(c.name),
+        title: ContentText(c.name),
         children: [
           for (final slug in c.problems)
             ListTile(
-              title: Text(slug),
+              title: ContentText(slug),
               onTap: () => unawaited(_open(lcOpen(problem: slug), title: slug)),
             ),
         ],

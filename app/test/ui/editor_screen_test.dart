@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/editor_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -31,48 +35,51 @@ void main() {
       size: const Size(800, 1600),
     );
     // The old page's deck summary: done / recalled per module and subject.
-    expect(find.text('2/4 done · 1 recalled · 2 due'), findsOneWidget);
+    expect(spokenHas('2/4 done · 1 recalled · 2 due'), findsOneWidget);
     expect(
-      find.text('3 cards · reviewed · 2 done · 1 recalled · 2 due'),
+      spokenHas('3 cards · reviewed · 2 done · 1 recalled · 2 due'),
       findsOneWidget,
     );
-    expect(find.text('1 card · ready · 0 done · 0 recalled'), findsOneWidget);
+    expect(spokenHas('1 card · ready · 0 done · 0 recalled'), findsOneWidget);
     await t.tap(find.text('The four-stroke engine'));
     await t.pumpAndSettle();
-    expect(find.byIcon(Icons.star), findsOneWidget); // recalled
-    expect(find.byIcon(Icons.check_circle), findsOneWidget); // done
-    expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
+    final marks = find.byType(CardStateIcon);
+    Finder mark(IconData i) =>
+        find.descendant(of: marks, matching: find.byIcon(i));
+    expect(mark(Icons.star), findsOneWidget); // recalled
+    expect(mark(Icons.check_circle), findsOneWidget); // done
+    expect(mark(Icons.radio_button_unchecked), findsOneWidget);
 
-    await t.tap(find.byTooltip('Flag').first);
+    await t.tap(spoken('Flag').first);
     await t.pumpAndSettle();
     await t.enterText(find.byType(TextField), 'answer is wrong');
-    await t.tap(find.widgetWithText(FilledButton, 'Flag'));
+    await t.tap(spoken('Flag').last); // the dialog's
     await t.pumpAndSettle();
     final flags = (await s.events.all())
         .map((e) => e.event)
         .whereType<FlagEvent>();
     expect(flags.single.reason, 'answer is wrong');
-    await t.tap(find.byTooltip('Flag').first);
+    await t.tap(spoken('Flag').first);
     await t.pumpAndSettle();
-    await t.tap(find.text('Cancel'));
+    await t.tap(spoken('Cancel'));
     await t.pumpAndSettle();
 
     await t.tap(find.text('What are the four strokes?'));
     await t.pumpAndSettle();
-    expect(find.text('Edit card'), findsOneWidget);
+    expect(spoken('Edit card'), findsOneWidget);
     await t.enterText(
-      find.widgetWithText(TextField, 'Front (question, <=25 words)'),
+      fieldByLabel('Front (question, <=25 words)'),
       'Which four strokes?',
     );
     await t.enterText(
-      find.widgetWithText(TextField, 'Requires (card ids, comma separated)'),
+      fieldByLabel('Requires (card ids, comma separated)'),
       'eng-crank, ',
     );
     await t.enterText(
-      find.widgetWithText(TextField, 'Mnemonic (optional, one line)'),
+      fieldByLabel('Mnemonic (optional, one line)'),
       ' suck, squeeze, bang, blow ',
     );
-    await t.tap(find.text('Save card'));
+    await t.tap(spoken('Save card'));
     await sent(t);
     final edit = await answer(
       t,
@@ -83,15 +90,21 @@ void main() {
     expect(edit['body'], containsPair('card', 'eng-strokes'));
     expect(edit['body'], containsPair('requires', ['eng-crank']));
     expect(edit['body'], containsPair('mnemonic', 'suck, squeeze, bang, blow'));
-    expect(find.text('Edit cards'), findsOneWidget); // popped back
+    expect(spoken('Edit cards'), findsOneWidget); // popped back
 
-    await t.tap(find.text('Add card').first);
+    await t.tap(spoken('Add card').first);
     await t.pumpAndSettle();
-    expect(find.text('New card'), findsOneWidget);
-    expect(find.textContaining('Front: 1-25 words'), findsOneWidget);
+    expect(spoken('New card'), findsOneWidget);
+    expect(cueLabelled('Front: 1-25 words', prefix: true), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsWidgets);
     expect(
       t
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save card'))
+          .widget<FilledButton>(
+            find.descendant(
+              of: spoken('Save card'),
+              matching: find.byType(FilledButton),
+            ),
+          )
           .onPressed,
       isNull,
     );
@@ -106,6 +119,6 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.text('Vegetable gardening').last);
     await t.pumpAndSettle();
-    expect(find.text('0 cards · locked'), findsWidgets);
+    expect(spokenHas('0 cards · locked'), findsWidgets);
   });
 }

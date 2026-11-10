@@ -8,6 +8,7 @@ import 'package:tutor/ui/session/session_screen.dart';
 
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _base = 'tutor/v1/sessions/$fixtureLiveSid';
@@ -40,8 +41,8 @@ void main() {
       }),
     );
     await t.pump();
-    expect(find.text('Tutor is thinking...'), findsOneWidget);
-    expect(find.text('Search: stale'), findsNothing);
+    expect(bySpoken('Tutor is thinking...'), findsOneWidget);
+    expect(find.text('stale'), findsNothing);
 
     progress(
       const RtdbPut('/', {
@@ -57,10 +58,10 @@ void main() {
       }),
     );
     await t.pump();
-    expect(find.text('Researching...'), findsOneWidget);
-    expect(find.text('Search: four stroke'), findsOneWidget);
+    expect(bySpoken('Researching...'), findsOneWidget);
+    expect(find.text('four stroke'), findsOneWidget);
     expect(find.text('Plan the next ask.'), findsNothing);
-    await t.tap(find.text('Thinking · 1 research step'));
+    await t.tap(bySpoken('Thinking · 1 research step'));
     await t.pump();
     expect(find.text('Plan the next ask.'), findsOneWidget);
 
@@ -81,8 +82,8 @@ void main() {
       }),
     );
     await t.pump();
-    expect(find.text('Researching...'), findsNothing);
-    expect(find.text('Thinking · 1 research step'), findsOneWidget);
+    expect(bySpoken('Researching...'), findsNothing);
+    expect(bySpoken('Thinking · 1 research step'), findsOneWidget);
     expect(find.text('Plan the next ask.'), findsNothing);
   });
 
@@ -118,8 +119,8 @@ void main() {
         }),
       );
     await t.pump();
-    expect(find.text('Next card'), findsOneWidget);
-    expect(find.text('Researching...'), findsOneWidget);
-    expect(find.text('Search: why coil'), findsOneWidget);
+    expect(controlByLabel('Next card'), findsOneWidget);
+    expect(bySpoken('Researching...'), findsOneWidget);
+    expect(find.text('why coil'), findsOneWidget);
   });
 }

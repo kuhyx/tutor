@@ -9,6 +9,8 @@ import 'package:tutor/model/trace.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/ui/session/thinking_panel.dart';
 
+import '../support/label_finders.dart';
+
 const _thought = 'The learner knows coils; ask about the contact.';
 final List<TraceStep> _steps = parseTrace([
   {'kind': 'thinking', 'text': _thought},
@@ -32,15 +34,15 @@ void main() {
       'trace': [for (final s in _steps) s.toJson()],
     });
     await _pump(t, MessageTile(message: m));
-    expect(find.text('Thinking · 2 research steps'), findsOneWidget);
+    expect(bySpoken('Thinking · 2 research steps'), findsOneWidget);
     expect(find.text(_thought), findsNothing);
     expect(find.textContaining('relay contact NO NC'), findsNothing);
-    await t.tap(find.text('Thinking · 2 research steps'));
+    await t.tap(bySpoken('Thinking · 2 research steps'));
     await t.pump();
     expect(find.text(_thought), findsOneWidget);
-    expect(find.text('Search: relay contact NO NC'), findsOneWidget);
-    expect(find.text('Fetch: https://example.org/relay'), findsOneWidget);
-    await t.tap(find.text('Thinking · 2 research steps'));
+    expect(find.text('relay contact NO NC'), findsOneWidget);
+    expect(find.text('https://example.org/relay'), findsOneWidget);
+    await t.tap(bySpoken('Thinking · 2 research steps'));
     await t.pump();
     expect(find.text(_thought), findsNothing);
   });
@@ -53,7 +55,7 @@ void main() {
 
   testWidgets('thinking only: the header says so', (t) async {
     await _pump(t, ThinkingPanel(steps: parseTrace([_steps.first.toJson()])));
-    expect(find.text('Thinking'), findsOneWidget);
+    expect(bySpoken('Thinking'), findsOneWidget);
   });
 
   testWidgets('in flight: research shows live, reasoning folds, stays open', (
@@ -63,7 +65,7 @@ void main() {
       t,
       const LiveTrace(key: ValueKey('live-r1'), phase: Phase.thinking),
     );
-    expect(find.text('Tutor is thinking...'), findsOneWidget);
+    expect(bySpoken('Tutor is thinking...'), findsOneWidget);
     expect(find.byType(ThinkingPanel), findsNothing);
 
     await _pump(
@@ -74,11 +76,11 @@ void main() {
         steps: _steps.sublist(0, 2),
       ),
     );
-    expect(find.text('Researching...'), findsOneWidget);
+    expect(bySpoken('Researching...'), findsOneWidget);
     // The research steps show while the reasoning is folded.
-    expect(find.text('Search: relay contact NO NC'), findsOneWidget);
+    expect(find.text('relay contact NO NC'), findsOneWidget);
     expect(find.text(_thought), findsNothing);
-    await t.tap(find.text('Thinking · 1 research step'));
+    await t.tap(bySpoken('Thinking · 1 research step'));
     await t.pump();
     expect(find.text(_thought), findsOneWidget);
 
@@ -92,13 +94,13 @@ void main() {
       ),
     );
     expect(find.text(_thought), findsOneWidget);
-    expect(find.text('Fetch: https://example.org/relay'), findsOneWidget);
-    expect(find.text('Thinking · 2 research steps'), findsOneWidget);
+    expect(find.text('https://example.org/relay'), findsOneWidget);
+    expect(bySpoken('Thinking · 2 research steps'), findsOneWidget);
   });
 
   testWidgets('other phases keep their own line', (t) async {
     await _pump(t, LiveTrace(phase: Phase.checkingImages, steps: _steps));
-    expect(find.text('Checking the pictures...'), findsOneWidget);
+    expect(bySpoken('Checking the pictures...'), findsOneWidget);
   });
 
   testWidgets('any other tool shows with a generic icon', (t) async {
@@ -106,7 +108,7 @@ void main() {
       {'kind': 'tool', 'name': 'Read', 'input': '/notes/otto.md'},
     ]);
     await _pump(t, ThinkingPanel(steps: read, live: true));
-    expect(find.text('Read: /notes/otto.md'), findsOneWidget);
+    expect(find.text('/notes/otto.md'), findsOneWidget);
     expect(find.byIcon(Icons.build_outlined), findsOneWidget);
   });
 

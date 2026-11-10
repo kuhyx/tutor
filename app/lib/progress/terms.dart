@@ -23,16 +23,46 @@ const recalledHelp =
 const reviewedModuleHelp =
     'Reviewed: every card got Good in review — the next module is open';
 
-/// [m]'s badge: "reviewed" once the PC marked it `mastered` or every card
+/// Where a module stands, as the badge, its glyph and tint show it.
+enum ModuleMark {
+  /// Requirements not reviewed yet.
+  locked,
+
+  /// Cards being generated.
+  generating,
+
+  /// Cards available.
+  ready,
+
+  /// Generation failed (Retry).
+  failed,
+
+  /// Every card taught.
+  done,
+
+  /// Every card got Good: the next module is open.
+  reviewed,
+}
+
+/// [m]'s mark: "reviewed" once the PC marked it `mastered` or every card
 /// got Good ([review]); "done" once every card is taught; else its status
 /// (locked, generating, ready, failed). Failed always shows (Retry).
-String moduleBadge(Module m, [ModuleReview? review]) {
-  if (m.status == ModuleStatus.failed) return m.status.name;
+ModuleMark moduleMark(Module m, [ModuleReview? review]) {
+  if (m.status == ModuleStatus.failed) return ModuleMark.failed;
   if (m.status == ModuleStatus.mastered || review == ModuleReview.reviewed) {
-    return 'reviewed';
+    return ModuleMark.reviewed;
   }
-  return review == ModuleReview.done ? 'done' : m.status.name;
+  if (review == ModuleReview.done) return ModuleMark.done;
+  return switch (m.status) {
+    ModuleStatus.locked => ModuleMark.locked,
+    ModuleStatus.generating => ModuleMark.generating,
+    _ => ModuleMark.ready,
+  };
 }
+
+/// The word of [moduleMark] (the spoken label; never painted).
+String moduleBadge(Module m, [ModuleReview? review]) =>
+    moduleMark(m, review).name;
 
 /// The explanation for a [moduleBadge] word, or null for the plain statuses.
 String? badgeHelp(String badge) => switch (badge) {

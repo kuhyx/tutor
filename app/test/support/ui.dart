@@ -11,6 +11,7 @@ import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/ui/ui_zoom.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 import '../../tool/fixture/fixture_data.dart';
 import 'fake_rtdb.dart';
@@ -49,7 +50,7 @@ Future<void> pumpScreen(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: buildLightTheme(),
+      theme: textFreeTheme(buildLightTheme()),
       builder: (context, child) => UiZoomHost(child: child!),
       home: screen,
     ),

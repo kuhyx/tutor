@@ -1,7 +1,6 @@
 // Review's Back: the previous card again, revealed, with its earlier
 // rating highlighted; re-rating replaces it (a review_undo + a new review).
 // Backspace and Ctrl+Z do the same; Back works from the end screen too.
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/log/fsrs_fold.dart';
@@ -9,6 +8,7 @@ import 'package:tutor/model/log_event.dart';
 import 'package:tutor/ui/review_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -28,45 +28,46 @@ void main() {
       );
     }
     await pumpScreen(t, ReviewScreen(services: s, now: () => then));
-    expect(find.text('Back'), findsNothing); // nothing rated yet
+    expect(spoken('Back'), findsNothing); // nothing rated yet
     final first = find.text('What does the crankshaft do?');
     expect(first, findsOneWidget);
     await t.sendKeyEvent(LogicalKeyboardKey.space);
     await t.pumpAndSettle();
     await t.sendKeyEvent(LogicalKeyboardKey.digit3); // Good, by mistake
     await t.pumpAndSettle();
-    expect(find.textContaining('1 left'), findsOneWidget);
+    expect(spoken('1 left'), findsOneWidget);
 
-    await t.tap(find.text('Back'));
+    await t.tap(spoken('Back'));
     await t.pumpAndSettle();
     expect(first, findsOneWidget);
-    expect(find.textContaining('2 left'), findsOneWidget);
+    expect(spoken('2 left'), findsOneWidget);
     // Revealed, the earlier Good highlighted.
-    expect(find.text('3 Good'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '3 Good'), findsOneWidget);
-    expect(find.text('Earlier: Good'), findsOneWidget);
-    await t.tap(find.text('1 Again'));
+    expect(spoken('3 Good'), findsOneWidget);
+    expect(gradeFilled(t, Grade.good), isTrue);
+    expect(gradeFilled(t, Grade.again), isFalse);
+    expect(spoken('Earlier: Good'), findsOneWidget);
+    await t.tap(spoken('1 Again'));
     await t.pumpAndSettle();
-    expect(find.textContaining('1 left'), findsOneWidget);
+    expect(spoken('1 left'), findsOneWidget);
 
     // The last card: rate, then Ctrl+Z from the end screen.
     await t.sendKeyEvent(LogicalKeyboardKey.space);
     await t.pumpAndSettle();
     await t.sendKeyEvent(LogicalKeyboardKey.digit4);
     await t.pumpAndSettle();
-    expect(find.text('All done'), findsOneWidget);
-    expect(find.text('Back'), findsOneWidget);
+    expect(spokenHas('All done'), findsOneWidget);
+    expect(spoken('Back'), findsOneWidget);
     await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await t.sendKeyEvent(LogicalKeyboardKey.keyZ);
     await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await t.pumpAndSettle();
-    expect(find.widgetWithText(FilledButton, '4 Easy'), findsOneWidget);
+    expect(gradeFilled(t, Grade.easy), isTrue);
     // Backspace: back once more, to the first card (now Again).
     await t.sendKeyEvent(LogicalKeyboardKey.backspace);
     await t.pumpAndSettle();
     expect(first, findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '1 Again'), findsOneWidget);
-    await t.tap(find.text('2 Hard'));
+    expect(gradeFilled(t, Grade.again), isTrue);
+    await t.tap(spoken('2 Hard'));
     await t.pumpAndSettle();
 
     final all = await s.events.all();

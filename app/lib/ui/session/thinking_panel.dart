@@ -10,6 +10,9 @@ import 'package:tutor/model/request.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/trace.dart';
 import 'package:tutor/relay/error_text.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// One tool call as a line: `Search: <query>`, `Fetch: <url>`, `Run: <cmd>`.
 String toolLine(TraceStep step) {
@@ -38,6 +41,14 @@ IconData _icon(String name) => switch (name) {
   'WebFetch' => Icons.public,
   'Bash' => Icons.terminal,
   _ => Icons.build_outlined,
+};
+
+IconData _phaseIcon(Phase phase) => switch (phase) {
+  Phase.claimed => Icons.inbox_outlined,
+  Phase.thinking => Icons.psychology_outlined,
+  Phase.images => Icons.image_search,
+  Phase.checkingImages => Icons.fact_check_outlined,
+  Phase.publishing => Icons.publish,
 };
 
 /// A collapsible trace; folded by default.
@@ -80,9 +91,11 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Semantics(
+          SpokenLabel(
             button: true,
             expanded: _open,
+            semanticLabel: traceHeader(steps),
+            onTap: () => setState(() => _open = !_open),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.sm),
               onTap: () => setState(() => _open = !_open),
@@ -97,11 +110,14 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
                       color: muted,
                     ),
                     const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      traceHeader(steps),
-                      style: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(color: muted),
-                    ),
+                    Icon(Icons.psychology_outlined, size: 18, color: muted),
+                    if (steps.any((s) => s.isTool)) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      CountBadge(
+                        steps.where((s) => s.isTool).length,
+                        icon: Icons.search,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -131,10 +147,16 @@ class _StepView extends StatelessWidget {
               children: [
                 Icon(_icon(step.name), size: 16, color: muted),
                 const SizedBox(width: AppSpacing.xs),
-                Expanded(child: Text(toolLine(step), style: style)),
+                // The verb is the glyph; the query, url or command is content.
+                Expanded(
+                  child: ContentText(
+                    step.input.isEmpty ? '' : step.input,
+                    style: style,
+                  ),
+                ),
               ],
             )
-          : Text(step.text.trim(), style: style),
+          : ContentText(step.text.trim(), style: style),
     );
   }
 }
@@ -157,7 +179,22 @@ class LiveTrace extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(researching ? 'Researching...' : phaseText(phase)),
+        // Busy: a spinner beside the phase glyph; the sentence is spoken.
+        SpokenLabel(
+          semanticLabel: researching ? 'Researching...' : phaseText(phase),
+          liveRegion: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox.square(
+                dimension: AppSpacing.md,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Icon(researching ? Icons.search : _phaseIcon(phase)),
+            ],
+          ),
+        ),
         if (steps.isNotEmpty) ThinkingPanel(steps: steps, live: true),
       ],
     );

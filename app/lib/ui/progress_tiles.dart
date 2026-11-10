@@ -3,14 +3,17 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/progress/progress.dart';
-import 'package:tutor/progress/terms.dart';
-import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/fit_parts.dart';
+import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/ui/learn_rows.dart';
+import 'package:tutor/ui/learn_tiles.dart';
 import 'package:tutor/ui/progress_chart.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The phone body of Progress; the wide page lends it its widgets.
 class ProgressFit extends StatefulWidget {
@@ -52,7 +55,6 @@ class _ProgressFitState extends State<ProgressFit> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final days = timeline(widget.stats?.days ?? const {});
     final today = widget.stats?.today;
     final subjects = <String, List<ModuleProgress>>{};
@@ -66,17 +68,24 @@ class _ProgressFitState extends State<ProgressFit> {
     final names = subjects.keys.toList();
     final credited = today == null
         ? '-'
-        : '${today.creditedMinutes}/${today.target} min';
+        : '${today.creditedMinutes}/${today.target}';
     final taught = days.isEmpty ? 0 : days.last.taughtTotal;
     return fitPage([
       _pad(
-        _stats([(l10n.creditedToday, credited), (l10n.cardsTaught, '$taught')]),
+        _stats([
+          (Icons.timer_outlined, 'Credited today', credited),
+          (Icons.school_outlined, 'Cards taught', '$taught'),
+        ]),
       ),
       const SizedBox(height: AppSpacing.sm),
       _pad(
         _stats([
-          (l10n.daysLogged, '${days.length}'),
-          (l10n.modulesReviewed, '$reviewed/${widget.modules.length}'),
+          (Icons.calendar_month_outlined, 'Days logged', '${days.length}'),
+          (
+            Icons.verified_outlined,
+            'Modules reviewed',
+            '$reviewed/${widget.modules.length}',
+          ),
         ]),
       ),
       ?widget.empty,
@@ -91,19 +100,22 @@ class _ProgressFitState extends State<ProgressFit> {
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.xs,
                   children: [
-                    _chip(l10n.minutes, taught: false),
-                    _chip(l10n.taught, taught: true),
+                    _chip(Icons.timer_outlined, 'Minutes', taught: false),
+                    _chip(Icons.school_outlined, 'Taught', taught: true),
                   ],
                 ),
               ),
-              IconButton(
-                tooltip: l10n.allDays,
-                onPressed: () => showFitSheet(
+              GlyphButton(
+                icon: Icons.table_rows_outlined,
+                semanticLabel: 'All days',
+                onPressed: () => showLearnSheet(
                   context,
-                  title: l10n.allDays,
+                  header: const LearnHeader(
+                    Icons.calendar_month_outlined,
+                    'All days',
+                  ),
                   children: (_) => [widget.allDays],
                 ),
-                icon: const Icon(Icons.table_rows_outlined),
               ),
             ],
           ),
@@ -143,42 +155,52 @@ class _ProgressFitState extends State<ProgressFit> {
   ) {
     final recall =
         rows.fold<double>(0, (sum, m) => sum + m.module.recall) / rows.length;
-    return FitTile(
+    return LearnTile(
       key: ValueKey('subject-stat-$i'),
       title: name,
-      lines: [
-        'recall ${(recall * 100).round()}%',
-        AppLocalizations.of(context).moduleCount(rows.length),
+      details: [
+        RecallStat(recall),
+        SpokenLabel(
+          semanticLabel: '${rows.length} modules',
+          child: GlyphStat(Icons.view_agenda_outlined, '${rows.length}'),
+        ),
       ],
-      onMore: () => showFitSheet(
+      onMore: () => showLearnSheet(
         context,
-        title: name,
-        children: (_) => [for (final m in rows) _ModuleRow(m)],
+        header: ContentText(
+          name,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        children: (_) => [for (final m in rows) ModuleRecallRow(m.module)],
       ),
     );
   }
 
-  Widget _chip(String label, {required bool taught}) => ChoiceChip(
-    label: Text(label),
-    selected: _taught == taught,
-    onSelected: (_) => setState(() => _taught = taught),
-  );
+  Widget _chip(IconData icon, String label, {required bool taught}) =>
+      GlyphChip(
+        icon: icon,
+        semanticLabel: label,
+        selected: _taught == taught,
+        onSelected: () => setState(() => _taught = taught),
+      );
 
-  Widget _stats(List<(String, String)> cells) => Row(
+  // Glyph + number per stat; the old label is the spoken label.
+  Widget _stats(List<(IconData, String, String)> cells) => Row(
     children: [
-      for (final (i, (label, value)) in cells.indexed) ...[
+      for (final (i, (icon, label, value)) in cells.indexed) ...[
         if (i > 0) const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Card(
             margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(value, style: Theme.of(context).textTheme.titleLarge),
-                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
+              child: SpokenLabel(
+                semanticLabel: '$label: $value',
+                child: GlyphStat(
+                  icon,
+                  value,
+                  size: Theme.of(context).textTheme.titleLarge?.fontSize,
+                ),
               ),
             ),
           ),
@@ -192,26 +214,3 @@ Widget _pad(Widget child) => Padding(
   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
   child: child,
 );
-
-class _ModuleRow extends StatelessWidget {
-  const new(this.row);
-
-  final ModuleProgress row;
-
-  @override
-  Widget build(BuildContext context) {
-    final m = row.module;
-    final badge = moduleBadge(m);
-    return ListTile(
-      title: Text(m.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.xs),
-        child: LinearProgressIndicator(value: m.recall),
-      ),
-      trailing: Explained(
-        badgeHelp(badge),
-        child: Text('${(m.recall * 100).round()}% · $badge'),
-      ),
-    );
-  }
-}

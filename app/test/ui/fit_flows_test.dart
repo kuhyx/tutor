@@ -16,6 +16,8 @@ import 'package:tutor/util/ulid.dart';
 
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -33,7 +35,7 @@ Future<void> _tap(WidgetTester t, Finder f) async {
 
 /// Phone: Refresh sits in the ⋮ menu.
 Future<void> _refresh(WidgetTester t) async {
-  await _tap(t, find.byTooltip('More'));
+  await _tap(t, bySpoken('More'));
   await _tap(t, find.byIcon(Icons.refresh));
 }
 
@@ -59,9 +61,9 @@ void main() {
     await t.pumpAndSettle();
 
     await _longPress(t, _subject('car'));
-    expect(find.textContaining('1/4 modules reviewed'), findsOneWidget);
-    expect(find.text('Cards'), findsOneWidget);
-    await _tap(t, find.widgetWithText(TextButton, 'Plan'));
+    expect(spoken('1/4 modules reviewed'), findsOneWidget);
+    expect(controlByLabel('Cards'), findsOneWidget);
+    await _tap(t, controlByLabel('Plan'));
     expect(find.byType(PlanScreen), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
@@ -81,15 +83,15 @@ void main() {
     final stream = FakeStream();
     await _home(t, db, stream);
     await _longPress(t, _subject('car'));
-    await t.tap(find.text('Review only'));
+    await t.tap(controlByLabel('Review only'));
     await sent(t);
     expect((await answer(t, db, stream))['kind'], 'subject_finish');
     await _longPress(t, _subject('garden'));
-    await t.tap(find.text('Try again'));
+    await t.tap(controlByLabel('Try again'));
     await sent(t);
     final req = await answer(t, db, stream, code: 'model_error');
     expect(req['kind'], 'subject_new');
-    expect(find.textContaining('failed on this turn'), findsOneWidget);
+    expect(cueContaining('failed on this turn'), findsOneWidget);
   });
 
   testWidgets('Home: Cards, Review due, Learn next, Go deeper', (t) async {
@@ -102,12 +104,12 @@ void main() {
     );
     await _refresh(t);
     await _longPress(t, _subject('car'));
-    await _tap(t, find.text('Cards'));
+    await _tap(t, controlByLabel('Cards'));
     expect(find.byType(EditorScreen), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
     await _longPress(t, _subject('car'));
-    await _tap(t, find.text('Review (1 due)').last);
+    await _tap(t, controlByLabel('Review (1 due)').last);
     expect(find.byType(ReviewScreen), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
@@ -117,10 +119,10 @@ void main() {
     db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
     await _refresh(t);
     await _longPress(t, _subject('garden'));
-    await _tap(t, find.text('Learn this next'));
+    await _tap(t, controlByLabel('Learn this next'));
     expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');
     await _longPress(t, _subject('car'));
-    await t.tap(find.text('Go deeper'));
+    await t.tap(controlByLabel('Go deeper'));
     await sent(t);
     final req = await answer(t, db, stream);
     expect(req['body'], {'subject': 'car', 'choice': 'go_deeper'});
@@ -130,17 +132,17 @@ void main() {
     final db = fixtureDb();
     final stream = FakeStream();
     await _home(t, db, stream);
-    await _tap(t, find.byTooltip('New subject'));
+    await _tap(t, controlByLabel('New subject'));
     await t.enterText(find.byType(TextField), 'how bridges stand');
-    await t.tap(find.text('Draft a plan'));
+    await t.tap(controlByLabel('Draft a plan'));
     await sent(t);
-    expect(find.textContaining('drafts a plan'), findsOneWidget);
+    expect(cueContaining('drafts a plan'), findsOneWidget);
     await answer(t, db, stream, data: {'subject': 'garden'});
-    expect(find.text('Modules (teaching order)'), findsOneWidget);
+    expect(spoken('Modules (teaching order)'), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byTooltip('New subject'), findsOneWidget);
+    expect(controlByLabel('New subject'), findsOneWidget);
   });
 
   testWidgets('Home: more subjects than fit page sideways', (t) async {
@@ -157,12 +159,12 @@ void main() {
     }
     await _home(t, db, FakeStream());
     expect(find.byKey(const ValueKey('fit-grid-dot-1')), findsOneWidget);
-    expect(find.byTooltip('New subject').hitTestable(), findsNothing);
+    expect(controlByLabel('New subject').hitTestable(), findsNothing);
     for (var i = 0; i < 5; i++) {
       await t.drag(find.byType(PageView), const Offset(-400, 0));
       await t.pumpAndSettle();
     }
-    expect(find.byTooltip('New subject').hitTestable(), findsOneWidget);
+    expect(controlByLabel('New subject').hitTestable(), findsOneWidget);
   });
 
   testWidgets('Plan: chips switch; sheets Retry and Review', (t) async {
@@ -188,17 +190,20 @@ void main() {
       PlanScreen(services: s, subject: 'car'),
       size: _phone,
     );
-    await _tap(t, find.text('Revisions'));
-    expect(find.text('rev 1: less history'), findsOneWidget);
-    await _tap(t, find.text('Modules'));
+    await _tap(t, chipSpoken('Revisions'));
+    expect(chipSelected(t, 'Revisions'), isTrue);
+    expect(spoken('rev 1: less history'), findsOneWidget);
+    expect(find.text('less history'), findsOneWidget); // the comment: content
+    await _tap(t, chipSpoken('Modules'));
+    expect(chipSelected(t, 'Modules'), isTrue);
 
     await _tap(t, find.byKey(const ValueKey('module-tile-3'))); // Brakes
-    await t.tap(find.text('Retry'));
+    await t.tap(controlByLabel('Retry'));
     await sent(t);
     expect((await answer(t, db, stream))['kind'], 'plan_approve');
     await _tap(t, find.byKey(const ValueKey('module-tile-1'))); // Fuel
-    expect(find.textContaining('recall 33%'), findsWidgets);
-    await _tap(t, find.text('Review this module'));
+    expect(bySpoken('recall 33%'), findsWidgets);
+    await _tap(t, controlByLabel('Review this module'));
     expect(find.text('What ignites the mixture?'), findsOneWidget);
   });
 
@@ -206,15 +211,16 @@ void main() {
     final s = await fixtureServices(fixtureDb(), FakeStream());
     await pumpScreen(t, ProgressScreen(services: s), size: _phone);
     expect(find.bySemanticsLabel(RegExp('^min per day, 7 days')), findsOne);
-    await _tap(t, find.text('Taught'));
+    await _tap(t, chipSpoken('Taught'));
     expect(find.bySemanticsLabel(RegExp('^cards per day')), findsOne);
-    await _tap(t, find.byTooltip('All days'));
+    await _tap(t, controlByLabel('All days'));
     expect(find.text('2026-10-12'), findsOneWidget);
     expect(find.text('2026-09-29'), findsOneWidget);
     await t.tapAt(const Offset(10, 10));
     await t.pumpAndSettle();
     await _tap(t, find.byKey(const ValueKey('subject-stat-0')));
-    expect(find.textContaining('85% · reviewed'), findsOneWidget);
+    expect(bySpoken('recall 85%'), findsWidgets);
+    expect(bySpoken('reviewed', prefix: true), findsWidgets);
     expect(find.text('Brakes'), findsOneWidget);
   });
 
@@ -223,13 +229,13 @@ void main() {
     db.root = setAt(db.root, 'tutor/v1/stats/days', null);
     final s = await fixtureServices(db, FakeStream());
     await pumpScreen(t, ProgressScreen(services: s), size: _phone);
-    expect(find.text('No days yet'), findsOneWidget);
-    expect(find.byTooltip('All days'), findsNothing);
+    expect(spokenHas('No days yet'), findsOneWidget);
+    expect(controlByLabel('All days'), findsNothing);
   });
 
   testWidgets('Progress: no approved plans yet', (t) async {
     final s = services(fixtureDb(), FakeStream()); // nothing cached
     await pumpScreen(t, ProgressScreen(services: s), size: _phone);
-    expect(find.text('No approved plans yet.'), findsOneWidget);
+    expect(spoken('No approved plans yet.'), findsOneWidget);
   });
 }

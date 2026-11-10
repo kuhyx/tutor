@@ -6,6 +6,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/ui/session/md_text.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 final _fence = RegExp(r'```[a-zA-Z]*\n?(.*?)```', dotAll: true);
 final _rule = RegExp(r'^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$');
@@ -19,15 +20,17 @@ class CodeBlock extends StatelessWidget {
   final String code;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      // Wraps: a query clipped at the screen edge cannot be answered.
-      child: SelectableText(code.trimRight(), style: sqlMono),
+  Widget build(BuildContext context) => ContentScope(
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        // Wraps: a query clipped at the screen edge cannot be answered.
+        child: SelectableText(code.trimRight(), style: sqlMono),
+      ),
     ),
   );
 }
@@ -52,11 +55,13 @@ class RichMd extends StatelessWidget {
       at = m.end;
     }
     parts.addAll(_prose(text.substring(at)));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final p in parts) ...[p, gap],
-      ],
+    return ContentScope(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final p in parts) ...[p, gap],
+        ],
+      ),
     );
   }
 }

@@ -4,10 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/focus_screen.dart';
+import 'package:tutor/ui/history_screen.dart';
 import 'package:tutor/ui/home_screen.dart';
+import 'package:tutor/ui/plan_screen.dart';
+import 'package:tutor/ui/progress_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -21,37 +27,37 @@ void main() {
       t,
       HomeScreen(services: s, onSignedOut: () => signedOut = true),
     );
-    expect(find.textContaining('Credited 23/60 min'), findsOneWidget);
-    expect(find.text('Continue session'), findsOneWidget);
-    expect(find.textContaining('1/4 modules reviewed'), findsOneWidget);
+    expect(find.text('23/60'), findsOneWidget); // credited / target
+    expect(glyphsLabelled('Continue session'), findsOneWidget);
+    expect(find.text('1/4'), findsOneWidget); // modules reviewed
 
     await t.tap(find.text('Vegetable gardening'));
     await t.pumpAndSettle();
-    expect(find.text('Plan'), findsWidgets); // draft -> Plan screen
+    expect(find.byType(PlanScreen), findsOneWidget); // draft -> Plan screen
     await t.pageBack();
     await t.pumpAndSettle();
 
     db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'active');
     db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
-    await t.tap(find.byTooltip('Refresh'));
+    await t.tap(glyphsLabelled('Refresh'));
     await t.pumpAndSettle();
-    await t.tap(find.text('Learn this next'));
+    await t.tap(glyphsLabelled('Learn this next'));
     await t.pumpAndSettle();
     expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');
 
     await t.enterText(find.byType(TextField), 'how bridges stand');
-    await t.tap(find.text('Draft a plan'));
+    await t.tap(glyphsLabelled('Draft a plan'));
     await sent(t);
-    expect(find.textContaining('drafts a plan'), findsOneWidget);
+    expect(cueOfKind(CueKind.pending), findsOneWidget);
     final req = await answer(t, db, stream, data: {'subject': 'garden'});
     expect(req['kind'], 'subject_new');
-    expect(find.text('Modules (teaching order)'), findsOneWidget);
+    expect(find.byType(PlanScreen), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
 
-    await t.tap(find.byTooltip('More'));
+    await t.tap(find.byIcon(Icons.more_vert));
     await t.pumpAndSettle();
-    await t.tap(find.text('Sign out'));
+    await t.tap(bySpoken('Sign out').first);
     await t.pumpAndSettle();
     expect(signedOut, isTrue);
   });
@@ -73,15 +79,17 @@ void main() {
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
-    expect(find.textContaining('no sources found'), findsOneWidget);
-    await t.tap(find.text('Review only'));
+    // The failure's reason is the status glyph's spoken label only.
+    expect(bySpoken('failed · no sources found'), findsOneWidget);
+    expect(find.textContaining('no sources found'), findsNothing);
+    await t.tap(glyphsLabelled('Review only'));
     await sent(t);
     expect((await answer(t, db, stream))['kind'], 'subject_finish');
-    await t.tap(find.text('Try again'));
+    await t.tap(glyphsLabelled('Try again'));
     await sent(t);
     final req = await answer(t, db, stream, code: 'model_error');
     expect(req['body'], {'text': 'grow vegetables'});
-    expect(find.textContaining('failed on this turn'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 
   testWidgets('desktop build: no Sign out', (t) async {
@@ -92,10 +100,10 @@ void main() {
       t,
       HomeScreen(services: s, onSignedOut: () {}, allowSignOut: false),
     );
-    await t.tap(find.byTooltip('More'));
+    await t.tap(find.byIcon(Icons.more_vert));
     await t.pumpAndSettle();
-    expect(find.text('History'), findsOneWidget);
-    expect(find.text('Sign out'), findsNothing);
+    expect(bySpoken('History'), findsOneWidget);
+    expect(bySpoken('Sign out'), findsNothing);
   });
 
   testWidgets('the focus deep link opens the focus screen with autoStart', (
@@ -160,32 +168,32 @@ void main() {
       t,
       HomeScreen(services: s, onSignedOut: () {}, initialRoute: '/progress'),
     );
-    expect(find.text('Credited minutes per day'), findsOneWidget);
+    expect(find.byType(ProgressScreen), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
-    for (final (item, title) in [
-      ('History', 'History'),
-      ('Edit cards', 'Edit cards'),
+    for (final (item, screen) in [
+      ('History', HistoryScreen),
+      ('Edit cards', EditorScreen),
     ]) {
-      await t.tap(find.byTooltip('More'));
+      await t.tap(find.byIcon(Icons.more_vert));
       await t.pumpAndSettle();
-      await t.tap(find.text(item));
+      await t.tap(bySpoken(item).first);
       await t.pumpAndSettle();
-      expect(find.widgetWithText(AppBar, title), findsOneWidget);
+      expect(find.byType(screen), findsOneWidget);
       await t.pageBack();
       await t.pumpAndSettle();
     }
-    await t.tap(find.byTooltip('More'));
+    await t.tap(find.byIcon(Icons.more_vert));
     await t.pumpAndSettle();
-    await t.tap(find.text('Display size'));
+    await t.tap(bySpoken('Display size').first);
     await t.pumpAndSettle();
     expect(find.text('100%'), findsOneWidget);
-    await t.tap(find.text('Done'));
+    await t.tap(glyphsLabelled('Done'));
     await t.pumpAndSettle();
-    await t.tap(find.byTooltip('More'));
+    await t.tap(find.byIcon(Icons.more_vert));
     await t.pumpAndSettle();
-    await t.tap(find.text('Report a problem'));
+    await t.tap(bySpoken('Report a problem').first);
     await t.pumpAndSettle();
-    expect(find.text('Save report'), findsOneWidget);
+    expect(glyphsLabelled('Save report'), findsOneWidget);
   });
 }

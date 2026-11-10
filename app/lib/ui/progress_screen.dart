@@ -8,13 +8,16 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/progress/progress.dart';
-import 'package:tutor/progress/terms.dart';
-import 'package:tutor/ui/card_state.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/layout.dart';
+import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/ui/learn_rows.dart';
+import 'package:tutor/ui/learn_tiles.dart';
 import 'package:tutor/ui/progress_chart.dart';
 import 'package:tutor/ui/progress_tiles.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The Progress screen.
 class ProgressScreen extends StatefulWidget {
@@ -39,7 +42,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Progress')),
+    appBar: AppBar(
+      title: const SpokenLabel(
+        semanticLabel: 'Progress',
+        child: Icon(Icons.insights),
+      ),
+    ),
     body: FutureBuilder<(Stats?, List<ModuleProgress>)>(
       future: _data,
       builder: (context, snap) {
@@ -47,20 +55,29 @@ class _ProgressScreenState extends State<ProgressScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snap.hasError) {
-          return PageList(children: [Text('Could not load: ${snap.error}')]);
+          return PageList(
+            children: [
+              CueChip(
+                kind: CueKind.error,
+                semanticLabel: 'Could not load: ${snap.error}',
+              ),
+            ],
+          );
         }
         final (stats, modules) = snap.requireData;
         final days = timeline(stats?.days ?? const {});
-        final text = Theme.of(context).textTheme;
         final first = <Widget>[
           if (days.isEmpty)
-            const EmptyState(
-              icon: Icons.insights,
-              title: 'No days yet',
-              message: 'The PC writes a row per day once you learn.',
+            const SizedBox(
+              height: 240,
+              child: GlyphEmpty(
+                icon: Icons.insights,
+                semanticLabel:
+                    'No days yet. The PC writes a row per day once you learn.',
+              ),
             )
           else ...[
-            Text('Credited minutes per day', style: text.titleMedium),
+            const LearnHeader(Icons.timer_outlined, 'Credited minutes per day'),
             ProgressChart(
               values: [for (final d in days) d.minutes],
               labels: [for (final d in days) d.day],
@@ -68,35 +85,27 @@ class _ProgressScreenState extends State<ProgressScreen> {
               unit: 'min',
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Cards taught (total)', style: text.titleMedium),
+            const LearnHeader(Icons.school_outlined, 'Cards taught (total)'),
             ProgressChart(
               values: [for (final d in days) d.taughtTotal],
               labels: [for (final d in days) d.day],
               line: true,
               unit: 'cards',
             ),
-            const SectionHeader('Days'),
+            const LearnHeader(Icons.calendar_month_outlined, 'Days'),
             _DayTable(days.reversed.toList()),
           ],
         ];
         final second = <Widget>[
-          const SectionHeader('Modules'),
-          if (modules.isEmpty) const Text('No approved plans yet.'),
-          for (final m in modules)
-            ListTile(
-              title: Text('${m.subject}: ${m.module.title}'),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: LinearProgressIndicator(value: m.module.recall),
-              ),
-              trailing: Explained(
-                badgeHelp(moduleBadge(m.module)),
-                child: Text(
-                  '${(m.module.recall * 100).round()}% · '
-                  '${moduleBadge(m.module)}',
-                ),
-              ),
+          const LearnHeader(Icons.view_agenda_outlined, 'Modules'),
+          // Its own height: a fixed box cut the padded 64 px glyph.
+          if (modules.isEmpty)
+            const GlyphEmpty(
+              icon: Icons.assignment_outlined,
+              semanticLabel: 'No approved plans yet.',
             ),
+          for (final m in modules)
+            ModuleRecallRow(m.module, subject: m.subject),
         ];
         return widthSwitch(
           // The phone page borrows the wide page's empty states and header.
@@ -125,15 +134,20 @@ class _DayTable extends StatelessWidget {
 
   final List<DayPoint> days;
 
+  static DataColumn _col(IconData icon, String label) => DataColumn(
+    label: SpokenLabel(semanticLabel: label, child: Icon(icon)),
+    numeric: true,
+  );
+
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     scrollDirection: Axis.horizontal,
     child: DataTable(
-      columns: const [
-        DataColumn(label: Text('Day')),
-        DataColumn(label: Text('Minutes'), numeric: true),
-        DataColumn(label: Text('Taught'), numeric: true),
-        DataColumn(label: Text('Reviews'), numeric: true),
+      columns: [
+        _col(Icons.calendar_month_outlined, 'Day'),
+        _col(Icons.timer_outlined, 'Minutes'),
+        _col(Icons.school_outlined, 'Taught'),
+        _col(Icons.replay, 'Reviews'),
       ],
       rows: [
         for (final d in days)

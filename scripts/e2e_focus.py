@@ -12,7 +12,8 @@ Runs on a sandbox that is ``up`` (``e2e_sandbox.sh``): the worker's
    ``Notification`` (permission granted) and the 7-minute check-in timer
    shortened, so the run needs seconds, not minutes;
 3. Start -> the worker records ``timer/start`` in ``activity.jsonl``;
-4. the check-in is due: the browser notification fires (``Still working?``);
+4. the check-in is due: the icon-only browser notification fires (empty
+   title, tag ``focus-checkin``);
    clicking it records nothing (it only opens the Focus screen). The project
    has no subjects, so no check-in card: the screen's own "Still working"
    button is the check-in and records ``timer/checkin``;
@@ -126,7 +127,7 @@ def _create_project(flow: Flow, subjects: list[str] | None = None) -> None:
 
 def _notification_click(flow: Flow) -> None:
     """Wait for the browser notification, then click it (its ``onclick``)."""
-    flow.step('a browser Notification "Still working?" fires, then is clicked')
+    flow.step("the icon-only browser Notification fires, then is clicked")
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         shown = flow.browser.evaluate(
@@ -134,7 +135,7 @@ def _notification_click(flow: Flow) -> None:
         )
         if isinstance(shown, list) and shown:
             flow.note(f"notification: {shown[-1]}")
-            if shown[-1]["title"] != "Still working?":
+            if shown[-1]["title"] != "" or shown[-1]["tag"] != "focus-checkin":
                 msg = f"unexpected notification {shown[-1]}"
                 raise FlowError(msg)
             clicked = flow.browser.evaluate(

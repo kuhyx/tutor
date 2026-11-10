@@ -5,6 +5,7 @@ import 'package:tutor/ui/sign_in_screen.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
 import '../support/fit.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 
 void main() {
@@ -23,11 +24,11 @@ void main() {
       );
       expectFits(t, state: 'start');
       if (!supported) return;
-      await t.tap(find.text('Sign in with Google'));
+      await t.tap(controlByLabel('Sign in with Google'));
       await t.pumpAndSettle();
-      expect(find.text('Sign-in cancelled.'), findsOneWidget);
+      expect(cueLabelled('Sign-in cancelled.'), findsOneWidget);
       expectFits(t, state: 'cancelled');
-      expectReachable(t, find.text('Sign in with Google'));
+      expectReachable(t, controlByLabel('Sign in with Google'));
     });
   }
 }

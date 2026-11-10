@@ -4,10 +4,12 @@ import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
 import 'package:tutor/ui/sql/lesson_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../../sql/sql_fixtures.dart';
 import '../../support/fake_rtdb.dart';
 import '../../support/fake_stream.dart';
+import '../../support/label_finders.dart';
 import '../../support/services.dart';
 import '../../support/ui.dart';
 
@@ -144,7 +146,7 @@ void main() {
 
   testWidgets('a bad turn is reported, not thrown', (t) async {
     await open(t, first: const {'lesson_id': 5});
-    expect(find.textContaining('lesson_id'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 
   testWidgets('done offers the next topic', (t) async {

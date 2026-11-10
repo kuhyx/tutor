@@ -8,6 +8,7 @@ import 'package:tutor/ui/session/session_screen.dart';
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _base = 'tutor/v1/sessions/$fixtureLiveSid';
@@ -36,22 +37,22 @@ void main() {
     );
     await _feed(t, db, stream);
     await t.pumpAndSettle();
-    final box = find.widgetWithText(TextField, 'Your answer').first;
-    final send = find.widgetWithText(FilledButton, 'Send');
+    final box = fieldByLabel('Your answer').first;
+    final send = controlByLabel('Send');
     const stalled = 'No reply from PC — send again';
     await t.enterText(box, 'power');
     await t.pump();
     await t.tap(send);
     await sent(t);
     final (rid, _) = lastRequest(db);
-    expect(t.widget<FilledButton>(send).onPressed, isNull);
-    expect(find.text(stalled), findsNothing);
+    expect(pressOf(t, 'Send'), isNull);
+    expect(cueLabelled(stalled), findsNothing);
 
     await t.pump(const Duration(minutes: 2, seconds: 59));
-    expect(find.text(stalled), findsNothing);
+    expect(cueLabelled(stalled), findsNothing);
     await t.pump(const Duration(seconds: 1));
-    expect(find.text(stalled), findsOneWidget);
-    expect(t.widget<FilledButton>(send).onPressed, isNotNull);
+    expect(cueLabelled(stalled), findsOneWidget);
+    expect(pressOf(t, 'Send'), isNotNull);
     expect(t.widget<TextField>(box).controller!.text, 'power');
 
     // Send again: the SAME request (the worker dedupes it by rid), so a
@@ -60,10 +61,10 @@ void main() {
     await sent(t);
     final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
     expect(reqs.keys, [rid]);
-    expect(find.text(stalled), findsNothing);
-    expect(t.widget<FilledButton>(send).onPressed, isNull);
+    expect(cueLabelled(stalled), findsNothing);
+    expect(pressOf(t, 'Send'), isNull);
     await answer(t, db, stream, data: {'msg': 'm0005'});
     expect(t.widget<TextField>(box).controller!.text, '');
-    expect(find.text(stalled), findsNothing);
+    expect(cueLabelled(stalled), findsNothing);
   });
 }

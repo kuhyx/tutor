@@ -12,6 +12,8 @@ import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 const _dpr = 2.625;
@@ -71,11 +73,11 @@ void main() {
     final s = await fixtureServices(fixtureDb(), FakeStream());
     await _pumpPixel(t, HomeScreen(services: s, onSignedOut: () {}));
     _expectNoVerticalScroll(t);
-    _expectTappable(t, find.text('Continue session'));
-    _expectTappable(t, find.text('Drill'));
+    _expectTappable(t, controlByLabel('Continue session'));
+    _expectTappable(t, controlByLabel('Drill'));
     _expectTappable(t, find.text('How a car works'));
     _expectTappable(t, find.text('Vegetable gardening'));
-    _expectTappable(t, find.byTooltip('New subject'));
+    _expectTappable(t, controlByLabel('New subject'));
   });
 
   testWidgets('Plan fits one Pixel 6a screen', (t) async {
@@ -86,8 +88,8 @@ void main() {
     final s = await fixtureServices(db, FakeStream());
     await _pumpPixel(t, PlanScreen(services: s, subject: 'car'));
     _expectNoVerticalScroll(t);
-    _expectTappable(t, find.widgetWithText(ChoiceChip, 'Modules'));
-    _expectTappable(t, find.widgetWithText(ChoiceChip, 'Revisions'));
+    _expectTappable(t, chipSpoken('Modules'));
+    _expectTappable(t, chipSpoken('Revisions'));
     _expectTappable(t, find.byKey(const ValueKey('module-tile-0')));
   });
 
@@ -95,9 +97,9 @@ void main() {
     final s = await fixtureServices(fixtureDb(), FakeStream());
     await _pumpPixel(t, ProgressScreen(services: s));
     _expectNoVerticalScroll(t);
-    _expectTappable(t, find.widgetWithText(ChoiceChip, 'Minutes'));
-    _expectTappable(t, find.widgetWithText(ChoiceChip, 'Taught'));
-    _expectTappable(t, find.byTooltip('All days'));
+    _expectTappable(t, chipSpoken('Minutes'));
+    _expectTappable(t, chipSpoken('Taught'));
+    _expectTappable(t, controlByLabel('All days'));
     _expectTappable(t, find.byKey(const ValueKey('subject-stat-0')));
   });
 }

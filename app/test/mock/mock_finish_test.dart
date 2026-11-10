@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/mock/mock_queue.dart';
 import 'package:tutor/mock/mock_session.dart';
 import 'package:tutor/mock/mock_start_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 import 'mock_fixtures.dart';
 import 'mock_support.dart';
@@ -132,6 +134,13 @@ void main() {
     await t.tap(key('start'));
     await t.pump(const Duration(milliseconds: 100));
     await answer(t, rig.db, rig.stream, data: {'mock_id': 'x'});
-    expect(find.textContaining('started_ms'), findsOneWidget);
+    // The malformed paper is an error cue (its detail is spoken only).
+    expect(cueOfKind(CueKind.error), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is CueChip && w.semanticLabel.contains('started_ms'),
+      ),
+      findsOneWidget,
+    );
   });
 }

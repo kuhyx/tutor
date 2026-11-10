@@ -4,6 +4,7 @@ import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Tables side by side in a small font, at most [share] of the visible height.
 class TableStrip extends StatelessWidget {
@@ -38,7 +39,7 @@ class TableStrip extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    ContentText(
                       t.name,
                       style: sqlMonoDense.copyWith(fontWeight: FontWeight.w700),
                     ),

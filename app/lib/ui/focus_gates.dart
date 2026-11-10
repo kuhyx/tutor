@@ -1,6 +1,7 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/focus/focus_models.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// `mm:ss` of [d].
 String focusClock(Duration d) {
@@ -27,11 +28,14 @@ class FocusGates extends StatelessWidget {
         for (final label in gateLabels(status, off: true))
           Chip(
             avatar: const Icon(Icons.block, size: 16),
-            label: Text(label),
+            label: ContentText(label),
             side: BorderSide(color: scheme.outlineVariant),
           ),
         for (final label in gateLabels(status, off: false))
-          Chip(avatar: const Icon(Icons.check, size: 16), label: Text(label)),
+          Chip(
+            avatar: const Icon(Icons.check, size: 16),
+            label: ContentText(label),
+          ),
       ],
     );
   }

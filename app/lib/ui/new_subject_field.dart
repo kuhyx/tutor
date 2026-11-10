@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The field and button that send `subject_new`. Both lock while the
 /// request is in flight; success clears the text, failure keeps it.
@@ -62,29 +64,30 @@ class _NewSubjectState extends State<NewSubjectField> {
   Widget _column() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      TextField(
-        controller: _text,
-        enabled: !widget.runner.busy,
-        maxLength: 2000,
-        minLines: 1,
-        maxLines: 4,
-        textInputAction: TextInputAction.send,
-        onSubmitted: (_) => _submit(),
-        decoration: const InputDecoration(
-          labelText: 'I want to learn...',
-          hintText: 'e.g. how a car works',
-          border: OutlineInputBorder(),
+      FieldLabel(
+        semanticLabel: 'I want to learn...',
+        child: TextField(
+          controller: _text,
+          enabled: !widget.runner.busy,
+          maxLength: 2000,
+          minLines: 1,
+          maxLines: 4,
+          textInputAction: TextInputAction.send,
+          onSubmitted: (_) => _submit(),
+          decoration: iconDecoration(Icons.school_outlined),
         ),
       ),
       RequestStatusLine(
         widget.runner,
-        queuedText: 'Sent; the PC drafts a plan when it is on...',
+        queuedSpoken: 'Sent; the PC drafts a plan when it is on...',
       ),
       Align(
         alignment: Alignment.centerRight,
-        child: FilledButton(
+        child: GlyphButton(
+          icon: Icons.auto_awesome,
+          semanticLabel: 'Draft a plan',
+          filled: true,
           onPressed: widget.runner.canSend ? _submit : null,
-          child: const Text('Draft a plan'),
         ),
       ),
     ],

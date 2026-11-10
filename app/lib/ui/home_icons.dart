@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/presence/presence_watcher.dart';
-import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 /// Focus, SQL and coach buttons; [go] opens a screen, then refreshes Home.
 List<Widget> homeIcons(
@@ -15,22 +16,27 @@ List<Widget> homeIcons(
   TutorServices s,
   Future<void> Function(Future<void> Function() open) go,
 ) => [
-  IconButton(
-    tooltip: AppLocalizations.of(context).focus,
-    onPressed: () => go(() => openFocus(context, s)),
-    icon: const Icon(Icons.center_focus_strong_outlined),
+  // "Focus" is a ledger-approved word: its tooltip stays.
+  approvedTooltip(
+    message: AppLocalizations.of(context).focus,
+    child: IconButton(
+      onPressed: () => go(() => openFocus(context, s)),
+      icon: const Icon(Icons.center_focus_strong_outlined),
+    ),
   ),
-  IconButton(
+  GlyphButton(
+    icon: Icons.storage_outlined,
+    semanticLabel: 'SQL',
     onPressed: () => go(() => openSql(context, s)),
-    icon: const Icon(Icons.storage_outlined, semanticLabel: 'SQL'),
   ),
-  IconButton(
+  GlyphButton(
+    icon: Icons.psychology_outlined,
+    semanticLabel: 'Coach',
     onPressed: () => go(() => openCoach(context, s)),
-    icon: const Icon(Icons.psychology_outlined, semanticLabel: 'Coach'),
   ),
 ];
 
-/// The PC's heartbeat as a pill: checking, online, offline.
+/// The PC's heartbeat as a glyph pill: checking, online, offline (warm).
 class PresenceChip extends StatelessWidget {
   /// Creates the pill.
   const new(this.state, {super.key});
@@ -42,14 +48,17 @@ class PresenceChip extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<PcPresence>(
     valueListenable: state,
     builder: (context, value, _) {
-      final (label, tip) = switch (value) {
-        PcPresence.checking => ('PC: checking', 'Waiting for a heartbeat'),
-        PcPresence.online => ('PC online', 'Replies come from the PC'),
-        PcPresence.offline => ('PC offline', pcOfflineText),
+      final (icon, label) = switch (value) {
+        PcPresence.checking => (Icons.sync, 'PC: checking'),
+        PcPresence.online => (Icons.computer, 'PC online'),
+        PcPresence.offline => (Icons.cloud_off, 'PC offline'),
       };
-      return Tooltip(
-        message: tip,
-        child: Center(child: Pill(label, warn: value == PcPresence.offline)),
+      return Center(
+        child: GlyphPill(
+          icon: icon,
+          semanticLabel: label,
+          warn: value == PcPresence.offline,
+        ),
       );
     },
   );

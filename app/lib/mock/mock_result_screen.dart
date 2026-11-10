@@ -9,6 +9,7 @@ import 'package:tutor/mock/mock_result_detail.dart';
 import 'package:tutor/mock/mock_session.dart';
 import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/layout.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Score, per-task breakdown, and a study button on every missed item.
 class MockResultScreen extends StatelessWidget {
@@ -61,8 +62,8 @@ class MockResultScreen extends StatelessWidget {
                 item.correct ? Icons.check_circle : Icons.cancel,
                 color: item.correct ? AppPalette.success : AppPalette.danger,
               ),
-              title: Text(item.title),
-              subtitle: item.topic.isEmpty ? null : Text(item.topic),
+              title: ContentText(item.title),
+              subtitle: item.topic.isEmpty ? null : ContentText(item.topic),
               childrenPadding: const EdgeInsets.all(AppSpacing.md),
               expandedCrossAxisAlignment: CrossAxisAlignment.start,
               children: [

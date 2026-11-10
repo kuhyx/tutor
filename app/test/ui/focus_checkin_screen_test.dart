@@ -12,6 +12,7 @@ import 'package:tutor/ui/focus_screen.dart';
 import '../model/samples.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -128,16 +129,16 @@ void main() {
     await open(t);
     expect(find.text('What is a rung?'), findsOneWidget);
     expect(find.text('Still working'), findsNothing);
-    expect(find.text('Show answer (Space)'), findsOneWidget);
+    expect(controlByLabel('Show answer (Space)'), findsOneWidget);
     await done(t);
   });
 
   testWidgets('rating it (after 1 s) is a review and a card beat', (t) async {
     await open(t);
-    await t.tap(find.text('Show answer (Space)'));
+    await t.tap(controlByLabel('Show answer (Space)'));
     await t.pump();
     await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
-    await t.tap(find.text('1 Again'));
+    await t.tap(controlByLabel('1 Again'));
     await settle(t);
     expect(find.text('What is a rung?'), findsNothing);
     final review = reviews().single;
@@ -153,9 +154,9 @@ void main() {
 
   testWidgets('a rating under 1 s is graded, but no beat', (t) async {
     await open(t);
-    await t.tap(find.text('Show answer (Space)'));
+    await t.tap(controlByLabel('Show answer (Space)'));
     await t.pump();
-    await t.tap(find.text('3 Good'));
+    await t.tap(controlByLabel('3 Good'));
     await settle(t);
     expect(reviews(), hasLength(1));
     expect(focusEvents(), isEmpty);

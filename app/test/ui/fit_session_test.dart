@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/util/device.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 import '../support/composer.dart';
 import '../support/fit.dart';
@@ -25,9 +26,10 @@ void main() {
       pixelView(t, scale: scale, keyboard: fitKeyboard);
       await t.pumpAndSettle();
       expectFits(t, state: 'keyboard');
-      final send = find.ancestor(
-        of: find.textContaining(RegExp(r'^(Send|Next)$')),
-        matching: find.bySubtype<ButtonStyleButton>(),
+      final send = find.byWidgetPredicate(
+        (w) =>
+            w is GlyphButton &&
+            (w.semanticLabel == 'Send' || w.semanticLabel == 'Next'),
       );
       expectReachable(t, send, state: 'keyboard');
     });

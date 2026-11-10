@@ -6,6 +6,7 @@ import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/session/session_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -18,10 +19,10 @@ void main() {
       TaughtEvent(subject: 'car', card: 'fuel-spark', at: now),
     );
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
-    expect(find.textContaining('due)'), findsNothing);
-    expect(find.text('Drill'), findsOneWidget);
+    expect(bySpoken('Review (', prefix: true), findsNothing);
+    expect(glyphsLabelled('Drill'), findsOneWidget);
     // Not due-based: a done module still offers its review.
-    expect(find.text('Review Fuel and ignition'), findsOneWidget);
+    expect(glyphsLabelled('Review Fuel and ignition'), findsOneWidget);
   });
 
   testWidgets('a block with 0 due: no Review this subject', (t) async {
@@ -42,7 +43,7 @@ void main() {
       extra: const {'due_in_subject': 0, 'new_today': 25},
       settle: false,
     );
-    expect(find.text('Learn more anyway'), findsOneWidget);
-    expect(find.textContaining('Review this subject'), findsNothing);
+    expect(bySpoken('Learn more anyway'), findsWidgets);
+    expect(bySpoken('Review this subject'), findsNothing);
   });
 }

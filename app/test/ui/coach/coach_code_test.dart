@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../../coach/coach_fixtures.dart';
+import '../../support/label_finders.dart';
 import 'coach_support.dart';
 
 void main() {
@@ -126,6 +128,7 @@ void main() {
     await rig.tap(t, 'run');
     await rig.reply(t, {'held': true, 'note': 'Open the gate first'});
     expect(find.byKey(const ValueKey('run-note')), findsOneWidget);
+    expect(cueLabelled('Open the gate first'), findsOneWidget);
     expect(find.text('timeout'), findsNothing);
   });
 
@@ -140,7 +143,7 @@ void main() {
     await rig.reply(t, {'examples': 3});
     await t.tap(find.byIcon(Icons.forum_outlined));
     await t.pumpAndSettle();
-    expect(find.textContaining('expected array'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 
   testWidgets('with the phone keyboard up Run stays reachable', (t) async {

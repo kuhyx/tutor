@@ -12,6 +12,9 @@ import 'package:flutter/services.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/log/new_cap.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Opens the setting over [context]'s route.
 Future<void> showNewCap(BuildContext context, EventLog events) async {
@@ -40,6 +43,7 @@ class NewCapDialog extends StatefulWidget {
 
 class _NewCapDialogState extends State<NewCapDialog> {
   late final _text = TextEditingController(text: '${widget.current}');
+  // Set when the number is out of range: the error cue shows, shaking.
   String? _error;
 
   @override
@@ -70,32 +74,50 @@ class _NewCapDialogState extends State<NewCapDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('New cards per day'),
+    semanticLabel: 'New cards per day',
+    icon: const Icon(Icons.add_task),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: _text,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(labelText: 'Cards', errorText: _error),
-          onSubmitted: (_) => unawaited(_save()),
+        FieldLabel(
+          semanticLabel: 'Cards',
+          child: TextField(
+            controller: _text,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: iconDecoration(
+              Icons.style_outlined,
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: _error == null
+                      ? Theme.of(context).dividerColor
+                      : Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
+            onSubmitted: (_) => unawaited(_save()),
+          ),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Now ${widget.current} a day. Reviews never count. '
-          'Learn more anyway still lifts it for one day.',
-        ),
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          CueChip(kind: CueKind.error, semanticLabel: _error!),
+        ],
       ],
     ),
     actions: [
-      TextButton(
+      GlyphButton(
+        icon: Icons.close,
+        semanticLabel: 'Cancel',
         onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancel'),
       ),
-      FilledButton(onPressed: _save, child: const Text('Save')),
+      GlyphButton(
+        icon: Icons.check,
+        semanticLabel: 'Save',
+        filled: true,
+        onPressed: _save,
+      ),
     ],
   );
 }

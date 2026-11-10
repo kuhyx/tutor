@@ -1,13 +1,14 @@
 // All tutor-side text selects and copies as one selection: the chat list
-// (messages, the "Tutor" tag, questions) sits in ONE SelectionArea and its
+// (messages, the Tutor tag glyph, questions) sits in ONE SelectionArea and its
 // markdown is plain Text.rich (a nested SelectableText would split the
-// selection per block); the composer's question labels are selectable too,
+// selection per block); the composer's question texts are selectable too,
 // while its boxes and chips keep working.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/util/device.dart';
 
 import '../support/composer.dart';
+import '../support/label_finders.dart';
 
 Finder _area(Finder of) =>
     find.ancestor(of: of, matching: find.byType(SelectionArea));
@@ -21,7 +22,7 @@ void main() {
     await openComposer(t, phone: false);
     final message = rich('Good. Now three quick ones');
     expect(_area(message), findsOneWidget);
-    expect(_area(find.text('Tutor').first), findsOneWidget);
+    expect(_area(bySpoken('Tutor').first), findsOneWidget);
     final area = t.widget(_area(message));
     // An older message's question, further up the chat: the same area.
     final question = find.text('What moves inside the cylinder?');
@@ -34,11 +35,11 @@ void main() {
     expect(find.byType(SelectableText), findsNothing);
   });
 
-  testWidgets('composer labels selectable; boxes and chips still work', (
+  testWidgets('composer questions selectable; boxes and chips still work', (
     t,
   ) async {
     await openComposer(t, phone: false);
-    expect(_area(find.text('Q1: Which stroke makes the power?')), findsWidgets);
+    expect(_area(find.text('Which stroke makes the power?')), findsWidgets);
     final box = find.byType(TextField).first;
     await t.tap(box);
     await t.pump();

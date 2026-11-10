@@ -7,6 +7,7 @@ import 'package:tutor/ui/sql/sql_screen.dart';
 import '../../sql/sql_fixtures.dart';
 import '../../support/fake_rtdb.dart';
 import '../../support/fake_stream.dart';
+import '../../support/label_finders.dart';
 import '../../support/services.dart';
 import '../../support/ui.dart';
 
@@ -66,7 +67,7 @@ void main() {
       error: 'docker down',
       extra: {'retry': true},
     );
-    expect(find.text('Retry'), findsOneWidget);
+    expect(controlByLabel('Retry'), findsOneWidget);
   });
 
   testWidgets('Retry delivers the list that finally arrives', (t) async {
@@ -85,7 +86,7 @@ void main() {
       error: 'docker down',
       extra: {'retry': true},
     );
-    await t.tap(find.text('Retry'));
+    await t.tap(controlByLabel('Retry'));
     await t.pump(const Duration(milliseconds: 50));
     await answer(t, db, stream, data: listData);
     expect(find.text('Count rows'), findsOneWidget);

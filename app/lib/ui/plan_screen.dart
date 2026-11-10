@@ -19,11 +19,18 @@ import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/ui/learn_rows.dart';
+import 'package:tutor/ui/learn_tiles.dart';
 import 'package:tutor/ui/module_tile.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/plan_editor.dart';
 import 'package:tutor/ui/plan_grid.dart';
 import 'package:tutor/util/refresher.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 part 'plan_screen_fit.dart';
 
@@ -120,12 +127,15 @@ class _PlanScreenState extends State<PlanScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Plan'),
+      title: const SpokenLabel(
+        semanticLabel: 'Plan',
+        child: Icon(Icons.assignment_outlined),
+      ),
       actions: [
-        IconButton(
-          tooltip: 'Reload',
+        GlyphButton(
+          icon: Icons.refresh,
+          semanticLabel: 'Reload',
           onPressed: _reload,
-          icon: const Icon(Icons.refresh),
         ),
       ],
     ),
@@ -137,14 +147,10 @@ class _PlanScreenState extends State<PlanScreen> {
         if (!_data.hasData) {
           return error == null
               ? const Center(child: CircularProgressIndicator())
-              : PageList(children: [Text('Could not load: $error')]);
+              : _loadError(error);
         }
         final data = _data.data;
-        if (data == null) {
-          return const PageList(
-            children: [Text('This subject does not exist (yet).')],
-          );
-        }
+        if (data == null) return _missing();
         return _body(context, data);
       },
     ),
@@ -162,43 +168,18 @@ class _PlanScreenState extends State<PlanScreen> {
     final progress = _fold == null
         ? null
         : subjectProgress(data, _fold!, DateTime.now());
-    final header = <Widget>[
-      if (_data.hasPending)
-        MaterialBanner(
-          content: const Text('Plan changed — reload'),
-          actions: [
-            TextButton(
-              onPressed: _data.applyPending,
-              child: const Text('Reload plan'),
-            ),
-          ],
-        ),
-      if (_data.error != null) Text('Could not refresh: ${_data.error}'),
-      Text(data.meta.title, style: text.headlineSmall),
-      if (data.meta.goal.isNotEmpty) Text(data.meta.goal),
-      const SizedBox(height: AppSpacing.sm),
-      Pill(data.meta.status.wire.replaceAll('_', ' ')),
-      RequestStatusLine(_runner),
-    ];
+    final header = _header(data);
     final list = PageList(
       children: [
         ...header,
-        if (data.meta.status == SubjectStatus.failed)
-          EmptyState(
-            icon: Icons.error_outline,
-            title: 'Drafting the plan failed',
-            message: data.meta.error ?? 'Try again from Home.',
-          )
-        else if (plan == null || data.meta.status == SubjectStatus.drafting)
-          const EmptyState(
-            icon: Icons.hourglass_empty,
-            title: 'The tutor is drafting the plan',
-            message: 'It appears here by itself when the PC is done.',
-          )
+        if (data.meta.status == SubjectStatus.failed ||
+            plan == null ||
+            data.meta.status == SubjectStatus.drafting)
+          _pendingState(data)
         else if (_editing(data)) ...[
           if (plan.notes.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(plan.notes, style: text.bodyMedium),
+            ContentText(plan.notes, style: text.bodyMedium),
           ],
           PlanEditor(
             key: ValueKey(key),
@@ -209,27 +190,28 @@ class _PlanScreenState extends State<PlanScreen> {
                 _send(RequestBody.planEdit(data.id, plan.rev, modules)),
             onApprove: () => _send(RequestBody.planApprove(data.id, plan.rev)),
           ),
-          const SectionHeader('Ask for changes'),
-          TextField(
-            controller: _comment,
-            enabled: !_runner.busy,
-            minLines: 2,
-            maxLines: 5,
-            decoration: const InputDecoration(
-              labelText: 'Comment (e.g. "less history, more maintenance")',
-              border: OutlineInputBorder(),
+          const LearnHeader(Icons.rate_review_outlined, 'Ask for changes'),
+          FieldLabel(
+            semanticLabel: 'Comment (e.g. "less history, more maintenance")',
+            child: TextField(
+              controller: _comment,
+              enabled: !_runner.busy,
+              minLines: 2,
+              maxLines: 5,
+              decoration: iconDecoration(Icons.chat_bubble_outline),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Align(
             alignment: Alignment.centerRight,
-            child: OutlinedButton(
+            child: GlyphButton(
+              icon: Icons.auto_fix_high,
+              semanticLabel: 'Redraft with this comment',
               onPressed: _runner.canSend ? () => _redraft(data, plan) : null,
-              child: const Text('Redraft with this comment'),
             ),
           ),
         ] else ...[
-          const SectionHeader('Modules'),
+          const LearnHeader(Icons.view_agenda_outlined, 'Modules'),
           for (final m in plan.modules)
             ModuleProgressTile(
               module: m,
@@ -240,8 +222,8 @@ class _PlanScreenState extends State<PlanScreen> {
             ),
         ],
         if (plan != null && plan.history.isNotEmpty) ...[
-          const SectionHeader('Revisions'),
-          for (final h in plan.history) Text('rev ${h.rev}: ${h.comment}'),
+          const LearnHeader(Icons.history, 'Revisions'),
+          for (final h in plan.history) RevisionLine(h),
         ],
       ],
     );

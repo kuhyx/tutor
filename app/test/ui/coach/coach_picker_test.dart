@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/ui/coach/coach_picker.dart';
 import 'package:tutor/ui/coach/coach_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../../coach/coach_fixtures.dart';
 import '../../support/fake_rtdb.dart';
 import '../../support/fake_stream.dart';
+import '../../support/label_finders.dart';
 import '../../support/services.dart';
 import '../../support/ui.dart';
 
@@ -125,7 +127,7 @@ void main() {
       error: 'down',
       extra: {'retry': true},
     );
-    expect(find.text('Retry'), findsOneWidget);
+    expect(controlByLabel('Retry'), findsOneWidget);
   });
 
   testWidgets('a damaged list shows the problem', (t) async {
@@ -137,6 +139,6 @@ void main() {
       settle: false,
     );
     await answer(t, db, stream, data: {'recent': 3});
-    expect(find.textContaining('expected array'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 }

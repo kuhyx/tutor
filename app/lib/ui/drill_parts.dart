@@ -5,6 +5,11 @@ import 'dart:async';
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/drill/drill_models.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/date_num.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Thumb-sized: 56 high, horizontal padding twice the vertical.
 final ButtonStyle drillButton = FilledButton.styleFrom(
@@ -38,7 +43,9 @@ class DrillOption extends StatelessWidget {
     };
     final body = Row(
       children: [
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
+        Expanded(
+          child: ContentText(label, style: const TextStyle(fontSize: 16)),
+        ),
         if (mark != null)
           Icon(mark! ? Icons.check : Icons.close, color: AppPalette.onFill),
       ],
@@ -60,40 +67,55 @@ class DrillOption extends StatelessWidget {
   }
 }
 
-/// The one-line "Claude limit — back at HH:MM" strip.
+/// The Claude-out strip: a warning glyph and, when known, the HH:MM it is
+/// back; the old banner sentence is the spoken label.
 class DrillBanner extends StatelessWidget {
   /// Creates the banner.
-  const new(this.text, {super.key});
+  const new(this.gone, {super.key});
 
-  /// Banner text.
-  final String text;
+  /// Why and until when Claude is out.
+  final Unavailable gone;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.md,
-      vertical: AppSpacing.sm,
-    ),
-    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-    decoration: BoxDecoration(
-      color: AppPalette.warning,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-    ),
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(color: AppPalette.onFill, fontSize: 14),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final at = gone.until;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppPalette.warning,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: SpokenLabel(
+        semanticLabel: gone.banner,
+        liveRegion: true,
+        child: Row(
+          children: [
+            const Icon(Icons.bolt_outlined, color: AppPalette.onFill),
+            if (at != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                clockNum(DateTime.fromMillisecondsSinceEpoch(at * 1000)),
+                style: const TextStyle(color: AppPalette.onFill, fontSize: 14),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-/// A failed request: its text and Retry.
+/// A failed request: an error cue (the sentence is its spoken label) and
+/// a retry glyph.
 class DrillFailed extends StatelessWidget {
   /// Creates the block.
   const new(this.error, this.onRetry, {super.key});
 
-  /// Error text.
+  /// Error text (spoken only).
   final String error;
 
   /// Sends the failed request again.
@@ -101,14 +123,18 @@ class DrillFailed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(error),
+      CueChip(kind: CueKind.error, semanticLabel: error),
       const SizedBox(height: AppSpacing.sm),
-      FilledButton(
-        style: drillButton,
-        onPressed: () => unawaited(onRetry()),
-        child: const Text('Retry'),
+      SpokenLabel(
+        semanticLabel: 'Retry',
+        button: true,
+        onTap: () => unawaited(onRetry()),
+        child: FilledButton(
+          style: drillButton,
+          onPressed: () => unawaited(onRetry()),
+          child: const Icon(Icons.refresh),
+        ),
       ),
     ],
   );

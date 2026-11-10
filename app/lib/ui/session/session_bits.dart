@@ -12,6 +12,7 @@ import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Card done: Next card / Stop here.
 class CardEnd extends StatelessWidget {
@@ -26,14 +27,21 @@ class CardEnd extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stop = OutlinedButton(
+    final stop = GlyphButton(
+      icon: Icons.stop_circle_outlined,
+      semanticLabel: 'Stop here',
       onPressed: onStop,
-      child: const Text('Stop here'),
     );
     // No autofocus: the follow-up composer below takes the keys.
-    final next = FilledButton(
+    final next = GlyphButton(
+      icon: Icons.skip_next,
+      semanticLabel: 'Next card',
+      filled: true,
       onPressed: onNext,
-      child: const Text('Next card'),
+    );
+    const done = SpokenLabel(
+      semanticLabel: 'Card done',
+      child: Icon(Icons.check_circle, color: AppPalette.success),
     );
     // Phone: wraps at a large font instead of overflowing.
     if (isCompact(context)) {
@@ -41,12 +49,14 @@ class CardEnd extends StatelessWidget {
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: AppSpacing.sm,
-        children: [const Text('Card done ✓'), stop, next],
+        children: [done, stop, next],
       );
     }
     return Row(
       children: [
-        const Expanded(child: Text('Card done ✓')),
+        const Expanded(
+          child: Align(alignment: Alignment.centerLeft, child: done),
+        ),
         stop,
         const SizedBox(width: AppSpacing.sm),
         next,
@@ -66,7 +76,12 @@ class StartButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Align(
     alignment: Alignment.centerRight,
-    child: FilledButton(onPressed: onStart, child: const Text('Start session')),
+    child: GlyphButton(
+      icon: Icons.play_arrow,
+      semanticLabel: 'Start session',
+      filled: true,
+      onPressed: onStart,
+    ),
   );
 }
 
@@ -120,9 +135,11 @@ class NotLiveStatus extends StatelessWidget {
         if (s is RelayFailed && s.code == 'not_live' && view != null)
           Align(
             alignment: Alignment.centerRight,
-            child: FilledButton(
+            child: GlyphButton(
+              icon: Icons.play_arrow,
+              semanticLabel: 'Continue this session',
+              filled: true,
               onPressed: () => onRun(RequestBody.sessionResume(view!.sid)),
-              child: const Text('Continue this session'),
             ),
           ),
       ],
@@ -146,17 +163,11 @@ class Preparing extends StatelessWidget {
   const new({super.key});
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          'The tutor is preparing this card...',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      ],
+  Widget build(BuildContext context) => const Center(
+    child: SpokenLabel(
+      semanticLabel: 'The tutor is preparing this card...',
+      liveRegion: true,
+      child: CircularProgressIndicator(),
     ),
   );
 }
@@ -177,12 +188,13 @@ class NoChat extends StatelessWidget {
   Widget build(BuildContext context) => waiting
       ? const Preparing()
       : loaded
-      ? const EmptyState(
-          icon: Icons.chat_bubble_outline,
-          title: 'No session yet',
-          message:
-              'Start one: the tutor first asks what you already know, '
-              'then teaches what is missing.',
+      ? const Center(
+          child: SpokenLabel(
+            semanticLabel:
+                'No session yet. Start one: the tutor first asks what you '
+                'already know, then teaches what is missing.',
+            child: Icon(Icons.chat_bubble_outline, size: 64),
+          ),
         )
       : const Center(child: CircularProgressIndicator());
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/focus/focus_models.dart';
 import 'package:tutor/ui/focus_form.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -95,7 +97,7 @@ void main() {
       code: 'focus_refused',
       error: 'overlaps another project',
     );
-    expect(find.textContaining('overlaps another project'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
     expect(find.byType(FocusFormScreen), findsOneWidget);
   });
 

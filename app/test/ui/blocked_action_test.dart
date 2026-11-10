@@ -1,13 +1,14 @@
 // A blocking result is a call to action, not an error: one "why" line, a
 // primary button that fixes it, a secondary one where it helps; no red,
 // never the worker's raw text.
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/ui/session/session_screen.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 /// Opens the car Session as Continue learning does and answers [code].
@@ -47,12 +48,14 @@ Future<(FakeRtdb, FakeStream)> _blocked(
   return (db, stream);
 }
 
+final Finder _rawWorkerText = find.byWidgetPredicate(
+  (w) => w is CueChip && w.semanticLabel.contains('raw worker text'),
+);
+
+/// A block is a call to action: an amber cue, never the red error cue.
 void _noRed(WidgetTester t) {
-  final error = Theme.of(t.element(find.byType(SessionScreen))).colorScheme;
-  final red = t
-      .widgetList<Text>(find.byType(Text))
-      .where((w) => w.style?.color == error.error);
-  expect(red.map((w) => w.data), isEmpty);
+  expect(cueOfKind(CueKind.error), findsNothing);
+  expect(cueOfKind(CueKind.blocked), findsOneWidget);
 }
 
 void main() {
@@ -66,17 +69,17 @@ void main() {
       'next': 'lift_cap',
     }, error: 'Ten new cards today already. Reviews still work.');
     expect(
-      find.text(
+      cueLabelled(
         'You learned 25 new cards today (the daily limit). '
         '“Fuel and ignition” is open.',
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('Reviews still work'), findsNothing);
-    expect(find.text('Review this subject (2 due)'), findsOneWidget);
+    expect(bySpoken('Reviews still work', prefix: true), findsNothing);
+    expect(controlByLabel('Review this subject (2 due)'), findsOneWidget);
     _noRed(t);
 
-    await t.tap(find.text('Learn more anyway'));
+    await t.tap(controlByLabel('Learn more anyway'));
     await sent(t);
     final (_, req) = lastRequest(db);
     expect(req['kind'], 'session_start');
@@ -88,10 +91,10 @@ void main() {
 
   testWidgets('daily_new_cap, no fields: still the button', (t) async {
     await _blocked(t, 'daily_new_cap', const {});
-    expect(find.text("You reached today's limit of new cards."), findsOne);
-    expect(find.text('Learn more anyway'), findsOneWidget);
-    expect(find.textContaining('Review this subject'), findsNothing);
-    expect(find.textContaining('raw worker text'), findsNothing);
+    expect(cueLabelled("You reached today's limit of new cards."), findsOne);
+    expect(controlByLabel('Learn more anyway'), findsOneWidget);
+    expect(controlByLabel('Review this subject', prefix: true), findsNothing);
+    expect(_rawWorkerText, findsNothing);
   });
 
   testWidgets('Review this subject opens only its due cards', (t) async {
@@ -101,11 +104,11 @@ void main() {
       'due_in_subject': 3,
     }, taught: true);
     _noRed(t);
-    await t.tap(find.text('Review this subject (3 due)'));
+    await t.tap(controlByLabel('Review this subject (3 due)'));
     await sent(t);
     await sent(t);
-    expect(find.text('Review: How a car works'), findsOneWidget);
-    expect(find.textContaining('3 left'), findsOneWidget);
+    expect(controlByLabel('Review: How a car works'), findsOneWidget);
+    expect(controlByLabel('3 left'), findsOneWidget);
   });
 
   testWidgets('locked -> Review <module> opens the module review', (t) async {
@@ -116,24 +119,24 @@ void main() {
       'module_title': 'Fuel and ignition',
     }, taught: true);
     expect(
-      find.text('That is locked until “Fuel and ignition” is reviewed.'),
+      cueLabelled('That is locked until “Fuel and ignition” is reviewed.'),
       findsOneWidget,
     );
     _noRed(t);
-    await t.tap(find.text('Review Fuel and ignition'));
+    await t.tap(controlByLabel('Review Fuel and ignition'));
     await sent(t);
     await sent(t);
-    expect(find.text('Review: Fuel and ignition'), findsOneWidget);
+    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
   });
 
   testWidgets('locked, nothing to do: the line, no button', (t) async {
     await _blocked(t, 'locked', const {'next': 'none'});
     expect(
-      find.text('That is locked until earlier modules are reviewed.'),
+      cueLabelled('That is locked until earlier modules are reviewed.'),
       findsOneWidget,
     );
-    expect(find.textContaining('raw worker text'), findsNothing);
-    expect(find.textContaining(RegExp('^Review ')), findsNothing);
+    expect(_rawWorkerText, findsNothing);
+    expect(glyphsLabelled('Review Fuel and ignition'), findsNothing);
     _noRed(t);
   });
 }

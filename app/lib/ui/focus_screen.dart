@@ -17,6 +17,7 @@ import 'package:tutor/ui/focus_form.dart';
 import 'package:tutor/ui/focus_gates.dart';
 import 'package:tutor/ui/focus_ring.dart';
 import 'package:tutor/ui/review_answer.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The most overtime the server banks for the next day (`focus_project`).
 const int _bankCap = 60;
@@ -215,7 +216,7 @@ class _FocusScreenState extends State<FocusScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(project.name, style: text.headlineSmall),
+        ContentText(project.name, style: text.headlineSmall),
         Text(l.daysLeft(project.daysLeft), style: text.bodyMedium),
         Expanded(
           child: card != null

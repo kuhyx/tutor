@@ -5,6 +5,7 @@ import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/metrics_cap.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Rung, turn counter and gate try counter of `state`.
 class StatusStrip extends StatelessWidget {
@@ -20,7 +21,7 @@ class StatusStrip extends StatelessWidget {
     final gate = state.gate;
     Widget chip(String text, Key key, {bool bad = false}) => Padding(
       padding: const EdgeInsets.only(right: AppSpacing.sm),
-      child: Text(
+      child: ContentText(
         text,
         key: key,
         style: sqlMono.copyWith(color: bad ? scheme.error : null),
@@ -89,7 +90,9 @@ class FoldingStatement extends StatelessWidget {
               children: [
                 const Icon(Icons.description_outlined, semanticLabel: 'Task'),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
+                Expanded(
+                  child: ContentText(title, overflow: TextOverflow.ellipsis),
+                ),
                 Icon(open ? Icons.expand_less : Icons.expand_more),
               ],
             ),
@@ -182,7 +185,7 @@ class ChoiceButtons extends StatelessWidget {
           FilledButton.tonal(
             key: ValueKey('choice-$c'),
             onPressed: () => onPick(c),
-            child: Text(c),
+            child: ContentText(c),
           ),
       ],
     ),

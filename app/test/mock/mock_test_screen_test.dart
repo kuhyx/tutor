@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/widgets/code_symbol_bar.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/ui.dart';
 import 'mock_fixtures.dart';
@@ -16,15 +17,34 @@ void main() {
   testWidgets('shows the clock, chips and the first question', (t) async {
     await rig.pumpTest(t);
     expect(find.text('59:00'), findsOneWidget);
-    expect(find.text('M1'), findsOneWidget);
-    expect(find.text('M2'), findsOneWidget);
-    expect(find.text('PY'), findsOneWidget);
-    expect(find.text('S1'), findsOneWidget);
+    // One chip per task: a section glyph, numbered within its section.
+    for (final i in [0, 1, 2, 3]) {
+      expect(key('nav-$i'), findsOneWidget);
+    }
+    Finder chipIcon(int i, String spoken) => find.descendant(
+      of: key('nav-$i'),
+      matching: find.byWidgetPredicate(
+        (w) => w is Icon && w.semanticLabel == spoken,
+      ),
+    );
+    expect(chipIcon(0, 'Multiple choice'), findsOneWidget);
+    expect(chipIcon(1, 'Multiple choice'), findsOneWidget);
+    expect(chipIcon(2, 'Python code'), findsOneWidget);
+    expect(chipIcon(3, 'SQL'), findsOneWidget);
+    expect(
+      find.descendant(of: key('nav-1'), matching: find.text('2')),
+      findsOneWidget,
+    );
     expect(find.text('print([1, 2][::-1])'), findsOneWidget);
-    expect(find.textContaining('seed bank'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is CueChip && w.semanticLabel.contains('seed bank'),
+      ),
+      findsOneWidget,
+    );
     await t.tap(key('notes-close'));
     await t.pump();
-    expect(find.textContaining('seed bank'), findsNothing);
+    expect(find.byType(CueChip), findsNothing);
   });
 
   testWidgets('picking an option submits it and marks the chip', (t) async {
@@ -101,6 +121,18 @@ void main() {
       data: {'ok': false, 'error': 'You have an error'},
     );
     expect(find.text('You have an error'), findsOneWidget);
+  });
+
+  testWidgets('a malformed Run answer clears the output, no crash', (t) async {
+    await rig.pumpTest(t);
+    await t.tap(key('nav-3'));
+    await t.pump();
+    await t.enterText(find.byType(EditableText), 'selec');
+    await t.tap(key('run'));
+    await t.pump(const Duration(milliseconds: 50));
+    await answer(t, rig.db, rig.stream, data: {'ok': 'nope'});
+    expect(find.text('You have an error'), findsNothing);
+    expect(t.takeException(), isNull);
   });
 
   testWidgets('Python Run shows per-example verdicts; starter prefilled', (

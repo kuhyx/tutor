@@ -1,6 +1,6 @@
-/// One subject on Home: status, modules reviewed, and its actions (Plan,
-/// Cards, Learn this next, "Review" + a done module, "Review (N due)" for
-/// this subject's due cards only, Go deeper / Review only).
+/// One subject on Home: status, modules reviewed, and its actions as glyph
+/// buttons (Plan, Cards, Learn this next, Review a done module, Review with
+/// the subject's due count, Try again, Go deeper / Review only).
 library;
 
 import 'package:design_system/design_system.dart';
@@ -9,8 +9,10 @@ import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/progress.dart';
-import 'package:tutor/progress/terms.dart';
-import 'package:tutor/ui/card_state.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+import 'package:tutor/widgets/status_glyph.dart';
 
 /// A subject's card on Home.
 class SubjectTile extends StatelessWidget {
@@ -77,6 +79,7 @@ class SubjectTile extends StatelessWidget {
         status == SubjectStatus.active || status == SubjectStatus.completed;
     final review = toReview;
     final cards = tally;
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,28 +87,32 @@ class SubjectTile extends StatelessWidget {
           ListTile(
             leading: Icon(
               current ? Icons.radio_button_checked : Icons.radio_button_off,
+              semanticLabel: current ? 'New material from here' : null,
             ),
-            title: Text(entry.meta.title),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: ContentText(entry.meta.title),
+            subtitle: Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Explained(
-                  total > 0 ? reviewedModuleHelp : null,
-                  child: Text(
-                    [
-                      status.wire.replaceAll('_', ' '),
-                      if (total > 0) '$reviewed/$total modules reviewed',
-                      if (current) 'new material from here',
-                      ?entry.meta.error,
-                    ].join(' · '),
+                StatusGlyph(status, detail: entry.meta.error),
+                // Modules reviewed, and per card a separate stat.
+                if (total > 0)
+                  SpokenLabel(
+                    semanticLabel: '$reviewed/$total modules reviewed',
+                    child: GlyphStat(
+                      Icons.view_module_outlined,
+                      '$reviewed/$total',
+                    ),
                   ),
-                ),
-                // Per card, a separate stat from the module count above.
                 if (cards != null && cards.cards > 0)
-                  Explained(
-                    recalledHelp,
-                    child: Text(
-                      '${cards.mastered}/${cards.cards} cards recalled',
+                  SpokenLabel(
+                    semanticLabel:
+                        '${cards.mastered}/${cards.cards} cards recalled',
+                    child: GlyphStat(
+                      Icons.psychology_alt_outlined,
+                      '${cards.mastered}/${cards.cards}',
+                      color: scheme.primary,
                     ),
                   ),
               ],
@@ -124,39 +131,58 @@ class SubjectTile extends StatelessWidget {
               runSpacing: AppSpacing.sm,
               children: [
                 if (review != null && onReviewModule != null)
-                  FilledButton.tonalIcon(
+                  GlyphButton(
+                    icon: Icons.fact_check_outlined,
+                    semanticLabel: 'Review ${review.title}',
+                    tint: AppPalette.success,
                     onPressed: () => onReviewModule!(review),
-                    icon: const Icon(Icons.style),
-                    label: Text('Review ${review.title}'),
                   ),
                 if (due > 0 && onReviewDue != null)
-                  OutlinedButton.icon(
+                  GlyphButton(
+                    icon: Icons.style,
+                    semanticLabel: 'Review ($due due)',
+                    count: due,
+                    tint: scheme.primary,
                     onPressed: onReviewDue,
-                    icon: const Icon(Icons.style),
-                    label: Text('Review ($due due)'),
                   ),
-                TextButton(onPressed: onPlan, child: const Text('Plan')),
+                GlyphButton(
+                  icon: Icons.account_tree_outlined,
+                  semanticLabel: 'Plan',
+                  onPressed: onPlan,
+                ),
                 if (data != null && data.cards.isNotEmpty)
-                  TextButton(onPressed: onEdit, child: const Text('Cards')),
+                  GlyphButton(
+                    icon: Icons.view_carousel_outlined,
+                    semanticLabel: 'Cards',
+                    onPressed: onEdit,
+                  ),
                 if (teaching && !current)
-                  TextButton(
+                  GlyphButton(
+                    icon: Icons.arrow_circle_right_outlined,
+                    semanticLabel: 'Learn this next',
+                    tint: scheme.primary,
                     onPressed: onPick,
-                    child: const Text('Learn this next'),
                   ),
                 if (status == SubjectStatus.failed &&
                     entry.meta.goal.isNotEmpty)
-                  TextButton(
+                  GlyphButton(
+                    icon: Icons.restart_alt,
+                    semanticLabel: 'Try again',
+                    tint: scheme.error,
                     onPressed: onRetry,
-                    child: const Text('Try again'),
                   ),
                 if (status == SubjectStatus.completed) ...[
-                  TextButton(
+                  GlyphButton(
+                    icon: Icons.keyboard_double_arrow_down,
+                    semanticLabel: 'Go deeper',
+                    tint: AppPalette.warning,
                     onPressed: () => onFinish(true),
-                    child: const Text('Go deeper'),
                   ),
-                  TextButton(
+                  GlyphButton(
+                    icon: Icons.replay,
+                    semanticLabel: 'Review only',
+                    tint: AppPalette.success,
                     onPressed: () => onFinish(false),
-                    child: const Text('Review only'),
                   ),
                 ],
               ],

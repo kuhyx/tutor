@@ -11,8 +11,26 @@ import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
-/// The rating's word.
+/// The rating's glyph: shape and tint both differ per rating.
+IconData gradeIcon(Grade g) => switch (g) {
+  Grade.again => Icons.replay,
+  Grade.hard => Icons.trending_down,
+  Grade.good => Icons.check,
+  Grade.easy => Icons.bolt,
+};
+
+/// The rating's tint.
+Color gradeTint(BuildContext context, Grade g) => switch (g) {
+  Grade.again => Theme.of(context).colorScheme.error,
+  Grade.hard => AppPalette.warning,
+  Grade.good => AppPalette.success,
+  Grade.easy => AppPalette.accent,
+};
+
+/// The rating's word (spoken only).
 String gradeLabel(Grade g) => switch (g) {
   Grade.again => 'Again',
   Grade.hard => 'Hard',
@@ -54,16 +72,16 @@ class CardFace extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(card.front, style: text.titleLarge),
+            ContentText(card.front, style: text.titleLarge),
             if (revealed) ...[
               const Divider(height: AppSpacing.xl),
-              Text(card.back, style: text.bodyLarge),
+              ContentText(card.back, style: text.bodyLarge),
               if (card.mnemonic case final m? when m.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
-                Text(m, style: text.bodyMedium),
+                ContentText(m, style: text.bodyMedium),
               ],
               const SizedBox(height: AppSpacing.md),
-              Text(
+              ContentText(
                 '"${card.excerpt}"',
                 style: text.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
               ),
@@ -98,16 +116,24 @@ class AnswerBar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!run.revealed)
-          FilledButton(
-            onPressed: run.reveal,
-            child: const Text('Show answer (Space)'),
+          SpokenLabel(
+            semanticLabel: 'Show answer (Space)',
+            button: true,
+            onTap: run.reveal,
+            child: FilledButton(
+              onPressed: run.reveal,
+              child: const Icon(Icons.visibility_outlined),
+            ),
           )
         else ...[
           if (earlier != null)
-            Text(
-              'Earlier: ${gradeLabel(earlier)}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
+            SpokenLabel(
+              semanticLabel: 'Earlier: ${gradeLabel(earlier)}',
+              child: Icon(
+                gradeIcon(earlier),
+                size: AppTextSize.label,
+                color: gradeTint(context, earlier),
+              ),
             ),
           if (earlier != null) const SizedBox(height: AppSpacing.xs),
           Wrap(
@@ -116,9 +142,10 @@ class AnswerBar extends StatelessWidget {
             alignment: WrapAlignment.center,
             children: [
               for (final g in Grade.values)
-                (g == lead ? FilledButton.new : OutlinedButton.new)(
+                GradeButton(
+                  grade: g,
+                  filled: g == lead,
                   onPressed: () => run.rate(g),
-                  child: Text('${g.value} ${gradeLabel(g)}'),
                 ),
             ],
           ),
@@ -130,15 +157,71 @@ class AnswerBar extends StatelessWidget {
             spacing: AppSpacing.sm,
             children: [
               ReviewBack(run),
-              TextButton.icon(
+              GlyphButton(
+                icon: Icons.flag_outlined,
+                semanticLabel: 'Flag (F)',
                 onPressed: flag,
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Flag (F)'),
               ),
             ],
           ),
         ],
       ],
+    );
+  }
+}
+
+/// One rating: its digit key and glyph, tinted; [filled] = the lead one.
+class GradeButton extends StatelessWidget {
+  /// Creates the button.
+  const new({
+    required this.grade,
+    required this.filled,
+    required this.onPressed,
+    super.key,
+  });
+
+  /// The rating.
+  final Grade grade;
+
+  /// The lead rating (filled instead of outlined).
+  final bool filled;
+
+  /// Rates the card.
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = gradeTint(context, grade);
+    final face = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('${grade.value}'),
+        const SizedBox(width: AppSpacing.xs),
+        Icon(gradeIcon(grade)),
+      ],
+    );
+    return SpokenLabel(
+      semanticLabel: '${grade.value} ${gradeLabel(grade)}',
+      button: true,
+      enabled: onPressed != null,
+      onTap: onPressed,
+      child: filled
+          ? FilledButton(
+              onPressed: onPressed,
+              style: FilledButton.styleFrom(
+                backgroundColor: tint,
+                foregroundColor: AppPalette.onFill,
+              ),
+              child: face,
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: tint,
+                side: BorderSide(color: tint),
+              ),
+              child: face,
+            ),
     );
   }
 }
@@ -154,9 +237,9 @@ class ReviewBack extends StatelessWidget {
   @override
   Widget build(BuildContext context) => !run.canBack
       ? const SizedBox.shrink()
-      : TextButton.icon(
+      : GlyphButton(
+          icon: Icons.undo,
+          semanticLabel: 'Back',
           onPressed: run.back,
-          icon: const Icon(Icons.undo),
-          label: const Text('Back'),
         );
 }

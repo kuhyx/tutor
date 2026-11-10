@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The widgets of the task panel for [drill].
 List<Widget> taskWidgets(Drill drill) {
@@ -31,7 +32,7 @@ List<Widget> taskWidgets(Drill drill) {
 List<Widget> tableWidgets(List<SqlTable> tables) => [
   for (final t in tables) ...[
     const SizedBox(height: AppSpacing.md),
-    Text(t.name, style: sqlMono.copyWith(fontWeight: FontWeight.w700)),
+    ContentText(t.name, style: sqlMono.copyWith(fontWeight: FontWeight.w700)),
     const SizedBox(height: AppSpacing.xs),
     DataGridView(columns: t.columns, rows: t.rows),
   ],

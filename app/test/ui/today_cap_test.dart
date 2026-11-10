@@ -1,11 +1,13 @@
 // The Today card's "new cards x/y" reads stats `new_cap`, and says when
 // today's limit was lifted ("Learn more anyway").
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/home_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -33,16 +35,14 @@ void main() {
     db.root = setAt(db.root, 'tutor/v1/stats/today/new_cap', 25);
     final s = await fixtureServices(db, FakeStream());
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
-    expect(find.textContaining('new cards 4/25'), findsOneWidget);
-    expect(find.textContaining('limit lifted'), findsNothing);
+    expect(bySpoken('new cards 4/25'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_open), findsNothing);
 
     db.root = setAt(db.root, 'tutor/v1/stats/today/new', 27);
     db.root = setAt(db.root, 'tutor/v1/stats/today/new_cap_lifted', true);
-    await t.tap(find.byTooltip('Refresh'));
+    await t.tap(glyphsLabelled('Refresh'));
     await t.pumpAndSettle();
-    expect(
-      find.textContaining('new cards 27/25 (limit lifted)'),
-      findsOneWidget,
-    );
+    expect(bySpoken('new cards 27/25'), findsOneWidget);
+    expect(bySpoken('(limit lifted)'), findsOneWidget);
   });
 }

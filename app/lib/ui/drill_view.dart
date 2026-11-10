@@ -18,6 +18,13 @@ import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_parts.dart';
+import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+
+part 'drill_view_parts.dart';
 
 /// The drill body.
 class DrillView extends StatefulWidget {
@@ -87,19 +94,22 @@ class _DrillViewState extends State<DrillView> {
   }
 
   List<Widget> _children(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final q = _run.question;
     final gone = _run.unavailable ?? _anki.unavailable;
     final today = _run.today;
     return [
-      if (gone != null) DrillBanner(gone.banner),
-      _header(text, today),
+      if (gone != null) DrillBanner(gone),
+      _header(today),
       const SizedBox(height: AppSpacing.sm),
       switch (_run.stage) {
-        DrillStage.empty => const EmptyState(
-          icon: Icons.check_circle_outline,
-          title: 'Nothing to drill',
-          message: 'No card has enough neighbours to ask about right now.',
+        DrillStage.empty => const SizedBox(
+          height: 240,
+          child: GlyphEmpty(
+            icon: Icons.check_circle_outline,
+            semanticLabel:
+                'Nothing to drill. No card has enough neighbours to ask '
+                'about right now.',
+          ),
         ),
         DrillStage.failed => DrillFailed(_run.error ?? '', _run.retry),
         _ when q == null => const Center(
@@ -123,7 +133,7 @@ class _DrillViewState extends State<DrillView> {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
-            child: Text(q.card.front, style: text.titleLarge),
+            child: ContentText(q.card.front, style: text.titleLarge),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -147,24 +157,6 @@ class _DrillViewState extends State<DrillView> {
     return i == _run.picked ? false : null;
   }
 
-  List<Widget> _graded(TextTheme text, DrillAnswer a) => [
-    Text(
-      a.correct
-          ? 'Correct${a.minuteCredited ? ' · +1 min credited' : ''}'
-          : 'Not quite',
-      style: text.titleMedium,
-    ),
-    const SizedBox(height: AppSpacing.xs),
-    Text(a.back, style: text.bodyLarge),
-    const SizedBox(height: AppSpacing.sm),
-    Text(
-      '"${a.excerpt}"',
-      style: text.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-    ),
-    const SizedBox(height: AppSpacing.xs),
-    LinkText(hostOf(a.source), a.source),
-  ];
-
   // Pinned under the scrolling page: a long excerpt pushed an inline Next
   // below the fold on a phone (kuhy, 2026-10-15).
   Widget _nextBar() => SafeArea(
@@ -180,38 +172,20 @@ class _DrillViewState extends State<DrillView> {
         ),
         child: SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            style: drillButton,
-            onPressed: _run.stage == DrillStage.loading ? null : _next,
-            child: const Text('Next (Space)'),
+          child: SpokenLabel(
+            semanticLabel: 'Next (Space)',
+            button: true,
+            enabled: _run.stage != DrillStage.loading,
+            onTap: _next,
+            child: FilledButton(
+              style: drillButton,
+              onPressed: _run.stage == DrillStage.loading ? null : _next,
+              child: const Icon(Icons.arrow_forward),
+            ),
           ),
         ),
       ),
     ),
-  );
-
-  // One line: the day's credited minutes; on Android the Anki sync beside it.
-  Widget _header(TextTheme text, DrillToday? today) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              today == null ? '' : 'Today: ${today.creditedMin} min credited',
-              style: text.bodySmall,
-            ),
-          ),
-          if (_anki.launcher.supported)
-            TextButton.icon(
-              onPressed: _anki.running ? null : () => unawaited(_anki.run()),
-              icon: const Icon(Icons.sync),
-              label: const Text('Sync Anki & credit'),
-            ),
-        ],
-      ),
-      if (_anki.message != null) Text(_anki.message!, style: text.bodySmall),
-    ],
   );
 }
 

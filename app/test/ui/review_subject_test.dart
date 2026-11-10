@@ -5,8 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/home_screen.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -37,20 +40,18 @@ void main() {
       HomeScreen(services: s, onSignedOut: () {}),
       size: const Size(1366, 1400),
     );
-    // Global, with the per-subject split as its tooltip.
-    expect(find.text('Review (3 due)'), findsOneWidget);
-    expect(
-      find.byTooltip('How a car works: 2 due\nVegetable gardening: 1 due'),
-      findsOneWidget,
-    );
+    // Global: its count as the badge (the per-subject tooltip is gone: a
+    // tooltip paints words).
+    expect(controlByLabel('Review (3 due)'), findsOneWidget);
+    expect(t.widget<GlyphButton>(glyphsLabelled('Review (3 due)')).count, 3);
     // Each tile: its own count and button.
-    expect(find.text('Review (2 due)'), findsOneWidget);
-    expect(find.text('Review (1 due)'), findsOneWidget);
+    expect(controlByLabel('Review (2 due)'), findsOneWidget);
+    expect(controlByLabel('Review (1 due)'), findsOneWidget);
 
-    await t.tap(find.text('Review (1 due)'));
+    await t.tap(controlByLabel('Review (1 due)'));
     await t.pumpAndSettle();
-    expect(find.text('Review: Vegetable gardening'), findsOneWidget);
-    expect(find.textContaining('1 left'), findsOneWidget);
+    expect(spoken('Review: Vegetable gardening'), findsOneWidget);
+    expect(spoken('1 left'), findsOneWidget);
     expect(
       find.text('How many hours of sun do tomatoes need?'),
       findsOneWidget,

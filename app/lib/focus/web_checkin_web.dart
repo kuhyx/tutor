@@ -1,5 +1,6 @@
 /// The web half of `web_checkin.dart`: a browser `Notification` that asks
-/// "Still working?" while the focus timer runs on the PC.
+/// for a check-in while the focus timer runs on the PC. It is icon-only
+/// (textgate): an empty title, no body, the app icon.
 ///
 /// The screen's own prompt (focus screen) is the primary ask; this adds the
 /// system notification so a check-in is still possible with the tab behind
@@ -35,7 +36,7 @@ extension type _Notification._(JSObject _) implements JSObject {
 @JS()
 @anonymous
 extension type _Options._(JSObject _) implements JSObject {
-  external new({String body, String tag, bool requireInteraction});
+  external new({String icon, String tag, bool requireInteraction});
 }
 
 /// The browser notifier for the focus timer.
@@ -63,9 +64,9 @@ class _WebCheckinNotifier implements FocusCheckinNotifier {
   void _show() {
     if (_Notification.permission != 'granted') return;
     final note = _Notification(
-      'Still working?',
+      '',
       _Options(
-        body: 'Click to check in and keep the focus timer counting.',
+        icon: 'icons/Icon-192.png',
         tag: 'focus-checkin',
         requireInteraction: true,
       ),

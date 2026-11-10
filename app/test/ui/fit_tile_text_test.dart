@@ -12,6 +12,7 @@ import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/home_screen.dart';
+import 'package:tutor/ui/learn_tiles.dart';
 import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/ui_scale.dart';
@@ -59,14 +60,20 @@ Future<void> _pump(WidgetTester t, Widget screen, double zoom) async {
   await t.pumpAndSettle();
 }
 
-/// Every line of every FitTile has its full height and stays in the tile.
+/// Every line of every grid tile (Home's [FitTile], Plan's and Progress's
+/// [LearnTile]) has its full height and stays in the tile.
 void _expectWholeTileText(WidgetTester t) {
-  final tiles = find.byType(FitTile).hitTestable();
+  final tiles = find
+      .byWidgetPredicate((w) => w is FitTile || w is LearnTile)
+      .hitTestable();
   expect(tiles, findsWidgets);
   for (final tile in tiles.evaluate()) {
     final box = tile.renderObject! as RenderBox;
     final rect = box.localToGlobal(Offset.zero) & box.size;
-    final title = (tile.widget as FitTile).title;
+    final title = switch (tile.widget) {
+      FitTile(:final title) || LearnTile(:final title) => title,
+      _ => '',
+    };
     void visit(RenderObject o) {
       if (o is RenderParagraph) {
         final need = o.getMinIntrinsicHeight(o.size.width);

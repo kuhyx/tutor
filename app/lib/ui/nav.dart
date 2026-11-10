@@ -1,7 +1,7 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
 /// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
-/// `/report`, `/sql`, `/coach`;
+/// `/report`, `/sql`, `/coach`, `/mock`;
 /// `/focus?start=1` also starts the focus timer if it is not running;
 /// `/session/continue` opens the Session and asks for the open session).
 library;
@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/drill/drill_models.dart';
+import 'package:tutor/mock/mock_entry.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/coach/coach_picker.dart';
@@ -146,7 +147,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
     'session' when arg == 'continue' => openSession(
       context,
       s,
-      entry: const SessionEntry(label: 'Continue', resume: true),
+      entry: const SessionEntry(kind: SessionKind.resume, resume: true),
     ),
     'session' => openSession(context, s),
     'focus' => openFocus(
@@ -156,6 +157,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
     ),
     'sql' => openSql(context, s),
     'coach' => openCoach(context, s),
+    'mock' => openMock(context, s),
     'history' when arg != null => openTranscript(context, s, arg),
     'history' => openHistory(context, s),
     'progress' => openProgress(context, s),

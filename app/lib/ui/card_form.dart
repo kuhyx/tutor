@@ -12,6 +12,9 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The card form.
 class CardForm extends StatefulWidget {
@@ -98,46 +101,129 @@ class _CardFormState extends State<CardForm> {
     }
   }
 
-  Widget _field(TextEditingController c, String label, {int lines = 2}) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: TextField(
-          controller: c,
-          minLines: 1,
-          maxLines: lines,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            labelText: label,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-      );
+  // A field named by its glyph; [limit] shows the live word count beside
+  // it (outside the field: a changing node inside the merged field node
+  // trips the framework's semantics asserts).
+  Widget _field(
+    TextEditingController c,
+    IconData icon,
+    String label, {
+    int lines = 2,
+    int? limit,
+  }) {
+    final field = FieldLabel(
+      semanticLabel: label,
+      child: TextField(
+        controller: c,
+        minLines: 1,
+        maxLines: lines,
+        onChanged: (_) => setState(() {}),
+        decoration: iconDecoration(icon),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: limit == null
+          ? field
+          : Row(
+              children: [
+                Expanded(child: field),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '${wordCount(c.text)}/$limit',
+                  style: TextStyle(
+                    color: wordCount(c.text) > limit
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // The field a local problem is about, by the sentence's first word.
+  static IconData _problemIcon(String p) =>
+      switch (p.split(RegExp('[: ]')).first) {
+        'Front' => Icons.help_outline,
+        'Back' => Icons.lightbulb_outline,
+        'Source' => Icons.link,
+        'Excerpt' => Icons.format_quote,
+        _ => Icons.tips_and_updates_outlined,
+      };
 
   @override
   Widget build(BuildContext context) {
     final problems = _problems;
     final fields = [
-      _field(_front, 'Front (question, <=$kFrontWords words)'),
-      _field(_back, 'Back (answer, <=$kBackWords words)', lines: 3),
-      _field(_source, 'Source (https link)', lines: 1),
-      _field(_excerpt, 'Excerpt (verbatim from the source)', lines: 4),
-      _field(_requires, 'Requires (card ids, comma separated)', lines: 1),
-      _field(_mnemonic, 'Mnemonic (optional, one line)', lines: 1),
-      for (final p in problems)
-        Text(p, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      _field(
+        _front,
+        Icons.help_outline,
+        'Front (question, <=$kFrontWords words)',
+        limit: kFrontWords,
+      ),
+      _field(
+        _back,
+        Icons.lightbulb_outline,
+        'Back (answer, <=$kBackWords words)',
+        lines: 3,
+        limit: kBackWords,
+      ),
+      _field(_source, Icons.link, 'Source (https link)', lines: 1),
+      _field(
+        _excerpt,
+        Icons.format_quote,
+        'Excerpt (verbatim from the source)',
+        lines: 4,
+      ),
+      _field(
+        _requires,
+        Icons.account_tree_outlined,
+        'Requires (card ids, comma separated)',
+        lines: 1,
+      ),
+      _field(
+        _mnemonic,
+        Icons.tips_and_updates_outlined,
+        'Mnemonic (optional, one line)',
+        lines: 1,
+      ),
+      if (problems.isNotEmpty)
+        Wrap(
+          spacing: AppSpacing.sm,
+          children: [
+            for (final p in problems)
+              CueChip(
+                kind: CueKind.error,
+                icon: _problemIcon(p),
+                semanticLabel: p,
+              ),
+          ],
+        ),
     ];
     final status = RequestStatusLine(widget.runner);
     // Phone: Save stays under the fields, above the keyboard.
     final save = Align(
       alignment: Alignment.centerRight,
-      child: FilledButton(
-        onPressed: problems.isEmpty ? _save : null,
-        child: const Text('Save card'),
+      child: SpokenLabel(
+        semanticLabel: 'Save card',
+        button: true,
+        enabled: problems.isEmpty,
+        onTap: problems.isEmpty ? _save : null,
+        child: FilledButton(
+          onPressed: problems.isEmpty ? _save : null,
+          child: const Icon(Icons.save_outlined),
+        ),
       ),
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.card == null ? 'New card' : 'Edit card'),
+        title: SpokenLabel(
+          semanticLabel: widget.card == null ? 'New card' : 'Edit card',
+          child: Icon(
+            widget.card == null ? Icons.note_add_outlined : Icons.edit_outlined,
+          ),
+        ),
       ),
       body: fitForm(
         context,

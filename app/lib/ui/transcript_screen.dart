@@ -20,6 +20,10 @@ import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/util/device.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The transcript screen.
 class TranscriptScreen extends StatefulWidget {
@@ -87,7 +91,7 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Past session')),
+    appBar: AppBar(),
     body: FutureBuilder<(Transcript, HistoryEntry?)>(
       future: _data,
       builder: (context, snap) {
@@ -95,7 +99,14 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snap.hasError) {
-          return PageList(children: [Text('Could not load: ${snap.error}')]);
+          return PageList(
+            children: [
+              CueChip(
+                kind: CueKind.error,
+                semanticLabel: 'Could not load: ${snap.error}',
+              ),
+            ],
+          );
         }
         final (t, entry) = snap.requireData;
         final row = entry?.row;
@@ -104,38 +115,62 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
         final doneHere =
             (row?.cards.any((c) => c.doneHere) ?? false) ||
             (t.view.meta?.cardDone ?? false);
-        final text = Theme.of(context).textTheme;
+        final autoArchived = row?.autoArchived ?? false;
+        final meta = t.view.meta;
         return PageList(
           children: [
-            Text('${widget.sid} - read-only', style: text.titleMedium),
+            Row(
+              children: [
+                // Read-only: a lock beside the session id (content).
+                const SpokenLabel(
+                  semanticLabel: 'Read-only',
+                  child: Icon(Icons.lock_outline),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                IdChip(widget.sid),
+              ],
+            ),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (t.archived || (row?.autoArchived ?? false))
-                  Pill(
-                    row?.autoArchived ?? false
+                if (t.archived || autoArchived)
+                  SpokenLabel(
+                    semanticLabel: autoArchived
                         ? 'archived: no reply'
                         : 'archived',
+                    child: Icon(
+                      autoArchived
+                          ? Icons.comments_disabled_outlined
+                          : Icons.inventory_2_outlined,
+                      color: AppPalette.warning,
+                    ),
                   ),
-                if (!(row?.autoArchived ?? false))
-                  OutlinedButton(
+                if (!autoArchived)
+                  GlyphButton(
+                    icon: t.archived
+                        ? Icons.unarchive_outlined
+                        : Icons.archive_outlined,
+                    semanticLabel: t.archived ? 'Unarchive' : 'Archive',
                     onPressed: () => _archive(!t.archived),
-                    child: Text(t.archived ? 'Unarchive' : 'Archive'),
                   ),
                 if (first != null)
-                  FilledButton(
+                  GlyphButton(
+                    icon: Icons.replay,
+                    semanticLabel: 'Repeat',
+                    filled: true,
                     onPressed: () => _toSession(
                       RequestBody.sessionStart(subject: subject, card: first),
                     ),
-                    child: const Text('Repeat'),
                   ),
-                OutlinedButton(
+                GlyphButton(
+                  icon: Icons.play_arrow,
+                  semanticLabel: 'Continue',
+                  tint: Theme.of(context).colorScheme.primary,
                   onPressed: () =>
                       _toSession(RequestBody.sessionResume(widget.sid)),
-                  child: const Text('Continue'),
                 ),
               ],
             ),
@@ -168,14 +203,33 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
               for (final c in row.cards)
                 CheckboxListTile(
                   value: c.done,
-                  title: Text(c.front),
-                  subtitle: Text(c.doneHere ? 'done in this session' : ''),
+                  title: ContentText(c.front),
+                  secondary: c.doneHere
+                      ? const SpokenLabel(
+                          semanticLabel: 'done in this session',
+                          child: Icon(Icons.task_alt),
+                        )
+                      : null,
                   onChanged: (on) => _mark(subject, c.id, on ?? false),
                 ),
-            Text(
-              'Active ${row?.activeMinutes ?? 0} min · credited '
-              '${row?.creditedMinutes ?? t.view.meta?.creditedMinutes ?? 0}',
-              style: text.bodySmall,
+            Wrap(
+              spacing: AppSpacing.md,
+              children: [
+                SpokenLabel(
+                  semanticLabel: 'Active minutes',
+                  child: GlyphStat(
+                    Icons.timer_outlined,
+                    '${row?.activeMinutes ?? 0}',
+                  ),
+                ),
+                SpokenLabel(
+                  semanticLabel: 'Credited minutes',
+                  child: GlyphStat(
+                    Icons.bolt,
+                    '${row?.creditedMinutes ?? meta?.creditedMinutes ?? 0}',
+                  ),
+                ),
+              ],
             ),
             const Divider(),
             for (final m in t.view.messages) MessageTile(message: m.message),

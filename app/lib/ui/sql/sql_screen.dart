@@ -12,6 +12,8 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
 import 'package:tutor/ui/sql/lesson_screen.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The topic list.
 class SqlPracticeScreen extends StatefulWidget {
@@ -110,7 +112,7 @@ class _SqlPracticeScreenState extends State<SqlPracticeScreen> {
         children: [
           RequestStatusLine(_list),
           RequestStatusLine(_generate),
-          if (_problem != null) Text(_problem!),
+          if (_problem != null) problemCue(_problem!),
           RunnerBuilder(
             _generate,
             (_) => _generate.busy
@@ -127,7 +129,7 @@ class _SqlPracticeScreenState extends State<SqlPracticeScreen> {
     ListTile(
       key: ValueKey('lesson-$topic'),
       leading: const Icon(Icons.school_outlined, semanticLabel: 'Lesson'),
-      title: Text(topic, style: Theme.of(context).textTheme.titleMedium),
+      title: ContentText(topic, style: Theme.of(context).textTheme.titleMedium),
       onTap: () => unawaited(_lesson(topic)),
       trailing: RunnerBuilder(
         _generate,
@@ -147,7 +149,7 @@ class _SqlPracticeScreenState extends State<SqlPracticeScreen> {
             d.predict ? Icons.visibility_outlined : Icons.edit_note,
             semanticLabel: d.predict ? 'Predict' : 'Write',
           ),
-          title: Text(d.title),
+          title: ContentText(d.title),
           trailing: d.generated
               ? const Icon(Icons.auto_awesome, semanticLabel: 'Generated')
               : null,

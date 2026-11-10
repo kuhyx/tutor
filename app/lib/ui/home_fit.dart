@@ -7,7 +7,6 @@ import 'dart:async';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/home/home_loader.dart';
-import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/progress/progress.dart';
 import 'package:tutor/relay/request_relay.dart';
@@ -16,6 +15,8 @@ import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/new_subject_field.dart';
 import 'package:tutor/ui/subject_tile.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+import 'package:tutor/widgets/status_glyph.dart';
 
 /// The phone body of Home.
 class HomeFit extends StatelessWidget {
@@ -57,12 +58,15 @@ class HomeFit extends StatelessWidget {
     return FitTile(
       key: ValueKey('subject-tile-${s.id}'),
       title: s.meta.title,
-      lines: [
-        status.wire.replaceAll('_', ' '),
-        if (total > 0) '$reviewed/$total',
-      ],
+      lines: [if (total > 0) '$reviewed/$total'],
+      meta: [StatusGlyph(status, detail: s.meta.error, size: 16)],
       corner: [
-        if (current) const Icon(Icons.radio_button_checked, size: 16),
+        if (current)
+          const Icon(
+            Icons.radio_button_checked,
+            size: 16,
+            semanticLabel: 'New material from here',
+          ),
         if (due > 0) Badge(label: Text('$due')),
       ],
       marked: data.toReview[s.id] != null || status == SubjectStatus.failed,
@@ -125,17 +129,18 @@ class _NewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = AppLocalizations.of(context).newSubject;
-    return Tooltip(
-      message: label,
+    void open() => unawaited(
+      showDialog<void>(context: context, builder: (_) => _NewDialog(body)),
+    );
+    return SpokenLabel(
+      semanticLabel: 'New subject',
+      button: true,
+      onTap: open,
       child: Card(
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => showDialog<void>(
-            context: context,
-            builder: (_) => _NewDialog(body, label),
-          ),
+          onTap: open,
           child: const Center(child: Icon(Icons.add, size: 40)),
         ),
       ),
@@ -144,10 +149,9 @@ class _NewTile extends StatelessWidget {
 }
 
 class _NewDialog extends StatefulWidget {
-  const new(this.body, this.title);
+  const new(this.body);
 
   final HomeBody body;
-  final String title;
 
   @override
   State<_NewDialog> createState() => _NewDialogState();
@@ -178,7 +182,6 @@ class _NewDialogState extends State<_NewDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.title),
     content: SizedBox(
       width: 400,
       child: NewSubjectField(

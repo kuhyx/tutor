@@ -6,6 +6,7 @@ import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/transcript_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _sid = '20261011-090000-a1b2';
@@ -22,7 +23,7 @@ void main() {
       TaughtEvent(subject: 'car', card: 'fuel-spark', at: fixtureNow),
     );
     await pumpScreen(t, TranscriptScreen(services: s, sid: _sid));
-    await t.tap(find.text('Repeat'));
+    await t.tap(controlByLabel('Repeat'));
     await sent(t);
     await answer(
       t,
@@ -37,12 +38,12 @@ void main() {
       },
     );
     expect(
-      find.text('That is locked until “Fuel and ignition” is reviewed.'),
+      cueLabelled('That is locked until “Fuel and ignition” is reviewed.'),
       findsOneWidget,
     );
-    expect(find.textContaining('raw worker text'), findsNothing);
-    await t.tap(find.text('Review Fuel and ignition'));
+    expect(cueContaining('raw worker text'), findsNothing);
+    await t.tap(controlByLabel('Review Fuel and ignition'));
     await t.pumpAndSettle();
-    expect(find.text('Review: Fuel and ignition'), findsOneWidget);
+    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
   });
 }

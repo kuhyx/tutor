@@ -11,6 +11,8 @@ import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
 import 'package:tutor/ui/sql/table_strip.dart';
 import 'package:tutor/ui/sql/task_view.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/icon_field.dart';
 
 /// The current tables under a header that folds them, capped by [share].
 class PinnedTables extends StatelessWidget {
@@ -59,7 +61,7 @@ class PinnedTables extends StatelessWidget {
                 const Icon(Icons.table_chart_outlined, semanticLabel: 'Tables'),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                  child: Text(
+                  child: ContentText(
                     tables.map((t) => t.name).join(', '),
                     overflow: TextOverflow.ellipsis,
                     style: sqlMono,
@@ -168,14 +170,17 @@ class AnswerBox extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(
-          child: TextField(
-            key: const ValueKey('answer'),
-            controller: controller,
-            focusNode: focus,
-            minLines: 1,
-            maxLines: 5,
-            keyboardType: TextInputType.multiline,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
+          child: FieldLabel(
+            semanticLabel: 'Answer',
+            child: TextField(
+              key: const ValueKey('answer'),
+              controller: controller,
+              focusNode: focus,
+              minLines: 1,
+              maxLines: 5,
+              keyboardType: TextInputType.multiline,
+              decoration: iconDecoration(Icons.chat_bubble_outline),
+            ),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
@@ -12,6 +11,7 @@ import '../../tool/fixture/fixture_sessions.dart';
 import '../support/composer.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _old = '20261011-090000-a1b2';
@@ -55,18 +55,18 @@ void main() {
       RtdbPut('/', getAt(db.root, '$composeBase/meta')),
     );
     await t.pumpAndSettle();
-    expect(find.text('Next card'), findsOneWidget);
-    expect(find.text('Stop here'), findsWidgets);
-    expect(find.text('Send'), findsOneWidget);
-    final box = find.widgetWithText(
-      TextField,
+    expect(controlByLabel('Next card'), findsOneWidget);
+    // Wide: the side panel's Stop here and the card end's, as before.
+    expect(controlByLabel('Stop here'), findsWidgets);
+    expect(controlByLabel('Send'), findsOneWidget);
+    final box = fieldByLabel(
       'Your answer. Reason it out; guesses are welcome.',
     );
     expect(box, findsOneWidget);
     await t.enterText(box, 'what if I forge it?');
-    await t.ensureVisible(find.text('Send'));
+    await t.ensureVisible(controlByLabel('Send'));
     await t.pump();
-    await t.tap(find.text('Send'));
+    await t.tap(controlByLabel('Send'));
     await sent(t);
     final msg = await answer(t, db, stream, data: {'msg': 'm0009'});
     expect(msg['kind'], 'message');
@@ -85,7 +85,11 @@ void main() {
     addTearDown(t.view.resetViewInsets);
     await t.pumpAndSettle();
     for (final label in ['Next card', 'Stop here', 'Send']) {
-      expect(find.text(label).hitTestable(), findsOneWidget, reason: label);
+      expect(
+        controlByLabel(label).hitTestable(),
+        findsOneWidget,
+        reason: label,
+      );
     }
   });
 
@@ -93,12 +97,12 @@ void main() {
     t,
   ) async {
     final (db, stream) = await _transcript(t, _old);
-    expect(find.text('Ask a follow-up'), findsOneWidget);
+    expect(fieldByLabel('Ask a follow-up'), findsOneWidget);
     await t.enterText(
-      find.widgetWithText(TextField, 'Ask a follow-up'),
+      fieldByLabel('Ask a follow-up'),
       'what if I write the name myself?',
     );
-    await t.tap(find.text('Ask'));
+    await t.tap(controlByLabel('Ask'));
     await sent(t);
     // Another session is live: refused, the question stays in the box.
     final refused = await answer(
@@ -110,10 +114,13 @@ void main() {
     );
     expect(refused['kind'], 'follow_up_open');
     expect(refused['body'], {'session': _old});
-    expect(find.textContaining('Another session is live.'), findsOneWidget);
+    expect(
+      cueLabelled('Another session is live.', prefix: true),
+      findsOneWidget,
+    );
     expect(find.text('what if I write the name myself?'), findsOneWidget);
 
-    await t.tap(find.text('Ask'));
+    await t.tap(controlByLabel('Ask'));
     await sent(t);
     await answer(t, db, stream, data: {'session': _old}, settle: false);
     await sent(t);
@@ -130,11 +137,11 @@ void main() {
       'text': 'what if I write the name myself?',
       'device': 'desktop',
     });
-    expect(find.text('Target card'), findsOneWidget); // replaced by Session
+    expect(bySpoken('Target card'), findsWidgets); // replaced by Session
   });
 
   testWidgets('history: no follow-up for a card not done there', (t) async {
     await _transcript(t, _older);
-    expect(find.text('Ask a follow-up'), findsNothing);
+    expect(bySpoken('Ask a follow-up'), findsNothing);
   });
 }

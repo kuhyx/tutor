@@ -8,9 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:tutor/model/card.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/terms.dart';
+import 'package:tutor/ui/learn_bits.dart';
 
-/// "x/y done · z recalled · n due" with a done bar; the words explained in
-/// a tooltip.
+/// "x/y done · z recalled · n due" as glyph + number marks over a done bar;
+/// the words are the spoken label.
 class ProgressSummary extends StatelessWidget {
   /// Creates the summary.
   const new(this.tally, {super.key});
@@ -25,13 +26,7 @@ class ProgressSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Tooltip(
-            message: tallyHelp,
-            child: Text(
-              tally.summary,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
+          TallyRow(tally, total: true, size: AppTextSize.subtitle),
           const SizedBox(height: AppSpacing.sm),
           LinearProgressIndicator(value: tally.taught / tally.cards),
         ],
@@ -41,7 +36,7 @@ class ProgressSummary extends StatelessWidget {
 }
 
 /// [child] with the explanation of the progress words it shows (see
-/// `progress/terms.dart`) as a tooltip; no tooltip for a null/empty [help].
+/// `progress/terms.dart`) as a spoken hint; none for a null/empty [help].
 class Explained extends StatelessWidget {
   /// Creates the wrapper.
   const new(this.help, {required this.child, super.key});
@@ -49,15 +44,15 @@ class Explained extends StatelessWidget {
   /// One line per word.
   final String? help;
 
-  /// What the words appear in.
+  /// What the marks appear in.
   final Widget child;
 
   @override
   Widget build(BuildContext context) =>
-      (help ?? '').isEmpty ? child : Tooltip(message: help, child: child);
+      (help ?? '').isEmpty ? child : Semantics(hint: help, child: child);
 }
 
-/// A card's state as an icon with a tooltip (null: not folded yet).
+/// A card's state as an icon with a spoken label (null: not folded yet).
 class CardStateIcon extends StatelessWidget {
   /// Creates the icon.
   const new(this.progress, {super.key});
@@ -83,9 +78,10 @@ class CardStateIcon extends StatelessWidget {
       ),
       _ => (Icons.radio_button_unchecked, scheme.outline, null),
     };
-    return Tooltip(
-      message: [?p?.label, ?help].join('\n'),
-      child: Icon(icon, color: color),
+    return Icon(
+      icon,
+      color: color,
+      semanticLabel: [?p?.label, ?help].join('\n'),
     );
   }
 }
@@ -108,3 +104,56 @@ String restoreTip(StudyCard card) => card.removedBySplit
     ? 'Removed before the Editor kept a record: only un-suspends it, '
           'prerequisites are not restored'
     : 'Puts the card and its prerequisites back';
+
+/// The Editor row's extra marks: removed / split / suspended, due, flagged;
+/// each a glyph whose spoken label is the old word.
+class CardMarks extends StatelessWidget {
+  /// Creates the marks for [card] with its [progress].
+  const new(this.card, this.progress, {super.key});
+
+  /// The card.
+  final StudyCard card;
+
+  /// Its progress (null: not folded yet).
+  final CardProgress? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final removed = card.removedBySplit
+        ? Icons.call_split
+        : card.removedByTutor
+        ? Icons.person_off_outlined
+        : card.restorable
+        ? Icons.delete_outline
+        : card.suspended
+        ? Icons.pause_circle_outline
+        : null;
+    final p = progress;
+    return Wrap(
+      spacing: AppSpacing.sm,
+      children: [
+        if (removed != null)
+          Icon(
+            removed,
+            size: AppTextSize.label,
+            semanticLabel: cardStateWord(card, p),
+          ),
+        if (p != null && p.due)
+          Icon(
+            Icons.schedule,
+            size: AppTextSize.label,
+            color: scheme.error,
+            semanticLabel: 'due',
+          ),
+        if (p != null && p.flagged)
+          const Icon(
+            Icons.flag,
+            size: AppTextSize.label,
+            color: AppPalette.warning,
+            semanticLabel: 'flagged',
+          ),
+      ],
+    );
+  }
+}

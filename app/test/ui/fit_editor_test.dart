@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/ui/editor_screen.dart';
+import 'package:tutor/widgets/icon_field.dart';
 
 import '../support/fake_stream.dart';
 import '../support/fit.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -18,14 +20,16 @@ void main() {
     await t.pumpAndSettle();
     expectFits(t, state: 'module open');
     // Two taps: the module, then Add card (first in it on a phone).
-    expectReachable(t, find.text('Add card'));
-    await t.tap(find.text('Add card').hitTestable().first);
+    expectReachable(t, spoken('Add card'));
+    await t.tap(spoken('Add card').hitTestable().first);
     await t.pumpAndSettle();
     expectFits(t, state: 'form');
-    expectReachable(t, find.text('Save card'));
+    expectReachable(t, spoken('Save card'));
     for (final label in ['Front', 'Excerpt', 'Mnemonic']) {
-      final field = find.ancestor(
-        of: find.textContaining(label),
+      final field = find.descendant(
+        of: find.byWidgetPredicate(
+          (w) => w is FieldLabel && w.semanticLabel.startsWith(label),
+        ),
         matching: find.byType(TextField),
       );
       await pageTo(t, field);
@@ -33,7 +37,7 @@ void main() {
       pixelView(t, scale: scale, keyboard: fitKeyboard);
       await t.pumpAndSettle();
       expectFits(t, state: '$label + keyboard');
-      expectReachable(t, find.text('Save card'), state: label);
+      expectReachable(t, spoken('Save card'), state: label);
       pixelView(t, scale: scale);
       await t.pumpAndSettle();
     }

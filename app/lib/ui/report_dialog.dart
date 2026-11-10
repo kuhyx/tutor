@@ -7,6 +7,11 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
 import 'package:tutor/model/stats.dart' as stats;
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The report form.
 class ReportDialog extends StatefulWidget {
@@ -80,85 +85,114 @@ class _ReportDialogState extends State<ReportDialog> {
   @override
   Widget build(BuildContext context) {
     final p = widget.preview?.replaceAll(RegExp(r'\s+'), ' ') ?? '';
-    final scope = widget.msg == null
-        ? 'About the UI or the experience as a whole.'
-        : 'About tutor message ${widget.msg}: '
-              '"${p.length > 90 ? '${p.substring(0, 90)}...' : p}"';
     if (_saved != null) {
       return AlertDialog(
-        title: const Text('Report saved'),
-        content: Text('Saved as feedback $_saved.'),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CueChip(kind: CueKind.ok, semanticLabel: 'Report saved'),
+            const SizedBox(width: AppSpacing.md),
+            IdChip(_saved!),
+          ],
+        ),
         actions: [
-          FilledButton(
-            autofocus: true,
+          GlyphButton(
+            icon: Icons.check,
+            semanticLabel: 'Close',
+            filled: true,
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
           ),
         ],
       );
     }
     return AlertDialog(
-      title: const Text('Report a problem'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('For the developer, not sent to the tutor.'),
+            // About one tutor message: its text (content), shortened.
+            if (widget.msg != null)
+              Row(
+                children: [
+                  const Icon(
+                    Icons.chat_bubble_outline,
+                    semanticLabel: 'About a tutor message',
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: ContentText(
+                      p.length > 90 ? '${p.substring(0, 90)}...' : p,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: AppSpacing.sm),
-            Text(scope, style: Theme.of(context).textTheme.bodySmall),
-            DropdownButton<stats.FeedbackCategory>(
-              value: _category,
-              isExpanded: true,
-              items: const [
-                DropdownMenuItem(
-                  value: stats.FeedbackCategory.ui,
-                  child: Text('UI'),
-                ),
-                DropdownMenuItem(
-                  value: stats.FeedbackCategory.response,
-                  child: Text("Tutor's response"),
-                ),
-                DropdownMenuItem(
-                  value: stats.FeedbackCategory.experience,
-                  child: Text('Overall experience'),
-                ),
-                DropdownMenuItem(
-                  value: stats.FeedbackCategory.other,
-                  child: Text('Other'),
-                ),
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                for (final (c, icon, label) in _categories)
+                  ChoiceChip(
+                    key: ValueKey('report-${c.name}'),
+                    label: Icon(icon, semanticLabel: label),
+                    selected: _category == c,
+                    onSelected: (_) => setState(() => _category = c),
+                  ),
               ],
-              onChanged: (v) => setState(() => _category = v ?? _category),
             ),
-            TextField(
-              controller: _text,
-              autofocus: true,
-              maxLength: stats.Feedback.maxText,
-              maxLines: 5,
-              minLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'What is wrong?',
-                hintText: 'e.g. it posted the same image twice',
+            const SizedBox(height: AppSpacing.sm),
+            FieldLabel(
+              semanticLabel: 'What is wrong?',
+              child: TextField(
+                controller: _text,
+                autofocus: true,
+                maxLength: stats.Feedback.maxText,
+                maxLines: 5,
+                minLines: 3,
+                decoration: iconDecoration(Icons.edit_note),
               ),
             ),
             if (_error != null)
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              CueChip(
+                key: ValueKey(_error),
+                kind: CueKind.error,
+                semanticLabel: _error!,
               ),
           ],
         ),
       ),
       actions: [
-        TextButton(
+        GlyphButton(
+          icon: Icons.close,
+          semanticLabel: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
         ),
-        FilledButton(
+        GlyphButton(
+          icon: Icons.save_outlined,
+          semanticLabel: 'Save report',
+          filled: true,
           onPressed: _busy ? null : _submit,
-          child: const Text('Save report'),
         ),
       ],
     );
   }
 }
+
+/// The report categories as glyph chips: UI, response, experience, other.
+const List<(stats.FeedbackCategory, IconData, String)> _categories = [
+  (stats.FeedbackCategory.ui, Icons.dashboard_outlined, 'UI'),
+  (
+    stats.FeedbackCategory.response,
+    Icons.smart_toy_outlined,
+    "Tutor's response",
+  ),
+  (
+    stats.FeedbackCategory.experience,
+    Icons.sentiment_neutral,
+    'Overall experience',
+  ),
+  (stats.FeedbackCategory.other, Icons.more_horiz, 'Other'),
+];

@@ -8,6 +8,7 @@ import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/editor_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 Map<String, Object?> _card(
@@ -67,14 +68,14 @@ void main() {
     );
     await t.tap(find.text('The four-stroke engine'));
     await t.pumpAndSettle();
-    expect(find.textContaining('· Split'), findsOneWidget);
-    expect(find.widgetWithText(TextButton, 'Restore'), findsOneWidget);
+    expect(iconSpoken('Split'), findsOneWidget);
+    expect(spoken('Restore'), findsOneWidget);
     expect(
-      find.byTooltip('Undoes the split: the parts go, this card comes back'),
+      hinted('Undoes the split: the parts go, this card comes back'),
       findsOneWidget,
     );
 
-    await t.tap(find.widgetWithText(TextButton, 'Restore'));
+    await t.tap(spoken('Restore'));
     await sent(t);
     final restore = await answer(t, db, stream, data: {'card': 'eng-big'});
     expect(restore['kind'], 'card_restore');

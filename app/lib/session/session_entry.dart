@@ -7,13 +7,33 @@ library;
 
 import 'package:tutor/model/root.dart';
 
+/// Which button Home shows (a glyph each; its words are spoken only).
+enum SessionKind {
+  /// No current subject and nothing live: start learning.
+  learn('Learn'),
+
+  /// A live session (of the current subject, if one is picked).
+  live('Continue session'),
+
+  /// Ask the worker for the subject's open session or next card.
+  resume('Continue learning');
+
+  new(this.semanticLabel);
+
+  /// What a screen reader (and the browser drivers) call the button.
+  final String semanticLabel;
+}
+
 /// The Session screen's target.
 class SessionEntry {
   /// Creates the target.
-  const new({required this.label, this.subject, this.resume = false});
+  const new({required this.kind, this.subject, this.resume = false});
 
-  /// Button label.
-  final String label;
+  /// Which button it is.
+  final SessionKind kind;
+
+  /// The button's spoken label.
+  String get semanticLabel => kind.semanticLabel;
 
   /// Follow only this subject's live session (null: whatever is live).
   final String? subject;
@@ -25,14 +45,12 @@ class SessionEntry {
 /// Home's session button for [live] and [current] (`prefs.current_subject`).
 SessionEntry sessionEntry(Live? live, String? current) {
   if (current == null) {
-    return SessionEntry(label: live == null ? 'Learn' : 'Continue session');
+    return SessionEntry(
+      kind: live == null ? SessionKind.learn : SessionKind.live,
+    );
   }
   if (live?.subject == current) {
-    return SessionEntry(label: 'Continue session', subject: current);
+    return SessionEntry(kind: SessionKind.live, subject: current);
   }
-  return SessionEntry(
-    label: 'Continue learning',
-    subject: current,
-    resume: true,
-  );
+  return SessionEntry(kind: SessionKind.resume, subject: current, resume: true);
 }

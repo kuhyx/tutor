@@ -7,6 +7,7 @@ import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/home_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -18,9 +19,9 @@ void main() {
     final s = await fixtureServices(db, FakeStream());
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
     Future<void> open() async {
-      await t.tap(find.byTooltip('More'));
+      await t.tap(bySpoken('More'));
       await t.pumpAndSettle();
-      await t.tap(find.text('New cards per day'));
+      await t.tap(bySpoken('New cards per day'));
       await t.pumpAndSettle();
     }
 
@@ -32,18 +33,18 @@ void main() {
     expect(t.widget<TextField>(field).controller!.text, '25');
 
     await t.enterText(field, '0');
-    await t.tap(find.text('Save'));
+    await t.tap(controlByLabel('Save'));
     await t.pumpAndSettle();
-    expect(find.text('A number from 1 to 200'), findsOneWidget);
+    expect(cueLabelled('A number from 1 to 200'), findsOneWidget);
     await t.enterText(field, '201');
-    await t.tap(find.text('Save'));
+    await t.tap(controlByLabel('Save'));
     await t.pumpAndSettle();
-    expect(find.text('A number from 1 to 200'), findsOneWidget);
+    expect(cueLabelled('A number from 1 to 200'), findsOneWidget);
 
     await t.enterText(field, '40');
-    await t.tap(find.text('Save'));
+    await t.tap(controlByLabel('Save'));
     await t.pumpAndSettle();
-    expect(find.text('Save'), findsNothing); // closed
+    expect(controlByLabel('Save'), findsNothing); // closed
     final caps = (await s.events.all()).map((e) => e.event);
     expect(caps.whereType<NewCapEvent>().map((e) => e.n), [40]);
     // Synced: under this device's log.

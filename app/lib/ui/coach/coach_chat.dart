@@ -11,6 +11,8 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The chat tab: thread, pinned snippet, notices, answer box and actions.
 /// `onPostMortem` opens the cards view once the session is done; the
@@ -134,13 +136,7 @@ class _CoachChatState extends State<CoachChat> {
           Expanded(child: _thread(context)),
           if (_s.turns.busy) const LinearProgressIndicator(),
           RequestStatusLine(_s.turns),
-          if (_s.note != null)
-            ListTile(
-              key: const ValueKey('note'),
-              dense: true,
-              leading: const Icon(Icons.info_outline, semanticLabel: 'Note'),
-              title: Text(_s.note!),
-            ),
+          if (_s.note != null) noteCue(_s.note!, key: const ValueKey('note')),
           if (_s.choices.isNotEmpty)
             ChoiceButtons(choices: _s.choices, onPick: _pick),
           if (pin != null) _flex(PinnedSnippet(md: pin, onClose: _s.unpin)),
@@ -173,7 +169,7 @@ class _CoachChatState extends State<CoachChat> {
   Widget _thread(BuildContext context) {
     final items = [
       for (final b in _s.thread) BubbleView(b),
-      if (_s.problem != null) Text(_s.problem!),
+      if (_s.problem != null) problemCue(_s.problem!),
     ];
     const pad = EdgeInsets.all(AppSpacing.md);
     return isCompact(context)
@@ -196,7 +192,8 @@ class _CoachChatState extends State<CoachChat> {
           TextButton(
             key: const ValueKey('prefix'),
             onPressed: () => _prefix(gate.kind),
-            child: Text('${gate.kind}:'),
+            // The phrase kuhy types as the answer's prefix: content.
+            child: ContentText('${gate.kind}:'),
           ),
         IconButton(
           key: const ValueKey('hint'),

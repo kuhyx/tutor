@@ -9,7 +9,7 @@ void main() {
   testWidgets('Home menu opens the mock test start screen', (t) async {
     final s = await fixtureServices(fixtureDb(), FakeStream());
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
-    await t.tap(find.byTooltip('More'));
+    await t.tap(find.byType(PopupMenuButton<String>));
     await t.pumpAndSettle();
     await t.tap(find.byIcon(Icons.quiz_outlined));
     await t.pumpAndSettle();

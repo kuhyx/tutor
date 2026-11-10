@@ -27,6 +27,13 @@ import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/editor_module.dart';
 import 'package:tutor/ui/flag_dialog.dart';
 import 'package:tutor/ui/layout.dart';
+import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
+
+part 'editor_parts.dart';
 
 /// The card editor.
 class EditorScreen extends StatefulWidget {
@@ -123,50 +130,19 @@ class _EditorScreenState extends State<EditorScreen> {
         reason: reason,
       ),
     );
-    if (mounted) showToast(context, 'Flagged; it leaves review until edited.');
+    if (mounted) {
+      showCueSnack(
+        context,
+        CueKind.ok,
+        'Flagged; it leaves review until edited.',
+      );
+    }
   }
 
   Future<void> _undo(RequestBody body) async {
     final status = await _runner.run(body);
     if (status is RelayDone) unawaited(_load(fresh: true));
   }
-
-  Widget _actions(SubjectData s, MapEntry<String, StudyCard> c) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (c.value.restorable)
-        Tooltip(
-          message: restoreTip(c.value),
-          child: TextButton(
-            onPressed: () => _undo(RequestBody.cardRestore(s.id, c.key)),
-            child: const Text('Restore'),
-          ),
-        ),
-      if (c.value.addedByTutor)
-        IconButton(
-          tooltip: 'Remove',
-          onPressed: () => _undo(RequestBody.cardRemove(s.id, c.key)),
-          icon: const Icon(Icons.remove_circle_outline),
-        ),
-      IconButton(
-        tooltip: 'Flag',
-        onPressed: () => _flag(s, c.key, c.value),
-        icon: const Icon(Icons.flag_outlined),
-      ),
-    ],
-  );
-
-  Widget _addCard(SubjectData s, Module m) => Padding(
-    padding: const EdgeInsets.all(AppSpacing.sm),
-    child: Align(
-      alignment: Alignment.centerRight,
-      child: TextButton.icon(
-        onPressed: () => _edit(s, m),
-        icon: const Icon(Icons.add),
-        label: const Text('Add card'),
-      ),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +153,12 @@ class _EditorScreenState extends State<EditorScreen> {
         : subjectProgress(s, fold, DateTime.now());
     final compact = isCompact(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit cards')),
+      appBar: AppBar(
+        title: const SpokenLabel(
+          semanticLabel: 'Edit cards',
+          child: Icon(Icons.edit_note),
+        ),
+      ),
       body: PageList(
         children: [
           if (_subjects.isNotEmpty)
@@ -188,7 +169,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 for (final e in _subjects.entries)
                   DropdownMenuItem(
                     value: e.key,
-                    child: Text(e.value.meta.title),
+                    child: ContentText(e.value.meta.title),
                   ),
               ],
               onChanged: (v) => setState(() => _subject = v),
@@ -197,10 +178,13 @@ class _EditorScreenState extends State<EditorScreen> {
           if (progress != null && progress.total.cards > 0)
             ProgressSummary(progress.total),
           if (s == null)
-            const EmptyState(
-              icon: Icons.style,
-              title: 'No cards yet',
-              message: 'Cards appear once a plan is approved.',
+            const SizedBox(
+              height: 240,
+              child: GlyphEmpty(
+                icon: Icons.style,
+                semanticLabel:
+                    'No cards yet. Cards appear once a plan is approved.',
+              ),
             )
           else
             for (final m in s.plan?.modules ?? const <Module>[])
@@ -209,30 +193,26 @@ class _EditorScreenState extends State<EditorScreen> {
                 open: _open.contains(m.id),
                 onToggle: () =>
                     setState(() => _open.remove(m.id) || _open.add(m.id)),
-                title: Text(m.title),
-                subtitle: Tooltip(
-                  message: [
-                    ?badgeHelp(moduleBadge(m, progress?.review[m.id])),
-                    tallyHelp,
-                  ].join('\n'),
-                  child: Text(
-                    [
-                      _cards(s.cardsOf(m.id).length),
-                      moduleBadge(m, progress?.review[m.id]),
-                      if ((progress?.modules[m.id]?.cards ?? 0) > 0)
-                        progress!.modules[m.id]!.doneText,
-                    ].join(' · '),
-                  ),
-                ),
+                title: ContentText(m.title),
+                subtitle: _moduleSub(s, m, progress),
                 addCard: _addCard(s, m),
                 cards: [
                   for (final c in s.cardsOf(m.id))
                     ListTile(
                       leading: CardStateIcon(progress?.cards[c.key]),
-                      title: Text(c.value.front),
-                      subtitle: Text(
-                        '${c.value.back}\n${hostOf(c.value.source)} · '
-                        '${cardStateWord(c.value, progress?.cards[c.key])}',
+                      title: ContentText(c.value.front),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ContentText(c.value.back),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            children: [
+                              ContentText(hostOf(c.value.source)),
+                              CardMarks(c.value, progress?.cards[c.key]),
+                            ],
+                          ),
+                        ],
                       ),
                       isThreeLine: true,
                       onTap: () => _edit(s, m, c),

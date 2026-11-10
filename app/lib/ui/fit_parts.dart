@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/ui/layout.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// [narrow] on phones (below [kTwoColumns]), [wide] on the desktop.
 Widget widthSwitch({
@@ -105,6 +106,7 @@ class FitTile extends StatelessWidget {
   const new({
     required this.title,
     this.lines = const [],
+    this.meta = const [],
     this.corner = const [],
     this.onTap,
     this.onMore,
@@ -112,11 +114,14 @@ class FitTile extends StatelessWidget {
     super.key,
   });
 
-  /// Up to two lines.
+  /// Up to two lines; content (a subject, module or card name).
   final String title;
 
-  /// One line each, clipped.
+  /// One painted line each, clipped: digits and dates only, no words.
   final List<String> lines;
+
+  /// One glyph + number row each (status marks, counts), under [lines].
+  final List<Widget> meta;
 
   /// Beside the title (status dot, due count).
   final List<Widget> corner;
@@ -154,7 +159,7 @@ class FitTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(
+                    child: ContentText(
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -173,6 +178,15 @@ class FitTile extends StatelessWidget {
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
+              if (meta.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    children: meta,
+                  ),
+                ),
             ],
           ),
         ),
@@ -181,10 +195,10 @@ class FitTile extends StatelessWidget {
   }
 }
 
-/// A bottom sheet titled [title]; sheets may scroll.
+/// A bottom sheet; [title] is content (a name) or null; sheets may scroll.
 Future<void> showFitSheet(
   BuildContext context, {
-  required String title,
+  required String? title,
   required List<Widget> Function(BuildContext sheet) children,
 }) => showModalBottomSheet<void>(
   context: context,
@@ -201,8 +215,10 @@ Future<void> showFitSheet(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: Theme.of(sheet).textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.sm),
+        if (title != null) ...[
+          ContentText(title, style: Theme.of(sheet).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         ...children(sheet),
       ],
     ),

@@ -13,6 +13,7 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/done_listener.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 /// Retry grading every this many seconds once time is up.
 const _retryEvery = 10;
@@ -192,7 +193,15 @@ class _MockTestScreenState extends State<MockTestScreen> {
             if (_notes && !typing && _s.paper.notes.isNotEmpty)
               ListTile(
                 dense: true,
-                title: Text(_s.paper.notes.join(' ')),
+                // The server's fixed paper notes: spoken only.
+                title: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: CueChip(
+                    kind: CueKind.blocked,
+                    icon: Icons.info_outline,
+                    semanticLabel: _s.paper.notes.join(' '),
+                  ),
+                ),
                 trailing: IconButton(
                   key: const ValueKey('notes-close'),
                   onPressed: () => setState(() => _notes = false),

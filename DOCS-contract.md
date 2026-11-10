@@ -163,8 +163,8 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 - Client streams `presence/workers` while foregrounded; "PC offline" when no
   put/patch for **75 s** on the client's **monotonic** clock (never compare
   `beat` with device wall clock). Connect snapshot = "checking" until next beat.
-- Offline: chat/plan/subject actions show "PC offline: replies wait; reviews
-  still work". Reviews and flags keep working.
+- Offline: chat/plan/subject actions show a cloud-off cue (spoken: "PC
+  offline: replies wait; reviews still work"). Reviews and flags keep working.
 
 ## 6. Session projection (worker-written except `user`)
 ```json

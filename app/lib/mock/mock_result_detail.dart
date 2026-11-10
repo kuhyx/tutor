@@ -6,6 +6,7 @@ import 'package:tutor/model/json.dart';
 import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 Grid _grid(Object? v) => [
   for (final r in (v as List<dynamic>? ?? const []))
@@ -56,7 +57,7 @@ class _Mcq extends StatelessWidget {
                   ? AppPalette.danger
                   : null,
             ),
-            title: Text(o, style: sqlMono),
+            title: ContentText(o, style: sqlMono),
           ),
         if (output != null) CodeBlock(output),
       ],
@@ -99,7 +100,7 @@ class _Sql extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (error != null) Text(error, style: sqlMono),
+        if (error != null) ContentText(error, style: sqlMono),
         if (error == null) ...[
           const Icon(Icons.person_outline, semanticLabel: 'Yours'),
           DataGridView(

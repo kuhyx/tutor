@@ -92,10 +92,15 @@ class _SessionChatState extends State<SessionChat> {
     super.dispose();
   }
 
+  bool? _keyboard;
+
   // New messages scroll to the bottom (offset 0: the list is reversed).
+  // The phone keyboard opening or shutting re-pages the chat: show the
+  // last page, where the latest turn (collapsed to its ask) sits.
   void _follow(int count) {
-    if (count == _count) return;
+    if (count == _count && widget.keyboard == _keyboard) return;
     _count = count;
+    _keyboard = widget.keyboard;
     _pages.toLast();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final s = widget.scroll;

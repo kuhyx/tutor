@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/session/markdown.dart';
 import 'package:tutor/ui/session/md_text.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The last non-blank line of [text] ('' when there is none).
 String lastLineOf(String text) => text
@@ -31,6 +32,9 @@ class CollapsedTile extends StatefulWidget {
   State<CollapsedTile> createState() => _CollapsedTileState();
 }
 
+/// Spoken only (screen readers); the tile itself paints no words.
+const _semanticLabel = 'Show the whole tutor message';
+
 class _CollapsedTileState extends State<CollapsedTile> {
   bool _open = false;
 
@@ -41,7 +45,7 @@ class _CollapsedTileState extends State<CollapsedTile> {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: 'Show the whole tutor message',
+      label: _semanticLabel,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: () => setState(() => _open = true),
@@ -55,7 +59,7 @@ class _CollapsedTileState extends State<CollapsedTile> {
           child: Row(
             children: [
               Expanded(
-                child: Text.rich(
+                child: ContentText.rich(
                   TextSpan(children: mdInlineSpans(parseInline(line), scheme)),
                   key: const ValueKey('collapsed-line'),
                   maxLines: 1,

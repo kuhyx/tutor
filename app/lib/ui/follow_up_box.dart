@@ -10,6 +10,8 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/util/device.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The box and its Ask button.
 class FollowUpBox extends StatefulWidget {
@@ -67,15 +69,23 @@ class _FollowUpBoxState extends State<FollowUpBox> {
     crossAxisAlignment: CrossAxisAlignment.end,
     children: [
       Expanded(
-        child: TextField(
-          controller: _text,
-          minLines: 1,
-          maxLines: 4,
-          decoration: const InputDecoration(labelText: 'Ask a follow-up'),
+        child: FieldLabel(
+          semanticLabel: 'Ask a follow-up',
+          child: TextField(
+            controller: _text,
+            minLines: 1,
+            maxLines: 4,
+            decoration: iconDecoration(Icons.help_outline),
+          ),
         ),
       ),
       const SizedBox(width: AppSpacing.sm),
-      FilledButton(onPressed: _busy ? null : _ask, child: const Text('Ask')),
+      GlyphButton(
+        icon: Icons.send,
+        semanticLabel: 'Ask',
+        filled: true,
+        onPressed: _busy ? null : _ask,
+      ),
     ],
   );
 }

@@ -33,7 +33,9 @@ void main() {
   ) async {
     await _pump(t);
     final line = find.byKey(const ValueKey('collapsed-line'));
-    final text = t.widget<Text>(line);
+    final text = t.widget<Text>(
+      find.descendant(of: line, matching: find.byType(Text)),
+    );
     expect(text.maxLines, 1);
     expect(text.overflow, TextOverflow.ellipsis);
     expect(find.textContaining('First.', findRichText: true), findsNothing);

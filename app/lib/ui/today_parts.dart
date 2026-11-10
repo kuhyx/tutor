@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/plan/today_plan.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// One dot per step: done, current, to do.
 class PlanDots extends StatelessWidget {
@@ -85,13 +86,13 @@ class StepCard extends StatelessWidget {
           children: [
             Text(l10n.stepOf(number, total), style: text.labelLarge),
             const SizedBox(height: AppSpacing.sm),
-            Text(
+            ContentText(
               step.title,
               key: const ValueKey('today-title'),
               style: text.headlineSmall,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(step.what, style: text.bodyLarge),
+            ContentText(step.what, style: text.bodyLarge),
             if (actions) ...[
               const SizedBox(height: AppSpacing.lg),
               StepActions(

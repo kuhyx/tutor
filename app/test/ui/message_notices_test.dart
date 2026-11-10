@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/message.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 
+import '../support/label_finders.dart';
+
 void main() {
   testWidgets('card edit notices render under the tutor text', (t) async {
     final m = Message.fromJson({
@@ -21,8 +23,8 @@ void main() {
       ),
     );
     expect(m.notices, hasLength(2));
-    expect(find.text('Card removed: What is a coil?'), findsOneWidget);
-    expect(find.text('Card added: What is a relay?'), findsOneWidget);
+    expect(cueLabelled('Card removed: What is a coil?'), findsOneWidget);
+    expect(cueLabelled('Card added: What is a relay?'), findsOneWidget);
   });
 
   test('no notices: none written back', () {

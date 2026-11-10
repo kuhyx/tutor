@@ -5,6 +5,7 @@ import 'package:tutor/ui/session/session_screen.dart';
 
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _live = 'tutor/v1/sessions/$fixtureLiveSid';
@@ -81,12 +82,12 @@ void main() {
       ..emit('$base/msgs', const RtdbPut('/', null));
     await t.pump();
     await t.pump();
-    expect(find.text('The tutor is preparing this card...'), findsOneWidget);
-    expect(find.text('Start session'), findsNothing);
+    expect(bySpoken('The tutor is preparing this card...'), findsOneWidget);
+    expect(bySpoken('Start session'), findsNothing);
     expect(
-      find.text('Today: 31 min active · credited 23/60 min'),
+      bySpoken('Today: 31 min active · credited 23/60 min'),
       findsOneWidget,
     );
-    expect(find.text('This card: 0 min · credited 0'), findsOneWidget);
+    expect(bySpoken('This card: 0 min · credited 0'), findsOneWidget);
   });
 }

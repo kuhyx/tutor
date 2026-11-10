@@ -10,6 +10,7 @@ import 'package:tutor/ui/sign_in_screen.dart';
 
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 
 void main() {
@@ -45,7 +46,7 @@ void main() {
     await tester.pumpWidget(
       TutorApp(config: empty, open: () async => services(db, stream)),
     );
-    expect(find.textContaining('write_firebase_config'), findsOneWidget);
+    expect(cueContaining('write_firebase_config'), findsOneWidget);
   });
 
   testWidgets('open failure is shown', (tester) async {
@@ -53,7 +54,7 @@ void main() {
       TutorApp(config: testConfig, open: () async => throw StateError('boom')),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('boom'), findsOneWidget);
+    expect(cueContaining('boom'), findsOneWidget);
   });
 
   testWidgets('sign in -> Home with presence, due count and subjects', (
@@ -63,39 +64,33 @@ void main() {
     await tester.pumpWidget(TutorApp(config: testConfig, open: () async => s));
     await tester.pumpAndSettle();
     // Not Android in tests: the platform gate hides the button.
-    expect(
-      find.textContaining('signs in from the tutor server'),
-      findsOneWidget,
-    );
+    expect(cueContaining('signs in from the tutor server'), findsOneWidget);
     await s.auth.signInWithGoogle(tokenFetcher: () async => 'g');
     await tester.pumpWidget(
       TutorApp(config: testConfig, open: () async => s, key: UniqueKey()),
     );
     await tester.pumpAndSettle();
     expect(find.text('How a car works'), findsOneWidget);
-    expect(find.textContaining('due)'), findsNothing); // nothing due
-    expect(find.text('PC: checking'), findsOneWidget);
+    expect(bySpoken('Review (', prefix: true), findsNothing); // nothing due
+    expect(bySpoken('PC: checking'), findsOneWidget);
     stream.listens[Paths.workers]!
       ..add(const RtdbConnected())
       ..add(const RtdbPut('/', null));
     await tester.pumpAndSettle();
-    expect(find.text('PC offline'), findsOneWidget);
+    expect(bySpoken('PC offline'), findsOneWidget);
     stream.emit(Paths.workers, const RtdbPut('/w', {'beat': 1}));
     await tester.pumpAndSettle();
-    expect(find.text('PC online'), findsOneWidget);
+    expect(bySpoken('PC online'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(glyphsLabelled('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('How a car works'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('More'));
+    await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sign out'));
+    await tester.tap(bySpoken('Sign out').first);
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('signs in from the tutor server'),
-      findsOneWidget,
-    );
+    expect(cueContaining('signs in from the tutor server'), findsOneWidget);
   });
 
   testWidgets('Home shows load errors and the offline banner', (tester) async {
@@ -104,14 +99,14 @@ void main() {
     db.offline = true;
     await tester.pumpWidget(TutorApp(config: testConfig, open: () async => s));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Could not load'), findsOneWidget);
+    expect(cueContaining('Could not load'), findsOneWidget);
     db.offline = false;
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(glyphsLabelled('Refresh'));
     await tester.pumpAndSettle();
     db.offline = true;
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(glyphsLabelled('Refresh'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Offline'), findsOneWidget);
+    expect(cueContaining('Offline'), findsOneWidget);
   });
 
   testWidgets('sign-in button: cancel, wrong account, success', (tester) async {
@@ -128,17 +123,17 @@ void main() {
           ),
         );
     await pump(services(db, stream), () async => null);
-    await tester.tap(find.text('Sign in with Google'));
+    await tester.tap(controlByLabel('Sign in with Google'));
     await tester.pumpAndSettle();
-    expect(find.text('Sign-in cancelled.'), findsOneWidget);
+    expect(cueLabelled('Sign-in cancelled.'), findsOneWidget);
 
     await pump(services(db, stream, uid: 'other'), () async => 'g');
-    await tester.tap(find.text('Sign in with Google'));
+    await tester.tap(controlByLabel('Sign in with Google'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('wrong account'), findsOneWidget);
+    expect(cueContaining('wrong account'), findsOneWidget);
 
     await pump(services(db, stream), () async => 'g');
-    await tester.tap(find.text('Sign in with Google'));
+    await tester.tap(controlByLabel('Sign in with Google'));
     await tester.pumpAndSettle();
     expect(signedIn, 1);
   });

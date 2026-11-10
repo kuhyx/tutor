@@ -10,6 +10,8 @@ import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The offer for [item].
 class StruggleOffer extends StatelessWidget {
@@ -53,8 +55,11 @@ class StruggleOffer extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Struggling with this card?', style: text.titleMedium),
-                Text(item.card.front, style: text.bodySmall),
+                const SpokenLabel(
+                  semanticLabel: 'Struggling with this card?',
+                  child: Icon(Icons.support_outlined, size: 32),
+                ),
+                ContentText(item.card.front, style: text.bodySmall),
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.sm,
@@ -62,20 +67,21 @@ class StruggleOffer extends StatelessWidget {
                   children: [
                     ValueListenableBuilder<PcPresence>(
                       valueListenable: presence,
-                      builder: (context, value, _) =>
-                          value == PcPresence.offline
-                          ? const FilledButton(
-                              onPressed: null,
-                              child: Text('PC offline'),
-                            )
-                          : FilledButton(
-                              onPressed: onHelp,
-                              child: const Text('Get help'),
-                            ),
+                      builder: (context, value, _) => GlyphButton(
+                        icon: value == PcPresence.offline
+                            ? Icons.cloud_off
+                            : Icons.support_agent,
+                        semanticLabel: value == PcPresence.offline
+                            ? 'PC offline'
+                            : 'Get help',
+                        filled: true,
+                        onPressed: value == PcPresence.offline ? null : onHelp,
+                      ),
                     ),
-                    TextButton(
+                    GlyphButton(
+                      icon: Icons.close,
+                      semanticLabel: 'Dismiss',
                       onPressed: onDismiss,
-                      child: const Text('Dismiss'),
                     ),
                   ],
                 ),

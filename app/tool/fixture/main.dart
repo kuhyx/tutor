@@ -90,13 +90,16 @@ Future<TutorServices> _open() async {
     }
   }
   final store = InMemoryCredentialStore();
-  await store.save(
-    FirebaseCredentials(
-      idToken: 'fixture',
-      refreshToken: 'fixture',
-      expiresAt: DateTime.now().add(const Duration(days: 1)),
-    ),
-  );
+  // `&signedout=1`: no stored session, so the app shows Sign in.
+  if (q['signedout'] != '1') {
+    await store.save(
+      FirebaseCredentials(
+        idToken: 'fixture',
+        refreshToken: 'fixture',
+        expiresAt: DateTime.now().add(const Duration(days: 1)),
+      ),
+    );
+  }
   final client = db.client();
   final stream = FixtureStream(
     client,

@@ -8,6 +8,7 @@ import 'package:tutor/session/answers.dart';
 import 'package:tutor/util/device.dart';
 
 import '../support/composer.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 const _checkQ = 'Q4: What turns the piston push into rotation?';
@@ -20,16 +21,16 @@ void main() {
     expect(find.text('1/4'), findsOneWidget);
     for (final a in ['one', 'two', 'three']) {
       await t.enterText(find.byType(TextField), a);
-      await t.tap(find.text('Next'));
+      await t.tap(controlByLabel('Next'));
       await t.pumpAndSettle();
     }
     expect(find.text('4/4'), findsOneWidget);
-    expect(find.textContaining('Comprehension check'), findsWidgets);
+    expect(find.byIcon(Icons.fact_check_outlined), findsWidgets);
     expect(find.text('The flywheel'), findsOneWidget);
     await t.tap(find.text('The crankshaft'));
     await t.pump();
     expect(boxText(t), 'The crankshaft');
-    await t.tap(find.text('Send'));
+    await t.tap(controlByLabel('Send'));
     await sent(t);
     final msg = await answer(t, db, stream, data: {'msg': 'm0006'});
     final body = msg['body'] as Map;
@@ -46,7 +47,7 @@ void main() {
     t,
   ) async {
     final (db, stream) = await openComposer(t, phone: false, check: true);
-    expect(find.text('Hint'), findsNWidgets(4)); // the check's box too
+    expect(glyphsLabelled('Hint'), findsNWidgets(4)); // the check's box too
     await t.ensureVisible(find.text('The flywheel'));
     await t.tap(find.text('The flywheel'));
     await t.pump();

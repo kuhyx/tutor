@@ -5,6 +5,7 @@ import 'package:tutor/model/log_event.dart';
 import 'package:tutor/ui/review_screen.dart';
 
 import '../support/fake_stream.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -25,23 +26,23 @@ void main() {
       );
     }
     await pumpScreen(t, ReviewScreen(services: s, now: () => then));
-    expect(find.textContaining('3 left'), findsOneWidget);
+    expect(spoken('3 left'), findsOneWidget);
     await t.sendKeyEvent(LogicalKeyboardKey.space);
     await t.pumpAndSettle();
     expect(find.textContaining('crankshaft revolution'), findsOneWidget);
     await t.sendKeyEvent(LogicalKeyboardKey.digit3);
     await t.pumpAndSettle();
-    expect(find.textContaining('2 left'), findsOneWidget);
-    await t.tap(find.text('Show answer (Space)'));
+    expect(spoken('2 left'), findsOneWidget);
+    await t.tap(spoken('Show answer (Space)'));
     await t.pumpAndSettle();
-    await t.tap(find.text('1 Again'));
+    await t.tap(spoken('1 Again'));
     await t.pumpAndSettle();
     await t.sendKeyEvent(LogicalKeyboardKey.keyF);
     await t.pumpAndSettle();
     await t.enterText(find.byType(TextField), 'unclear');
-    await t.tap(find.widgetWithText(FilledButton, 'Flag'));
+    await t.tap(spoken('Flag'));
     await t.pumpAndSettle();
-    expect(find.text('All done'), findsOneWidget);
+    expect(spokenHas('All done'), findsOneWidget);
     final events = (await s.events.all()).map((e) => e.event).toList();
     expect(events.whereType<ReviewEvent>().map((e) => e.grade), [
       Grade.good,
@@ -55,6 +56,6 @@ void main() {
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, ReviewScreen(services: s));
-    expect(find.text('Nothing due'), findsOneWidget);
+    expect(spokenHas('Nothing due'), findsOneWidget);
   });
 }

@@ -13,6 +13,7 @@ import 'package:tutor/ui/sql/sql_editor.dart';
 import 'package:tutor/ui/sql/table_strip.dart';
 import 'package:tutor/ui/sql/task_view.dart';
 import 'package:tutor/widgets/code_symbol_bar.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 const _gap = SizedBox(height: AppSpacing.md);
 
@@ -26,7 +27,10 @@ Widget mockTaskBody({
   required VoidCallback? onRun,
 }) {
   final head = [
-    Text(task.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+    ContentText(
+      task.title,
+      style: const TextStyle(fontWeight: FontWeight.w700),
+    ),
     const SizedBox(height: AppSpacing.sm),
     RichMd(task.prompt),
   ];
@@ -156,7 +160,7 @@ class _Option extends StatelessWidget {
                   size: 20,
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: Text(text, style: sqlMono)),
+                Expanded(child: ContentText(text, style: sqlMono)),
               ],
             ),
           ),

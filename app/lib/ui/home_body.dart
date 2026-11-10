@@ -1,21 +1,24 @@
 /// Home's content: today's counters, review and session entry points,
-/// subjects, and "I want to learn...".
+/// subjects, and the new-subject field (glyphs and numbers, no words).
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/home/home_loader.dart';
+import 'package:tutor/model/stats.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_entry.dart';
-import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/home_fit.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
 import 'package:tutor/ui/subject_tile.dart';
+import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Home's body.
 class HomeBody extends StatelessWidget {
@@ -80,14 +83,15 @@ class HomeBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = data.today;
     final entry = sessionEntry(data.live, data.currentSubject);
-    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     // Wide: today on the left; subjects and a new one on the right.
     final first = <Widget>[
       if (data.offline)
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.cloud_off),
-            title: Text('Offline: showing the last synced catalog'),
+        const Padding(
+          padding: EdgeInsets.only(bottom: AppSpacing.sm),
+          child: CueChip(
+            kind: CueKind.offline,
+            semanticLabel: 'Offline: showing the last synced catalog',
           ),
         ),
       PcOfflineBanner(presence),
@@ -97,18 +101,13 @@ class HomeBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Today', style: text.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
               if (today == null)
-                const Text('No counters yet (the PC writes them).')
+                const Icon(
+                  Icons.timer_off_outlined,
+                  semanticLabel: 'No counters yet (the PC writes them).',
+                )
               else ...[
-                Text(
-                  'Credited ${today.creditedMinutes}/${today.target} min'
-                  '${_active(today.activeMinutes)}'
-                  ' · new cards ${today.newCards}/${today.newCap}'
-                  '${today.newCapLifted ? ' (limit lifted)' : ''}',
-                ),
-                if (bankNote(today) case final note?) Text(note),
+                _counters(today, scheme),
                 const SizedBox(height: AppSpacing.sm),
                 LinearProgressIndicator(
                   value: today.target == 0
@@ -121,26 +120,31 @@ class HomeBody extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  FilledButton.icon(
+                  GlyphButton(
+                    icon: switch (entry.kind) {
+                      SessionKind.learn => Icons.school_outlined,
+                      SessionKind.live => Icons.chat_bubble_outline,
+                      SessionKind.resume => Icons.play_circle_outline,
+                    },
+                    semanticLabel: entry.semanticLabel,
+                    filled: true,
                     onPressed: () => onSession(entry),
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: Text(entry.label),
                   ),
-                  // Every subject's due cards; the tooltip says whose.
-                  // Nothing due: no button (kuhy, 2026-10-17).
+                  // Every subject's due cards. Nothing due: no button (kuhy,
+                  // 2026-10-17).
                   if (data.due > 0)
-                    _withTip(
-                      _dueSplit(data),
-                      OutlinedButton.icon(
-                        onPressed: onReview,
-                        icon: const Icon(Icons.style),
-                        label: Text('Review (${data.due} due)'),
-                      ),
+                    GlyphButton(
+                      icon: Icons.style,
+                      semanticLabel: 'Review (${data.due} due)',
+                      count: data.due,
+                      tint: scheme.primary,
+                      onPressed: onReview,
                     ),
-                  OutlinedButton.icon(
+                  GlyphButton(
+                    icon: Icons.touch_app_outlined,
+                    semanticLabel: 'Drill',
+                    tint: AppPalette.warning,
                     onPressed: onDrill,
-                    icon: const Icon(Icons.touch_app_outlined),
-                    label: const Text('Drill'),
                   ),
                 ],
               ),
@@ -150,12 +154,14 @@ class HomeBody extends StatelessWidget {
       ),
     ];
     final second = <Widget>[
-      const SectionHeader('Subjects'),
       if (data.subjects.isEmpty)
-        const EmptyState(
-          icon: Icons.lightbulb_outline,
-          title: 'No subjects yet',
-          message: 'Say what you want to learn below.',
+        const Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Icon(
+            Icons.lightbulb_outline,
+            size: 64,
+            semanticLabel: 'No subjects yet. Say what you want to learn below.',
+          ),
         ),
       for (final s in data.subjects)
         SubjectTile(
@@ -174,7 +180,7 @@ class HomeBody extends StatelessWidget {
           onFinish: (goDeeper) => onFinish(s.id, goDeeper: goDeeper),
           onRetry: () => onNewSubject(s.meta.goal),
         ),
-      const SectionHeader('New subject'),
+      const Divider(height: AppSpacing.xl),
       NewSubjectField(runner: runner, onSubmit: onNewSubject),
     ];
     return widthSwitch(
@@ -189,14 +195,41 @@ class HomeBody extends StatelessWidget {
   }
 }
 
-/// "Title: N due" per subject with due cards, one per line.
-String _dueSplit(HomeSnapshot data) => [
-  for (final s in data.subjects)
-    if ((data.dueBySubject[s.id] ?? 0) > 0)
-      '${s.meta.title}: ${data.dueBySubject[s.id]} due',
-].join('\n');
-
-Widget _withTip(String tip, Widget child) =>
-    tip.isEmpty ? child : Tooltip(message: tip, child: child);
-
-String _active(int? minutes) => minutes == null ? '' : ' · $minutes min active';
+/// Today's counters as glyph + number: credited/target minutes, active
+/// minutes, new cards/limit (a lock-open mark when lifted), the bank.
+Widget _counters(Today today, ColorScheme scheme) {
+  final banked = today.banked ?? 0;
+  final prepaid = today.prepaid ?? 0;
+  final active = today.activeMinutes;
+  return Wrap(
+    spacing: AppSpacing.md,
+    runSpacing: AppSpacing.xs,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      SpokenLabel(
+        semanticLabel: 'Credited ${today.creditedMinutes}/${today.target} min',
+        child: GlyphStat(
+          Icons.verified_outlined,
+          '${today.creditedMinutes}/${today.target}',
+          color: scheme.primary,
+        ),
+      ),
+      if (active != null)
+        SpokenLabel(
+          semanticLabel: '$active min active',
+          child: GlyphStat(Icons.timer_outlined, '$active'),
+        ),
+      SpokenLabel(
+        semanticLabel: 'new cards ${today.newCards}/${today.newCap}',
+        child: GlyphStat(Icons.add_card, '${today.newCards}/${today.newCap}'),
+      ),
+      if (today.newCapLifted)
+        const Icon(Icons.lock_open, semanticLabel: '(limit lifted)'),
+      if (banked > 0 || prepaid > 0)
+        SpokenLabel(
+          semanticLabel: 'Banked $banked min · prepaid $prepaid',
+          child: GlyphStat(Icons.savings_outlined, '$banked · $prepaid'),
+        ),
+    ],
+  );
+}

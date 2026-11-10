@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/google_sign_in_backend.dart';
+import 'package:tutor/widgets/cue_chip.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// Sign-in screen.
 class SignInScreen extends StatefulWidget {
@@ -71,40 +73,58 @@ class _SignInScreenState extends State<SignInScreen> {
     final supported =
         widget.supported ??
         googleSignInSupported(widget.services.config.serverClientId);
-    final text = Theme.of(context).textTheme;
+    final failed = _message != null;
     return Scaffold(
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: kProseMaxWidth),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Tutor', style: text.headlineMedium),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  supported
-                      ? 'Sign in once with the sync Google account.'
-                      : 'Desktop: this window signs in from the tutor server '
-                            'on the PC, once per server start. Restart the '
-                            'tutor (it hands the session over again), then '
-                            'reload this window.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                if (supported)
-                  FilledButton(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (supported)
+                SpokenLabel(
+                  semanticLabel: 'Sign in with Google',
+                  button: true,
+                  enabled: !_busy,
+                  onTap: _busy ? null : _signIn,
+                  child: FilledButton(
                     autofocus: true,
                     onPressed: _busy ? null : _signIn,
-                    child: const Text('Sign in with Google'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.square(AppSpacing.xxl + 16),
+                      shape: const CircleBorder(),
+                    ),
+                    // The Google "G" mark: one letter, not a word.
+                    child: const Text(
+                      'G',
+                      style: TextStyle(
+                        fontSize: AppTextSize.title,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                if (_message != null) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Text(_message!, textAlign: TextAlign.center),
-                ],
+                )
+              else
+                const CueChip(
+                  kind: CueKind.offline,
+                  icon: Icons.desktop_windows_outlined,
+                  semanticLabel:
+                      'Desktop: this window signs in from the tutor server '
+                      'on the PC, once per server start. Restart the '
+                      'tutor (it hands the session over again), then '
+                      'reload this window.',
+                ),
+              if (failed) ...[
+                const SizedBox(height: AppSpacing.md),
+                // Cancelled or failed: red tint, shake, error glyph; the
+                // detail is the spoken label.
+                CueChip(
+                  key: ValueKey(_message),
+                  kind: CueKind.error,
+                  semanticLabel: _message!,
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),

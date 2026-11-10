@@ -11,6 +11,7 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_layouts.dart';
 import 'package:tutor/ui/focus_gates.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Creates or, given [edit], edits a focus project: dates, gates to turn
 /// off, minutes, subjects.
@@ -178,7 +179,7 @@ class _FocusFormState extends State<FocusFormScreen> {
           onChanged: g.replaceable
               ? (v) => setState(() => _toggleGate(g.id, on: v ?? false))
               : null,
-          title: Text(g.label),
+          title: ContentText(g.label),
           subtitle: g.replaceable ? null : Text(l.gateKept),
         ),
       if (status.subjects.isNotEmpty) ...[
@@ -189,7 +190,7 @@ class _FocusFormState extends State<FocusFormScreen> {
           children: [
             for (final s in status.subjects)
               FilterChip(
-                label: Text(s.title),
+                label: ContentText(s.title),
                 selected: _linked.contains(s.id),
                 onSelected: (v) => setState(
                   () => v ? _linked.add(s.id) : _linked.remove(s.id),

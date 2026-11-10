@@ -9,6 +9,7 @@ import 'package:tutor/ui/session/session_screen.dart';
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/label_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -39,21 +40,18 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsWidgets);
     await _feed(t, db, stream);
     await t.pumpAndSettle();
-    expect(find.textContaining('This card: 14 min'), findsOneWidget);
-    expect(find.textContaining('Stalled'), findsOneWidget);
-    expect(find.text('Target card'), findsOneWidget); // wide: side inline
-    expect(find.textContaining('Comprehension check'), findsOneWidget);
-    expect(find.text('Send'), findsOneWidget);
+    expect(bySpoken('This card: 14 min', prefix: true), findsOneWidget);
+    expect(bySpoken('Stalled', prefix: true), findsOneWidget);
+    expect(bySpoken('Target card'), findsOneWidget); // wide: side inline
+    expect(find.byIcon(Icons.fact_check_outlined), findsWidgets);
+    expect(controlByLabel('Send'), findsOneWidget);
     // Wheel over the margins scrolls the chat.
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
     await t.sendEventToBinding(pointer.hover(const Offset(700, 30)));
     await t.sendEventToBinding(pointer.scroll(const Offset(0, -200)));
     await t.pump();
 
-    await t.enterText(
-      find.widgetWithText(TextField, 'Your answer').first,
-      'power',
-    );
+    await t.enterText(fieldByLabel('Your answer').first, 'power');
     await t.pump();
     await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await t.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -77,8 +75,8 @@ void main() {
     });
     await _feed(t, db, stream);
     expect(find.text('pending words'), findsOneWidget);
-    expect(find.text('Tutor is thinking...'), findsOneWidget);
-    await t.tap(find.text('Next card'));
+    expect(bySpoken('Tutor is thinking...'), findsOneWidget);
+    await t.tap(controlByLabel('Next card'));
     await sent(t);
     final next = await answer(
       t,
@@ -118,10 +116,10 @@ void main() {
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     await _feed(t, db, stream);
     await t.pumpAndSettle();
-    await t.tap(find.byTooltip('Copy session id'));
+    await t.tap(controlByLabel('Copy session id'));
     await t.pump();
     expect(copied, [fixtureLiveSid]);
-    expect(find.text('Session id copied'), findsOneWidget);
+    expect(cueLabelled('Session id copied'), findsOneWidget);
   });
 
   testWidgets('side panel concepts follow rev.catalog', (t) async {
@@ -177,25 +175,25 @@ void main() {
     );
     await _feed(t, db, stream);
     await t.pumpAndSettle();
-    expect(find.text('Target card'), findsNothing);
-    await t.tap(find.byTooltip('Card and progress'));
+    expect(bySpoken('Target card'), findsNothing);
+    await t.tap(controlByLabel('Card and progress'));
     await t.pumpAndSettle();
     expect(find.text('intake stroke'), findsNothing);
     expect(find.text('• piston'), findsOneWidget);
-    await t.tap(find.text('Mark card done'));
+    await t.tap(controlByLabel('Mark card done'));
     await sent(t);
     final done = await answer(t, db, stream, code: 'not_live');
     expect(done['kind'], 'card_done');
     await t.tapAt(const Offset(10, 400)); // close the drawer
     await t.pumpAndSettle();
-    expect(find.text('Continue this session'), findsOneWidget);
-    await t.tap(find.text('Continue this session'));
+    expect(controlByLabel('Continue this session'), findsOneWidget);
+    await t.tap(controlByLabel('Continue this session'));
     await sent(t);
     expect((await answer(t, db, stream))['kind'], 'session_resume');
 
-    await t.tap(find.byTooltip('Card and progress'));
+    await t.tap(controlByLabel('Card and progress'));
     await t.pumpAndSettle();
-    await t.tap(find.text('Switch card'));
+    await t.tap(controlByLabel('Switch card'));
     await t.pumpAndSettle();
     await t.tap(find.textContaining('What opens the valves?'));
     await sent(t);
@@ -214,7 +212,7 @@ void main() {
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     await _feed(t, db, stream);
     await t.pumpAndSettle();
-    await t.tap(find.text('Stop here'));
+    await t.tap(controlByLabel('Stop here'));
     await sent(t);
     final stop = await answer(t, db, stream);
     expect(stop['kind'], 'stop');
@@ -228,8 +226,8 @@ void main() {
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     stream.emit('tutor/v1/live', const RtdbPut('/', null));
     await t.pumpAndSettle();
-    expect(find.text('No session yet'), findsOneWidget);
-    await t.tap(find.text('Start session'));
+    expect(bySpoken('No session yet', prefix: true), findsOneWidget);
+    await t.tap(controlByLabel('Start session'));
     await sent(t);
     final start = await answer(t, db, stream);
     expect(start['kind'], 'session_start');

@@ -4,12 +4,15 @@ library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/progress/terms.dart';
 import 'package:tutor/ui/fit_parts.dart';
+import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/ui/learn_rows.dart';
+import 'package:tutor/ui/learn_tiles.dart';
 import 'package:tutor/ui/module_tile.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// The phone body of an approved plan.
 class PlanFit extends StatefulWidget {
@@ -47,7 +50,6 @@ class _PlanFitState extends State<PlanFit> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final history = widget.plan.history;
     return fitPage([
       _pad(
@@ -60,9 +62,9 @@ class _PlanFitState extends State<PlanFit> {
         _pad(
           Row(
             children: [
-              _chip(l10n.modules, revisions: false),
+              _chip(Icons.view_agenda_outlined, 'Modules', revisions: false),
               const SizedBox(width: AppSpacing.sm),
-              _chip(l10n.revisions, revisions: true),
+              _chip(Icons.history, 'Revisions', revisions: true),
             ],
           ),
         ),
@@ -71,10 +73,7 @@ class _PlanFitState extends State<PlanFit> {
         child: _revisions && history.isNotEmpty
             ? ListView(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                children: [
-                  for (final h in history)
-                    Text(l10n.revisionLine(h.rev, h.comment)),
-                ],
+                children: [for (final h in history) RevisionLine(h)],
               )
             : FitTileGrid(
                 itemCount: widget.plan.modules.length,
@@ -85,20 +84,25 @@ class _PlanFitState extends State<PlanFit> {
     ]);
   }
 
-  Widget _chip(String label, {required bool revisions}) => ChoiceChip(
-    label: Text(label),
-    selected: _revisions == revisions,
-    onSelected: (_) => setState(() => _revisions = revisions),
-  );
+  Widget _chip(IconData icon, String label, {required bool revisions}) =>
+      GlyphChip(
+        icon: icon,
+        semanticLabel: label,
+        selected: _revisions == revisions,
+        onSelected: () => setState(() => _revisions = revisions),
+      );
 
   Widget _tile(BuildContext context, int i, Module m) {
     final review = widget.progress?.review[m.id];
     final failed = m.status == ModuleStatus.failed;
     final reviewable =
         review == ModuleReview.done && m.status != ModuleStatus.mastered;
-    void sheet() => showFitSheet(
+    void sheet() => showLearnSheet(
       context,
-      title: m.title,
+      header: ContentText(
+        m.title,
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
       children: (sheet) {
         void closeThen(VoidCallback run) {
           Navigator.of(sheet).pop();
@@ -116,10 +120,12 @@ class _PlanFitState extends State<PlanFit> {
         ];
       },
     );
-    return FitTile(
+    final mark = moduleMark(m, review);
+    return LearnTile(
       key: ValueKey('module-tile-$i'),
       title: m.title,
-      lines: [moduleBadge(m, review), 'recall ${(m.recall * 100).round()}%'],
+      corner: ModuleMarkIcon(mark),
+      details: [RecallStat(m.recall)],
       marked: failed || reviewable,
       onMore: sheet,
     );

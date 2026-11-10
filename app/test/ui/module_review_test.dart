@@ -14,6 +14,7 @@ import 'package:tutor/ui/review_screen.dart';
 import 'package:tutor/util/ulid.dart';
 
 import '../support/fake_stream.dart';
+import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
 /// The PC worker's device id: it writes `taught` (curriculum §4).
@@ -39,9 +40,9 @@ Future<TutorServices> _taught(List<String> cards) async {
 }
 
 Future<void> _rate(WidgetTester t, String grade) async {
-  await t.tap(find.text('Show answer (Space)'));
+  await t.tap(spoken('Show answer (Space)'));
   await t.pumpAndSettle();
-  await t.tap(find.text(grade));
+  await t.tap(spoken(grade));
   await t.pumpAndSettle();
 }
 
@@ -63,20 +64,20 @@ void main() {
       size: const Size(412, 1400),
     );
     await _sheetOf(t, 'car');
-    expect(find.text('Review Fuel and ignition'), findsOneWidget);
-    expect(find.text('Review The four-stroke engine'), findsNothing);
-    await t.tap(find.text('Review Fuel and ignition'));
+    expect(spoken('Review Fuel and ignition'), findsOneWidget);
+    expect(spoken('Review The four-stroke engine'), findsNothing);
+    await t.tap(spoken('Review Fuel and ignition'));
     await t.pumpAndSettle();
     expect(find.textContaining('Fuel and ignition'), findsWidgets);
-    expect(find.textContaining('1 left'), findsOneWidget);
+    expect(spoken('1 left'), findsOneWidget);
     await _rate(t, '1 Again');
     expect(find.text('What ignites the mixture?'), findsOneWidget);
-    expect(find.textContaining('1 left'), findsOneWidget);
+    expect(spoken('1 left'), findsOneWidget);
     await _rate(t, '2 Hard');
     expect(find.text('What ignites the mixture?'), findsOneWidget);
     await _rate(t, '3 Good');
-    expect(find.text('All done'), findsOneWidget);
-    expect(find.textContaining('Reviewed 1 card'), findsOneWidget);
+    expect(spokenHas('All done'), findsOneWidget);
+    expect(spokenHas('Reviewed 1 card'), findsOneWidget);
     final grades = (await s.events.all())
         .map((e) => e.event)
         .whereType<ReviewEvent>()
@@ -86,23 +87,23 @@ void main() {
     await t.pageBack();
     await t.pumpAndSettle();
     await _sheetOf(t, 'car');
-    expect(find.text('Review Fuel and ignition'), findsNothing);
+    expect(spoken('Review Fuel and ignition'), findsNothing);
   });
 
   testWidgets('Plan: Review this module on a done module only', (t) async {
     final s = await _taught(['fuel-spark']);
     await pumpScreen(t, PlanScreen(services: s, subject: 'car'));
-    expect(find.text('Review this module'), findsOneWidget);
-    await t.tap(find.text('Review this module'));
+    expect(spoken('Review this module'), findsOneWidget);
+    await t.tap(spoken('Review this module'));
     await t.pumpAndSettle();
     expect(find.text('What ignites the mixture?'), findsOneWidget);
-    expect(find.textContaining('1 left'), findsOneWidget);
+    expect(spoken('1 left'), findsOneWidget);
   });
 
   testWidgets('Plan: nothing taught, nothing to review', (t) async {
     final s = await _taught([]);
     await pumpScreen(t, PlanScreen(services: s, subject: 'car'));
-    expect(find.text('Review this module'), findsNothing);
+    expect(spoken('Review this module'), findsNothing);
     await pumpScreen(
       t,
       ReviewScreen(
@@ -110,7 +111,7 @@ void main() {
         module: const ModuleRef(subject: 'car', module: 'fuel', title: 'F'),
       ),
     );
-    expect(find.text('Review: F'), findsOneWidget);
-    expect(find.text('Nothing to review'), findsOneWidget);
+    expect(spoken('Review: F'), findsOneWidget);
+    expect(spokenHas('Nothing to review'), findsOneWidget);
   });
 }

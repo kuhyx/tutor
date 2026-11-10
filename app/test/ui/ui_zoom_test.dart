@@ -8,6 +8,8 @@ import 'package:tutor/ui/ui_zoom.dart';
 import 'package:tutor/util/device.dart';
 import 'package:tutor/util/ui_scale.dart';
 
+import '../support/label_finders.dart';
+
 void main() {
   test('snapZoom: 50%-200% in 10% steps, no float drift', () {
     expect(snapZoom(1), 1);
@@ -196,11 +198,11 @@ void main() {
     await t.pumpAndSettle();
     expect(zoom.value, 2);
     expect(kv.data[UiZoom.key], '2.0');
-    await t.tap(find.text('Reset to auto'));
+    await t.tap(glyphsLabelled('Reset to auto'));
     await t.pumpAndSettle();
     expect(zoom.value, 1);
     expect(find.text('100%'), findsOneWidget);
-    await t.tap(find.text('Done'));
+    await t.tap(glyphsLabelled('Done'));
     await t.pumpAndSettle();
     expect(find.byType(Slider), findsNothing);
   });

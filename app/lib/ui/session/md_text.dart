@@ -6,6 +6,7 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/session/markdown.dart';
+import 'package:tutor/widgets/content_text.dart';
 
 /// Markdown text.
 class MarkdownText extends StatelessWidget {
@@ -20,6 +21,14 @@ class MarkdownText extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     List<InlineSpan> line(List<MdSpan> l) => mdInlineSpans(l, scheme);
     final blocks = parseMarkdown(text);
+    // The tutor's (or kuhy's) own words: content.
+    return ContentScope(child: _blocks(blocks, line));
+  }
+
+  Widget _blocks(
+    List<MdBlock> blocks,
+    List<InlineSpan> Function(List<MdSpan>) line,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

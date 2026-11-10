@@ -12,7 +12,10 @@ import 'package:tutor/ui/coach/coach_session.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/sql/drill_screen.dart';
 import 'package:tutor/ui/sql/lesson_parts.dart';
+import 'package:tutor/ui/sql/problem_cue.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/icon_field.dart';
 
 /// A coaching session on one problem: statement (folding on a phone, a side
 /// pane on a desktop), chat, and the code tab. `open` is the `lc_open` to
@@ -76,12 +79,12 @@ class _CoachScreenState extends State<CoachScreen> {
       if (_session.needsStatement) return _PasteForm(_session);
       if (o == null) {
         return Scaffold(
-          appBar: AppBar(title: Text(widget.title ?? '')),
+          appBar: AppBar(title: ContentText(widget.title ?? '')),
           body: PageList(
             children: [
               for (final b in _session.thread) BubbleView(b),
               RequestStatusLine(_session.opener),
-              if (_session.problem != null) Text(_session.problem!),
+              if (_session.problem != null) problemCue(_session.problem!),
             ],
           ),
         );
@@ -103,7 +106,7 @@ class _CoachScreenState extends State<CoachScreen> {
         length: 2,
         child: Scaffold(
           appBar: AppBar(
-            title: Text(o.title),
+            title: ContentText(o.title),
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.forum_outlined, semanticLabel: 'Chat')),
@@ -180,25 +183,25 @@ class _PasteFormState extends State<_PasteForm> {
     body: PageList(
       children: [
         RequestStatusLine(widget.session.opener),
-        TextField(
-          key: const ValueKey('paste-title'),
-          controller: _title,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.title),
-            border: OutlineInputBorder(),
+        FieldLabel(
+          semanticLabel: 'Title',
+          child: TextField(
+            key: const ValueKey('paste-title'),
+            controller: _title,
+            decoration: iconDecoration(Icons.title),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        TextField(
-          key: const ValueKey('paste-statement'),
-          controller: _statement,
-          minLines: 8,
-          maxLines: 16,
-          maxLength: coachMaxText,
-          keyboardType: TextInputType.multiline,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.description_outlined),
-            border: OutlineInputBorder(),
+        FieldLabel(
+          semanticLabel: 'Statement',
+          child: TextField(
+            key: const ValueKey('paste-statement'),
+            controller: _statement,
+            minLines: 8,
+            maxLines: 16,
+            maxLength: coachMaxText,
+            keyboardType: TextInputType.multiline,
+            decoration: iconDecoration(Icons.description_outlined),
           ),
         ),
         ListenableBuilder(

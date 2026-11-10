@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/ui/coach/coach_postmortem.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 
 import '../../coach/coach_fixtures.dart';
 import '../../support/fake_rtdb.dart';
 import '../../support/fake_stream.dart';
+import '../../support/label_finders.dart';
 import '../../support/services.dart';
 import '../../support/ui.dart';
 
@@ -50,7 +52,7 @@ void main() {
     expect(find.text('hash map'), findsOneWidget);
     expect(find.byIcon(Icons.fiber_new_outlined), findsOneWidget);
     expect(find.text('nests with hash map'), findsOneWidget);
-    expect(find.text('Anki is closed'), findsOneWidget);
+    expect(cueLabelled('Anki is closed'), findsOneWidget);
     expect(find.text('conditional aggregation'), findsOneWidget);
   });
 
@@ -125,11 +127,11 @@ void main() {
   ) async {
     await open(t);
     await answer(t, db, stream, code: 'model_error', extra: {'retry': true});
-    expect(find.text('Retry'), findsOneWidget);
-    await t.tap(find.text('Retry'));
+    expect(controlByLabel('Retry'), findsOneWidget);
+    await t.tap(controlByLabel('Retry'));
     await sent(t);
     await answer(t, db, stream, data: {'cards': 3}, settle: false);
     await t.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('expected array'), findsOneWidget);
+    expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 }

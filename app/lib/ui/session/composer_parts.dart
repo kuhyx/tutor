@@ -6,6 +6,9 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/session/answers.dart';
+import 'package:tutor/widgets/content_text.dart';
+import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/spoken_label.dart';
 
 /// The tutor's suggested answers as chips, plus a fixed "Hint" chip.
 class AnswerChips extends StatelessWidget {
@@ -42,13 +45,12 @@ class AnswerChips extends StatelessWidget {
         for (final c in choices)
           ActionChip(
             visualDensity: VisualDensity.compact,
-            label: Text(c),
+            label: ContentText(c),
             onPressed: () => onPick(c),
           ),
-        ActionChip(
-          visualDensity: VisualDensity.compact,
-          avatar: const Icon(Icons.lightbulb_outline, size: 18),
-          label: const Text('Hint'),
+        GlyphButton(
+          icon: Icons.lightbulb_outline,
+          semanticLabel: 'Hint',
           onPressed: enabled ? onHint : null,
         ),
       ],
@@ -66,9 +68,29 @@ class QuestionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SelectionArea(
-    child: Text(
-      '${asked.heading}: ${asked.text}',
-      style: Theme.of(context).textTheme.labelLarge,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SpokenLabel(
+          semanticLabel: asked.heading,
+          child: Text(
+            asked.label,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+        if (asked.check)
+          const Padding(
+            padding: EdgeInsets.only(left: AppSpacing.xs),
+            child: Icon(Icons.fact_check_outlined, size: AppTextSize.label),
+          ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: ContentText(
+            asked.text,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -118,11 +140,18 @@ class StepBar extends StatelessWidget {
           )
         else
           const Spacer(),
-        if (step > 0) TextButton(onPressed: onBack, child: const Text('Back')),
+        if (step > 0)
+          GlyphButton(
+            icon: Icons.arrow_back,
+            semanticLabel: 'Back',
+            onPressed: onBack,
+          ),
         const SizedBox(width: AppSpacing.sm),
-        FilledButton(
+        GlyphButton(
+          icon: last ? Icons.send : Icons.arrow_forward,
+          semanticLabel: last ? 'Send' : 'Next',
+          filled: true,
           onPressed: last ? (canSend ? onSend : null) : onNext,
-          child: Text(last ? 'Send' : 'Next'),
         ),
       ],
     );
@@ -154,11 +183,19 @@ class SendRow extends StatelessWidget {
       Expanded(
         child: hint == null
             ? const SizedBox.shrink()
-            : Text(hint!, style: Theme.of(context).textTheme.bodySmall),
+            : Align(
+                alignment: Alignment.centerLeft,
+                child: SpokenLabel(
+                  semanticLabel: hint!,
+                  child: const Icon(Icons.keyboard_outlined),
+                ),
+              ),
       ),
-      FilledButton(
+      GlyphButton(
+        icon: Icons.send,
+        semanticLabel: 'Send',
+        filled: true,
         onPressed: canSend ? onSend : null,
-        child: const Text('Send'),
       ),
     ],
   );
@@ -196,7 +233,7 @@ class AnswerBox extends StatelessWidget {
   /// Its text.
   final TextEditingController controller;
 
-  /// Floating label.
+  /// The field's spoken label (nothing is painted).
   final String label;
 
   /// Lines shown when empty.
@@ -208,13 +245,13 @@ class AnswerBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: TextField(
-      controller: controller,
-      minLines: minLines,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
+    child: FieldLabel(
+      semanticLabel: label,
+      child: TextField(
+        controller: controller,
+        minLines: minLines,
+        maxLines: maxLines,
+        decoration: iconDecoration(Icons.edit_outlined),
       ),
     ),
   );

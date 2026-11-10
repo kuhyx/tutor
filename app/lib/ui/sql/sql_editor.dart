@@ -6,6 +6,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
+import 'package:tutor/widgets/icon_field.dart';
 
 const _strut = StrutStyle(
   fontFamily: 'monospace',
@@ -78,19 +79,23 @@ class SqlEditor extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: TextField(
-            key: const ValueKey('sql-editor'),
-            controller: controller,
-            minLines: minLines,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            autocorrect: false,
-            enableSuggestions: false,
-            smartDashesType: SmartDashesType.disabled,
-            smartQuotesType: SmartQuotesType.disabled,
-            style: sqlMono,
-            strutStyle: _strut,
-            decoration: const InputDecoration.collapsed(hintText: ''),
+          // A code field: the line-number gutter is its leading mark.
+          child: FieldLabel(
+            semanticLabel: 'Query',
+            child: TextField(
+              key: const ValueKey('sql-editor'),
+              controller: controller,
+              minLines: minLines,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              autocorrect: false,
+              enableSuggestions: false,
+              smartDashesType: SmartDashesType.disabled,
+              smartQuotesType: SmartQuotesType.disabled,
+              style: sqlMono,
+              strutStyle: _strut,
+              decoration: const InputDecoration.collapsed(hintText: ''),
+            ),
           ),
         ),
       ],

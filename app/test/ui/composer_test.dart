@@ -10,6 +10,7 @@ import 'package:tutor/util/device.dart';
 
 import '../../tool/fixture/fixture_sessions.dart';
 import '../support/composer.dart';
+import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 void main() {
@@ -20,38 +21,33 @@ void main() {
     expect(find.text('1/3'), findsOneWidget);
     expect(find.textContaining('Which stroke makes the power?'), findsWidgets);
     expect(find.text('Your own comment'), findsNothing);
-    expect(find.text('Ctrl+Enter to send'), findsNothing);
-    expect(find.text('Back'), findsNothing);
-    expect(find.text('Send'), findsNothing);
+    expect(bySpoken('Ctrl+Enter to send'), findsNothing);
+    expect(controlByLabel('Back'), findsNothing);
+    expect(controlByLabel('Send'), findsNothing);
 
     await t.tap(find.text('The power stroke')); // a chip fills the box ...
     await t.pump();
     expect(boxText(t), 'The power stroke');
     await t.enterText(find.byType(TextField), 'The power stroke, edited');
-    await t.tap(find.text('Next')); // ... which is edited before Next
+    await t.tap(controlByLabel('Next')); // ... which is edited before Next
     await t.pumpAndSettle();
     expect(find.text('2/3'), findsOneWidget);
     expect(boxText(t), '');
     await t.enterText(find.byType(TextField), 'two');
-    await t.tap(find.text('Back'));
+    await t.tap(controlByLabel('Back'));
     await t.pumpAndSettle();
     expect(find.text('1/3'), findsOneWidget);
     expect(boxText(t), 'The power stroke, edited');
-    await t.tap(find.text('Next'));
+    await t.tap(controlByLabel('Next'));
     await t.pumpAndSettle();
     expect(boxText(t), 'two');
-    await t.tap(find.text('Next'));
+    await t.tap(controlByLabel('Next'));
     await t.pumpAndSettle();
     expect(find.text('3/3'), findsOneWidget);
-    expect(find.text('Next'), findsNothing);
-    expect(
-      t
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Send'))
-          .onPressed,
-      isNotNull,
-    );
+    expect(controlByLabel('Next'), findsNothing);
+    expect(pressOf(t, 'Send'), isNotNull);
     await t.enterText(find.byType(TextField), 'three');
-    await t.tap(find.text('Send'));
+    await t.tap(controlByLabel('Send'));
     await sent(t);
     final msg = await answer(t, db, stream, data: {'msg': 'm0006'});
     expect(msg['kind'], 'message');
@@ -67,7 +63,7 @@ void main() {
 
   testWidgets('phone: Hint chip sends "Hint" at once', (t) async {
     final (db, stream) = await openComposer(t, phone: true);
-    await t.tap(find.text('Hint'));
+    await t.tap(controlByLabel('Hint'));
     await sent(t);
     final msg = await answer(t, db, stream, data: {'msg': 'm0006'});
     expect(msg['body'], {
@@ -82,7 +78,7 @@ void main() {
   ) async {
     await openComposer(t, phone: true, draft: ['one', 'two', '']);
     expect(find.text('3/3'), findsOneWidget);
-    await t.tap(find.text('Back'));
+    await t.tap(controlByLabel('Back'));
     await t.pumpAndSettle();
     expect(boxText(t), 'two');
   });
@@ -95,9 +91,12 @@ void main() {
 
   testWidgets('phone: a plain box has no Ctrl+Enter hint', (t) async {
     await openComposer(t, phone: true, questions: false);
-    expect(find.textContaining('Your answer. Reason'), findsOneWidget);
-    expect(find.text('Ctrl+Enter to send'), findsNothing);
-    expect(find.text('Send'), findsOneWidget);
+    expect(
+      fieldByLabel('Your answer. Reason it out; guesses are welcome.'),
+      findsOneWidget,
+    );
+    expect(bySpoken('Ctrl+Enter to send'), findsNothing);
+    expect(controlByLabel('Send'), findsOneWidget);
   });
 
   testWidgets('phone: Next card says device=phone too', (t) async {
@@ -108,7 +107,7 @@ void main() {
       RtdbPut('/', getAt(db.root, '$composeBase/meta')),
     );
     await t.pumpAndSettle();
-    await t.tap(find.text('Next card'));
+    await t.tap(controlByLabel('Next card'));
     await sent(t);
     final next = await answer(t, db, stream, settle: false);
     expect(next['kind'], 'next');
@@ -119,15 +118,15 @@ void main() {
     final (db, stream) = await openComposer(t, phone: false);
     expect(find.text('Your own comment'), findsNothing);
     expect(find.byType(TextField), findsNWidgets(3)); // one per question
-    expect(find.text('Ctrl+Enter to send'), findsOneWidget);
+    expect(bySpoken('Ctrl+Enter to send'), findsOneWidget);
     expect(find.text('1/3'), findsNothing);
-    expect(find.text('Hint'), findsNWidgets(3)); // above each answer box
+    expect(glyphsLabelled('Hint'), findsNWidgets(3)); // above each answer box
     expect(find.text('The intake stroke'), findsOneWidget);
     // Keyboard rules are the phone's: the desktop header stays.
     t.view.viewInsets = const FakeViewPadding(bottom: 300);
     addTearDown(t.view.resetViewInsets);
     await t.pumpAndSettle();
-    expect(find.textContaining('This card:'), findsOneWidget);
+    expect(bySpoken('This card:', prefix: true), findsOneWidget);
 
     await t.ensureVisible(find.text('The camshaft lobe'));
     await t.tap(find.text('The camshaft lobe'));
@@ -165,8 +164,8 @@ void main() {
     expect(boxes, findsNWidgets(3));
     expect(t.widget<TextField>(boxes.at(2)).controller!.text, 'three');
     expect(find.text('old comment'), findsNothing);
-    await t.ensureVisible(find.text('Send'));
-    await t.tap(find.text('Send'));
+    await t.ensureVisible(controlByLabel('Send'));
+    await t.tap(controlByLabel('Send'));
     await sent(t);
     final msg = await answer(t, db, stream, data: {'msg': 'm0006'});
     final text = (msg['body'] as Map)['text'] as String;
