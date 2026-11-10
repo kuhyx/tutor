@@ -124,6 +124,9 @@ void main() {
     await _keyboardUp(t);
     await _keyboardDown(t);
     expect(find.byType(AppBar), findsOneWidget);
+    // The row stays above the gesture bar.
+    expectReachable(t, _field, state: 'keyboard down');
+    expectReachable(t, glyphsLabelled('Next'), state: 'keyboard down');
     expect(find.byIcon(Icons.expand_more), findsNothing);
     expect(find.byIcon(Icons.edit_outlined), findsNothing);
     await t.tap(glyphsLabelled('Card and progress'));

@@ -256,9 +256,10 @@ class _SessionScreenState extends State<SessionScreen> {
             drawerEnableOpenDragGesture: !keyboard,
             endDrawerEnableOpenDragGesture: !keyboard,
             // Under an AppBar the top inset is already 0; without one the
-            // body keeps clear of the status bar (same tree either way).
+            // body keeps clear of the status bar. The bottom keeps the row
+            // off the gesture bar (0 with the keyboard up). Same tree
+            // either way, so the box keeps its focus.
             body: SafeArea(
-              bottom: false,
               child: wide
                   ? Row(
                       children: [

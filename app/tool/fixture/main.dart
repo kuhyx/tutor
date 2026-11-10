@@ -18,6 +18,7 @@ import 'dart:convert';
 
 import 'package:crdt_sync/crdt_sync.dart'
     show FirebaseCredentials, InMemoryCredentialStore;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
@@ -51,6 +52,13 @@ import 'fixture_stream.dart';
 import 'fixture_trace.dart';
 import 'fixture_worker.dart';
 
+/// The fixture's options: the page URL's query on the web; on Android (no
+/// URL) the `--dart-define=FIXTURE_QUERY=screen=/session&compose=1` build
+/// define, so an emulator shows the same states.
+Map<String, String> get _query => kIsWeb
+    ? Uri.base.queryParameters
+    : Uri.splitQueryString(const String.fromEnvironment('FIXTURE_QUERY'));
+
 const _dev = '0b6f2c1e-8f2a-4c1d-9e3b-7a5d4c3b2a10';
 const _config = FirebaseConfig(
   apiKey: 'fixture',
@@ -72,7 +80,7 @@ Future<TutorServices> _open() async {
     'stopped': true,
   });
   final kv = MemoryKv();
-  final q = Uri.base.queryParameters;
+  final q = _query;
   if (q['trace'] == '1') db.root = fixtureWithTrace(db.root);
   if (q['busy'] == '1') db.root = fixtureInFlight(db.root, now);
   if (q['compose'] == '1') {
@@ -106,12 +114,12 @@ Future<TutorServices> _open() async {
     client,
     () => db.root,
     change: (
-      after: fixtureBumpDelay(Uri.base.queryParameters),
+      after: fixtureBumpDelay(_query),
       apply: () => db.root = fixtureCardsReady(db.root),
     ),
     // `?claude=out`: Claude kinds fail with claude_unavailable.
     worker: fixtureWorker(
-      claudeOut: Uri.base.queryParameters['claude'] == 'out',
+      claudeOut: _query['claude'] == 'out',
       now: now ~/ 1000,
     ),
   );
@@ -154,33 +162,30 @@ Future<TutorServices> _open() async {
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // `&anki=1` shows the Android-only "Sync Anki & credit" row in the drill.
-  if (Uri.base.queryParameters['anki'] == '1') debugAnkiSupported = true;
+  if (_query['anki'] == '1') debugAnkiSupported = true;
   // `&phone=1` plays the Android app; `&keyboard=1` an open keyboard.
   // `&display=1366x768`: the screen whose UI scale applies (default: the
   // Xvfb's 4K, scale 2); `&phone=1` implies a phone's 412x915.
-  final display = RegExp(r'^(\d+)x(\d+)$')
-      .firstMatch(Uri.base.queryParameters['display'] ?? '');
+  final display = RegExp(r'^(\d+)x(\d+)$').firstMatch(_query['display'] ?? '');
   if (display != null) {
     debugDisplay = Size(
       double.parse(display.group(1)!),
       double.parse(display.group(2)!),
     );
   }
-  if (Uri.base.queryParameters['phone'] == '1') {
+  if (_query['phone'] == '1') {
     debugPhone = true;
     debugDisplay ??= const Size(412, 915);
   }
-  if (Uri.base.queryParameters['keyboard'] == '1') debugKeyboardInset = 300;
-  if (Uri.base.queryParameters['open'] == '1') debugThinkingOpen = true;
+  if (_query['keyboard'] == '1') debugKeyboardInset = 300;
+  if (_query['open'] == '1') debugThinkingOpen = true;
   runApp(
     TutorApp(
       config: _config,
       open: _open,
-      initialRoute: Uri.base.queryParameters['screen'],
+      initialRoute: _query['screen'],
       // `&zoom=1.5` for screenshots of the Display size setting.
-      zoom: UiZoom(
-        initial: double.tryParse(Uri.base.queryParameters['zoom'] ?? ''),
-      ),
+      zoom: UiZoom(initial: double.tryParse(_query['zoom'] ?? '')),
     ),
   );
 }
