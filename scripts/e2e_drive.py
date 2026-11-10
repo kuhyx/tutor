@@ -25,6 +25,8 @@ Exit 0 = PASS.
   (``e2e_blocked.py``, sandbox ``up --nocard due|review``): one call.
 * F13 outage codes and glyphs (``e2e_codes.py``): one reason per call.
 * F14 real failures and their codes (``e2e_failures.py``): one phase per call.
+* F16 every code, no-card state, pause and phase glyph, the worker held
+  (``e2e_glyphs.py``): one phase per call after ``e2e_sandbox.sh hold``.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -54,6 +56,8 @@ from e2e_failures import f14
 from e2e_flow import Emulator, Flow, FlowError, State
 from e2e_focus import f7, f8
 from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
+from e2e_glyphs import PHASES as F16_PHASES
+from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_struggle import f5_check, f5_send
 from e2e_unbacked import f11
@@ -120,7 +124,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = [f"F{n}" for n in range(1, 16)]  # F1..F15
+FLOWS = [f"F{n}" for n in range(1, 17)]  # F1..F16
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -131,6 +135,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F13": f13,
     "F14": f14,
     "F15": f15,
+    "F16": f16,
 }
 
 
@@ -208,7 +213,16 @@ def main() -> int:
         nargs="?",
         default="all",
         # F13 also takes one outage reason per call (each fits under 60 s).
-        choices=["send", "wait", "check", "again", "all", *OUTAGES, *F14_PHASES],
+        choices=[
+            "send",
+            "wait",
+            "check",
+            "again",
+            "all",
+            *OUTAGES,
+            *F14_PHASES,
+            *F16_PHASES,
+        ],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")
     parser.add_argument("--db", required=True, help="emulator http://127.0.0.1:N")

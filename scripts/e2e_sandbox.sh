@@ -16,7 +16,7 @@
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1..F14 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1..F16 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -24,6 +24,7 @@
 #   scripts/e2e_sandbox.sh restart [--model-down network|refuse|none]
 #                                    # F6 again: a second worker start; F14
 #                                    # switches how Claude fails in between
+#   scripts/e2e_sandbox.sh hold               # F16: no worker; the app served statically
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
 # Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
 # E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
@@ -55,6 +56,7 @@ readonly TAG
 readonly DB_UNIT="tutor-e2e-db-$TAG"
 readonly SERVER_UNIT="tutor-e2e-server-$TAG"
 readonly MODEL_UNIT="tutor-e2e-model-$TAG"
+readonly HOLD_UNIT="tutor-e2e-hold-$TAG"
 # focus_project (F7-F10) lives outside this repo; its data dir is the sandbox's.
 readonly FOCUS_SRC="${E2E_FOCUS_SRC:-$HOME/src/utils/focus_project}"
 
@@ -98,7 +100,7 @@ cmd_build() {
 
 cmd_down() {
     local unit
-    for unit in "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"; do  # one by one: a
+    for unit in "$HOLD_UNIT" "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"; do  # one by one: a
         systemctl --user stop "$unit" 2>/dev/null || true    # missing unit fails all
     done
     if [[ -f "$STATE" ]]; then
@@ -230,14 +232,31 @@ cmd_restart() {
     if [[ "${1:-}" == --model-down ]]; then
         sed -i "s/^MODEL=.*/MODEL=${2:?--model-down network|refuse|none}/" "$STATE"
     fi
-    systemctl --user stop "$SERVER_UNIT" 2>/dev/null || true
+    systemctl --user stop "$HOLD_UNIT" "$SERVER_UNIT" 2>/dev/null || true
     curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1/stats.json" >/dev/null
     start_server
     echo "e2e sandbox server restarted"
 }
 
+# F16: no worker claims anything. The server stops and a static host serves
+# the same web build on its port, so a flow can play the worker by writing
+# claim/result nodes into the emulator. `restart` brings the worker back.
+cmd_hold() {
+    [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
+    local port root
+    port="$(sed -n 's/^PORT=//p' "$STATE")"
+    root="$(dirname "$STATE")/hold"
+    systemctl --user stop "$SERVER_UNIT" 2>/dev/null || true
+    mkdir -p "$root"
+    ln -sfn "$WEB" "$root/app"
+    systemd-run --user --quiet --collect --unit="$HOLD_UNIT" -p RuntimeMaxSec=3600 \
+        "$PY" -m http.server "$port" --bind 127.0.0.1 --directory "$root"
+    wait_http "http://127.0.0.1:$port/app/" 40 || die "static host did not start"
+    echo "e2e sandbox held: no worker, app on :$port"
+}
+
 cmd_flow() {
-    local flow="${1:?flow F1..F14}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F16}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
@@ -255,9 +274,10 @@ main() {
         build) cmd_build ;;
         up) cmd_up "$@" ;;
         restart) cmd_restart "$@" ;;
+        hold) cmd_hold ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | flow F1..F14 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | flow F1..F16 [send|wait|check|again] | down" ;;
     esac
 }
 
