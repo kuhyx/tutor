@@ -5,14 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/focus/focus_models.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
-import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/ui/focus_form_body.dart';
 import 'package:tutor/ui/focus_gates.dart';
+import 'package:tutor/ui/interview_draft.dart';
+import 'package:tutor/ui/interview_prompts.dart';
 import 'package:tutor/ui/numeric_date_picker.dart';
-import 'package:tutor/widgets/content_text.dart';
 
 /// Creates or, given [edit], edits a focus project: dates, gates to turn
 /// off, minutes, subjects.
@@ -22,6 +23,7 @@ class FocusFormScreen extends StatefulWidget {
     required this.services,
     required this.status,
     this.edit,
+    this.prompts = const MaterialPrompts(),
     super.key,
   });
 
@@ -33,6 +35,9 @@ class FocusFormScreen extends StatefulWidget {
 
   /// The project being edited; null creates a new one.
   final FocusProject? edit;
+
+  /// The interview part's pickers.
+  final InterviewPrompts prompts;
 
   @override
   State<FocusFormScreen> createState() => _FocusFormState();
@@ -54,6 +59,7 @@ class _FocusFormState extends State<FocusFormScreen> {
     text: _edit?.sitePatterns.join(', '),
   );
   late final _workUrl = TextEditingController(text: _edit?.workUrl);
+  final _draft = InterviewDraft();
   late final _off = <String>{...?_edit?.replaces};
   late final _linked = <String>{...?_edit?.subjects};
   late final DateTime _today = DateTime.parse(widget.status.day);
@@ -63,12 +69,29 @@ class _FocusFormState extends State<FocusFormScreen> {
       : DateTime.parse(_edit!.end);
   // The registry refuses to move the start of a project that has begun.
   bool get _startLocked => _start.isBefore(_today);
+  // An interview ends on its test day; the end date follows it.
+  DateTime get _endDay => _draft.on ? _draft.testDay ?? _end : _end;
+
+  @override
+  void initState() {
+    super.initState();
+    _draft.addListener(_onDraft);
+  }
+
+  // The interview budget is 30 a day (DOCS-contract-focus.md); a plain
+  // project keeps its 120 default, unless kuhy typed another number.
+  void _onDraft() {
+    final (from, to) = _draft.on ? ('120', '30') : ('30', '120');
+    if (_daily.text == from) _daily.text = to;
+    setState(() {});
+  }
 
   @override
   void dispose() {
     for (final c in [_name, _daily, _unlock, _sites, _workUrl]) {
       c.dispose();
     }
+    _draft.dispose();
     unawaited(_runner.dispose());
     super.dispose();
   }
@@ -84,15 +107,13 @@ class _FocusFormState extends State<FocusFormScreen> {
     setState(() => start ? _start = picked : _end = picked);
   }
 
-  void _toggleGate(String id, {required bool on}) =>
-      on ? _off.add(id) : _off.remove(id);
-
   bool get _valid =>
       _name.text.trim().isNotEmpty &&
       (int.tryParse(_daily.text) ?? 0) > 0 &&
       int.tryParse(_unlock.text) != null &&
       isWorkUrl(_workUrl.text) &&
-      !_end.isBefore(_start);
+      !_endDay.isBefore(_start) &&
+      (!_draft.on || _draft.valid);
 
   Future<void> _submit() async {
     final sites = _sites.text
@@ -100,55 +121,28 @@ class _FocusFormState extends State<FocusFormScreen> {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-    final name = _name.text.trim();
-    final workUrl = _workUrl.text.trim();
-    final daily = int.parse(_daily.text);
-    final unlock = int.parse(_unlock.text);
-    final edit = _edit;
-    final result = await _runner.run(
-      edit == null
-          ? RequestBody.focusCreate(
-              name: name,
-              start: _iso(_start),
-              end: _iso(_end),
-              replaces: _off.toList(),
-              dailyMinutes: daily,
-              unlockMinutes: unlock,
-              subjects: _linked.toList(),
-              sitePatterns: sites,
-              workUrl: workUrl,
-            )
-          : RequestBody.focusUpdate(
-              id: edit.id,
-              name: name,
-              start: _iso(_start),
-              end: _iso(_end),
-              replaces: _off.toList(),
-              dailyMinutes: daily,
-              unlockMinutes: unlock,
-              subjects: _linked.toList(),
-              sitePatterns: sites,
-              workUrl: workUrl,
-            ),
+    final body = focusFormBody(
+      id: _edit?.id,
+      name: _name.text.trim(),
+      start: _iso(_start),
+      end: _iso(_endDay),
+      replaces: _off.toList(),
+      dailyMinutes: int.parse(_daily.text),
+      unlockMinutes: int.parse(_unlock.text),
+      subjects: _linked.toList(),
+      sitePatterns: sites,
+      workUrl: _workUrl.text.trim(),
     );
+    final result = await _runner.run(_edit == null ? _draft.apply(body) : body);
     if (mounted && result is RelayDone) Navigator.of(context).pop(true);
   }
 
   void _edited(String _) => setState(() {});
 
-  Widget _date(String label, DateTime value, {required bool start}) => Expanded(
-    child: DateField(
-      label,
-      _iso(value),
-      onTap: start && _startLocked ? null : () => _pick(start: start),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final status = widget.status;
-    final text = Theme.of(context).textTheme;
     final fields = <Widget>[
       TextField(
         controller: _name,
@@ -159,8 +153,20 @@ class _FocusFormState extends State<FocusFormScreen> {
       Row(
         spacing: AppSpacing.md,
         children: [
-          _date(l.startDate, _start, start: true),
-          _date(l.endDate, _end, start: false),
+          Expanded(
+            child: DateField(
+              l.startDate,
+              _iso(_start),
+              onTap: _startLocked ? null : () => _pick(start: true),
+            ),
+          ),
+          Expanded(
+            child: DateField(
+              l.endDate,
+              _iso(_endDay),
+              onTap: _draft.on ? null : () => _pick(start: false),
+            ),
+          ),
         ],
       ),
       const SizedBox(height: AppSpacing.md),
@@ -172,34 +178,13 @@ class _FocusFormState extends State<FocusFormScreen> {
         ],
       ),
       const SizedBox(height: AppSpacing.md),
-      Text(l.gatesOff, style: text.titleSmall),
-      for (final g in status.gates)
-        CheckboxListTile(
-          dense: true,
-          value: _off.contains(g.id),
-          onChanged: g.replaceable
-              ? (v) => setState(() => _toggleGate(g.id, on: v ?? false))
-              : null,
-          title: ContentText(g.label),
-          subtitle: g.replaceable ? null : Text(l.gateKept),
-        ),
-      if (status.subjects.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.sm),
-        Text(l.subjects, style: text.titleSmall),
-        Wrap(
-          spacing: AppSpacing.sm,
-          children: [
-            for (final s in status.subjects)
-              FilterChip(
-                label: ContentText(s.title),
-                selected: _linked.contains(s.id),
-                onSelected: (v) => setState(
-                  () => v ? _linked.add(s.id) : _linked.remove(s.id),
-                ),
-              ),
-          ],
-        ),
-      ],
+      ...gateAndSubjectRows(
+        context,
+        status,
+        off: _off,
+        linked: _linked,
+        changed: () => setState(() {}),
+      ),
       const SizedBox(height: AppSpacing.md),
       TextField(
         controller: _sites,
@@ -211,6 +196,8 @@ class _FocusFormState extends State<FocusFormScreen> {
         decoration: InputDecoration(labelText: l.workUrl),
         onChanged: (_) => setState(() {}),
       ),
+      if (_edit == null)
+        ...interviewFields(context, _draft, widget.prompts, _today),
     ];
     final bar = <Widget>[
       RequestStatusLine(_runner),

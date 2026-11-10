@@ -98,6 +98,34 @@ def test_relay_lifecycle(
     assert "relay task relay-boom died" in caplog.text
 
 
+def test_refresh_publishes_stats_every_nth_round(
+    tmp_path: Path, fast: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Deterministic: the stats branch must not depend on request timing."""
+    del fast
+    eng, _ = engine(tmp_path)
+    calls: list[str] = []
+
+    def stub(name: str) -> Callable[[], Any]:
+        async def call() -> None:
+            calls.append(name)
+
+        return call
+
+    async def go() -> None:
+        relay = worker.Relay(eng, FakeRtdb().rtdb(), PhaseSink(), eng.time)
+        monkeypatch.setattr(relay.w.publisher, "refresh", stub("refresh"))
+        monkeypatch.setattr(relay.w.publisher, "stats", stub("stats"))
+        monkeypatch.setattr(relay.server, "sweep_busy", stub("sweep"))
+        monkeypatch.setattr(relay.curriculum, "sync", stub("sync"))
+        task = asyncio.create_task(relay._refresh())
+        await until(lambda: "stats" in calls)
+        task.cancel()
+
+    asyncio.run(go())
+    assert calls[:6] == ["refresh", "sweep", "refresh", "sweep", "sync", "stats"]
+
+
 def test_stop_waits_for_a_request_in_flight_and_survives_a_failed_leave(
     tmp_path: Path,
 ) -> None:

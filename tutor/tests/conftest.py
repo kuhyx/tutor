@@ -17,8 +17,10 @@ import pytest
 from tutor import images
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator, Sequence
     from pathlib import Path
+
+    from code_runner import CaseResult, Example
 
 KEY = b"tutor-test-key-not-the-real-one"
 
@@ -31,6 +33,45 @@ def _offline(*_: object, **__: object) -> object:
 async def _offline_async(*_: object, **__: object) -> object:
     msg = "network disabled in tests (httpx: use tests/_fake_rtdb.py)"
     raise httpx.ConnectError(msg)
+
+
+def _memoised(
+    real: Callable[..., list[CaseResult]],
+) -> Callable[..., list[CaseResult]]:
+    """``code_runner.run`` that sandboxes each distinct snippet once per session.
+
+    The mock-test suites re-run the same seed snippets dozens of times (a bwrap
+    start each); a run is a pure function of its inputs, so repeats are served
+    from memory. Every distinct input still goes through the real sandbox, and
+    ``code_runner``'s own tests (a different tree) never see this wrapper.
+    """
+    seen: dict[tuple[str, str, str, str], list[CaseResult]] = {}
+
+    def run(
+        lang: str,
+        code: str,
+        starter: str,
+        examples: Sequence[Example],
+        **kwargs: Any,
+    ) -> list[CaseResult]:
+        if kwargs:
+            return real(lang, code, starter, examples, **kwargs)
+        key = (lang, code, starter, repr(list(examples)))
+        if key not in seen:
+            seen[key] = real(lang, code, starter, examples)
+        return list(seen[key])
+
+    return run
+
+
+@pytest.fixture(scope="session", autouse=True)
+def memoised_sandbox() -> Iterator[None]:
+    """Serve repeated identical sandbox runs from memory (see ``_memoised``)."""
+    import code_runner  # after collection: its package conftest must import first
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(code_runner, "run", _memoised(code_runner.run))
+        yield
 
 
 @pytest.fixture(autouse=True)

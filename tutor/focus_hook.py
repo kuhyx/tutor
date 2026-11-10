@@ -9,7 +9,7 @@ swallowed (the ledger row is already written when this runs).
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 import importlib
 import importlib.util
 import logging
@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 from tutor import credit
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 _logger = logging.getLogger(__name__)
 # What a hook may hit when the optional package is broken or half-written.
@@ -50,6 +50,32 @@ class ProjectLike(Protocol):
     site_patterns: Sequence[str]
     work_url: str
     created_ms: int
+    # focus_project 0.9.0; ``getattr(project, "kind", "focus")`` reads an older one.
+    kind: str
+    test_at: datetime | None
+    invite_url: str
+    trips: Sequence[TripLike]
+    weekend_answers: Sequence[tuple[date, bool]]
+
+
+class TripLike(Protocol):
+    """``focus_project.Trip``: an inclusive away range."""
+
+    start: date
+    end: date
+
+
+class MilestoneLike(Protocol):
+    """``focus_project.Milestone``."""
+
+    @property
+    def red(self) -> bool:
+        """Past due and not done."""
+        ...
+
+    def to_dict(self) -> dict[str, Any]:
+        """The status row ``{id, due, state}``."""
+        ...
 
 
 class UpdateLike(Protocol):
@@ -95,6 +121,49 @@ class FocusApi(Protocol):
 
     def end_project(self, project_id: str, day: date) -> ProjectLike:
         """End early; ``ValueError`` / ``KeyError`` if impossible."""
+        ...
+
+    # -- interview projects (focus_project 0.9.0) --------------------------------
+    Trip: Callable[[date, date], TripLike]
+
+    def milestones(
+        self, project: ProjectLike, now: datetime
+    ) -> Sequence[MilestoneLike]:
+        """The project's generated milestones at ``now`` (naive local)."""
+        ...
+
+    def record_evidence(
+        self,
+        project_id: str,
+        milestone: str,
+        kind: str,
+        value: object = None,
+        **kw: object,
+    ) -> object:
+        """Append evidence (``file=Path``, ``now=datetime`` by keyword); ValueError."""
+        ...
+
+    def add_trip(
+        self, project_id: str, start: date, end: date, *, now: datetime | None = None
+    ) -> object:
+        """Announce a trip; ``ValueError`` if it would loosen an old one."""
+        ...
+
+    def answer_weekend(
+        self,
+        project_id: str,
+        saturday: date,
+        *,
+        trip: bool,
+        now: datetime | None = None,
+    ) -> object:
+        """Answer a weekend's trip question; a True never flips back."""
+        ...
+
+    def run_checks(
+        self, project_id: str, *, now: datetime | None = None
+    ) -> dict[str, bool | None]:
+        """Run the auto checks of the open phone milestones and latch them."""
         ...
 
 

@@ -68,12 +68,17 @@ repos:
         language: system
         pass_filenames: false
         files: ^packages/code_runner/.*\.py$
+      # Always under 60 s: a pass stamp for the staged tree (written by
+      # `.venv/bin/python scripts/pytest_stamp.py run`, chunked, 100% branch
+      # coverage) passes instantly; a small change runs inline; anything bigger
+      # fails fast with that command. require_serial: one process, not one per
+      # CPU, since pre-commit would otherwise split the file list across jobs.
       - id: pytest
-        name: pytest (100% branch coverage)
-        entry: .venv/bin/python -m pytest -p no:cacheprovider -q
+        name: pytest (pass stamp, else changed files, 100% branch coverage)
+        entry: .venv/bin/python scripts/pytest_changed.py
         language: system
-        pass_filenames: false
-        types: [python]
+        files: ^(.*\.py|pyproject\.toml)$
+        require_serial: true
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
     hooks:

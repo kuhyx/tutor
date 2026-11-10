@@ -10,14 +10,20 @@ handlers only translate the wire to its contract API and its errors to
 from __future__ import annotations
 
 from datetime import date
-import re
 from typing import TYPE_CHECKING, Any, Final
-import unicodedata
 
 import earned_time
 
-from tutor import credit, focus_hook
+from tutor.relay import focus_interview
 from tutor.relay.errors import RequestError
+from tutor.relay.focus_common import (
+    free_id,
+    load_api,
+    local_now,
+    registry,
+    today_of,
+    unreadable,
+)
 from tutor.relay.focus_protocol import GATES
 
 if TYPE_CHECKING:
@@ -26,24 +32,6 @@ if TYPE_CHECKING:
 
 MAX_EVENT_AGE_MS: Final = 48 * 3_600_000  # a phone offline in transit delivers late
 _STATUS_KEYS: Final = ("name", "minutes", "daily_minutes", "unlock_minutes", "ends")
-
-
-def _fp() -> FocusApi:
-    found = focus_hook.load_fp()
-    if found is None:
-        msg = "focus_project is not installed on the worker"
-        raise RequestError(msg, code="worker_error")
-    return found
-
-
-def _today(ctx: RequestContext) -> date:
-    return date.fromisoformat(credit.local_day(ctx.now())[0])
-
-
-def _unreadable(exc: Exception) -> RequestError:
-    return RequestError(
-        f"focus registry unreadable: {exc}", code="worker_error", retry=True
-    )
 
 
 def _project(project: ProjectLike, today: date) -> dict[str, Any]:
@@ -62,7 +50,7 @@ def _project(project: ProjectLike, today: date) -> dict[str, Any]:
         "subjects": list(project.subjects),
         "site_patterns": list(project.site_patterns),
         "work_url": project.work_url,
-    }
+    } | focus_interview.project_fields(project)
 
 
 def _gates(today: date) -> list[dict[str, Any]]:
@@ -83,7 +71,7 @@ def _subjects(ctx: RequestContext) -> list[dict[str, str]]:
 
 async def focus_status(ctx: RequestContext) -> dict[str, Any]:
     """Today's project and minutes, every project, the gates and the subjects."""
-    fp, today = _fp(), _today(ctx)
+    fp, today = load_api(), today_of(ctx)
     try:
         active = fp.active(today)
         shown = None
@@ -91,16 +79,20 @@ async def focus_status(ctx: RequestContext) -> dict[str, Any]:
             # The real minutes (121/120), not the capped pay figure; the bank
             # is what overtime leaves for tomorrow (``focus_project.carry``).
             status = fp.status(today)
-            shown = _project(active, today) | {
-                "minutes": status["minutes"],
-                "carry_out": status.get("carry_out", 0),
-                "unbacked_minutes": status.get("unbacked_minutes", 0),
-            }
+            shown = (
+                _project(active, today)
+                | {
+                    "minutes": status["minutes"],
+                    "carry_out": status.get("carry_out", 0),
+                    "unbacked_minutes": status.get("unbacked_minutes", 0),
+                }
+                | focus_interview.active_fields(fp, active, status, local_now(ctx))
+            )
         listed = sorted(
             fp.list_projects(), key=lambda p: (p.created_ms, p.start), reverse=True
         )
     except (OSError, ValueError) as exc:
-        raise _unreadable(exc) from exc
+        raise unreadable(exc) from exc
     return {
         "day": today.isoformat(),
         "active": shown,
@@ -120,7 +112,7 @@ def _check_card(ctx: RequestContext, fp: FocusApi, today: date) -> None:
     try:
         active = fp.active(today)
     except (OSError, ValueError) as exc:
-        raise _unreadable(exc) from exc
+        raise unreadable(exc) from exc
     if active is None or subject not in active.subjects:
         msg = f"focus_event: {subject!r} is not a subject of today's project"
         raise RequestError(msg, code="bad_request")
@@ -135,7 +127,7 @@ async def focus_event(ctx: RequestContext) -> dict[str, Any]:
     ``card`` (a graded check-in card) is a ``tutor`` heartbeat at the answer
     time: focus_project 0.8.0 chains it into the open timer segment.
     """
-    fp, today = _fp(), _today(ctx)
+    fp, today = load_api(), today_of(ctx)
     body, created = ctx.body, ctx.request.created_ms
     if body["ts"] < created - MAX_EVENT_AGE_MS:
         msg = "focus_event: ts is more than 48 h old"
@@ -149,7 +141,7 @@ async def focus_event(ctx: RequestContext) -> dict[str, Any]:
         fp.record_activity(source, kind, ts=ts, dev=body["platform"])
         status = fp.status(today)
     except (OSError, ValueError) as exc:
-        raise _unreadable(exc) from exc
+        raise unreadable(exc) from exc
     return (
         {k: status[k] for k in _STATUS_KEYS}
         | {"replaces": list(status["replaces"])}
@@ -158,29 +150,13 @@ async def focus_event(ctx: RequestContext) -> dict[str, Any]:
     )
 
 
-def _slug_of(name: str) -> str:
-    """An ascii lowercase slug of ``name`` (``project`` if nothing is left)."""
-    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    slug = re.sub(r"[^a-z0-9]+", "-", ascii_name.lower()).strip("-")[:40].strip("-")
-    return slug or "project"
-
-
-def _free_id(name: str, taken: set[str]) -> str:
-    base = _slug_of(name)
-    found, n = base, 1
-    while found in taken:
-        n += 1
-        found = f"{base}-{n}"
-    return found
-
-
 async def focus_create(ctx: RequestContext) -> dict[str, Any]:
     """Create a project; a refusal (overlap, bad dates) is ``focus_refused``."""
-    fp, body = _fp(), ctx.body
+    fp, body = load_api(), ctx.body
     try:
         taken = {p.id for p in fp.list_projects()}
         made = fp.create_project(
-            _free_id(body["name"], taken),
+            free_id(body["name"], taken),
             name=body["name"],
             start=date.fromisoformat(body["start"]),
             end=date.fromisoformat(body["end"]),
@@ -190,6 +166,7 @@ async def focus_create(ctx: RequestContext) -> dict[str, Any]:
             subjects=body["subjects"],
             site_patterns=body["site_patterns"],
             work_url=body["work_url"] or "",
+            **focus_interview.create_fields(fp, body),
         )
     except ValueError as exc:
         raise RequestError(str(exc), code="focus_refused") from exc
@@ -198,10 +175,10 @@ async def focus_create(ctx: RequestContext) -> dict[str, Any]:
 
 async def focus_update(ctx: RequestContext) -> dict[str, Any]:
     """Edit a project (every field, like create); a refusal is ``focus_refused``."""
-    fp, body, today = _fp(), ctx.body, _today(ctx)
+    fp, body, today = load_api(), ctx.body, today_of(ctx)
     # An older client never sends work_url: absent keeps it, "" clears it.
     kept = {} if body["work_url"] is None else {"work_url": body["work_url"]}
-    try:
+    with registry():
         done = fp.apply_update(
             body["id"],
             today=today,
@@ -215,13 +192,6 @@ async def focus_update(ctx: RequestContext) -> dict[str, Any]:
             subjects=body["subjects"],
             site_patterns=body["site_patterns"],
         )
-    except KeyError as exc:
-        msg = f"unknown project {body['id']!r}"
-        raise RequestError(msg, code="focus_refused") from exc
-    except ValueError as exc:
-        raise RequestError(str(exc), code="focus_refused") from exc
-    except OSError as exc:
-        raise _unreadable(exc) from exc
     first = done.effective_from
     out: dict[str, Any] = {"id": body["id"], "effective_from": first.isoformat()}
     if first > today:
@@ -238,16 +208,11 @@ async def focus_end(ctx: RequestContext) -> dict[str, Any]:
     A past ``day`` is refused: it would erase that day's shortfall and lift
     the focus lock. The app sends no ``day`` (= today).
     """
-    fp, body, today = _fp(), ctx.body, _today(ctx)
+    fp, body, today = load_api(), ctx.body, today_of(ctx)
     day = date.fromisoformat(body["day"]) if body["day"] else today
     if day < today:
         msg = f"cannot end {body['id']!r} in the past ({day})"
         raise RequestError(msg, code="focus_refused")
-    try:
+    with registry():
         fp.end_project(body["id"], day)
-    except KeyError as exc:
-        msg = f"unknown project {body['id']!r}"
-        raise RequestError(msg, code="focus_refused") from exc
-    except ValueError as exc:
-        raise RequestError(str(exc), code="focus_refused") from exc
     return {}

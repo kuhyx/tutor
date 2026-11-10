@@ -70,6 +70,9 @@ def test_status_lists_the_active_project_and_all_newest_first(fp: FakeFp) -> Non
         "minutes": 42,
         "carry_out": 0,
         "unbacked_minutes": 0,
+        "kind": "focus",
+        "milestones": [],
+        "missed": False,
     }
     assert "minutes" not in got["projects"][1]
     assert [p["days_left"] for p in got["projects"]] == [3, 4, 0]

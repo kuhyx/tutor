@@ -6,18 +6,19 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/focus/focus_models.dart';
 import 'package:tutor/focus/focus_send.dart';
 import 'package:tutor/focus/focus_timer.dart';
+import 'package:tutor/focus/screenshot_picker.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
-import 'package:tutor/model/log_event.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
-import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/focus_checkin_view.dart';
 import 'package:tutor/ui/focus_form.dart';
 import 'package:tutor/ui/focus_gates.dart';
+import 'package:tutor/ui/focus_parts.dart';
 import 'package:tutor/ui/focus_ring.dart';
-import 'package:tutor/ui/review_answer.dart';
-import 'package:tutor/ui/unbacked_mark.dart';
+import 'package:tutor/ui/interview_panel.dart';
+import 'package:tutor/ui/interview_prompts.dart';
 import 'package:tutor/widgets/content_text.dart';
 
 /// The most overtime the server banks for the next day (`focus_project`).
@@ -28,13 +29,25 @@ const int _bankCap = 60;
 class FocusScreen extends StatefulWidget {
   /// Creates the screen; [autoStart] (the `/focus?start=1` deep link)
   /// starts the timer once, unless it is already running.
-  const new({required this.services, this.autoStart = false, super.key});
+  const new({
+    required this.services,
+    this.autoStart = false,
+    this.pickImage = pickScreenshot,
+    this.prompts = const MaterialPrompts(),
+    super.key,
+  });
 
   /// Services.
   final TutorServices services;
 
   /// Start the timer when the project is known and it is not running.
   final bool autoStart;
+
+  /// Picks the rules screenshot of an interview project.
+  final PickImage pickImage;
+
+  /// The questions an interview milestone asks.
+  final InterviewPrompts prompts;
 
   @override
   State<FocusScreen> createState() => _FocusScreenState();
@@ -44,7 +57,10 @@ class _FocusScreenState extends State<FocusScreen> {
   late final RequestRunner _runner = RequestRunner(_s.relay);
   FocusStatus? _status;
   bool _autoStarted = false;
-  ReviewSession? _card; // the check-in card's one-card review run
+  late final CheckinCardRun _checkin = CheckinCardRun(
+    _s,
+    (work) => unawaited(_then(work)),
+  );
 
   TutorServices get _s => widget.services;
   FocusTimer get _timer => _s.focus;
@@ -61,26 +77,8 @@ class _FocusScreenState extends State<FocusScreen> {
   void dispose() {
     _timer.detach();
     unawaited(_runner.dispose());
-    _card?.dispose();
+    _checkin.dispose();
     super.dispose();
-  }
-
-  // The review run of the timer's check-in card (one per pick); its rating
-  // is an ordinary review tagged `checkin`, and its time is the beat's.
-  ReviewSession? _cardRun() {
-    // A replaced run is left to the GC, not disposed: its rating may still
-    // be finishing (it notifies after the timer has moved on).
-    final item = _timer.checkinCard;
-    if (item == null) return _card = null;
-    final run = _card;
-    if (run != null && run.items.single == item) return run;
-    return _card = ReviewSession(
-      items: [item],
-      events: _s.events,
-      src: checkinSource,
-      onRated: (at) => unawaited(_then(_timer.cardRated(at))),
-      now: () => DateTime.fromMillisecondsSinceEpoch(_timer.nowMs()),
-    );
   }
 
   Future<void> _load() async {
@@ -179,24 +177,7 @@ class _FocusScreenState extends State<FocusScreen> {
         children: [Expanded(child: Center(child: RequestStatusLine(_runner)))],
       );
     }
-    if (project == null) {
-      return Column(
-        children: [
-          Expanded(
-            child: EmptyState(
-              icon: Icons.center_focus_strong_outlined,
-              title: l.noProject,
-              message: '',
-            ),
-          ),
-          FilledButton.icon(
-            onPressed: _form,
-            icon: const Icon(Icons.add),
-            label: Text(l.newProject),
-          ),
-        ],
-      );
-    }
+    if (project == null) return NoProject(onNew: _form);
     return _project(context, l, status, project);
   }
 
@@ -208,12 +189,11 @@ class _FocusScreenState extends State<FocusScreen> {
   ) {
     final text = Theme.of(context).textTheme;
     final running = _timer.isRunning;
-    final lapsed = _timer.isLapsed;
     // Real minutes, never capped (121/120): the overtime banks for tomorrow.
     // Server figures only: the client clock never moves the ring.
     final shown = project.minutes;
     final banked = (shown - project.dailyMinutes).clamp(0, _bankCap);
-    final card = _cardRun();
+    final card = _checkin.run();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -221,7 +201,7 @@ class _FocusScreenState extends State<FocusScreen> {
         Text(l.daysLeft(project.daysLeft), style: text.bodyMedium),
         Expanded(
           child: card != null
-              ? _checkinCard(card)
+              ? CheckinCardRun.view(card)
               : Center(
                   child: FocusRing(
                     minutes: shown,
@@ -231,12 +211,18 @@ class _FocusScreenState extends State<FocusScreen> {
                   ),
                 ),
         ),
-        if (project.unbackedMinutes > 0)
-          UnbackedMark(
-            project.unbackedMinutes,
-            key: const ValueKey('unbacked'),
+        ...unbackedRow(project.unbackedMinutes),
+        if (project.interview != null)
+          InterviewPanel(
+            services: _s,
+            project: project,
+            today: status.day,
+            minutes: shown,
+            pickImage: widget.pickImage,
+            prompts: widget.prompts,
+            onChanged: (i) =>
+                setState(() => _status = statusWithInterview(status, i)),
           ),
-        if (project.unbackedMinutes > 0) const SizedBox(height: AppSpacing.xs),
         FocusGates(status),
         const SizedBox(height: AppSpacing.sm),
         if (_timer.wantsTap)
@@ -245,57 +231,20 @@ class _FocusScreenState extends State<FocusScreen> {
             icon: const Icon(Icons.check),
             label: Text(l.stillWorking),
           ),
-        if (lapsed)
+        if (_timer.isLapsed)
           Text(
             l.missedCheckin,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          height: 72,
-          child: FilledButton.icon(
-            onPressed: _toggle,
-            icon: Icon(running ? Icons.stop : Icons.play_arrow),
-            label: Text(running ? l.stop : l.start),
-          ),
-        ),
-        // Wraps at a large font instead of overflowing.
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          children: [
-            TextButton(onPressed: _form, child: Text(l.newProject)),
-            TextButton(
-              onPressed: () => _form(edit: project),
-              child: Text(l.editProject),
-            ),
-            TextButton(
-              onPressed: () => _end(project),
-              child: Text(l.endProject),
-            ),
-          ],
+        StartStopButton(running: running, onPressed: _toggle),
+        ProjectActions(
+          onNew: _form,
+          onEdit: () => _form(edit: project),
+          onEnd: () => _end(project),
         ),
         RequestStatusLine(_runner, queuedText: l.queued),
       ],
     );
   }
-
-  // Review's own card UI, without Back and Flag: the card leaves on its
-  // rating. Scrolls, as a revealed card can outgrow a phone screen.
-  Widget _checkinCard(ReviewSession run) => ListenableBuilder(
-    listenable: run,
-    builder: (context, _) {
-      final item = run.current;
-      if (item == null) return const SizedBox.shrink();
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CardFace(item.card, revealed: run.revealed),
-            const SizedBox(height: AppSpacing.sm),
-            AnswerBar(run, onFlag: null),
-          ],
-        ),
-      );
-    },
-  );
 }

@@ -22,6 +22,7 @@ from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.relay.done import DoneMap
 from tutor.relay.inbox import Inbox
 from tutor.relay.lanes import Server
+from tutor.relay.phone_check import PhoneCheck
 from tutor.relay.presence import Presence
 from tutor.relay.projection import Publisher
 from tutor.relay.protocol import BUILD, CHAT
@@ -55,7 +56,8 @@ class Relay:
         publisher = Publisher(rtdb, engine, done)
         self.w = Wiring(rtdb, engine, publisher, done, sink, device_id(root), now)
         self.curriculum = CurriculumSync(self.w)
-        self.server = Server(self.w, self.curriculum)
+        self.phone = PhoneCheck(self.w)
+        self.server = Server(self.w, self.curriculum, self.phone.poke)
         self.inbox = Inbox(self.w, self.server)
         self.presence = Presence(self.w, self.server.current)
         self.ready = asyncio.Event()
@@ -98,6 +100,7 @@ class Relay:
         self._spawn(self.inbox.lane(CHAT), "chat")
         self._spawn(self.inbox.lane(BUILD), "build")
         self._spawn(feedback_drain.run(self.w), "feedback")
+        self._spawn(self.phone.run(), "phone")
         self._spawn(self._refresh(), "refresh")
         self._spawn(self.curriculum.generate_forever(), "generate")
         self.ready.set()

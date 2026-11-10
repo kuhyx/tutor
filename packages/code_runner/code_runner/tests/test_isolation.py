@@ -135,6 +135,7 @@ def test_symlink_in_scratch_cannot_exfiltrate_a_host_file(tmp_path: Path) -> Non
     assert result.actual == 7  # the harness replaced the link, never followed it
 
 
+@pytest.mark.exclusive_host
 def test_fork_bomb_is_contained_and_leaves_nothing_behind() -> None:
     before = _pgrep("python3 -I /work/harness.py")
     code = (
@@ -192,6 +193,7 @@ def test_disk_fill_is_capped_by_the_file_size_limit() -> None:
     assert "OSError" in result.error
 
 
+@pytest.mark.exclusive_host
 def test_timeout_kills_every_process_the_solution_started() -> None:
     code = (
         "import subprocess\n"

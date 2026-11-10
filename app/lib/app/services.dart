@@ -16,6 +16,7 @@ import 'package:tutor/history/history.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/log/event_log.dart';
+import 'package:tutor/presence/client_beacon.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/review/review_items.dart';
@@ -41,6 +42,7 @@ class TutorServices {
     required this.stream,
     required this.relay,
     required this.presence,
+    required this.beacon,
     required this.rev,
     required this.events,
     required this.home,
@@ -102,6 +104,11 @@ class TutorServices {
       stream: stream,
       relay: relay,
       presence: PresenceWatcher(stream),
+      beacon: ClientBeacon(
+        client: client,
+        dev: dev,
+        platform: kIsWeb ? 'web' : 'android',
+      ),
       rev: RevWatcher(stream, yieldTo: relay.inFlight),
       events: events,
       home: HomeLoader(client: client, kv: kvStore, events: events),
@@ -135,6 +142,9 @@ class TutorServices {
 
   /// PC presence.
   final PresenceWatcher presence;
+
+  /// This install's `presence/clients` record, started once signed in.
+  final ClientBeacon beacon;
 
   /// `rev.catalog` moves (one shared listen).
   final RevWatcher rev;

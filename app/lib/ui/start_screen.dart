@@ -48,6 +48,8 @@ class _StartScreenState extends State<StartScreen> {
   @override
   void initState() {
     super.initState();
+    // Signed in: the phone-prep check reads this record (DOCS-contract §3).
+    widget.services.beacon.start();
     if (widget.initialRoute != null) {
       _decided = true;
     } else {
@@ -57,6 +59,7 @@ class _StartScreenState extends State<StartScreen> {
 
   @override
   void dispose() {
+    widget.services.beacon.stop();
     unawaited(_runner.dispose());
     super.dispose();
   }

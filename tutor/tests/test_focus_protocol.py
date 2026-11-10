@@ -53,7 +53,13 @@ def test_an_event_needs_a_known_event_platform_and_ms_ts() -> None:
 
 
 def test_a_create_body_is_validated_field_by_field() -> None:
-    assert validate("focus_create", CREATE).body == CREATE
+    plain: dict[str, Any] = {
+        "kind": "focus",
+        "test_at": None,
+        "invite_url": "",
+        "trips": [],
+    }
+    assert validate("focus_create", CREATE).body == CREATE | plain | {"no_trip": False}
     lean = {
         k: v
         for k, v in CREATE.items()

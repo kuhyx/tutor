@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
 
+from tutor.relay.focus_interview_protocol import CREATE_EXTRA
+from tutor.relay.focus_interview_protocol import FIELDS as INTERVIEW_FIELDS
 from tutor.relay.focus_protocol import FIELDS as FOCUS_FIELDS
 from tutor.relay.lc_protocol import FIELDS as LC_FIELDS
 from tutor.relay.mock_protocol import FIELDS as MOCK_FIELDS
@@ -16,6 +18,8 @@ if TYPE_CHECKING:
 
 FIELDS: Final[dict[str, dict[str, Callable[[object], object]]]] = {
     **FOCUS_FIELDS,
+    "focus_create": {**FOCUS_FIELDS["focus_create"], **CREATE_EXTRA},
+    **INTERVIEW_FIELDS,
     **SQL_FIELDS,
     **LC_FIELDS,
     **MOCK_FIELDS,

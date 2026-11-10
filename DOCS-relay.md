@@ -47,7 +47,7 @@ seeder once to give the tutor its own refresh token.
   most every 0.5 s for a desktop request / 2 s for a phone one; deleted
   and swept with `busy`). The SDK read loop only records (`tutor.trace`).
 - `chat.py` the session kinds; `projection.py` + `views.py` +
-  `media_out.py` the published nodes; `presence.py`, `feedback_drain.py`,
+  `media_out.py` the published nodes; `presence.py`, `phone_check.py` (interview phone-prep report, `DOCS-contract-focus.md`), `feedback_drain.py`,
   `stats.py` (minimal until `tutor.curriculum.stats.build(engine)` exists).
 
 ## Rules the code follows

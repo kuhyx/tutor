@@ -104,6 +104,14 @@ abstract final class Paths {
   static String logEvent(String dev, String eid) =>
       '${logOf(dev)}/${_check(eid, isUlid, 'eid')}';
 
+  /// `uploads/{ulid}` (chunks of one image, DOCS-contract §3).
+  static String upload(String id) =>
+      '$root/uploads/${_check(id, isUlid, 'upload id')}';
+
+  /// `uploads/{ulid}/c0001` (1-based, zero-padded: never a bare number).
+  static String uploadChunk(String id, int n) =>
+      '${upload(id)}/c${n.toString().padLeft(4, '0')}';
+
   /// `feedback/{fid}`.
   static String feedback(String fid) =>
       '$root/feedback/${_check(fid, isUlid, 'fid')}';

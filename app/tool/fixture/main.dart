@@ -28,6 +28,7 @@ import 'package:tutor/home/catalog.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/presence/client_beacon.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/session/answers.dart' show answersDraftKey;
@@ -140,6 +141,7 @@ Future<TutorServices> _open() async {
     stream: stream,
     relay: RequestRelay(client: client, stream: stream, dev: _dev, ulid: ulid),
     presence: PresenceWatcher(stream),
+    beacon: ClientBeacon(client: client, dev: _dev, platform: 'web'),
     rev: RevWatcher(stream),
     events: events,
     home: HomeLoader(client: client, kv: kv, events: events),

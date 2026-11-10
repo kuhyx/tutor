@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy==2.4.1", "pylint==4.1.3", "pytest==9.2.0", "pytest-cov==7.1.0", "ruff==0.17.4"]
+dev = ["mypy==2.4.1", "pylint==4.1.3", "pytest==9.2.0", "pytest-cov==7.1.0", "pytest-xdist==3.8.0", "ruff==0.17.4"]
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -145,3 +145,10 @@ filterwarnings = ["error::ResourceWarning"]
 [tool.coverage.run]
 # harness/ runs inside the sandbox in another process; run() tests cover it.
 omit = ["tests/*", "tutor/tests/*", "*/code_runner/tests/*", "*/harness/*"]
+# Lets scripts/pytest_stamp.py report on combined chunk data (unexecuted files too).
+source = ["tutor", "code_runner"]
+
+[tool.coverage.paths]
+# One tree: code_runner resolves to the editable install in some chunks and to
+# the checkout in others (a worktree shares the main checkout's venv).
+code_runner = ["packages/code_runner/code_runner", "*/packages/code_runner/code_runner"]

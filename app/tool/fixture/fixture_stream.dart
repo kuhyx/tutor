@@ -38,20 +38,34 @@ class FixtureStream implements RtdbStream {
   }) async* {
     yield const RtdbConnected();
     yield RtdbPut('/', getAt(root(), path));
-    final node = getAt(root(), path);
-    final req = node is Map<String, dynamic> ? node['req'] : null;
     final worker = this.worker;
-    if (worker != null && req is Map<String, dynamic>) {
-      // A request just written: the stand-in PC answers a moment later.
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-      final body = req['body'];
-      yield RtdbPut(
-        '/result',
-        worker(
-          req['kind']! as String,
-          body is Map<String, dynamic> ? body : const {},
-        ),
-      );
+    if (worker != null && path == Paths.requests) {
+      // The shared `requests` listen: the stand-in PC answers each request
+      // (written under its rid) a moment after it lands, for as long as the
+      // listen stays open.
+      final answered = <String>{};
+      while (true) {
+        final all = getAt(root(), path);
+        final rids = all is Map<String, dynamic>
+            ? all
+            : const <String, dynamic>{};
+        for (final e in rids.entries) {
+          final node = e.value;
+          if (node is! Map<String, dynamic> || !answered.add(e.key)) continue;
+          final req = node['req'];
+          if (req is! Map<String, dynamic> || node['result'] != null) continue;
+          await Future<void>.delayed(const Duration(milliseconds: 400));
+          final body = req['body'];
+          yield RtdbPut(
+            '/${e.key}/result',
+            worker(
+              req['kind']! as String,
+              body is Map<String, dynamic> ? body : const {},
+            ),
+          );
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
     }
     if (path == Paths.workers) {
       await Future<void>.delayed(const Duration(milliseconds: 300));

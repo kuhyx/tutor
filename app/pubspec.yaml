@@ -18,12 +18,16 @@ dependencies:
       url: https://github.com/kuhyx/utils
       ref: crdt_sync_dart-v0.12.1
       path: crdt_sync_dart
+  # Chunked screenshot upload: sha256 of the decoded bytes (focus_evidence).
+  crypto: 3.0.8
   # The shared palette, spacing and type scale. No local theme to drift from.
   design_system:
     git:
       url: https://github.com/kuhyx/utils
       ref: design_system-v0.3.1
       path: design_system
+  # The rules screenshot of an interview project (Android picker / web input).
+  file_picker: 13.3.3
   flutter:
     sdk: flutter
   flutter_localizations:

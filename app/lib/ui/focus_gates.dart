@@ -1,6 +1,7 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/focus/focus_models.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/widgets/content_text.dart';
 
 /// `mm:ss` of [d].
@@ -79,3 +80,49 @@ Widget numberField(
   decoration: InputDecoration(labelText: label),
   onChanged: onChanged,
 );
+
+/// The form rows that choose the gates to turn off and the linked subjects.
+List<Widget> gateAndSubjectRows(
+  BuildContext context,
+  FocusStatus status, {
+  required Set<String> off,
+  required Set<String> linked,
+  required VoidCallback changed,
+}) {
+  final l = AppLocalizations.of(context);
+  final text = Theme.of(context).textTheme;
+  return [
+    Text(l.gatesOff, style: text.titleSmall),
+    for (final g in status.gates)
+      CheckboxListTile(
+        dense: true,
+        value: off.contains(g.id),
+        onChanged: g.replaceable
+            ? (v) {
+                (v ?? false) ? off.add(g.id) : off.remove(g.id);
+                changed();
+              }
+            : null,
+        title: ContentText(g.label),
+        subtitle: g.replaceable ? null : Text(l.gateKept),
+      ),
+    if (status.subjects.isNotEmpty) ...[
+      const SizedBox(height: AppSpacing.sm),
+      Text(l.subjects, style: text.titleSmall),
+      Wrap(
+        spacing: AppSpacing.sm,
+        children: [
+          for (final s in status.subjects)
+            FilterChip(
+              label: ContentText(s.title),
+              selected: linked.contains(s.id),
+              onSelected: (v) {
+                v ? linked.add(s.id) : linked.remove(s.id);
+                changed();
+              },
+            ),
+        ],
+      ),
+    ],
+  ];
+}

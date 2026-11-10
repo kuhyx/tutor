@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 
@@ -24,6 +24,11 @@ class FakeProject:
     ended_on: date | None = None
     created_ms: int = 0
     work_url: str = ""
+    kind: str = "focus"
+    test_at: datetime | None = None
+    invite_url: str = ""
+    trips: tuple[Any, ...] = ()
+    weekend_answers: tuple[tuple[date, bool], ...] = ()
 
     @property
     def last_day(self) -> date:

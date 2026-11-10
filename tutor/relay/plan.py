@@ -52,6 +52,11 @@ def _steps(raw: dict[str, Json]) -> list[dict[str, Json]]:
     return [s for s in ok if s.get("kind") in KINDS]
 
 
+def has_steps(day: str) -> bool:
+    """Whether a plan with at least one valid step was written for ``day``."""
+    return bool(_steps(_read(day)))
+
+
 def _write(day: str, raw: dict[str, Json]) -> None:
     target = _path(day)
     tmp = target.with_suffix(".tmp")

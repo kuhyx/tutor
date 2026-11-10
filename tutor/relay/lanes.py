@@ -23,6 +23,8 @@ from tutor.relay.protocol import CHAT, validate
 from tutor.relay.rtdb import SERVER_TIME, RtdbError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from tutor.relay.context import Wiring
     from tutor.relay.curriculum_sync import CurriculumSync
     from tutor.relay.protocol import Request
@@ -35,9 +37,14 @@ Outcome = tuple[dict[str, Any], set[str]]  # result, sessions to re-publish
 class Server:
     """Serves requests; ``current`` names the rid each lane is busy with."""
 
-    def __init__(self, wiring: Wiring, curriculum: CurriculumSync) -> None:
-        """Bind the worker's collaborators."""
-        self.w, self.curriculum = wiring, curriculum
+    def __init__(
+        self,
+        wiring: Wiring,
+        curriculum: CurriculumSync,
+        poke: Callable[[], None] | None = None,
+    ) -> None:
+        """Bind the worker's collaborators; ``poke`` runs after each served request."""
+        self.w, self.curriculum, self.poke = wiring, curriculum, poke
         self.current: dict[str, str | None] = {"chat": None, "build": None}
         # Sessions whose ``meta/busy`` may still show: a clear that failed, or
         # (seeded at startup) one a previous process left behind.
@@ -62,6 +69,8 @@ class Server:
             else:
                 self.stale_busy.add(claim.busy_session)
         await self._put_result(rid, result)
+        if self.poke is not None:
+            self.poke()
         return result
 
     async def sweep_busy(self) -> None:

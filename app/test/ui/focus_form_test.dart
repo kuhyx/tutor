@@ -36,6 +36,7 @@ const FocusProject _edited = (
   workUrl: 'https://a.com/start',
   minutes: 10,
   unbackedMinutes: 0,
+  interview: null,
 );
 
 void main() {
@@ -190,6 +191,7 @@ void main() {
       workUrl: '',
       minutes: 0,
       unbackedMinutes: 0,
+      interview: null,
     );
     await pumpScreen(
       t,

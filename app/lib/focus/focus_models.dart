@@ -1,7 +1,9 @@
+import 'package:tutor/focus/interview_models.dart';
 import 'package:tutor/model/json.dart';
 
 /// A focus project; `minutes` is today's count and `unbackedMinutes` the
-/// timer time no beat backs, so it is not counted (active project only).
+/// timer time no beat backs, so it is not counted (active project only);
+/// `interview` is set for an interview project (kind `interview`) only.
 typedef FocusProject = ({
   String id,
   String name,
@@ -16,6 +18,7 @@ typedef FocusProject = ({
   String workUrl,
   int minutes,
   int unbackedMinutes,
+  InterviewState? interview,
 });
 
 /// A gate from the earner registry; `replaceable: false` is always kept.
@@ -47,6 +50,25 @@ FocusProject _project(Json j) => (
   workUrl: strOr(j, 'work_url') ?? '',
   minutes: intOr(j, 'minutes') ?? 0,
   unbackedMinutes: intOr(j, 'unbacked_minutes') ?? 0,
+  interview: parseInterview(j),
+);
+
+/// [p] with its interview part replaced (a milestone block redrawn).
+FocusProject withInterview(FocusProject p, InterviewState interview) => (
+  id: p.id,
+  name: p.name,
+  start: p.start,
+  end: p.end,
+  daysLeft: p.daysLeft,
+  replaces: p.replaces,
+  dailyMinutes: p.dailyMinutes,
+  unlockMinutes: p.unlockMinutes,
+  subjects: p.subjects,
+  sitePatterns: p.sitePatterns,
+  workUrl: p.workUrl,
+  minutes: p.minutes,
+  unbackedMinutes: p.unbackedMinutes,
+  interview: interview,
 );
 
 /// Parses the result `data` of `focus_status`.
@@ -70,6 +92,15 @@ FocusStatus parseStatus(Json j) {
     }),
   );
 }
+
+/// [s] with the active project's interview part replaced.
+FocusStatus statusWithInterview(FocusStatus s, InterviewState interview) => (
+  day: s.day,
+  active: withInterview(s.active!, interview),
+  projects: s.projects,
+  gates: s.gates,
+  subjects: s.subjects,
+);
 
 /// Labels of the gates the active project turns off, or of those it keeps.
 List<String> gateLabels(FocusStatus s, {required bool off}) => [

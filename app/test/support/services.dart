@@ -13,6 +13,7 @@ import 'package:tutor/history/history.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/log/event_log.dart';
+import 'package:tutor/presence/client_beacon.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
@@ -75,6 +76,7 @@ TutorServices services(
     stream: stream,
     relay: relay,
     presence: PresenceWatcher(stream),
+    beacon: ClientBeacon(client: client, dev: testDev, platform: 'android'),
     rev: RevWatcher(stream, yieldTo: relay.inFlight),
     events: events,
     home: HomeLoader(client: client, kv: store, events: events),

@@ -86,6 +86,15 @@ enum RequestKind {
   /// End a focus project early.
   focusEnd('focus_end', Lane.chat),
 
+  /// Interview milestone evidence (DOCS-contract-focus.md).
+  focusEvidence('focus_evidence', Lane.chat),
+
+  /// Announce an interview trip.
+  focusTrip('focus_trip', Lane.chat),
+
+  /// Answer one weekend's trip question.
+  focusWeekend('focus_weekend', Lane.chat),
+
   /// SQL practice: drills and topics.
   sqlList('sql_list', Lane.chat),
 

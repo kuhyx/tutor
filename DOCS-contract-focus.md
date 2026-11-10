@@ -92,3 +92,85 @@ unknown project. Not retried. Other codes as in `DOCS-contract.md` §4.
 ## Tutor credit
 A credited tutor turn on a subject listed in the active project's `subjects`
 also calls `fp.record_activity("tutor","heartbeat")` (no wire change).
+
+# Interview projects (focus_project 0.9.0, 2026-11-10)
+
+An `interview` project is a focus project with a test date. `focus_project`
+generates its milestones (never stored, never editable) and judges them from
+append-only evidence; the worker only translates. Every refusal (wrong
+evidence kind for a milestone, a trip that would shrink, a `True` weekend
+answer flipped to `False`, an unknown project) is a `focus_refused` result
+whose `error` is focus_project's own text: show it, never swallow it. A
+registry that cannot be read is `worker_error` with `retry:true`.
+Milestone ids: `rules`, `trip_ask:<sat>`, `phone:<trip_start>`, `mock`, `slot`
+(`<sat>`, `<trip_start>` are `YYYY-MM-DD`). States: `pending`, `done`,
+`missed`, `late_done`, `unknown`; red = `missed` or `unknown`.
+
+## `focus_create` (extended)
+Same body as above plus optional `kind` (`"focus"` default | `"interview"`),
+`test_at` (naive PC-local `YYYY-MM-DDTHH:MM[:SS]`), `invite_url` (http/s or
+`""`), `trips` (`[{"start","end"}]` days, inclusive, <= 20) and `no_trip`
+(bool). For `interview`: `test_at` is required; `end` must equal the test day;
+`daily_minutes >= 30` and `unlock_minutes <= daily_minutes` are still sent (the
+real targets are 30 on weekdays, 120 Sat/Sun, unlock clamped to the day);
+send `trips` non-empty XOR `no_trip:true` (RTDB drops `[]`, so `no_trip` is the
+explicit "none"), else `bad_request`. For `focus` the interview fields must be
+absent (`bad_request`). A weekend a given trip covers is answered `true` at
+creation; others are asked on their Thursday. Result `{"id"}`.
+
+## `focus_status` (extended)
+Every project row gains `kind`. An interview row also has `test_at`
+(`YYYY-MM-DDTHH:MM:SS`), `invite_url`, `trips` `[{"start","end"}]` and
+`weekend_answers` `{"YYYY-MM-DD": bool}`. `active` additionally has
+`milestones` `[{"id","due":"YYYY-MM-DDTHH:MM:SS","state"}]` (earliest due
+first) and `missed` (bool, any red; `[]`/`false` for a focus project), and for
+an interview its `daily_minutes`/`unlock_minutes` are today's real targets.
+
+## `focus_evidence`
+`{"id":project,"milestone","kind","value"?,"upload"?,"chunks"?,"sha256"?,"mime"?}`
+
+| milestone | kind | value |
+|---|---|---|
+| `rules` | `file` | none; the image comes via `upload` (below) |
+| `phone:<trip_start>` | `tap` ("offline ok") | none |
+| `mock` | `score` | number >= 0 |
+| `slot` | `slot` | naive local datetime text `YYYY-MM-DDTHH:MM` |
+| `slot` | `slot_confirm` ("no other duties") | `true` |
+
+`slot` is done once a `slot_confirm` follows the latest `slot`. Result: the
+milestone block after the change, `{"milestones":[...],"missed":bool,"trips":
+[...],"weekend_answers":{...}}`, so the screen can redraw from it.
+
+### `file`: the screenshot is chunked, never inline
+`requests/` is mirrored whole and kept a day, so an image never rides in a
+request (40 KB cap). Write base64 text chunks first:
+`uploads/{ulid}/c0001 .. cNNNN` (keys zero-padded, `cNNNN` not bare numbers;
+each chunk 1..262144 chars; at most 16 chunks; ULID = the upload id, e.g. a
+fresh rid), then send `focus_evidence` with `upload` (that ULID), `chunks`
+(count), `sha256` (lowercase hex of the decoded bytes) and `mime`
+(`image/png` | `image/jpeg` | `image/webp`). The worker checks the sha256 and
+the file's magic bytes against `mime` (`bad_request` otherwise; downscale a
+phone screenshot to stay under ~3 MB), hands the file to focus_project, and
+always deletes `uploads/{ulid}`. Write the chunks before the request.
+
+## `focus_trip` and `focus_weekend`
+- `focus_trip` `{"id","start","end"}`: announce a trip (inclusive days). It
+  may only grow: a range touching an old trip must cover it, or `focus_refused`.
+  The worker answers every unanswered or `false` weekend the range covers
+  `true`. Result: the milestone block above.
+- `focus_weekend` `{"id","saturday","trip":bool}`: answer one weekend's trip
+  question (`saturday` is a Saturday inside the project before the test day).
+  `true` never flips back; `false` on a weekend an announced trip covers is
+  refused. Result: the milestone block above.
+
+## Phone-prep check (worker, no request)
+The `phone:*` milestone needs the offline tap plus a passing auto check. The
+worker appends `phone_check` evidence `{plan, due, seen_ms}` for the active
+interview project every 5 min and soon (<= 1 per minute) after any served
+request, at most one row per 30 min unless the verdict inputs changed, then
+runs `run_checks`. `plan` = today's plan file has a step; `due` = reviews due
+over the project's `subjects`; `seen_ms` = the newest `seen` over
+`presence/clients/*` with `platform:"android"` (0 + a warning when unreadable
+or no phone: the check fails). **The Android app must write
+`presence/clients/{dev}` = `{"platform":"android","app":v,"seen":{".sv":"timestamp"}}`
+on start and resume**, else the check can never pass.
