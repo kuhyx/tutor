@@ -18,6 +18,7 @@ import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/blocked.dart';
 import 'package:tutor/relay/error_text.dart';
+import 'package:tutor/relay/relay_kinds.dart';
 import 'package:tutor/relay/request_hub.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -89,10 +90,10 @@ class RelayFailed extends RelayStatus {
   const new({
     required this.code,
     required this.text,
+    this.kind,
     this.retry = false,
     this.unavailable,
     this.blocked,
-    this.reason,
   });
 
   /// Error code.
@@ -102,10 +103,10 @@ class RelayFailed extends RelayStatus {
   /// what fixes it (a call to action, not an error).
   final Blocked? blocked;
 
-  /// Machine-readable detail beside the code (`paste_statement`).
-  final String? reason;
+  /// The case, drawn as a glyph (DOCS-relay-kinds.md); null = unknown code.
+  final String? kind;
 
-  /// Text for kuhy.
+  /// The app's own sentence for the case: spoken only, never the worker's.
   final String text;
 
   /// The worker suggests retrying.
@@ -122,15 +123,17 @@ RelayStatus statusOf(Object? node) {
   if (result != null) {
     final r = RequestResult.fromJson(result);
     if (r.ok) return RelayDone(r.data);
-    // The worker's text would name the subject id; ours names its title.
+    // The worker's `error` is never shown or spoken (logs, old builds):
+    // the kind picks the glyph, the app's own sentence is the label.
     final blocked = blockedCodes.contains(r.code)
         ? Blocked.fromResult(result)
         : null;
+    final kind = kindOfResult(result);
     return RelayFailed(
       code: r.code,
-      text: blocked?.text() ?? errorText(r.code, r.error),
+      kind: kind,
+      text: blocked?.text() ?? kindText(kind, r.code),
       blocked: blocked,
-      reason: strOr(result, 'reason'),
       retry: r.retry,
       unavailable: r.code == claudeUnavailable
           ? Unavailable.fromError(result)
@@ -210,10 +213,10 @@ class RequestRelay {
       RelayStatus status;
       try {
         status = statusOf(node);
-      } on FormatException catch (error) {
+      } on FormatException {
         // RTDB content is untrusted: a malformed claim/result ends the
         // follow loudly instead of spinning on "queued" forever.
-        status = RelayFailed(code: null, text: 'Unreadable reply: $error');
+        status = const RelayFailed(code: null, text: unreadableText);
       }
       final key = _describe(status);
       if (key != last) {

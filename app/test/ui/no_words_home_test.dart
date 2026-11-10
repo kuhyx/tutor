@@ -63,13 +63,18 @@ void main() {
 
     test('a block is calm and shows what fixes it', () {
       final cue = relayCue(
-        const RelayFailed(code: dailyNewCap, text: 'x', blocked: _blockedCap),
+        const RelayFailed(
+          code: dailyNewCap,
+          kind: 'blocked_cap',
+          text: 'x',
+          blocked: _blockedCap,
+        ),
       );
       expect(cue?.kind, CueKind.blocked);
       expect(cue?.icon, Icons.add_circle_outline);
-      expect(blockedIcon(_locked), Icons.replay);
-      expect(blockedIcon(_noCard), Icons.schedule);
-      expect(blockedIcon(const Blocked(code: lockedCode)), Icons.lock_outline);
+      expect(kindIcon('blocked_locked_review'), Icons.replay);
+      expect(kindIcon('blocked_no_card_due'), Icons.schedule);
+      expect(kindIcon('blocked_locked'), Icons.lock_outline);
     });
   });
 

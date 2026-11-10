@@ -40,8 +40,8 @@ void main() {
     // Was the app's one coverage gap (no test built a lift_cap start).
     expect(RequestBody.sessionStart(liftCap: true).body['lift_cap'], isTrue);
     expect(
-      errorText('session_live', 'stop the current session first'),
-      'Another session is live. stop the current session first',
+      kindText('err_session_live', 'session_live'),
+      'Another session is live.',
     );
   });
 

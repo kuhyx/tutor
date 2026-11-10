@@ -10,6 +10,7 @@ import 'package:tutor/model/request.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/trace.dart';
 import 'package:tutor/relay/error_text.dart';
+import 'package:tutor/ui/relay_cue.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/spoken_label.dart';
@@ -41,14 +42,6 @@ IconData _icon(String name) => switch (name) {
   'WebFetch' => Icons.public,
   'Bash' => Icons.terminal,
   _ => Icons.build_outlined,
-};
-
-IconData _phaseIcon(Phase phase) => switch (phase) {
-  Phase.claimed => Icons.inbox_outlined,
-  Phase.thinking => Icons.psychology_outlined,
-  Phase.images => Icons.image_search,
-  Phase.checkingImages => Icons.fact_check_outlined,
-  Phase.publishing => Icons.publish,
 };
 
 /// A collapsible trace; folded by default.
@@ -191,7 +184,7 @@ class LiveTrace extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Icon(researching ? Icons.search : _phaseIcon(phase)),
+              Icon(researching ? Icons.search : phaseIcon(phase)),
             ],
           ),
         ),

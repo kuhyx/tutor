@@ -53,6 +53,7 @@ class CueChip extends StatefulWidget {
     required this.kind,
     required this.semanticLabel,
     this.icon,
+    this.spin = false,
     this.trailing = const [],
     super.key,
   });
@@ -65,6 +66,9 @@ class CueChip extends StatefulWidget {
 
   /// Glyph override (a block's call to action).
   final IconData? icon;
+
+  /// A spinner beside [icon] (a claimed request's phase).
+  final bool spin;
 
   /// Controls after the glyph (retry, dismiss), each icon-only.
   final List<Widget> trailing;
@@ -108,12 +112,23 @@ class _CueChipState extends State<CueChip> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final color = cueColor(context, widget.kind);
-    final glyph = widget.kind == CueKind.pending && widget.icon == null
-        ? SizedBox.square(
-            dimension: AppSpacing.md + 2,
-            child: CircularProgressIndicator(strokeWidth: 2, color: color),
+    final spinner = SizedBox.square(
+      dimension: AppSpacing.md + 2,
+      child: CircularProgressIndicator(strokeWidth: 2, color: color),
+    );
+    final icon = widget.icon;
+    final glyph = widget.kind == CueKind.pending && icon == null
+        ? spinner
+        : widget.spin
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              spinner,
+              const SizedBox(width: AppSpacing.sm),
+              Icon(icon, color: color),
+            ],
           )
-        : Icon(widget.icon ?? cueIcon(widget.kind), color: color);
+        : Icon(icon ?? cueIcon(widget.kind), color: color);
     final chip = Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(

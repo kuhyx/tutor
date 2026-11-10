@@ -19,6 +19,8 @@ Exit 0 = PASS.
 * F7 the desktop Focus screen (``e2e_focus.py``): one call.
 * F8 the focus deep link ``#/focus?start=1`` (``e2e_focus.py``): one call.
 * F9, F10 the focus check-in card (``e2e_checkin.py``): one call each.
+* F12 a forced ``no_card_left`` drawn by its result ``kind``
+  (``e2e_blocked.py``, sandbox ``up --nocard due|review``): one call.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -38,6 +40,7 @@ import sys
 import time
 from typing import TYPE_CHECKING
 
+from e2e_blocked import f12
 from e2e_carry import f6_again, f6_check
 from e2e_cdp import Browser, CdpError
 from e2e_checkin import f9, f10
@@ -109,13 +112,14 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11"]
+FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
     "F9": f9,
     "F10": f10,
     "F11": f11,
+    "F12": f12,
 }
 
 

@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from tutor.relay.kinds import kind_of_node
+
 BAD_REQUEST: Final = "bad_request"
 LOCKED: Final = "locked"
 DAILY_NEW_CAP: Final = "daily_new_cap"
@@ -69,4 +71,5 @@ class RequestError(ValueError):
             "code": self.code,
             "error": self.message,
             "retry": False,
+            "kind": kind_of_node(self.code, self.extra),
         }

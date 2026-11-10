@@ -189,6 +189,7 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                   ? BlockedPanel(
                       services: _s,
                       blocked: st.blocked!,
+                      kind: st.kind,
                       text: st.text,
                       subject: subject,
                       lastBody: _runner.lastBody,

@@ -1,0 +1,91 @@
+{
+  "cases": [
+    {
+      "code": "bad_request",
+      "kind": "err_bad_request"
+    },
+    {
+      "code": "bad_request",
+      "reason": "paste_statement",
+      "kind": "refused_paste_statement"
+    },
+    {
+      "code": "not_live",
+      "kind": "err_not_live"
+    },
+    {
+      "code": "session_live",
+      "kind": "err_session_live"
+    },
+    {
+      "code": "locked",
+      "kind": "blocked_locked"
+    },
+    {
+      "code": "locked",
+      "next": "review_module",
+      "kind": "blocked_locked_review"
+    },
+    {
+      "code": "daily_new_cap",
+      "kind": "blocked_cap"
+    },
+    {
+      "code": "no_card_left",
+      "kind": "blocked_no_card_none"
+    },
+    {
+      "code": "no_card_left",
+      "next": "review_module",
+      "kind": "blocked_no_card_review"
+    },
+    {
+      "code": "no_card_left",
+      "next": "reviews_due",
+      "kind": "blocked_no_card_due"
+    },
+    {
+      "code": "unknown_card",
+      "kind": "err_unknown_card"
+    },
+    {
+      "code": "plan_conflict",
+      "kind": "err_plan_conflict"
+    },
+    {
+      "code": "edit_refused",
+      "kind": "err_edit_refused"
+    },
+    {
+      "code": "focus_refused",
+      "kind": "err_focus_refused"
+    },
+    {
+      "code": "model_error",
+      "kind": "err_model"
+    },
+    {
+      "code": "claude_unavailable",
+      "kind": "outage_claude"
+    },
+    {
+      "code": "unknown_prompt",
+      "kind": "err_unknown_prompt"
+    },
+    {
+      "code": "gave_up",
+      "kind": "err_gave_up"
+    },
+    {
+      "code": "worker_error",
+      "kind": "err_worker"
+    }
+  ],
+  "phases": [
+    "claimed",
+    "thinking",
+    "images",
+    "checking_images",
+    "publishing"
+  ]
+}

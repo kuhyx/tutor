@@ -1,7 +1,9 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Request failures as the contract's error codes (``DOCS-contract.md`` §4).
 
-The ``error`` text is shown to kuhy; tracebacks stay in the worker log.
+The app draws a failure from its ``kind`` (``tutor.relay.kinds``); the
+``error`` text stays on the wire for logs and old app builds. Tracebacks
+stay in the worker log.
 ``retry`` tells the client the same request may succeed if sent again as a
 NEW rid (same ``sent_at``): the done-map answers a resent rid with the
 recorded result forever, so a retry is never the same rid.
@@ -19,6 +21,7 @@ from claude_agent_sdk import ClaudeSDKError
 
 from tutor import codes
 from tutor.outage import ClaudeUnavailableError
+from tutor.relay.kinds import kind_of_node
 from tutor.session import SessionError
 
 # The contract's codes: the vocabulary lives in ``tutor.codes`` (§4a).
@@ -52,6 +55,11 @@ class RequestError(Exception):
         self.message = message
         self.retry = retry
         self.extra = extra or {}
+
+    @property
+    def kind(self) -> str:
+        """The result's ``kind`` (``DOCS-relay-kinds.md``)."""
+        return kind_of_node(self.code, self.extra)
 
 
 def _coded(err: BaseException) -> RequestError | None:
@@ -101,4 +109,5 @@ def result_of(err: RequestError) -> dict[str, object]:
         "error": err.message,
         "error_kind": codes.kind_of(err.code, extra.get("reason")),
         "retry": err.retry,
+        "kind": err.kind,
     }

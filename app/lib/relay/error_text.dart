@@ -1,12 +1,10 @@
-/// User-facing text for request error codes (DOCS-contract §4).
-///
-/// The worker's `error` string is shown to kuhy as the detail; this adds a
-/// plain headline per code so an unknown or empty `error` still reads well.
-/// Tracebacks never reach the client.
+/// The app's own sentences for request failures (DOCS-contract §4,
+/// DOCS-relay-kinds.md): spoken labels only (textgate), one per kind. The
+/// worker's `error` string is never shown or spoken.
 library;
 
 import 'package:tutor/model/request.dart';
-import 'package:tutor/relay/blocked.dart';
+import 'package:tutor/relay/relay_kinds.dart';
 
 /// The error code that sends the app to the model-free drill.
 const claudeUnavailable = 'claude_unavailable';
@@ -28,6 +26,14 @@ const Map<String, String> _headlines = {
   'worker_error': 'Something broke on the PC.',
 };
 
+/// Sentences for kinds that split a code (the rest speak their code's).
+const Map<String, String> _kindSentences = {
+  refusedPasteStatement: 'This problem has no public statement; paste it.',
+};
+
+/// A claim or result the app could not parse.
+const unreadableText = 'The reply from the PC could not be read.';
+
 /// Network failure while sending (the request may not have arrived).
 const offlineText = 'Not sent: no connection. Retry sends the same request.';
 
@@ -42,14 +48,9 @@ const pcOfflineText = 'PC offline: replies wait; reviews still work';
 String headlineFor(String? code) =>
     _headlines[code] ?? 'The request failed${code == null ? '' : ' ($code)'}.';
 
-/// Headline plus the worker's [error] detail when it adds something.
-String errorText(String? code, String? error) {
-  final headline = headlineFor(code);
-  // A blocking code's detail names the subject id and repeats the headline:
-  // never shown (the app's own line comes from blocked.dart).
-  final detail = blockedCodes.contains(code) ? '' : error?.trim() ?? '';
-  return detail.isEmpty ? headline : '$headline $detail';
-}
+/// The spoken sentence of [kind] (else of [code]): fixed, from the app.
+String kindText(String? kind, String? code) =>
+    _kindSentences[kind] ?? headlineFor(code);
 
 /// What the worker is doing, as the busy line shows it (§4 phases).
 String phaseText(Phase phase) => switch (phase) {
@@ -58,4 +59,5 @@ String phaseText(Phase phase) => switch (phase) {
   Phase.images => 'Finding pictures...',
   Phase.checkingImages => 'Checking the pictures...',
   Phase.publishing => 'Publishing the reply...',
+  Phase.unknown => 'The PC is working on it...',
 };

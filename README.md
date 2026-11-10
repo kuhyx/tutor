@@ -107,6 +107,9 @@ scripts/e2e_sandbox.sh up                                       # F7: the deskto
 scripts/e2e_sandbox.sh flow F7   # project, no subjects -> Start -> notification click (no
                                    # check-in) -> "Still working" tap -> Stop; activity.jsonl
                                    # in <sandbox>/focus (never the live dir)
+scripts/e2e_sandbox.sh up --nocard due                        # F12: no card left (or `review`
+scripts/e2e_sandbox.sh flow F12  # with E2E_SUBJECT=how-a-car-works): result `kind` +
+                                   # `error` + `next`; the app speaks its own line (DOCS-relay-kinds.md)
 scripts/e2e_sandbox.sh flow F9   # fresh `up` each: check-in card at 421 s, rated -> tutor/heartbeat
 scripts/e2e_sandbox.sh flow F10  # card rated at 650 s (lapsed) -> start, start; still graded
 scripts/e2e_sandbox.sh down

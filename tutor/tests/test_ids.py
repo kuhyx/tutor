@@ -75,6 +75,7 @@ def test_request_error_codes() -> None:
         "code": "plan_conflict",
         "error": "reload",
         "retry": False,
+        "kind": "err_plan_conflict",
     }
     with pytest.raises(ValueError, match="unknown error code"):
         RequestError("nope", "x")

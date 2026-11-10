@@ -34,6 +34,7 @@ def test_an_outage_and_its_curriculum_cause_carry_the_times() -> None:
             "error": "Claude is unavailable (rate_limit) until 1234",
             "error_kind": "claude_limit",
             "retry": False,
+            "kind": "outage_claude",
         }
     gone = classify(PromptGoneError("gone"))
     assert (gone.code, gone.retry, gone.extra) == ("unknown_prompt", False, {})

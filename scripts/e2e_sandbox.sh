@@ -11,9 +11,10 @@
 #                                    # fresh sandbox; N forces the daily limit,
 #                                    # --as-of rewinds the copy (e2e_prepare.py)
 #        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
+#        [--nocard due|review]      # F12: no card left (reviews due / module review)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1..F11 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1..F12 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -139,12 +140,13 @@ start_server() {
 cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
-    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry=""
+    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard=""
     local -a pass=()
     while (($#)); do
         case "$1" in
             --struggle) struggle=1 ;;
             --carry) carry="${2:?--carry N}"; shift ;;
+            --nocard) nocard="${2:?--nocard due|review}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
         esac
@@ -160,6 +162,9 @@ cmd_up() {
     head -c 32 /dev/urandom | base64 > "$sandbox/test.key"
     dev="$("$PY" "$ROOT/scripts/e2e_prepare.py" "$SRC_DATA" "$sandbox/data" "${pass[@]}")"
     ((struggle)) && "$PY" "$ROOT/scripts/e2e_seed.py" struggle "$sandbox/data" --subject "$SUBJECT"
+    if [[ -n "$nocard" ]]; then  # F12: no card left to teach
+        "$PY" "$ROOT/scripts/e2e_seed.py" nocard "$sandbox/data" --subject "$SUBJECT" --next "$nocard"
+    fi
     if [[ -n "$carry" ]]; then  # the day before the worker's today
         "$PY" "$ROOT/scripts/e2e_seed.py" carry "$sandbox/data" --key "$sandbox/test.key" \
             --minutes "$carry" --day "$(date -d "$(date -d "${clock:-now}" +%F) -1 day" +%F)"
@@ -189,7 +194,7 @@ cmd_restart() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F11}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F12}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
@@ -209,7 +214,7 @@ main() {
         restart) cmd_restart ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] | restart | flow F1..F11 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] | restart | flow F1..F12 [send|wait|check|again] | down" ;;
     esac
 }
 

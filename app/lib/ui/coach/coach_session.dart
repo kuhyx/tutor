@@ -12,6 +12,7 @@ import 'package:tutor/coach/coach_drafts.dart';
 import 'package:tutor/coach/coach_models.dart';
 import 'package:tutor/coach/coach_requests.dart';
 import 'package:tutor/model/request_body.dart';
+import 'package:tutor/relay/relay_kinds.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/sql/lesson_models.dart';
@@ -82,7 +83,7 @@ class CoachSession extends ChangeNotifier {
 
   void _onOpenStatus() {
     final s = opener.status.value;
-    if (s is RelayFailed && s.reason == 'paste_statement') {
+    if (s is RelayFailed && s.kind == refusedPasteStatement) {
       needsStatement = true;
       notifyListeners();
     }

@@ -71,6 +71,7 @@ seeder once to give the tutor its own refresh token.
   `plan_edit`, `plan_approve`, `subject_finish`, `module_pregenerate`,
   `card_edit`. Blocking: call via `asyncio.to_thread`. Refusals raise
   `RequestError(code, message)` (`.result(at)` = the `result` node).
+- A failed `result` also carries `kind`, see `DOCS-relay-kinds.md`.
 - `fold_and_advance(ctx) -> {"changed":[subj],"generate":[[subj,module]]}`
   after every log change and before each request; then
   `generate(ctx, subj, module)` per pending module on the build lane

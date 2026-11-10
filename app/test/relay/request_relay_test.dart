@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:tutor/model/request.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/relay/error_text.dart';
+import 'package:tutor/relay/relay_kinds.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_event.dart';
@@ -122,10 +123,9 @@ void main() {
       expect(puts.single.url.path, contains(pending.rid));
       final failed = statuses.single as RelayFailed;
       expect(failed.code, 'not_live');
-      expect(
-        failed.text,
-        'That session is no longer live. session is not live',
-      );
+      // The app's own sentence; the worker's `error` is never spoken.
+      expect(failed.text, 'That session is no longer live.');
+      expect(failed.kind, 'err_not_live');
       expect(failed.retry, isFalse);
     },
   );
@@ -140,18 +140,16 @@ void main() {
     final rid = puts.single.url.pathSegments[3];
     feed(rid, const RtdbPut('/result', {'ok': 1}));
     await done;
-    expect(
-      (statuses.single as RelayFailed).text,
-      startsWith('Unreadable reply'),
-    );
+    expect((statuses.single as RelayFailed).text, unreadableText);
+    expect((statuses.single as RelayFailed).kind, isNull);
   });
 
-  test('a failed result keeps the worker reason', () {
+  test('a failed result folds the worker reason into its kind', () {
     RelayFailed failed(Map<String, Object?> extra) => statusOf({
       'result': {'ok': false, 'at': 1, 'code': 'bad_request', ...extra},
     }) as RelayFailed;
-    expect(failed({'reason': 'paste_statement'}).reason, 'paste_statement');
-    expect(failed({}).reason, isNull);
+    expect(failed({'reason': 'paste_statement'}).kind, refusedPasteStatement);
+    expect(failed({}).kind, 'err_bad_request');
   });
 
   test('statusOf on an empty node is queued; default clock', () {
@@ -166,10 +164,9 @@ void main() {
   });
 
   test('error texts', () {
-    expect(errorText('daily_new_cap', null), contains('limit of new cards'));
-    // A blocking code never repeats the worker's text after the headline.
-    expect(errorText('locked', 'card x locked'), isNot(contains('card x')));
-    expect(errorText('weird', '  '), 'The request failed (weird).');
+    expect(kindText(null, 'daily_new_cap'), contains('limit of new cards'));
+    expect(kindText(refusedPasteStatement, 'bad_request'), contains('paste'));
+    expect(kindText('err_new', 'weird'), 'The request failed (weird).');
     expect(headlineFor(null), 'The request failed.');
     expect(pcOfflineText, startsWith('PC offline'));
   });

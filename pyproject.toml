@@ -73,6 +73,7 @@ ignore = [
 "scripts/e2e_drive.py" = ["T201", "S310"]
 "scripts/e2e_flow.py" = ["T201", "S310"]
 "scripts/e2e_follow_up.py" = ["T201"]
+"scripts/e2e_blocked.py" = ["T201"]
 "scripts/e2e_prepare.py" = ["T201"]
 "scripts/e2e_server.py" = ["T201"]
 "scripts/e2e_cdp.py" = ["PLW1509"]

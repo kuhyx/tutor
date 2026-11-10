@@ -159,7 +159,11 @@ enum Phase {
   checkingImages('checking_images'),
 
   /// Writing the projection.
-  publishing;
+  publishing,
+
+  /// A phase this build does not know (a newer worker): drawn as the
+  /// generic working glyph, never an error.
+  unknown;
 
   new([this._wire]);
   final String? _wire;
@@ -167,8 +171,9 @@ enum Phase {
   /// Name on the wire.
   String get wire => _wire ?? name;
 
-  /// Parses a wire name.
-  static Phase parse(String s) => byWire(values, s, (p) => p.wire);
+  /// Parses a wire name; an unknown one is [unknown], never a throw.
+  static Phase parse(String s) =>
+      values.where((p) => p != unknown && p.wire == s).firstOrNull ?? unknown;
 }
 
 /// `req`: written once by the client; a retry re-PUTs it unchanged.

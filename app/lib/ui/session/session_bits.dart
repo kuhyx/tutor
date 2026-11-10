@@ -125,6 +125,7 @@ class NotLiveStatus extends StatelessWidget {
           BlockedPanel(
             services: services,
             blocked: s.blocked!,
+            kind: s.kind,
             text: s.text,
             subject: subject,
             lastBody: runner.lastBody,

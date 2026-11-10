@@ -81,6 +81,7 @@ class RequestStatusLine extends StatelessWidget {
                 child: CueChip(
                   kind: cue.kind,
                   icon: cue.icon,
+                  spin: cue.spin,
                   semanticLabel: s is RelayQueued && queuedSpoken != null
                       ? queuedSpoken!
                       : cue.semanticLabel,
