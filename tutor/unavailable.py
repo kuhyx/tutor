@@ -75,6 +75,9 @@ def windows(root: Path | None = None) -> list[Window]:
         except ValueError, KeyError, TypeError:
             _logger.warning("unavailable.jsonl:%d unreadable, skipped", number)
             continue
+        if window.reason not in REASONS:  # the app has a glyph per reason
+            _logger.warning("unavailable.jsonl:%d unknown reason, skipped", number)
+            continue
         found.append(window)
     return sorted(found, key=lambda w: w.start)
 

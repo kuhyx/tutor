@@ -76,7 +76,13 @@ def test_generate_keeps_verified_cards(
     fakes.bad_excerpts.add("bad excerpt that is not on the page at all")
     fakes.replies.append(reply)
     result = cardgen.generate(ctx, "car", "a")
-    assert result == {"module": "a", "status": "ready", "cards": 3, "error": None}
+    assert result == {
+        "module": "a",
+        "status": "ready",
+        "cards": 3,
+        "error": None,
+        "error_kind": None,
+    }
     found = ctx.subjects.cards("car")
     assert [cid for cid in found if found[cid].module == "a"] == [
         "card-0",
@@ -107,6 +113,7 @@ def test_too_few_cards_fails_the_module(
     assert result["status"] == "failed"
     assert result["error"] == "only 2 card(s) passed the checks"
     assert _module(ctx).error == result["error"]
+    assert result["error_kind"] == _module(ctx).error_kind == "too_few_cards"
     assert cardgen.generate(ctx, "car", "a") == {"module": "a", "status": "failed"}
 
 
@@ -115,7 +122,9 @@ def test_model_failure_and_bad_answers(
 ) -> None:
     ctx, fakes, _ = gen
     fakes.replies.append(RequestError("model_error", "the model is down"))
-    assert cardgen.generate(ctx, "car", "a")["error"] == "the model is down"
+    down = cardgen.generate(ctx, "car", "a")
+    assert (down["error"], down["error_kind"]) == ("the model is down", "model_failed")
+    assert _module(ctx).error_kind == "model_failed"
     _reset(ctx)
     fakes.replies.append({"cards": "x"})
     assert cardgen.generate(ctx, "car", "a")["status"] == "failed"
@@ -135,6 +144,7 @@ def test_source_problem_fails_the_module(
     monkeypatch.setattr(cardgen, "_sources", lambda *_: "found 1 on-topic source")
     result = cardgen.generate(ctx, "car", "a")
     assert (result["status"], result["error"]) == ("failed", "found 1 on-topic source")
+    assert _module(ctx).error_kind == "sources_missing"
 
 
 def test_ready_on_existing_cards_clears_the_error(
@@ -151,6 +161,7 @@ def test_ready_on_existing_cards_clears_the_error(
     result = cardgen.generate(ctx, "car", "a")
     assert (result["status"], result["error"]) == ("ready", "found 1 on-topic source")
     assert (_module(ctx).status, _module(ctx).error) == ("ready", None)
+    assert _module(ctx).error_kind is None
 
 
 def test_prefixed_module_ids(gen: tuple[Context, Fakes, list[wiki.Source]]) -> None:

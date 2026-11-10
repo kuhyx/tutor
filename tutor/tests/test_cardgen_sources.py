@@ -63,7 +63,13 @@ def test_sources_pick_gate_and_settle(
         _verdicts([f"card-{i}" for i in range(5)], off=("card-1",)),
     ]
     result = cardgen.generate(ctx, "car", "a")
-    assert result == {"module": "a", "status": "ready", "cards": 4, "error": None}
+    assert result == {
+        "module": "a",
+        "status": "ready",
+        "cards": 4,
+        "error": None,
+        "error_kind": None,
+    }
     assert asked == [(["A", "Car", "Engine"], ["A", "A"])]
     pick = fakes.prompts[1][1]
     assert "Pinewood" not in pick  # the title fit dropped it before the model

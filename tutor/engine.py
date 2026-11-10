@@ -19,7 +19,7 @@ from tutor import follow_up, gating, media, research, resume, struggle, unit_cre
 from tutor.cardflow import CardFlow
 from tutor.curriculum.source import CardSource, source_for
 from tutor.delivery import DESKTOP, Delivery, learner_message
-from tutor.edit_flow import EditFlow
+from tutor.edit_flow import EditFlow, Notice
 from tutor.follow_up import FollowUpFlow
 from tutor.prompt import system_prompt, turn_prompt
 from tutor.session import TutorSession
@@ -115,7 +115,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         src: CardSource,
         card_id: str | None,
         device: str,
-        notices: Sequence[str] = (),
+        notices: Sequence[Notice] = (),
         *,
         struggling: bool = False,
     ) -> None:
@@ -212,8 +212,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         learner_text: str | None,
         msg_id: str = "",
         via: Delivery | None = None,
-        notices: Sequence[str] = (),
-    ) -> str:
+        notices: Sequence[Notice] = (),
+    ) -> Notice | None:
         """One model turn; returns the notice when it removed the live card."""
         session, conv = self._live()[:2]
         resume.reprime(conv, session.restarts)

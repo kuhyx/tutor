@@ -6,6 +6,9 @@ The ``error`` text is shown to kuhy; tracebacks stay in the worker log.
 NEW rid (same ``sent_at``): the done-map answers a resent rid with the
 recorded result forever, so a retry is never the same rid.
 ``claude_unavailable`` also carries ``reason`` and ``resets_at`` (unix s).
+Every failure also carries ``error_kind`` (``tutor.codes``), and a ``reason``
+outside ``codes.FAIL_REASON`` is sent as ``other``: the app paints a glyph per
+code, the sentence is only its spoken label.
 """
 
 from __future__ import annotations
@@ -14,28 +17,12 @@ from typing import Final
 
 from claude_agent_sdk import ClaudeSDKError
 
+from tutor import codes
 from tutor.outage import ClaudeUnavailableError
 from tutor.session import SessionError
 
-CODES: Final = frozenset(
-    {
-        "bad_request",
-        "not_live",
-        "session_live",
-        "locked",
-        "daily_new_cap",
-        "no_card_left",
-        "unknown_card",
-        "plan_conflict",
-        "edit_refused",
-        "focus_refused",
-        "model_error",
-        "claude_unavailable",
-        "unknown_prompt",
-        "gave_up",
-        "worker_error",
-    }
-)
+# The contract's codes: the vocabulary lives in ``tutor.codes`` (§4a).
+CODES: Final = codes.RELAY_CODE - {codes.OTHER}
 # Engine ValueError text -> code (gating.py / cardflow.py wording).
 _VALUE_CODES: Final = (
     ("locked until", "locked"),
@@ -104,10 +91,14 @@ def classify(err: BaseException) -> RequestError:
 
 def result_of(err: RequestError) -> dict[str, object]:
     """The ``result`` node of a failed request (``at`` added on write)."""
+    extra = dict(err.extra)
+    if "reason" in extra:
+        extra["reason"] = codes.closed(codes.FAIL_REASON, extra["reason"])
     return {
-        **err.extra,
+        **extra,
         "ok": False,
         "code": err.code,
         "error": err.message,
+        "error_kind": codes.kind_of(err.code, extra.get("reason")),
         "retry": err.retry,
     }

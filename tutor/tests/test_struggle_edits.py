@@ -30,10 +30,12 @@ def test_a_mnemonic_on_the_live_card_then_cleared(tmp_path: Path) -> None:
     aid = CardEdit("mnemonic", text="Thing one: the first thing.")
     done = edit_flow.apply_edits(ctx, "car", "a1", (aid,))
     assert done.notices == ["Mnemonic set: What is thing 1 of a?"]
+    assert done.notice_kinds == ["mnemonic_set"]
     assert ctx.subjects.cards("car")["a1"].mnemonic == "Thing one: the first thing."
     done = edit_flow.apply_edits(ctx, "car", "a1", (CardEdit("mnemonic", card="a1"),))
     assert done.notices == ["Mnemonic cleared: What is thing 1 of a?"]
-    assert done.removed_live == ""
+    assert done.notice_kinds == ["mnemonic_cleared"]
+    assert done.removed_live is None
 
 
 def test_splitting_the_live_card_leaves_it(tmp_path: Path) -> None:
@@ -42,7 +44,8 @@ def test_splitting_the_live_card_leaves_it(tmp_path: Path) -> None:
         ctx, "car", "a1", (CardEdit("split", card="a2", into=INTO),)
     )
     assert other.notices == ["Card split into 2: What is thing 2 of a?"]
-    assert other.removed_live == ""
+    assert other.notice_kinds == ["split"]
+    assert other.removed_live is None
     live = edit_flow.apply_edits(ctx, "car", "a1", (CardEdit("split", into=INTO[:1]),))
     assert live.refusals == ["split a1: a split makes 2-4 cards, not 1"]
     assert not ctx.subjects.cards("car")["a1"].suspended
@@ -70,3 +73,4 @@ def test_the_session_moves_on_to_the_first_half(
     assert engine.card.id == "what-kind-of-engine-has-a-piston"
     assert cards[engine.card.id].split_of == "c0"
     assert engine.messages[0]["notices"] == ["Card split into 2: What is thing 0 of a?"]
+    assert engine.messages[0]["notice_kinds"] == ["split"]

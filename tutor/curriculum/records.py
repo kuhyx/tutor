@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass, field, fields
 import json
 from typing import Any, Final
 
+from tutor import codes
 from tutor.curriculum.errors import BAD_REQUEST, RequestError
 from tutor.curriculum.ids import valid_id
 
@@ -81,6 +82,7 @@ class Meta:
     rev: int = 0
     origin: str = "generated"
     error: str | None = None
+    error_kind: str | None = None  # codes.ERROR_KIND, set with ``error``
 
     @classmethod
     def from_json(cls, raw: dict[str, Any]) -> Meta:
@@ -98,7 +100,14 @@ class Meta:
             rev=_int(raw, "rev"),
             origin=str(raw.get("origin", "generated")),
             error=e if isinstance(e := raw.get("error"), str) else None,
+            error_kind=_kind(raw),
         )
+
+
+def _kind(raw: dict[str, Any]) -> str | None:
+    """A record's ``error_kind``: None when absent (older records), closed."""
+    kind = raw.get("error_kind")
+    return None if kind is None else codes.closed(codes.ERROR_KIND, kind)
 
 
 @dataclass
@@ -115,6 +124,7 @@ class Module:
     recall: float = 0.0
     cards: int = 0
     error: str | None = None
+    error_kind: str | None = None  # codes.ERROR_KIND, set with ``error``
     pregenerated: bool = False  # cards drafted ahead, still locked for study
 
     @classmethod
@@ -149,6 +159,7 @@ class Module:
             module.cards = _int(raw, "cards")
             error = raw.get("error")
             module.error = error if isinstance(error, str) else None
+            module.error_kind = _kind(raw)
             module.pregenerated = raw.get("pregenerated") is True
         return module
 

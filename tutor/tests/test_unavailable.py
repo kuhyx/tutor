@@ -46,3 +46,14 @@ def test_current_picks_latest_ending_cover(tmp_path: Path) -> None:
         150, 900, "rate_limit"
     )
     assert unavailable.current(950, tmp_path) is None
+
+
+def test_a_hand_written_unknown_reason_is_never_read_back(tmp_path: Path) -> None:
+    """Every window a reader sees has a reason in REASONS (the app's glyphs)."""
+    unavailable.path(tmp_path).write_text(
+        '{"start": 1, "end": 9, "reason": "bored"}\n'
+        '{"start": 2, "end": 9, "reason": "overloaded"}\n',
+        encoding="utf-8",
+    )
+    assert unavailable.windows(tmp_path) == [unavailable.Window(2, 9, "overloaded")]
+    assert {w.reason for w in unavailable.windows(tmp_path)} <= unavailable.REASONS

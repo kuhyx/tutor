@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from tutor import codes
 from tutor.cards import CardError
 from tutor.curriculum import (
     card_rules,
@@ -157,15 +158,15 @@ def _sources(ctx: Context, scope: Scope) -> list[wiki.Source] | str:
 
 def _outcome(
     ctx: Context, subject: str, module: Module
-) -> tuple[dict[str, CardRec], str | None]:
-    """Draft and check the cards: (kept cards, error or None)."""
+) -> tuple[dict[str, CardRec], str | None, str | None]:
+    """Draft and check the cards: (kept cards, error, its ``error_kind``)."""
     # Every call sees the other modules, so each card lands in the right one.
     scope = Scope(ctx.subjects.need_meta(subject), module, ctx.subjects.plan(subject))
     existing = ctx.subjects.cards(subject)
     try:
         found = _sources(ctx, scope)
-        if isinstance(found, str):
-            return {}, found
+        if isinstance(found, str):  # the search failed or found too few
+            return {}, found, codes.SOURCES_MISSING
         raw = ctx.model(SYSTEM, prompt(scope, existing, found), CARDS_SCHEMA)
         checked, problems = _drafts(ctx, module, existing, found, raw)
         named = {s.url: s.title for s in found}
@@ -174,11 +175,16 @@ def _outcome(
         problems += refused
     except RequestError as err:
         _logger.warning("card drafting failed: %s", err.message)
-        return {}, err.message
+        return {}, err.message, codes.error_kind(err)
     if len(kept) < MIN_CARDS:
-        shown = f" ({'; '.join(problems[:3])})" if problems else ""
-        return {}, f"only {len(kept)} card(s) passed the checks{shown}"
-    return _settle(module, existing, kept), None
+        return {}, _too_few(len(kept), problems), codes.TOO_FEW_CARDS
+    return _settle(module, existing, kept), None, None
+
+
+def _too_few(count: int, problems: list[str]) -> str:
+    """Why a module failed with ``count`` cards passing (the first problems)."""
+    shown = f" ({'; '.join(problems[:3])})" if problems else ""
+    return f"only {count} card(s) passed the checks{shown}"
 
 
 def _live(cards: dict[str, CardRec], module_id: str) -> int:
@@ -191,7 +197,7 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
     module = plan.module(module_id) if plan else None
     if module is None or module.status != "generating":
         return {"module": module_id, "status": module.status if module else None}
-    kept, error = _outcome(ctx, subject, module)
+    kept, error, kind = _outcome(ctx, subject, module)
     with LOCK:  # re-read: the fold may have changed other modules meanwhile
         meta = ctx.subjects.need_meta(subject)
         plan = ctx.subjects.plan(subject)
@@ -209,7 +215,9 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
                 current.status = "locked"  # drafted ahead: study waits for requires
         # Only a failed module carries its error; a ready one served by its
         # existing cards reports the reason in the returned result only.
-        current.error = error if current.status == "failed" else None
+        failed = current.status == "failed"
+        current.error = error if failed else None
+        current.error_kind = kind if failed else None
         current.cards = count
         ctx.subjects.commit(subject, meta, Change(plan=plan, cards=cards))
     return {
@@ -217,4 +225,5 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
         "status": current.status,
         "cards": current.cards,
         "error": error,
+        "error_kind": kind,
     }

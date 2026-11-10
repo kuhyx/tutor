@@ -70,7 +70,9 @@ def test_subject_new_failure_marks_failed_and_retry_reuses_id(tmp_path: Path) ->
     assert _code(plan_ops.subject_new, {"text": "tides"}, ctx) == "model_error"
     meta = ctx.subjects.need_meta("tides")
     assert (meta.status, meta.error) == ("failed", "down")
+    assert meta.error_kind == "model_failed"
     assert plan_ops.subject_new({"text": "tides"}, ctx) == {"subject": "tides"}
+    assert ctx.subjects.need_meta("tides").error_kind is None
     assert ctx.subjects.need_meta("tides").rev == 4
     assert _code(plan_ops.subject_new, {"text": ""}, ctx) == "bad_request"
 

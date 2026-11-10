@@ -19,7 +19,7 @@ pass the same vectors.
   the plan when the model is done. Subject id = slug of the text minus "I want
   to learn"-style filler (`how-a-car-works`; also Polish "Chcę (się) nauczyć
   / wiedzieć / zrozumieć / rozumieć / poznać"). A failed draft sets
-  `status:"failed"` + `error`; a new `subject_new` with the same text reuses that id.
+  `status:"failed"` + `error` + `error_kind` (contract §4a); a new `subject_new` with the same text reuses that id.
 - PC files (canonical, `tutor/curriculum/subject_store.py`):
   `$TUTOR_DATA/subjects/{subj}/meta.json|plan.json|cards.json|concepts.json|profile.json`
   (`cards.json` = id -> card in module/card order) and `$TUTOR_DATA/log.jsonl`
@@ -43,7 +43,7 @@ pass the same vectors.
   validated). 3-12 modules per draft. `depth` = go-deeper round (1 = first
   plan). `prefixes` optional (automation id rule).
 - Module `status`: `locked | generating | ready | mastered | failed`; `failed`
-  carries `error`; `plan_approve` (same rev) retries it. `pregenerated`: below.
+  carries `error` and `error_kind` (contract §4a; absent when null); `plan_approve` (same rev) retries it. `pregenerated`: below.
 - `plan_edit` sends the full module list (validated, unknown keys dropped);
   `plan_revise` sends a comment and the model redrafts. Both only while
   `status:"draft"` and only for modules without cards: modules with cards (or

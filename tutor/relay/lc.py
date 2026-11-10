@@ -7,7 +7,7 @@ import asyncio
 import hashlib
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import outage
+from tutor import codes, outage
 from tutor.relay import lc_backend, lc_reply, lc_state
 from tutor.relay.errors import RequestError
 from tutor.relay.lc_prompt import OPENER
@@ -75,7 +75,7 @@ async def _problem(body: dict[str, Any]) -> lc_backend.Problem:
     except LookupError:
         msg = "that problem has no public statement; paste it"
         raise RequestError(
-            msg, code="bad_request", extra={"reason": "paste_statement"}
+            msg, code="bad_request", extra={"reason": codes.PASTE_STATEMENT}
         ) from None
     except OSError as err:
         msg = f"LeetCode is unreachable: {err}"

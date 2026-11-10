@@ -38,12 +38,22 @@ class Change:
     profile: dict[str, Any] | None = None
 
 
+def meta_json(meta: Meta) -> dict[str, Any]:
+    """The meta's contract shape (``error_kind`` only when set)."""
+    out = asdict(meta)
+    if out["error_kind"] is None:
+        del out["error_kind"]
+    return out
+
+
 def plan_json(plan: Plan) -> dict[str, Any]:
     """The plan's contract shape (``pregenerated`` only when set); <= 16 KB."""
     out = asdict(plan)
     for module in out["modules"]:  # an unset flag keeps the old shape
         if not module["pregenerated"]:
             del module["pregenerated"]
+        if module["error_kind"] is None:
+            del module["error_kind"]
     if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_PLAN_BYTES:
         msg = f"plan is over {MAX_PLAN_BYTES} bytes"
         raise bad(msg)
@@ -151,7 +161,7 @@ class SubjectStore:
             if profile is not None:
                 write_json(where / "profile.json", profile)
             meta.rev += 1
-            write_json(where / "meta.json", asdict(meta))
+            write_json(where / "meta.json", meta_json(meta))
         return meta
 
     @staticmethod

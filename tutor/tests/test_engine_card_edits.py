@@ -66,6 +66,8 @@ def test_learner_asks_to_remove_the_card(tmp_path: Path) -> None:
     assert [e["type"] for e in old][-2:] == ["next_card", "stop"]
     assert old[-3]["ui"]["notices"] == notice
     assert engine.messages[0]["notices"] == notice
+    assert engine.messages[0]["notice_kinds"] == ["removed"]
+    assert old[-3]["ui"]["notice_kinds"] == ["removed"]
     replayed = resume.replay(tmp_path / "sessions" / f"{first}.jsonl")
     assert replayed is not None
     assert replayed.conversation.messages[-1]["notices"] == notice
@@ -106,6 +108,7 @@ def test_rewrite_of_the_live_card_waits_for_the_next_session(
     assert engine.card is not None
     assert engine.card.back == "It is a thing."
     assert engine.messages[-1]["notices"] == ["Card updated: What is thing 0 of a?"]
+    assert engine.messages[-1]["notice_kinds"] == ["updated"]
 
 
 def test_removing_the_last_open_card_shows_the_next_step(tmp_path: Path) -> None:
@@ -158,13 +161,14 @@ def test_apply_edits_adds_to_the_live_cards_topic(tmp_path: Path) -> None:
     gone = CardEdit("remove", card="c0")
     done = edit_flow.apply_edits(ctx, "car", "d0", (add, gone))
     assert done.notices == ["Card added: What does a coil store?"]
+    assert done.notice_kinds == ["added"]
     assert done.refusals == [
         (
             "remove c0: removing c0 would leave module a with 2 live cards; it needs "
             "at least 3 live cards"
         )
     ]
-    assert done.removed_live == ""
+    assert done.removed_live is None
     added = [c for c in ctx.subjects.cards("car").values() if c.source == url]
     assert [c.module for c in added] == ["b"]
 

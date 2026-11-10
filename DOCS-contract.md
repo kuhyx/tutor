@@ -107,9 +107,28 @@ serves every request in flight, §9). On
 network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
-Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `session_live` (stop the live session first), `locked` (+`subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
-`daily_new_cap` (+`subject_title`, `new_today`, `new_cap`, `module`, `module_title`, `due_in_subject`, `next: "lift_cap"`), `no_card_left` (+`subject_title`, `due_in_subject`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
+Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `session_live` (stop the live session first), `locked` (+`subject_id`, `subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
+`daily_new_cap` (+`subject_title`, `new_today`, `new_cap`, `module`, `module_title`, `due_in_subject`, `next: "lift_cap"`), `no_card_left` (+`subject_id`, `subject_title`, `due_in_subject`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
 `worker_error` (`DOCS-relay.md`). `error` is shown, except for `locked`/`daily_new_cap`/`no_card_left`: the app builds a call to action from the fields (a `next: lift_cap` = "Learn more anyway"). Tracebacks stay in the log.
+
+### 4a. Machine codes beside the sentences
+
+The app is text-free: it paints a glyph per machine code and keeps the
+server's sentence only as the spoken label. Every vocabulary is closed and
+lives in `tutor/codes.py`; `contract/codes.json` is its golden copy, tested
+against both `tutor/codes.py` and the Dart mirror `app/lib/model/codes.dart`.
+A client maps a missing or unknown value to `other` (the generic glyph);
+adding a value is a contract change. All additive: every sentence field stays.
+
+| surface | field | vocabulary |
+|---|---|---|
+| failed result | `code` | `relay_code` (§4 codes) |
+| failed result | `reason` | `fail_reason`: `paste_statement` (`bad_request` of `lc_open`), `rate_limit`/`overloaded`/`network` (`claude_unavailable`); anything else is sent as `other` |
+| failed result, subject `meta`, plan module, `cardgen` result | `error_kind` | `error_kind`: `claude_limit`/`claude_overloaded`/`claude_network` (outage), `model_failed`, `sources_missing`, `too_few_cards`, `bad_request`, `other`; set by exception type (`codes.error_kind`), null/absent with no `error` |
+| tutor message | `notice_kinds` | `notice_kind`, same index as `notices` (`removed`, `added`, `updated`, `split`, `mnemonic_set`, `mnemonic_cleared`); absent on older messages |
+| session `clock` | `paused_reason` | `pause_reason`: the two fixed sentences (`clock.LOW_EFFORT`, `clock.STALLED`) |
+| claim | `phase` | `relay_phase`, the 5 phases in order; an unknown phase gets a neutral glyph |
+| `unavailable` / `claude_unavailable` | `reason` | `unavailable_reason` (`unavailable.REASONS`; a window with another reason is never read back) |
 
 | kind | body | result `data` | lane |
 |---|---|---|---|
@@ -156,7 +175,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
 "msgs/m0007": {"role":"tutor","text":"markdown","questions":["...","..."],"choices":[[],["a","b","c"]],"low_effort":false,
   "check":{"question":"...","concept":"...","choices":["a","b","c"]},"check_result":{"passed":true,"feedback":"..."},
-  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"notices":["Card removed: <front>"],"card_done":false,"at":ms,"trace":[STEP]}
+  "images":[IMG],"diagrams":[DGM],"mastered_new":["..."],"notices":["Card removed: <front>"],"notice_kinds":["removed"],"card_done":false,"at":ms,"trace":[STEP]}
 "msgs/m0008": {"role":"learner","text":"...","at":ms,"rid":"...","dev":"..."}
 "msgs/m0009": {"role":"card","text":"<front>","card_id":"ld-y"}
 "receipts/r0003": {"entry_id":"<sid>-m6","recorded":true,"minutes":1,"minutes_today":23,"error":null,"at":ms}

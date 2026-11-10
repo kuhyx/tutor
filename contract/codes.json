@@ -1,0 +1,63 @@
+{
+  "_doc": "Machine codes beside the server's spoken sentences (DOCS-contract.md section 4a). Closed per surface; a client maps an unknown or missing value to 'other' (generic glyph). tutor/codes.py and app/lib/model/codes.dart both test against this file.",
+  "relay_code": [
+    "bad_request",
+    "claude_unavailable",
+    "daily_new_cap",
+    "edit_refused",
+    "focus_refused",
+    "gave_up",
+    "locked",
+    "model_error",
+    "no_card_left",
+    "not_live",
+    "other",
+    "plan_conflict",
+    "session_live",
+    "unknown_card",
+    "unknown_prompt",
+    "worker_error"
+  ],
+  "fail_reason": [
+    "network",
+    "other",
+    "overloaded",
+    "paste_statement",
+    "rate_limit"
+  ],
+  "notice_kind": [
+    "added",
+    "mnemonic_cleared",
+    "mnemonic_set",
+    "other",
+    "removed",
+    "split",
+    "updated"
+  ],
+  "pause_reason": {
+    "low_effort": "low-effort reply",
+    "stalled": "no reply for 10 min"
+  },
+  "error_kind": [
+    "bad_request",
+    "claude_limit",
+    "claude_network",
+    "claude_overloaded",
+    "model_failed",
+    "other",
+    "sources_missing",
+    "too_few_cards"
+  ],
+  "relay_phase": [
+    "claimed",
+    "thinking",
+    "images",
+    "checking_images",
+    "publishing"
+  ],
+  "unavailable_reason": [
+    "network",
+    "overloaded",
+    "rate_limit"
+  ]
+}

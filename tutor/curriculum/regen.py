@@ -52,7 +52,7 @@ def _suspend(ctx: Context, subject: str, module_id: str, gone: list[str]) -> Non
         cards = ctx.subjects.cards(subject)
         for cid in gone:
             cards[cid].suspended = True
-        current.status, current.error = "generating", None
+        current.status, current.error, current.error_kind = "generating", None, None
         current.cards = sum(
             c.module == module_id and not c.suspended for c in cards.values()
         )

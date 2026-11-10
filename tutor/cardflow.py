@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from tutor.clock import BlockReady
     from tutor.conversation import Conversation
     from tutor.curriculum.source import CardSource
+    from tutor.edit_flow import Notice
     from tutor.models import TutorTurn
     from tutor.session import TutorSession
     from tutor.store import Store
@@ -68,7 +69,7 @@ class CardFlow:
         start: Callable[..., Awaitable[dict[str, Any]]]
         resume_path: Callable[[Path], bool]
         _live: Callable[[], tuple[TutorSession, Conversation, cards_mod.Card]]
-        _turn: Callable[..., Awaitable[str]]
+        _turn: Callable[..., Awaitable[Notice | None]]
 
     @property
     def minutes_today(self) -> int:

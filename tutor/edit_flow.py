@@ -9,7 +9,9 @@ store's lock, so it cannot clobber or be clobbered by a card generation's
 commit. Not on the relay's build lane: generation holds that lock for
 minutes, and the edit must land with the turn. Applied edits become
 ``notices`` lines on the turn's page message ("Card removed: <front>"),
-which the transcript and the relay projection keep; refused ones go to the
+with a parallel ``notice_kinds`` list (``tutor.codes.NOTICE_KIND``, same
+index) the app paints a glyph from, which the transcript and the relay
+projection keep; refused ones go to the
 tutor in the next engine note. Removing (or splitting) the live card ends
 the session (``next_card`` + ``stop``, as Next card does) and opens the
 next card (after a split: its first part), whose first message carries the
@@ -25,8 +27,9 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
+from tutor import codes
 from tutor.curriculum import card_ops, card_split
 from tutor.curriculum.errors import EDIT_REFUSED, RequestError
 
@@ -48,16 +51,24 @@ _REFUSED: Final = (
 _logger = logging.getLogger(__name__)
 
 
+class Notice(NamedTuple):
+    """One applied edit as the chat shows it: the sentence and its kind."""
+
+    text: str
+    kind: str  # codes.NOTICE_KIND
+
+
 @dataclass
 class Applied:
     """What a turn's edits did."""
 
     notices: list[str] = field(default_factory=list)
+    notice_kinds: list[str] = field(default_factory=list)  # same index
     refusals: list[str] = field(default_factory=list)
-    removed_live: str = ""  # its notice, when the live card was removed
+    removed_live: Notice | None = None  # its notice, when the live card was removed
 
 
-def _one(ctx: Context, subject: str, live: str, edit: CardEdit) -> tuple[str, bool]:
+def _one(ctx: Context, subject: str, live: str, edit: CardEdit) -> tuple[Notice, bool]:
     """Apply ``edit``; returns its notice and whether it removed the live card."""
     if ctx.subjects.meta(subject) is None:
         msg = f"{subject} still runs on the repo deck, which only kuhy edits by hand"
@@ -65,24 +76,27 @@ def _one(ctx: Context, subject: str, live: str, edit: CardEdit) -> tuple[str, bo
     cid = edit.card or live
     if edit.op == "remove":
         rec = card_ops.remove(ctx, subject, cid)
-        return f"Card removed: {rec.front}", cid == live
+        return Notice(f"Card removed: {rec.front}", codes.REMOVED), cid == live
     if edit.op == "add":
         topic = edit.topic or getattr(
             ctx.subjects.cards(subject).get(live), "module", ""
         )
         draft = card_ops.Draft(topic, edit.front, edit.back, edit.source, edit.quote)
         _, rec = card_ops.add(ctx, subject, draft)
-        return f"Card added: {rec.front}", False
+        return Notice(f"Card added: {rec.front}", codes.ADDED), False
     if edit.op == "mnemonic":
         rec = card_ops.mnemonic(ctx, subject, cid, edit.text)
-        return f"Mnemonic {'set' if rec.mnemonic else 'cleared'}: {rec.front}", False
+        if rec.mnemonic:
+            return Notice(f"Mnemonic set: {rec.front}", codes.MNEMONIC_SET), False
+        return Notice(f"Mnemonic cleared: {rec.front}", codes.MNEMONIC_CLEARED), False
     if edit.op == "split":  # the original is suspended: like a remove
         parts = [card_split.Part(p.front, p.back, p.source, p.quote) for p in edit.into]
         rec, ids = card_split.split(ctx, subject, cid, parts)
-        return f"Card split into {len(ids)}: {rec.front}", cid == live
+        notice = Notice(f"Card split into {len(ids)}: {rec.front}", codes.SPLIT)
+        return notice, cid == live
     change = card_ops.Rewrite(edit.front, edit.back, edit.source, edit.quote)
     rec = card_ops.rewrite(ctx, subject, cid, change)
-    return f"Card updated: {rec.front}", False
+    return Notice(f"Card updated: {rec.front}", codes.UPDATED), False
 
 
 def apply_edits(
@@ -99,7 +113,8 @@ def apply_edits(
             _logger.warning("card edit %s %s refused: %s", edit.op, target, why)
             done.refusals.append(f"{edit.op} {target or live}: {why}")
             continue
-        done.notices.append(notice)
+        done.notices.append(notice.text)
+        done.notice_kinds.append(notice.kind)
         if live_gone:
             done.removed_live = notice
     return done
@@ -125,31 +140,34 @@ class EditFlow:
         conv: Conversation,
         turn: TutorTurn,
         message: dict[str, Any],
-        carried: Sequence[str] = (),
-    ) -> str:
+        carried: Sequence[Notice] = (),
+    ) -> Notice | None:
         """Apply the turn's edits: notices on ``message``, refusals in the notes.
 
         ``carried``: notices from the session this one replaced. Returns the
-        notice of the live card's removal ("" when it stays).
+        notice of the live card's removal (None when it stays).
         """
-        notices, gone = list(carried), ""
+        notices, gone = list(carried), None
         if turn.card_edits:
             args = (self.ctx, self.source.subject, conv.card_id, turn.card_edits)
             done = await asyncio.to_thread(apply_edits, *args)
-            notices += done.notices
+            notices += map(Notice, done.notices, done.notice_kinds, strict=True)
             if done.refusals:
                 conv.notes.append(_REFUSED + "; ".join(done.refusals))
             gone = done.removed_live
         if notices:
-            message["notices"] = notices
+            message["notices"] = [n.text for n in notices]
+            message["notice_kinds"] = [n.kind for n in notices]
         return gone
 
-    async def _leave_removed(self, conv: Conversation, gone: str, device: str) -> None:
+    async def _leave_removed(
+        self, conv: Conversation, gone: Notice | None, device: str
+    ) -> None:
         """The live card was removed (``gone``): open the next card, or stop.
 
         No card left: the session stops and the pick's error is raised.
         """
-        if not gone:
+        if gone is None:
             return
         sid = conv.session_id
         if conv.follow_up:  # a done card: no next card is pushed on the learner

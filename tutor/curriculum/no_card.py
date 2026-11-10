@@ -3,7 +3,8 @@
 
 ``DOCS-contract.md`` §4: the shown ``error`` names the subject by its title
 (never its slug) and says what to do; the result node also carries
-``subject_title`` and ``next`` (``review_module`` with ``module`` and
+``subject_id`` (the app's subject glyph), ``subject_title`` and
+``next`` (``review_module`` with ``module`` and
 ``module_title``, ``reviews_due`` with ``due_at`` in ms, or ``none``) so
 the app can offer the step itself; ``no_card_left`` adds
 ``due_in_subject``. ``rules.pick`` decides which one (``daily_new_cap``
@@ -65,7 +66,7 @@ def no_card_left(
     ``module``: an open module fully taught but not yet reviewed (first
     choice); ``due_at``: the earliest review due among its taught cards;
     ``writing``: a module's cards are being generated right now.
-    ``rules`` adds ``due_in_subject`` (the subject's due reviews).
+    ``rules`` adds ``subject_id`` and ``due_in_subject`` (its due reviews).
     """
     name = title or "This subject"
     extra: dict[str, object] = {"subject_title": title}
@@ -92,14 +93,23 @@ def no_card_left(
 
 
 def locked(
-    title: str, card_id: str, *, module: Module | None, need: Module | None
+    title: str,
+    card_id: str,
+    *,
+    subject: str,
+    module: Module | None,
+    need: Module | None,
 ) -> RequestError:
     """The error for an explicit card that cannot be taught yet.
 
     ``need``: the required module to review first (``review_module``), when
     reviewing it is what opens ``module``; else ``next`` is ``none``.
     """
-    extra: dict[str, object] = {"subject_title": title, "next": NONE}
+    extra: dict[str, object] = {
+        "subject_id": subject,
+        "subject_title": title,
+        "next": NONE,
+    }
     if module is not None and need is not None:
         extra |= {"next": REVIEW_MODULE, "module": need.id}
         extra["module_title"] = need.title

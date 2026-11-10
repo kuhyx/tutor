@@ -185,6 +185,7 @@ def _no_card(view: View, fold: Fold, now_ms: int) -> RequestError:
         writing=any(m.status == "generating" for m in view.plan.modules),
         now_ms=now_ms,
     )
+    err.extra["subject_id"] = view.subject
     err.extra["due_in_subject"] = due_in_subject(view, fold, now_ms)
     return err
 
@@ -217,11 +218,13 @@ def _explicit(view: View, fold: Fold, card_id: str) -> tuple[str, Module]:
         raise RequestError(UNKNOWN_CARD, msg)
     module = view.plan.module(card.module)
     if module is None:
-        raise locked(view.title, card_id, module=None, need=None)
+        raise locked(view.title, card_id, subject=view.subject, module=None, need=None)
     ready = module.status in OPEN and unlocked(view, module, fold)
     if not ready or not _open(view, card, fold):
         need = _to_unlock(view, module, fold)
-        raise locked(view.title, card_id, module=module, need=need)
+        raise locked(
+            view.title, card_id, subject=view.subject, module=module, need=need
+        )
     return card_id, module
 
 

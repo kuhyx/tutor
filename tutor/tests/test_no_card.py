@@ -42,6 +42,7 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "Review them to open the next module."
     )
     assert err.extra == {
+        "subject_id": "hosting-slug",
         "subject_title": "Hosting WWW",
         "next": "review_module",
         "module": "dns-slug",
@@ -60,6 +61,7 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
     mods[1].status = "generating"  # what advance_statuses did meanwhile
     err = _no_card(view, ctx, due)
     assert err.extra == {
+        "subject_id": "hosting-slug",
         "subject_title": "Hosting WWW",
         "next": "reviews_due",
         "due_at": due,
@@ -76,6 +78,7 @@ def test_no_card_left_with_nothing_taught_is_none(tmp_path: Path) -> None:
     view = rules.View("hosting-slug", plan, {}, title="Hosting WWW")
     err = _no_card(view, ctx, T0)
     assert err.extra == {
+        "subject_id": "hosting-slug",
         "subject_title": "Hosting WWW",
         "next": "none",
         "due_in_subject": 0,
@@ -97,6 +100,7 @@ def test_locked_names_the_module_to_review_first(tmp_path: Path) -> None:
         rules.pick(view, ctx.fold(), "b1", T0)
     assert err.value.code == "locked"
     assert err.value.extra == {
+        "subject_id": "car",
         "subject_title": "Cars",
         "next": "review_module",
         "module": "a",
@@ -105,7 +109,11 @@ def test_locked_names_the_module_to_review_first(tmp_path: Path) -> None:
     assert err.value.message == "Cars — “B” opens once “A” is reviewed."
     with pytest.raises(RequestError) as err:
         rules.pick(view, ctx.fold(), "a2", T0)  # a card-level requires
-    assert err.value.extra == {"subject_title": "Cars", "next": "none"}
+    assert err.value.extra == {
+        "subject_id": "car",
+        "subject_title": "Cars",
+        "next": "none",
+    }
     assert "is locked" in err.value.message
 
 
@@ -115,7 +123,7 @@ def test_locked_behind_a_module_not_ready_has_no_step(tmp_path: Path) -> None:
     mods = [module("a", status="ready"), module("b", "a"), module("c", "b")]
     plan = subject(ctx, modules=mods, found=found)
     view = rules.View("car", plan, found, title="Cars")
-    none = {"subject_title": "Cars", "next": "none"}
+    none = {"subject_id": "car", "subject_title": "Cars", "next": "none"}
     with pytest.raises(RequestError) as err:
         rules.pick(view, ctx.fold(), "c1", T0)  # b is still locked
     assert err.value.extra == none

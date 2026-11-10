@@ -171,6 +171,7 @@ def test_classify() -> None:
         "ok": False,
         "code": "gave_up",
         "error": "m",
+        "error_kind": "other",
         "retry": False,
     }
     assert "gave_up" in errors.CODES
@@ -184,6 +185,7 @@ def test_curriculum_error_fields_reach_the_result() -> None:
         "ok": False,
         "code": "no_card_left",
         "error": "Cars — x",
+        "error_kind": "other",
         "retry": False,
     }
 

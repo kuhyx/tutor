@@ -64,6 +64,7 @@ def module_pregenerate(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
         chosen = _chosen(plan, body.get("modules"))
         for module in chosen:
             module.status, module.pregenerated, module.error = "generating", True, None
+            module.error_kind = None
         if chosen:
             ctx.subjects.commit(str(subject), meta, Change(plan=plan))
     return {"queued": [m.id for m in chosen]}

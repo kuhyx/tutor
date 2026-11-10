@@ -15,6 +15,7 @@ import re
 from typing import TYPE_CHECKING, Any, Final
 import unicodedata
 
+from tutor import codes
 from tutor.curriculum import planner, profiles, rules, webpages
 from tutor.curriculum.errors import BAD_REQUEST, PLAN_CONFLICT, RequestError
 from tutor.curriculum.ids import slug, valid_id
@@ -76,9 +77,11 @@ def subject_new(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
         draft = planner.draft(ctx, goal, fixed=[])
     except RequestError as err:
         meta.status, meta.error = "failed", err.message
+        meta.error_kind = codes.error_kind(err)
         store.commit(subject, meta)
         raise
     meta.title, meta.status, meta.error = draft.title or meta.title, "draft", None
+    meta.error_kind = None
     plan = Plan(rev=1, status="draft", notes=draft.notes, modules=draft.modules)
     profile = profiles.generated(subject, draft.profile).to_json()
     change = Change(plan=plan, cards={}, concepts=[], profile=profile)
@@ -165,7 +168,7 @@ def plan_approve(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
         plan.status, meta.status = "approved", "active"
     for module in plan.modules:
         if module.status == "failed":
-            module.status, module.error = "generating", None
+            module.status, module.error, module.error_kind = "generating", None, None
     view = rules.View(subject, plan, ctx.subjects.cards(subject))
     rules.advance_statuses(view, ctx.fold())
     ctx.subjects.commit(subject, meta, Change(plan=plan))
