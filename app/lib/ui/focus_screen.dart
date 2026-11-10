@@ -17,6 +17,7 @@ import 'package:tutor/ui/focus_form.dart';
 import 'package:tutor/ui/focus_gates.dart';
 import 'package:tutor/ui/focus_ring.dart';
 import 'package:tutor/ui/review_answer.dart';
+import 'package:tutor/ui/unbacked_mark.dart';
 import 'package:tutor/widgets/content_text.dart';
 
 /// The most overtime the server banks for the next day (`focus_project`).
@@ -231,10 +232,9 @@ class _FocusScreenState extends State<FocusScreen> {
                 ),
         ),
         if (project.unbackedMinutes > 0)
-          Text(
-            l.unbackedMinutes(project.unbackedMinutes),
-            style: text.bodyMedium,
-            textAlign: TextAlign.center,
+          UnbackedMark(
+            project.unbackedMinutes,
+            key: const ValueKey('unbacked'),
           ),
         if (project.unbackedMinutes > 0) const SizedBox(height: AppSpacing.xs),
         FocusGates(status),

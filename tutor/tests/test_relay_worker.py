@@ -44,7 +44,10 @@ async def until(check: Callable[[], object], tries: int = 300) -> None:
 
 
 def test_relay_lifecycle(
-    tmp_path: Path, fast: None, caplog: pytest.LogCaptureFixture
+    tmp_path: Path,
+    fast: None,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     del fast
     eng, _ = engine(tmp_path, turn("Q?"))
@@ -53,10 +56,22 @@ def test_relay_lifecycle(
 
     async def go() -> None:
         relay = worker.Relay(eng, fake.rtdb(), PhaseSink(), eng.time)
+        stats_calls = [0]
+        publish_stats = relay.w.publisher.stats
+
+        async def counted_stats() -> None:
+            stats_calls[0] += 1
+            await publish_stats()
+
+        monkeypatch.setattr(relay.w.publisher, "stats", counted_stats)
         async with worker.running(relay):
             await asyncio.sleep(0.02)
             fake.fail.clear()
             await relay.ready.wait()
+            # The refresh loop publishes stats every STATS_EVERY rounds; wait
+            # for one so the branch is hit however slow the machine is.
+            seen = stats_calls[0]
+            await until(lambda: stats_calls[0] > seen)
             assert fake.get("tutor/v1/meta") == worker.META
             req = request("session_start", {"subject": None, "card": None})
             fake.set(f"tutor/v1/requests/{RIDS[0]}/req", req)

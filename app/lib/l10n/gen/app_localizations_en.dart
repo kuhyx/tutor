@@ -59,11 +59,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String unbackedMinutes(int n) {
-    return '$n min unbacked (not counted)';
-  }
-
-  @override
   String get dailyMinutes => 'Minutes per day';
 
   @override

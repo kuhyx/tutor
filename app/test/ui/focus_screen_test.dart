@@ -9,6 +9,7 @@ import 'package:tutor/ui/focus_screen.dart';
 
 import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
+import '../support/no_words.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
@@ -128,22 +129,40 @@ void main() {
 
   testWidgets('unbacked minutes show under the ring', (t) async {
     await open(t, unbacked: 12);
-    expect(find.text('12 min unbacked (not counted)'), findsOneWidget);
+    final mark = find.byKey(const ValueKey('unbacked'));
+    expect(mark, findsOneWidget);
+    expect(
+      find.descendant(
+        of: mark,
+        matching: find.byIcon(Icons.timer_off_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: mark, matching: find.text('12')),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('12 min unbacked (not counted)'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('unbacked'), findsNothing);
+    expectNoWords(t, 'focus with unbacked minutes');
   });
 
   testWidgets('no unbacked minutes, no unbacked line', (t) async {
     await open(t, unbacked: 0);
-    expect(find.textContaining('unbacked'), findsNothing);
+    expect(find.byKey(const ValueKey('unbacked')), findsNothing);
   });
 
   testWidgets('an older server without the field shows no line', (t) async {
     await open(t);
-    expect(find.textContaining('unbacked'), findsNothing);
+    expect(find.byKey(const ValueKey('unbacked')), findsNothing);
   });
 
   testWidgets('no project, no unbacked line', (t) async {
     await open(t, active: false, unbacked: 5);
-    expect(find.textContaining('unbacked'), findsNothing);
+    expect(find.byKey(const ValueKey('unbacked')), findsNothing);
   });
 
   testWidgets('the ring moves on server figures, not the running clock', (
