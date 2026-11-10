@@ -21,6 +21,7 @@ Exit 0 = PASS.
 * F9, F10 the focus check-in card (``e2e_checkin.py``): one call each.
 * F12 a forced ``no_card_left`` drawn by its result ``kind``
   (``e2e_blocked.py``, sandbox ``up --nocard due|review``): one call.
+* F13 outage codes and glyphs (``e2e_codes.py``): one reason per call.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -44,6 +45,7 @@ from e2e_blocked import f12
 from e2e_carry import f6_again, f6_check
 from e2e_cdp import Browser, CdpError
 from e2e_checkin import f9, f10
+from e2e_codes import OUTAGES, f13
 from e2e_flow import Emulator, Flow, FlowError, State
 from e2e_focus import f7, f8
 from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
@@ -112,7 +114,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
+FLOWS = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13"]
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -120,6 +122,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F10": f10,
     "F11": f11,
     "F12": f12,
+    "F13": f13,
 }
 
 
@@ -196,7 +199,8 @@ def main() -> int:
         "phase",
         nargs="?",
         default="all",
-        choices=["send", "wait", "check", "again", "all"],
+        # F13 also takes one outage reason per call (each fits under 60 s).
+        choices=["send", "wait", "check", "again", "all", *OUTAGES],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")
     parser.add_argument("--db", required=True, help="emulator http://127.0.0.1:N")

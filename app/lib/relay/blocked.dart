@@ -80,7 +80,7 @@ class Blocked {
         _ => BlockedNext.none,
       },
       subjectTitle: text('subject_title'),
-      subject: text('subject'),
+      subject: text('subject_id') ?? text('subject'),
       module: text('module'),
       moduleTitle: text('module_title'),
       dueAt: number('due_at'),
@@ -99,7 +99,7 @@ class Blocked {
   /// The subject's title (never its id).
   final String? subjectTitle;
 
-  /// The subject id, when the worker sends it.
+  /// The subject id (`subject_id`, DOCS-contract §4), when sent.
   final String? subject;
 
   /// Module id to review (for the cap: none).

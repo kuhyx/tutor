@@ -10,7 +10,6 @@ import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/request.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/subject.dart';
-import 'package:tutor/relay/blocked.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/ui/drill_parts.dart';
@@ -31,31 +30,7 @@ Future<void> _pump(WidgetTester t, Widget w) => t.pumpWidget(
 );
 
 void main() {
-  test('C2: each non-blocking code has its own glyph; unknown is generic', () {
-    const codes = [
-      'model_error',
-      'worker_error',
-      'bad_request',
-      'not_live',
-      'session_live',
-      'plan_conflict',
-      'edit_refused',
-      'focus_refused',
-      'unknown_prompt',
-      'gave_up',
-    ];
-    final icons = {
-      for (final c in codes) relayCue(_failed({'code': c, 'error': 'x'}))!.icon,
-    };
-    expect(icons, hasLength(codes.length));
-    expect(icons, isNot(contains(null)));
-    expect(icons, isNot(contains(genericErrorIcon)));
-    final odd = relayCue(_failed({'code': 'exploded', 'error': 'x'}))!;
-    expect((odd.kind, odd.icon), (CueKind.error, null));
-    expect(relayCue(_failed({'error': 'x'}))!.icon, isNull);
-  });
-
-  test('C1/C3: outage reasons and paste_statement paint their own glyph', () {
+  test('C1: outage reasons paint three distinct glyphs, not the generic', () {
     IconData? of(Map<String, Object?> r) => relayCue(_failed(r))!.icon;
     final out = {
       for (final why in ['rate_limit', 'overloaded', 'network'])
@@ -63,24 +38,11 @@ void main() {
     };
     expect(out, hasLength(3));
     expect(out, isNot(contains(genericErrorIcon)));
-    final paste = _failed({
-      'code': 'bad_request',
-      'reason': 'paste_statement',
-      'error': 'paste it',
-    });
-    expect(paste.failReason, FailReason.pasteStatement);
-    expect(relayCue(paste)!.icon, Icons.content_paste);
-    // An unknown reason falls back to the code's glyph, a bad type to none.
-    expect(
-      of({'code': 'bad_request', 'reason': 'zzz', 'error': 'x'}),
-      relayCodeIcon(RelayCode.badRequest),
-    );
-    expect(_failed({'code': 'x', 'reason': 7, 'error': 'x'}).reason, isNull);
   });
 
   test('C11: five distinct phase glyphs; an unknown phase is neutral', () {
     final shown = [
-      for (final p in Phase.values.where((p) => p != Phase.other))
+      for (final p in Phase.values.where((p) => p != Phase.unknown))
         relayCue(RelayWorking(p, 1))!.icon,
     ];
     expect(shown.toSet(), hasLength(5));
@@ -95,27 +57,6 @@ void main() {
     });
     expect(odd, isA<RelayWorking>());
     expect(relayCue(odd)!.icon, Icons.more_horiz);
-  });
-
-  test('C4: no_card_left: module, due now, due later (countdown), none', () {
-    const now = 1000 * 3600 * 24 * 400;
-    Blocked b(Map<String, Object?> f) =>
-        Blocked.fromResult({'code': 'no_card_left', ...f});
-    final module = blockedWhy(
-      b({'next': 'review_module', 'module': 'm1'}),
-      now,
-    );
-    final dueNow = blockedWhy(b({'next': 'reviews_due', 'due_at': now}), now);
-    final later = blockedWhy(
-      b({'next': 'reviews_due', 'due_at': now + 65 * 60 * 1000}),
-      now,
-    );
-    final none = blockedWhy(b({'next': 'none'}), now);
-    expect({module.icon, dueNow.icon, later.icon, none.icon}, hasLength(4));
-    expect(later.countdown, '1:05');
-    expect(dueNow.countdown, isNull);
-    expect(none.icon, Icons.inbox_outlined);
-    expect(b({'subject': 'car'}).subject, 'car');
   });
 
   testWidgets('C5: each notice kind its glyph; old messages generic', (

@@ -46,7 +46,7 @@ void main() {
     expect(PauseReason.lowEffort.wire, pause['low_effort']);
     expect(PauseReason.stalled.wire, pause['stalled']);
     expect(
-      Phase.values.where((p) => p != Phase.other).map((p) => p.wire).toList(),
+      Phase.values.where((p) => p != Phase.unknown).map((p) => p.wire).toList(),
       (v['relay_phase'] as List<dynamic>).cast<String>(),
     );
   });
@@ -67,6 +67,6 @@ void main() {
     expect(PauseReason.parse('no reply for 10 min'), PauseReason.stalled);
     expect(PauseReason.parse('tired'), PauseReason.other);
     expect(Phase.parse('checking_images'), Phase.checkingImages);
-    expect(Phase.parse('dreaming'), Phase.other);
+    expect(Phase.parse('dreaming'), Phase.unknown);
   });
 }

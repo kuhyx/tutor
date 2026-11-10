@@ -14,7 +14,7 @@
 #        [--nocard due|review]      # F12: no card left (reviews due / module review)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1..F12 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1..F13 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -194,7 +194,7 @@ cmd_restart() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F12}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F13}" phase="${2:-all}" db port sandbox
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
@@ -214,7 +214,7 @@ main() {
         restart) cmd_restart ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] | restart | flow F1..F12 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] | restart | flow F1..F13 [send|wait|check|again] | down" ;;
     esac
 }
 

@@ -88,10 +88,7 @@ void main() {
           services: s,
           drill: true,
           unavailable: const Unavailable(until: kResetsAt, reason: 'limit'),
-          anki: AnkiSync(
-            relay: s.relay,
-            launcher: FakeLauncher(),
-          ),
+          anki: AnkiSync(relay: s.relay, launcher: FakeLauncher()),
         ),
         size: size,
         settle: false,

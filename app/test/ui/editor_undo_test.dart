@@ -107,10 +107,7 @@ void main() {
     expect(iconSpoken('Removed by tutor'), findsNothing);
     expect(iconSpoken('Removed'), findsNWidgets(2));
     expect(spoken('Restore'), findsNWidgets(2));
-    expect(
-      hinted('Puts the card and its prerequisites back'),
-      findsOneWidget,
-    );
+    expect(hinted('Puts the card and its prerequisites back'), findsOneWidget);
     expect(
       hinted(
         'Removed before the Editor kept a record: only un-suspends it, '

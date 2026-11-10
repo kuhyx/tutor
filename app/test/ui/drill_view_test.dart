@@ -155,10 +155,7 @@ void main() {
     );
     // The PC's answer wins; no reason reads "Claude unavailable".
     expect(spoken(banner), findsNothing);
-    expect(
-      spoken('Claude unavailable — back at ${hhmm(kResetsAt)}'),
-      findsOne,
-    );
+    expect(spoken('Claude unavailable — back at ${hhmm(kResetsAt)}'), findsOne);
     // The time is painted as digits; no sentence.
     expect(find.text(hhmm(kResetsAt)), findsOne);
   });

@@ -16,10 +16,10 @@ import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/drill/drill_session.dart';
 import 'package:tutor/editor/card_rules.dart';
 import 'package:tutor/relay/request_runner.dart';
-import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/drill_parts.dart';
 import 'package:tutor/ui/learn_bits.dart';
+import 'package:tutor/ui/relay_cue.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/cue_chip.dart';
@@ -116,7 +116,7 @@ class _DrillViewState extends State<DrillView> {
           _run.error ?? '',
           _run.retry,
           icon: switch (_run.failure) {
-            final f? => failureIcon(code: f.relayCode, reason: f.failReason),
+            final f? => failureIcon(f),
             null => null,
           },
         ),

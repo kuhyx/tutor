@@ -14,6 +14,7 @@ import 'package:tutor/model/request.dart';
 import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/relay_kinds.dart';
 import 'package:tutor/relay/request_relay.dart';
+import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 
 /// What a `RelayStatus` looks like: kind, glyph and the spoken sentence;
@@ -63,6 +64,13 @@ bool kindIsCalm(String? kind) =>
     kind != null &&
     (kind.startsWith('blocked_') || kind.startsWith('refused_'));
 
+/// A failure's glyph: Claude being out is told apart by its reason (limit,
+/// overloaded, network); else the result kind's glyph.
+IconData failureIcon(RelayFailed f) => switch (f.unavailable) {
+  final u? => unavailableIcon(u.kind),
+  null => kindIcon(f.kind),
+};
+
 /// The glyph beside the spinner for [phase]; unknown = [workingIcon].
 IconData phaseIcon(Phase phase) => switch (phase) {
   Phase.claimed => Icons.inbox_outlined,
@@ -103,12 +111,12 @@ RelayCue? relayCue(RelayStatus? s, {String? stalled}) {
       semanticLabel: text,
       spin: false,
     ),
-    RelayFailed(:final kind, :final blocked, :final text) => (
-      kind: blocked != null || kindIsCalm(kind)
+    final RelayFailed f => (
+      kind: f.blocked != null || kindIsCalm(f.kind)
           ? CueKind.blocked
           : CueKind.error,
-      icon: kindIcon(kind),
-      semanticLabel: text,
+      icon: failureIcon(f),
+      semanticLabel: f.text,
       spin: false,
     ),
   };
