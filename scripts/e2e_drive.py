@@ -19,6 +19,8 @@ Exit 0 = PASS.
 * F7 the desktop Focus screen (``e2e_focus.py``): one call.
 * F8 the focus deep link ``#/focus?start=1`` (``e2e_focus.py``): one call.
 * F9, F10 the focus check-in card (``e2e_checkin.py``): one call each.
+* F15 an interview project's milestone icon row (``e2e_interview.py``): one call;
+  ``send`` only creates it, ``check`` only asserts.
 * F12 a forced ``no_card_left`` drawn by its result ``kind``
   (``e2e_blocked.py``, sandbox ``up --nocard due|review``): one call.
 * F13 outage codes and glyphs (``e2e_codes.py``): one reason per call.
@@ -52,6 +54,7 @@ from e2e_failures import f14
 from e2e_flow import Emulator, Flow, FlowError, State
 from e2e_focus import f7, f8
 from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
+from e2e_interview import f15
 from e2e_struggle import f5_check, f5_send
 from e2e_unbacked import f11
 
@@ -117,22 +120,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = [
-    "F1",
-    "F2",
-    "F3",
-    "F4",
-    "F5",
-    "F6",
-    "F7",
-    "F8",
-    "F9",
-    "F10",
-    "F11",
-    "F12",
-    "F13",
-    "F14",
-]
+FLOWS = [f"F{n}" for n in range(1, 16)]  # F1..F15
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -142,6 +130,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F12": f12,
     "F13": f13,
     "F14": f14,
+    "F15": f15,
 }
 
 
