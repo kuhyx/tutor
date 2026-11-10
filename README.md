@@ -149,6 +149,17 @@ a card mid-session, with a notice line in the chat (`DOCS-contract-curriculum.md
 deck JSON is edited by hand (the old page's deck editor was retired
 2026-10-12 with the page).
 
+### Pinned subjects
+
+Put `https://` URLs in a new subject's text and the tutor writes that
+subject's cards from those pages only. It never searches Wikipedia for
+them. Example: `Product and design taste: https://paulgraham.com/taste.html
+https://paulgraham.com/ds.html`. The planner reads each page's title and
+opening words. For every module, the model keeps the pages that cover it, and
+the cards quote one of them (`tutor/curriculum/webpages.py`). If a page cannot
+be fetched or has under 1500 characters of text, the draft fails and names
+that URL.
+
 ## Licence
 
 - The code is under the MIT licence (`LICENSE`).

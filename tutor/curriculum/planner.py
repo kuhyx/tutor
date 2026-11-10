@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import json
 from typing import TYPE_CHECKING, Any, Final
 
+from tutor.curriculum import webpages
 from tutor.curriculum.errors import MODEL_ERROR, RequestError
 from tutor.curriculum.ids import slug
 from tutor.curriculum.modelcall import STRING, array_of, strict_object
@@ -124,6 +125,9 @@ def draft(ctx: Context, goal: str, *, fixed: list[Module], comment: str = "") ->
     """Ask the model for a plan toward ``goal``; ``fixed`` modules stay."""
     depth = max((m.depth for m in fixed), default=0) + 1 if fixed else 1
     lines = [f"<learner>\n{goal.replace('</learner', '< /learner')}\n</learner>"]
+    urls = webpages.pinned(goal)
+    if urls:  # fetched before the model call: a dead link fails the draft
+        lines.append(webpages.listing(webpages.fetch(ctx.text, urls)))
     if fixed:
         listed = json.dumps(
             [{"id": m.id, "title": m.title, "summary": m.summary} for m in fixed],

@@ -1,7 +1,9 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Just-in-time cards for a module that unlocked (status ``generating``).
 
-Sources: the model names canonical Wikipedia articles, code looks them up
+Sources: a pinned subject (URLs in the goal, ``webpages``) uses only those
+pages, the model keeping the ones that fit the module. Otherwise the model
+names canonical Wikipedia articles, code looks them up
 and searches for more (``wiki.candidates``), drops loosely matching hits and
 ranks the rest (``relevance``), and the model keeps only the on-topic pages
 (``judge.pick_sources``) BEFORE drafting. The model (no tools) drafts cards
@@ -20,7 +22,15 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor.cards import CardError
-from tutor.curriculum import card_rules, judge, plan_context, relevance, rules, wiki
+from tutor.curriculum import (
+    card_rules,
+    judge,
+    plan_context,
+    relevance,
+    rules,
+    webpages,
+    wiki,
+)
 from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import slug
@@ -110,9 +120,25 @@ def _settle(
     return kept
 
 
+def _pinned(ctx: Context, scope: Scope, urls: list[str]) -> list[wiki.Source] | str:
+    """A pinned subject's sources: the learner's pages that fit the module."""
+    try:
+        pages = webpages.fetch(ctx.text, urls)
+    except RequestError as err:
+        _logger.warning("pinned page fetch failed: %s", err.message)
+        return err.message
+    chosen = judge.pick_sources(ctx, scope, pages, wiki.MAX_SOURCES)
+    if not chosen:
+        return f"none of the {len(pages)} pinned page(s) covers this module"
+    return [webpages.source(p) for p in chosen]
+
+
 def _sources(ctx: Context, scope: Scope) -> list[wiki.Source] | str:
     """The on-topic sources (seeded for the excerpt check), or why none."""
     meta, module = scope.meta, scope.module
+    urls = webpages.pinned(meta.goal)
+    if urls:  # the learner named the pages: no wiki search, one page may do
+        return _pinned(ctx, scope, urls)
     titles = judge.propose_titles(ctx, scope)
     try:
         pages = wiki.candidates(

@@ -15,7 +15,7 @@ import re
 from typing import TYPE_CHECKING, Any, Final
 import unicodedata
 
-from tutor.curriculum import planner, profiles, rules
+from tutor.curriculum import planner, profiles, rules, webpages
 from tutor.curriculum.errors import BAD_REQUEST, PLAN_CONFLICT, RequestError
 from tutor.curriculum.ids import slug, valid_id
 from tutor.curriculum.records import (
@@ -56,6 +56,8 @@ _DEEPER: Final = (
 def subject_id(goal: str, taken: set[str]) -> str:
     """A subject id from the learner's words ("how-a-car-works")."""
     words = unicodedata.normalize("NFC", goal)  # so "e" + U+0328 matches "ę"
+    named = webpages.without_urls(words)
+    words = named if named.strip(" \t\n.,;:&-") else words  # URLs only: slug them
     words = _FILLER_PL.sub("", _FILLER.sub("", words))
     return slug(words, taken, fallback="subject")
 

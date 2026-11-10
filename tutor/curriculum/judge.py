@@ -15,7 +15,7 @@ Every call sees the other modules' titles and summaries (``plan_context``).
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Final, NamedTuple, Protocol
 
 from tutor.curriculum import plan_context
 from tutor.curriculum.modelcall import STRING, array_of, strict_object
@@ -24,7 +24,23 @@ if TYPE_CHECKING:
     from tutor.curriculum.context import Context
     from tutor.curriculum.plan_context import Scope
     from tutor.curriculum.records import CardRec
-    from tutor.curriculum.wiki import Page
+
+
+class Candidate(Protocol):
+    """A source page as ``pick_sources`` reads it (a wiki or pinned page)."""
+
+    @property
+    def url(self) -> str:
+        """The URL a card cites."""
+
+    @property
+    def title(self) -> str:
+        """The page title."""
+
+    @property
+    def text(self) -> str:
+        """The page's plain text."""
+
 
 MAX_TITLES: Final = 5
 LEAD_WORDS: Final = 150
@@ -104,9 +120,9 @@ def _lead(text: str) -> str:
     return " ".join(text.split()[:LEAD_WORDS])
 
 
-def pick_sources(
-    ctx: Context, scope: Scope, pages: list[Page], most: int
-) -> list[Page]:
+def pick_sources[PageT: Candidate](
+    ctx: Context, scope: Scope, pages: list[PageT], most: int
+) -> list[PageT]:
     """The on-topic candidates, the model's order, at most ``most``."""
     if not pages:
         return []
@@ -117,7 +133,7 @@ def pick_sources(
     )
     raw = ctx.model(PICK_SYSTEM, f"{scope.about()}\n\n{listed}", PICK_SCHEMA)
     keep = raw.get("keep")
-    chosen: list[Page] = []
+    chosen: list[PageT] = []
     for n in keep if isinstance(keep, list) else []:
         valid = isinstance(n, int) and not isinstance(n, bool)
         if valid and 1 <= n <= len(pages) and pages[n - 1] not in chosen:
