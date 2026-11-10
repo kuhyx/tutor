@@ -19,6 +19,8 @@ Runs on a sandbox that is ``up`` (``e2e_sandbox.sh``): the worker's
    button is the check-in and records ``timer/checkin``;
 5. Stop -> ``timer/stop``. The file must hold start, checkin, stop in order,
    each ``dev == "pc"``; the screen shows the day's minutes.
+6. Edit -> the end date opens the numeric date picker (digits only):
+   next month, a day, ✓ sets it; reopen and ✕ keeps it; Back saves nothing.
 """
 
 from __future__ import annotations
@@ -190,6 +192,36 @@ def f7(flow: Flow) -> None:
         msg = f"events not tagged dev=pc: {bad}"
         raise FlowError(msg)
     flow.shot("stopped")
+    _date_picker(flow)
+
+
+def _date_picker(flow: Flow) -> None:
+    """Edit form: the numeric date picker moves the end date; ✕ keeps it.
+
+    Days are spoken as their ISO date (painted as the day number only), so
+    each is tapped by that label. Nothing is saved: the form is left by Back.
+    """
+    today = datetime.now().astimezone().date()
+    end = today + timedelta(days=2)  # as _create_project sent it
+    nxt = (end.replace(day=1) + timedelta(days=32)).replace(day=15)
+    flow.step(f"edit form: pick {nxt} for the end date ({end})")
+    flow.tap("Edit")
+    flow.tap(end.isoformat())
+    flow.expect("Next month", "Confirm", "Cancel", end.isoformat())
+    flow.shot("picker")
+    flow.tap("Next month")
+    flow.tap(nxt.isoformat())
+    flow.shot("picker-next")
+    flow.tap("Confirm")
+    flow.expect(nxt.isoformat())
+    flow.step("reopen, then ✕: the end date stays")
+    flow.tap(nxt.isoformat())
+    flow.expect("Cancel")
+    flow.tap("Cancel")
+    flow.expect(nxt.isoformat())
+    flow.shot("picked")
+    flow.tap("Back")
+    flow.expect(START)
 
 
 def f8(flow: Flow) -> None:
