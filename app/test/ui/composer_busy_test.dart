@@ -131,11 +131,11 @@ void main() {
       kv: kv,
       phone: true,
     );
-    expect(find.text('1/2'), findsOneWidget);
+    expect(bySpoken('1/2'), findsOneWidget);
     await t.enterText(find.byType(TextField), 'fresh');
     kv.reads.single.complete(jsonEncode(['', '']));
     await t.pump();
-    expect(find.text('1/2'), findsOneWidget);
+    expect(bySpoken('1/2'), findsOneWidget);
     expect(_box(t, 0), 'fresh');
   });
 

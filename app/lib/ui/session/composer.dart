@@ -1,8 +1,9 @@
 /// The answer composer (`static/questions.js`): a box per question of the
 /// latest tutor message, sent as ONE message; else a plain box. Boxes get
 /// the question's choices as chips plus "Hint" (sends "Hint"). Drafts
-/// survive a reload; Ctrl+Enter sends. Phone: one question at a time (1/3,
-/// Back, Next / Send), no Ctrl+Enter hint.
+/// survive a reload; Ctrl+Enter sends. Phone: one question at a time (dots,
+/// swipe right = back), one row [hint][field][check / send] at a tighter
+/// density, no Ctrl+Enter hint.
 library;
 
 import 'dart:async';
@@ -53,6 +54,9 @@ class Composer extends StatefulWidget {
   @override
   State<Composer> createState() => _ComposerState();
 }
+
+/// The plain box's spoken label.
+const _plainLabel = 'Your answer. Reason it out; guesses are welcome.';
 
 class _ComposerState extends State<Composer> {
   List<Asked> _asked = const [];
@@ -170,6 +174,7 @@ class _ComposerState extends State<Composer> {
     label: label,
     minLines: _asked.isEmpty && !widget.phone ? 3 : 1,
     maxLines: widget.phone ? 6 : 12,
+    dense: widget.phone,
   );
 
   Widget _chips(int i) => AnswerChips(
@@ -177,32 +182,61 @@ class _ComposerState extends State<Composer> {
     enabled: widget.enabled,
     onPick: (c) => _pick(i, c),
     onHint: _hint,
+    hint: !widget.phone,
   );
 
-  // One question at a time: its full text, chips, box, then 1/3 + Back/Next.
-  List<Widget> _phoneStep(TextTheme text, bool canSend) {
+  Offset _swipe = Offset.zero; // phone: the drag on the question so far
+
+  // One question at a time: dots, its text and chips, then one row
+  // [hint][box][check], the check turning into Send on the last question.
+  List<Widget> _phoneStep(bool canSend) {
     final a = _asked[_step];
+    final last = _step == _asked.length - 1;
     return [
-      // Pages, never a scroll (build-mobile-app R7): with the keyboard up
-      // the box's page shows; the question is a page back.
+      if (_asked.length > 1) StepDots(step: _step, total: _asked.length),
+      // Pages, never a scroll (build-mobile-app R7): a long question pages.
       Flexible(
-        child: FitPages(
-          key: ValueKey('step-$_step'),
-          children: [
-            QuestionLabel(a),
-            const SizedBox(height: AppSpacing.sm),
-            _chips(_step),
-            _box(_step, 'Your answer'),
-          ],
+        // Swipe right on the question: the previous one. Raw pointers, so
+        // the question's SelectionArea cannot win the drag in the arena.
+        child: Listener(
+          onPointerDown: (e) => _swipe = Offset.zero,
+          onPointerMove: (e) => _swipe += e.delta,
+          onPointerUp: (_) {
+            final d = _swipe;
+            if (d.dx > kPhoneTarget && d.dx > 2 * d.dy.abs() && _step > 0) {
+              _go(_step - 1);
+            }
+          },
+          child: FitPages(
+            key: ValueKey('step-$_step'),
+            children: [
+              QuestionLabel(a, fontSize: kPhoneText),
+              const SizedBox(height: AppSpacing.sm),
+              _chips(_step),
+            ],
+          ),
         ),
       ),
-      StepBar(
-        step: _step,
-        total: _asked.length,
-        canSend: canSend,
-        onBack: () => _go(_step - 1),
-        onNext: () => _go(_step + 1),
-        onSend: _send,
+      PhoneRow(
+        hint: phoneGlyph(
+          Icons.lightbulb_outline,
+          'Hint',
+          widget.enabled ? _hint : null,
+        ),
+        field: _box(_step, 'Your answer'),
+        action: last
+            ? phoneGlyph(
+                Icons.send,
+                'Send',
+                canSend ? _send : null,
+                filled: true,
+              )
+            : phoneGlyph(
+                Icons.check,
+                'Next',
+                () => _go(_step + 1),
+                filled: true,
+              ),
       ),
     ];
   }
@@ -230,15 +264,25 @@ class _ComposerState extends State<Composer> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_asked.isEmpty) ...[
-            _box(0, 'Your answer. Reason it out; guesses are welcome.'),
+          if (_asked.isEmpty && widget.phone)
+            PhoneRow(
+              field: _box(0, _plainLabel),
+              action: phoneGlyph(
+                Icons.send,
+                'Send',
+                canSend ? _send : null,
+                filled: true,
+              ),
+            )
+          else if (_asked.isEmpty) ...[
+            _box(0, _plainLabel),
             SendRow(
               canSend: canSend,
               onSend: _send,
-              hint: widget.phone ? null : 'Ctrl+Enter to send',
+              hint: 'Ctrl+Enter to send',
             ),
           ] else if (widget.phone)
-            ..._phoneStep(text, canSend)
+            ..._phoneStep(canSend)
           else
             ..._deskBoxes(text, canSend),
         ],

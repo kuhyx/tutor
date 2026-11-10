@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
+import 'package:tutor/ui/session/composer_parts.dart';
 import 'package:tutor/ui/session/session_screen.dart';
 import 'package:tutor/util/device.dart';
 
@@ -71,3 +72,9 @@ Finder rich(String s) => find.textContaining(s, findRichText: true);
 
 String boxText(WidgetTester t) =>
     t.widget<TextField>(find.byType(TextField)).controller!.text;
+
+/// Phone: swipes right on the question on screen (the previous question).
+Future<void> swipeBack(WidgetTester t) async {
+  await t.drag(find.byType(QuestionLabel), const Offset(300, 0));
+  await t.pumpAndSettle();
+}

@@ -74,8 +74,9 @@ class SessionChat extends StatefulWidget {
   /// The Android app (step-through composer).
   final bool phone;
 
-  /// The phone keyboard is open: no header lines, the latest tutor message
-  /// folded to its last line, chat and composer text at 85%.
+  /// The phone keyboard is open: no header lines; over question boxes no
+  /// feed at all, over a plain box the latest tutor message folded to its
+  /// last line.
   final bool keyboard;
 
   @override
@@ -126,8 +127,11 @@ class _SessionChatState extends State<SessionChat> {
     // Nothing shown yet but something is coming: a request or a first turn.
     final waiting =
         widget.runner.busy || (view != null && !(meta?.stopped ?? false));
-    final mq = MediaQuery.of(context);
-    final chat = LayoutBuilder(
+    // Phone keyboard up over question boxes: the question takes the feed's
+    // room (kuhy, 2026-11-10). A plain box keeps the folded last line: it
+    // is the ask.
+    final noFeed = widget.keyboard && boxes;
+    return LayoutBuilder(
       builder: (context, box) => Column(
         children: [
           if (meta != null)
@@ -140,7 +144,9 @@ class _SessionChatState extends State<SessionChat> {
             ),
           PcOfflineBanner(widget.services.presence.state),
           Expanded(
-            child: empty
+            child: noFeed
+                ? const SizedBox.shrink()
+                : empty
                 ? NoChat(
                     waiting: waiting,
                     loaded: widget.feed.loaded.value || view != null,
@@ -158,9 +164,11 @@ class _SessionChatState extends State<SessionChat> {
                     ),
                   ),
           ),
-          const Divider(height: 1),
+          if (!noFeed) const Divider(height: 1),
           ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
+            constraints: BoxConstraints(
+              maxHeight: box.maxHeight * (noFeed ? 1 : _share),
+            ),
             child: sessionPanel(
               phone: widget.phone,
               Column(
@@ -203,15 +211,6 @@ class _SessionChatState extends State<SessionChat> {
           ),
         ],
       ),
-    );
-    // Same tree keyboard open or shut: a new root would drop focus.
-    return MediaQuery(
-      data: mq.copyWith(
-        textScaler: widget.keyboard
-            ? TextScaler.linear(mq.textScaler.scale(1) * 0.85)
-            : mq.textScaler,
-      ),
-      child: chat,
     );
   }
 

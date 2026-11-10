@@ -73,6 +73,7 @@ class GlyphButton extends StatelessWidget {
     this.filled = false,
     this.selected = false,
     this.size,
+    this.target,
     super.key,
   });
 
@@ -100,27 +101,42 @@ class GlyphButton extends StatelessWidget {
   /// Glyph size; null = the theme's.
   final double? size;
 
+  /// Square tap target (dp); null = the theme's (48).
+  final double? target;
+
   @override
   Widget build(BuildContext context) {
     final n = count;
     Widget glyph = Icon(icon, color: filled ? null : tint, size: size);
     if (n != null) glyph = CountBadge.on(glyph, count: n, color: tint);
+    final t = target;
+    // A dense target: exactly t x t, no padding up to the 48 dp default.
+    final style = t == null && tint == null
+        ? null
+        : IconButton.styleFrom(
+            backgroundColor: filled ? tint : null,
+            fixedSize: t == null ? null : Size.square(t),
+            minimumSize: t == null ? null : Size.square(t),
+            padding: t == null ? null : EdgeInsets.zero,
+            tapTargetSize: t == null ? null : MaterialTapTargetSize.shrinkWrap,
+          );
     final button = filled
         ? IconButton.filled(
             onPressed: onPressed,
             isSelected: selected,
-            style: tint == null
-                ? null
-                : IconButton.styleFrom(backgroundColor: tint),
+            style: style,
             icon: glyph,
           )
         : IconButton(
             onPressed: onPressed,
             isSelected: selected,
-            constraints: const BoxConstraints(
-              minWidth: AppSpacing.xxl,
-              minHeight: AppSpacing.xxl,
-            ),
+            style: t == null ? null : style,
+            constraints: t == null
+                ? const BoxConstraints(
+                    minWidth: AppSpacing.xxl,
+                    minHeight: AppSpacing.xxl,
+                  )
+                : null,
             icon: glyph,
           );
     return SpokenLabel(

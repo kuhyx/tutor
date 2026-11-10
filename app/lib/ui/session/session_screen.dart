@@ -1,13 +1,15 @@
 /// Session (curriculum §8): the chat from the RTDB projection, answer
 /// boxes, busy phase and pending bubble, Card done -> Next card / Stop
 /// here, Mark card done, Switch card, known list, paused/stalled pills,
-/// PC-offline banner. Wide windows get the side panel inline.
+/// PC-offline banner. Wide windows get the side panel inline. Phone with
+/// the keyboard up: no top bar, no sidebar, no status bar.
 library;
 
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/request_body.dart';
@@ -76,6 +78,8 @@ class _SessionScreenState extends State<SessionScreen> {
   late final AppLifecycleListener _lifecycle;
   late final VoidCallback _unwatch;
   final _scroll = ScrollController();
+  final _scaffold = GlobalKey<ScaffoldState>();
+  bool _keyboard = false; // phone keyboard up at the last build
   late final SessionSubjects _subjectFeed = SessionSubjects(_s, _feed);
   Map<String, SubjectData> get _subjects => _subjectFeed.subjects.value;
 
@@ -102,6 +106,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   @override
   void dispose() {
+    if (_keyboard) unawaited(_statusBar(show: true));
     _unwatch();
     _lifecycle.dispose();
     unawaited(_subjectFeed.dispose());
@@ -110,6 +115,29 @@ class _SessionScreenState extends State<SessionScreen> {
     unawaited(_today.dispose());
     _scroll.dispose();
     super.dispose();
+  }
+
+  // Android status bar (clock, battery): hidden while the phone keyboard
+  // is up on this screen, the nav bar stays (kuhy, 2026-11-10).
+  static Future<void> _statusBar({required bool show}) => show
+      ? SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)
+      : SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: const [SystemUiOverlay.bottom],
+        );
+
+  // The keyboard rose or fell: the status bar follows, and a rising
+  // keyboard closes the sidebar (it cannot be opened while it is up).
+  void _keyboardChanged(bool keyboard) {
+    if (keyboard == _keyboard) return;
+    _keyboard = keyboard;
+    unawaited(_statusBar(show: !keyboard));
+    if (keyboard) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final s = _scaffold.currentState;
+        if (s != null && s.isEndDrawerOpen) s.closeEndDrawer();
+      });
+    }
   }
 
   /// Runs [body]; a result naming a session is followed at once.
@@ -166,6 +194,7 @@ class _SessionScreenState extends State<SessionScreen> {
       final view = _feed.view.value;
       final phone = isPhone;
       final keyboard = phone && MediaQuery.viewInsetsOf(context).bottom > 0;
+      _keyboardChanged(keyboard);
       final meta = view?.meta;
       final subject = _subjects[meta?.subject];
       final live = meta != null && !meta.stopped;
@@ -212,33 +241,46 @@ class _SessionScreenState extends State<SessionScreen> {
         builder: (context, box) {
           final wide = box.maxWidth >= kWideLayout;
           return Scaffold(
-            appBar: AppBar(
-              // The subject's name (content); none before it loads.
-              title: subject == null ? null : ContentText(subject.meta.title),
-              actions: sessionActions(sid: view?.sid, wide: wide),
-            ),
+            key: _scaffold,
+            // Phone keyboard up: the bar (and its sidebar button) goes.
+            appBar: keyboard
+                ? null
+                : AppBar(
+                    // The subject's name (content); none before it loads.
+                    title: subject == null
+                        ? null
+                        : ContentText(subject.meta.title),
+                    actions: sessionActions(sid: view?.sid, wide: wide),
+                  ),
             endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
-            body: wide
-                ? Row(
-                    children: [
-                      // The chat keeps a reading width; the panel grows
-                      // with the window so long card fronts wrap, not clip.
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: kChatMaxWidth,
+            drawerEnableOpenDragGesture: !keyboard,
+            endDrawerEnableOpenDragGesture: !keyboard,
+            // Under an AppBar the top inset is already 0; without one the
+            // body keeps clear of the status bar (same tree either way).
+            body: SafeArea(
+              bottom: false,
+              child: wide
+                  ? Row(
+                      children: [
+                        // The chat keeps a reading width; the panel grows
+                        // with the window so long card fronts wrap, not clip.
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: kChatMaxWidth,
+                              ),
+                              child: chat,
                             ),
-                            child: chat,
                           ),
                         ),
-                      ),
-                      const VerticalDivider(width: 1),
-                      SizedBox(width: sideWidth(box.maxWidth), child: side),
-                    ],
-                  )
-                : chat,
+                        const VerticalDivider(width: 1),
+                        SizedBox(width: sideWidth(box.maxWidth), child: side),
+                      ],
+                    )
+                  : chat,
+            ),
           );
         },
       );

@@ -56,19 +56,12 @@ class _CollapsedTileState extends State<CollapsedTile> {
             color: scheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: ContentText.rich(
-                  TextSpan(children: mdInlineSpans(parseInline(line), scheme)),
-                  key: const ValueKey('collapsed-line'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Icon(Icons.expand_more, color: scheme.onSurfaceVariant),
-            ],
+          // No chevron (kuhy, 2026-11-10): the whole tile is the tap.
+          child: ContentText.rich(
+            TextSpan(children: mdInlineSpans(parseInline(line), scheme)),
+            key: const ValueKey('collapsed-line'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),

@@ -18,13 +18,13 @@ void main() {
 
   testWidgets('phone: a tapped check chip is sent with the marker', (t) async {
     final (db, stream) = await openComposer(t, phone: true, check: true);
-    expect(find.text('1/4'), findsOneWidget);
+    expect(bySpoken('1/4'), findsOneWidget);
     for (final a in ['one', 'two', 'three']) {
       await t.enterText(find.byType(TextField), a);
       await t.tap(controlByLabel('Next'));
       await t.pumpAndSettle();
     }
-    expect(find.text('4/4'), findsOneWidget);
+    expect(bySpoken('4/4'), findsOneWidget);
     expect(find.byIcon(Icons.fact_check_outlined), findsWidgets);
     expect(find.text('The flywheel'), findsOneWidget);
     await t.tap(find.text('The crankshaft'));

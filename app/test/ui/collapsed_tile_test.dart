@@ -48,7 +48,8 @@ void main() {
     final oneLine = p.getFullHeightForCaret(const TextPosition(offset: 0));
     expect(p.size.height, closeTo(oneLine, 0.5));
 
-    await t.tap(find.byIcon(Icons.expand_more));
+    expect(find.byIcon(Icons.expand_more), findsNothing); // no chevron
+    await t.tap(line);
     await t.pumpAndSettle();
     expect(find.text('FULL TILE'), findsOneWidget);
     expect(line, findsNothing);

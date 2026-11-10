@@ -16,9 +16,9 @@ import '../support/ui.dart';
 void main() {
   tearDown(() => debugPhone = false);
 
-  testWidgets('phone: Back/Next/Send gives ONE combined message', (t) async {
+  testWidgets('phone: swipe back/Next/Send gives ONE combined message', (t) async {
     final (db, stream) = await openComposer(t, phone: true);
-    expect(find.text('1/3'), findsOneWidget);
+    expect(bySpoken('1/3'), findsOneWidget);
     expect(find.textContaining('Which stroke makes the power?'), findsWidgets);
     expect(find.text('Your own comment'), findsNothing);
     expect(bySpoken('Ctrl+Enter to send'), findsNothing);
@@ -31,19 +31,18 @@ void main() {
     await t.enterText(find.byType(TextField), 'The power stroke, edited');
     await t.tap(controlByLabel('Next')); // ... which is edited before Next
     await t.pumpAndSettle();
-    expect(find.text('2/3'), findsOneWidget);
+    expect(bySpoken('2/3'), findsOneWidget);
     expect(boxText(t), '');
     await t.enterText(find.byType(TextField), 'two');
-    await t.tap(controlByLabel('Back'));
-    await t.pumpAndSettle();
-    expect(find.text('1/3'), findsOneWidget);
+    await swipeBack(t);
+    expect(bySpoken('1/3'), findsOneWidget);
     expect(boxText(t), 'The power stroke, edited');
     await t.tap(controlByLabel('Next'));
     await t.pumpAndSettle();
     expect(boxText(t), 'two');
     await t.tap(controlByLabel('Next'));
     await t.pumpAndSettle();
-    expect(find.text('3/3'), findsOneWidget);
+    expect(bySpoken('3/3'), findsOneWidget);
     expect(controlByLabel('Next'), findsNothing);
     expect(pressOf(t, 'Send'), isNotNull);
     await t.enterText(find.byType(TextField), 'three');
@@ -77,15 +76,14 @@ void main() {
     t,
   ) async {
     await openComposer(t, phone: true, draft: ['one', 'two', '']);
-    expect(find.text('3/3'), findsOneWidget);
-    await t.tap(controlByLabel('Back'));
-    await t.pumpAndSettle();
+    expect(bySpoken('3/3'), findsOneWidget);
+    await swipeBack(t);
     expect(boxText(t), 'two');
   });
 
   testWidgets('phone: every question answered resumes on the last', (t) async {
     await openComposer(t, phone: true, draft: ['one', 'two', 'three']);
-    expect(find.text('3/3'), findsOneWidget);
+    expect(bySpoken('3/3'), findsOneWidget);
     expect(boxText(t), 'three');
   });
 
@@ -119,7 +117,7 @@ void main() {
     expect(find.text('Your own comment'), findsNothing);
     expect(find.byType(TextField), findsNWidgets(3)); // one per question
     expect(bySpoken('Ctrl+Enter to send'), findsOneWidget);
-    expect(find.text('1/3'), findsNothing);
+    expect(bySpoken('1/3'), findsNothing);
     expect(glyphsLabelled('Hint'), findsNWidgets(3)); // above each answer box
     expect(find.text('The intake stroke'), findsOneWidget);
     // Keyboard rules are the phone's: the desktop header stays.

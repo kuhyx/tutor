@@ -1,4 +1,4 @@
-// The phone keyboard opening: header hidden, last line, 85% text, and the
+// The phone keyboard opening: header and feed hidden, and the
 // composer (focus, step, typed text) surviving the layout change.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +12,7 @@ import '../support/label_finders.dart';
 void main() {
   tearDown(() => debugPhone = false);
 
-  testWidgets('phone, keyboard open: no header, last line, 85% text', (
+  testWidgets('phone, keyboard open: no header, no feed, same text scale', (
     t,
   ) async {
     await openComposer(t, phone: true);
@@ -27,26 +27,17 @@ void main() {
     await t.pumpAndSettle();
     expect(bySpoken('This card:', prefix: true), findsNothing);
     expect(bySpoken('Today:', prefix: true), findsNothing);
+    // The question takes the feed's room (no folded tile over boxes).
     expect(rich('Good. Now three quick ones'), findsNothing);
-    expect(rich('a guess is fine.'), findsOneWidget);
-    expect(scale(), closeTo(0.85, 1e-9));
-    // The question and its box are still there.
-    expect(find.text('1/3'), findsOneWidget);
-
-    // The folded tile's own chevron (the Thinking panel has one too).
-    await t.tap(
-      find.descendant(
-        of: find.byType(CollapsedTile),
-        matching: find.byIcon(Icons.expand_more),
-      ),
-    );
-    await t.pumpAndSettle();
-    expect(rich('Good. Now three quick ones'), findsOneWidget);
+    expect(find.byType(CollapsedTile), findsNothing);
+    // Density is fixed (13 sp), no extra shrink on top.
+    expect(scale(), 1);
+    expect(bySpoken('1/3'), findsOneWidget);
 
     t.view.resetViewInsets();
     await t.pumpAndSettle();
     expect(bySpoken('This card:', prefix: true), findsOneWidget);
-    expect(scale(), 1);
+    expect(rich('Good. Now three quick ones'), findsOneWidget);
   });
 
   testWidgets('phone: the keyboard opening keeps focus, step and text', (
@@ -71,7 +62,7 @@ void main() {
     t.view.viewInsets = const FakeViewPadding(bottom: 300);
     addTearDown(t.view.resetViewInsets);
     await t.pumpAndSettle();
-    expect(find.text('2/3'), findsOneWidget);
+    expect(bySpoken('2/3'), findsOneWidget);
     expect(boxText(t), 'half typed');
     expect(focused(), isTrue); // a remount would have dropped it
     t.view.resetViewInsets();
