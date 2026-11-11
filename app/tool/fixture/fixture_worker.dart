@@ -90,6 +90,14 @@ Json Function(String kind, Json body) fixtureWorker({
           'eligible_today_min': 12,
           'last_sync_at': now,
         });
+      // No plan for the day: the start screen falls through to Home (an
+      // empty success has no `date` and would stop it on the spinner).
+      case 'plan_today':
+        final d = DateTime.fromMillisecondsSinceEpoch(now * 1000);
+        final day =
+            '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+            '${d.day.toString().padLeft(2, '0')}';
+        return ok({'date': day, 'steps': <Object>[]});
       case _ when claudeOut:
         return {
           'ok': false,

@@ -28,10 +28,16 @@ class FakeRtdb {
   String? failPrefix;
 
   /// A client wired to this fake.
+  ///
+  /// The namespace is pinned to production (''): a phone slot build of the
+  /// screenshot fixture sets SYNC_NAMESPACE=sandbox/slotN, which would
+  /// otherwise move every read under a prefix this in-memory tree lacks
+  /// (Home and Progress came up empty on the Pixel).
   RtdbClient client() => RtdbClient(
     databaseUrl: 'https://fake',
     idToken: () async => 'tok',
     httpClient: MockClient(_handle),
+    namespace: '',
   );
 
   Object? _resolve(Object? v) {
