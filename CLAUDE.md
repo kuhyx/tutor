@@ -37,7 +37,7 @@ Read README.md first. These are the invariants that are easy to break.
 
 - install: `./install.sh` (installs + enables `tutor.service`, the live server; never restarts a running one)
 - run: `./run.sh` (opens the desktop app at 127.0.0.1:8778/app/, starts `tutor.service` if down; `--no-open` skips the browser)
-- deploy: app build (below) first, then `scripts/tutor_deploy.sh` (refuses a missing or stale web build; smoke test, wait for idle, `systemctl --user restart tutor.service`)
+- deploy: `scripts/deploy.sh` (app web build, then `scripts/tutor_deploy.sh`, which refuses a missing or stale web build; smoke test, wait for idle, `systemctl --user restart tutor.service`)
 - test: `.venv/bin/python -m pytest -q` (serial, the CI authority; `-n 6` runs it in parallel with pytest-xdist; tests that count host processes carry `@pytest.mark.exclusive_host` and run alone via the flock in `conftest.py`)
 - commit flow (the pytest hook must end < 60 s at any load): `git add` first, then `.venv/bin/python scripts/pytest_stamp.py run` and repeat until it prints `stamp written` (each call < 60 s: chunks of the changed-files selection, progress saved in the git dir, 100% branch coverage on the changed files or on everything for the full suite, stamp keyed by `git write-tree`), then `git commit`. The hook passes in < 1 s on a valid stamp, runs inline when under a quarter of the test files reach the change, and otherwise fails in < 2 s printing that command. Any later `git add` invalidates the stamp; unstaged .py/pyproject changes make the runner refuse; `pre-commit run --all-files` needs a full stamp for the tree: `scripts/pytest_stamp.py run --full` (same loop, nothing staged needed)
 - test-changed: `scripts/test_changed.sh`
