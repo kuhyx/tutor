@@ -35,7 +35,7 @@ dependencies:
   # Refresh token in the Android keystore (DOCS-contract §10).
   flutter_secure_storage: 11.2.0
   # Worker-drawn circuit diagrams arrive as inline SVG (DOCS-contract §8).
-  flutter_svg: 2.3.2
+  flutter_svg: 2.3.3
   # One-tap Google ID token via the framework AccountManager chooser (FOSS).
   google_account_token:
     git:
