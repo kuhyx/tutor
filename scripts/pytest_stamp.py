@@ -131,7 +131,7 @@ def _coverage_ok(tree: str, sources: list[str]) -> bool:
     )
 
 
-def _work(tree: str, state: State, only: int | None) -> int:
+def _work(tree: str, state: State, only: int | None, *, full: bool) -> int:
     """Run pending chunks while the call has time left; 0 ok, 1 failed, 75 more."""
     chunks, done = state.chunks, state.done
     pending = [i for i in range(len(chunks)) if i not in done]
@@ -155,7 +155,8 @@ def _work(tree: str, state: State, only: int | None) -> int:
         _save(tree, state)
     left = len(chunks) - len(set(done))
     if left:
-        sel.say(f"{left} chunks left: {sel.RUN_CMD}")
+        again = f"{sel.RUN_CMD} --full" if full else sel.RUN_CMD
+        sel.say(f"{left} chunks left: {again}")
         return _MORE
     return 0
 
@@ -181,7 +182,7 @@ def run(only: int | None, *, full: bool = False) -> int:
         sel.say("stamp already valid or nothing to run")
         return 0
     state = _load(tree, files, todo)
-    code = _work(tree, state, only)
+    code = _work(tree, state, only, full=full)
     if code or not _coverage_ok(tree, state.sources):
         return code or 1
     info = {"full": state.full, "files": files, "chunks": len(state.chunks)}
