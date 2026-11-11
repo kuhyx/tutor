@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/feedback/feedback_sender.dart';
+import 'package:tutor/focus/android_checkin_notifier.dart';
 import 'package:tutor/history/history.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/home/home_loader.dart';
@@ -172,6 +173,8 @@ Future<TutorServices> _open() async {
     catalog: Catalog(client: client, kv: kv),
     history: HistoryRepo(client),
     feedback: FeedbackSender(client: client, dev: _dev, ulid: ulid),
+    // On a phone the real check-in alarm and notifications, as in the app.
+    checkinNotifier: platformCheckinNotifier(),
   );
 }
 
