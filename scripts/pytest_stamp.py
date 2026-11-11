@@ -33,7 +33,7 @@ import pytest_changed as sel
 import pytest_store as store
 
 _logger = logging.getLogger(__name__)
-_CHUNK_FILES = 48  # test files per chunk: ~10 s idle, well under the cap loaded
+_CHUNK_FILES = 16  # files per chunk: ~4 s idle; 48 timed out at load 190 (24 cores)
 _BUDGET_S = 45.0  # start no chunk that could end past this many seconds
 _CHUNK_TIMEOUT_S = 55
 _MORE = 75  # exit code: progress saved, call again
@@ -81,7 +81,7 @@ def _load(tree: str, files: list[str], todo: sel.Plan) -> State:
     path = _state_file(tree)
     if path.is_file():
         saved = State(**json.loads(path.read_text(encoding="utf-8")))
-        if saved.files == files:
+        if saved.files == files and saved.full == todo.full:
             return saved
     return State(files, todo.full, todo.sources, _split(todo.tests))
 
@@ -160,15 +160,24 @@ def _work(tree: str, state: State, only: int | None) -> int:
     return 0
 
 
-def run(only: int | None) -> int:
-    """Run pending chunks within the time budget; stamp the tree when all pass."""
+def run(only: int | None, *, full: bool = False) -> int:
+    """Run pending chunks within the time budget; stamp the tree when all pass.
+
+    ``full`` runs the whole suite even when nothing python is staged: a tree
+    from a dart-only commit has no stamp, and ``pre-commit run --all-files``
+    asks for a full one.
+    """
     dirty = _unstaged()
     if dirty:
         sel.say(f"unstaged changes to {', '.join(dirty[:5])}: git add them first")
         return 2
     tree, files = store.write_tree(), _staged()
-    todo = sel.plan([Path(f) for f in files])
-    if store.covers(tree, files) or not todo.tests:
+    todo = (
+        sel.Plan(sel.all_tests(), [], full=True)
+        if full
+        else sel.plan([Path(f) for f in files])
+    )
+    if store.covers(tree, ["*"] if full else files) or not todo.tests:
         sel.say("stamp already valid or nothing to run")
         return 0
     state = _load(tree, files, todo)
@@ -187,8 +196,11 @@ def main(argv: list[str]) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     runner = sub.add_parser("run", help="run pending chunks, stamp when all pass")
     runner.add_argument("--chunk", type=int, help="run only this chunk (1-based)")
+    runner.add_argument(
+        "--full", action="store_true", help="the whole suite, nothing staged needed"
+    )
     args = parser.parse_args(argv)
-    return run(args.chunk)
+    return run(args.chunk, full=args.full)
 
 
 if __name__ == "__main__":
