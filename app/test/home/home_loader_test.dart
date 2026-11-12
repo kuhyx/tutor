@@ -40,7 +40,7 @@ void main() {
 
   setUp(() {
     db = FakeRtdb()
-      ..root = setAt(null, 'tutor/v1', {
+      ..root = setAt(null, 'tutor/v1-e2e', {
         'meta': {'schema': 1, 'min_client': 1},
         'rev': {'catalog': 3, 'stats': 1},
         'prefs': {'current_subject': 'car'},
@@ -104,7 +104,7 @@ void main() {
     await home.load();
     expect(db.log.where((l) => l.contains('/subjects/')), isEmpty);
 
-    db.root = setAt(db.root, 'tutor/v1/rev/catalog', 4);
+    db.root = setAt(db.root, 'tutor/v1-e2e/rev/catalog', 4);
     db.log.clear();
     await home.load();
     expect(db.log.where((l) => l.contains('/subjects/')), isNotEmpty);
@@ -125,7 +125,7 @@ void main() {
   });
 
   test('log sync failure still counts local events', () async {
-    db.failPrefix = '/tutor/v1/log';
+    db.failPrefix = '/tutor/v1-e2e/log';
     await teach('car', 'eng');
     final snap = await home.load();
     expect(snap.due, 1);
@@ -133,7 +133,7 @@ void main() {
   });
 
   test('schema gate; absent meta, rev and stats are tolerated', () async {
-    db.root = setAt(db.root, 'tutor/v1/meta/min_client', 2);
+    db.root = setAt(db.root, 'tutor/v1-e2e/meta/min_client', 3);
     await expectLater(
       home.load(),
       throwsA(
@@ -144,9 +144,9 @@ void main() {
         ),
       ),
     );
-    db.root = setAt(db.root, 'tutor/v1/meta', null);
-    db.root = setAt(db.root, 'tutor/v1/rev', null);
-    db.root = setAt(db.root, 'tutor/v1/stats', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/meta', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/rev', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats', null);
     final snap = await home.load();
     expect(snap.today, isNull);
     expect(snap.subjects, hasLength(2));

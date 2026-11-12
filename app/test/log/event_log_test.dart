@@ -49,10 +49,10 @@ void main() {
       final b = await log.record(_review(2, Grade.hard));
       expect(await log.flush(), 2);
       expect(db.log, [
-        'PUT /tutor/v1/log/$_me/${a.eid}',
-        'PUT /tutor/v1/log/$_me/${b.eid}',
+        'PUT /tutor/v1-e2e/log/$_me/${a.eid}',
+        'PUT /tutor/v1-e2e/log/$_me/${b.eid}',
       ]);
-      expect(getAt(db.root, 'tutor/v1/log/$_me/${b.eid}/r'), 2);
+      expect(getAt(db.root, 'tutor/v1-e2e/log/$_me/${b.eid}/r'), 2);
       expect(await log.pending(), 0);
       expect(await log.flush(), 0);
       expect(await log.all(), hasLength(2));
@@ -60,7 +60,7 @@ void main() {
   );
 
   test('pull fetches each device after its cursor; skips junk', () async {
-    db.root = setAt(null, 'tutor/v1/log', {
+    db.root = setAt(null, 'tutor/v1-e2e/log', {
       _pc: {
         '01JA0000000000000000000001': {
           'k': 'taught',
@@ -76,9 +76,9 @@ void main() {
     var all = await log.all();
     expect(all.single.dev, _pc);
     expect(all.single.event, isA<TaughtEvent>());
-    expect(db.log.last, startsWith('GET /tutor/v1/log/$_pc'));
+    expect(db.log.last, startsWith('GET /tutor/v1-e2e/log/$_pc'));
 
-    db.root = setAt(db.root, 'tutor/v1/log/$_pc/01JA0000000000000000000003', {
+    db.root = setAt(db.root, 'tutor/v1-e2e/log/$_pc/01JA0000000000000000000003', {
       'k': 'untaught',
       's': 'car',
       'c': 'eng',
@@ -93,7 +93,7 @@ void main() {
   });
 
   test('pull of an empty or emptied device', () async {
-    db.root = setAt(null, 'tutor/v1/log/$_pc', {
+    db.root = setAt(null, 'tutor/v1-e2e/log/$_pc', {
       '01JA0000000000000000000009': 1,
     });
     await kv.set('log.cursor.$_pc', '01JA000000000000000000000Z');

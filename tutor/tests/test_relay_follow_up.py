@@ -44,13 +44,13 @@ def test_reopen_a_stopped_session_then_ask(tmp_path: Path) -> None:
         first = got["data"]["session"]
         assert (await rig.send("message", {"session": first, "text": "x"}))["ok"]
         assert (await rig.send("stop", {"session": first}))["ok"]
-        meta = f"tutor/v1/sessions/{first}/meta"
+        meta = f"tutor/v1-e2e/sessions/{first}/meta"
         assert rig.fake.get(f"{meta}/stopped") is True
         got = await rig.send("follow_up_open", {"session": first})
         assert got["data"] == {"session": first}
         assert rig.fake.get(f"{meta}/stopped") is False
         assert rig.fake.get(f"{meta}/card_done") is True
-        assert rig.fake.get("tutor/v1/live/session") == first
+        assert rig.fake.get("tutor/v1-e2e/live/session") == first
         got = await rig.send("message", {"session": first, "text": "what if?"})
         assert got["ok"]
         # Another session live: refused, with a code the app can explain.
@@ -86,7 +86,7 @@ def test_follow_up_turns_show_their_trace_live_and_keep_it(
         trace.feed(delta(f"thinking {len(fake.prompts)}"))
         assert on_trace is not None  # the relay session always observes
         on_trace(trace)
-        node = f"tutor/v1/sessions/{eng.session_id}/progress"
+        node = f"tutor/v1-e2e/sessions/{eng.session_id}/progress"
         for _ in range(500):
             if (seen := rigs[0].fake.get(node)) is not None:
                 break
@@ -108,7 +108,7 @@ def test_follow_up_turns_show_their_trace_live_and_keep_it(
         assert (await rig.send("stop", {"session": sid}))["ok"]
         assert (await rig.send("follow_up_open", {"session": sid}))["ok"]
         assert (await rig.send("message", {"session": sid, "text": "again?"}))["ok"]
-        assert rig.fake.get(f"tutor/v1/sessions/{sid}/progress") is None
+        assert rig.fake.get(f"tutor/v1-e2e/sessions/{sid}/progress") is None
 
     run(eng, script)
     # live[0]: session_start names no session yet, so it has no progress node.

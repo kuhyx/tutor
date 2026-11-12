@@ -118,13 +118,13 @@ def test_publisher_startup_republishes_stale_and_tracks_live(tmp_path: Path) -> 
         w = wiring(fake, eng)
         pub = w.publisher
         assert await pub.startup() == 1
-        meta = fake.get(f"tutor/v1/sessions/{sid}/meta")
+        meta = fake.get(f"tutor/v1-e2e/sessions/{sid}/meta")
         assert meta["n"] == 3
-        assert fake.get("tutor/v1/live")["session"] == sid
-        assert fake.get("tutor/v1/rev/stats") == 1
-        assert fake.get("tutor/v1/stats/today/new_cap") == 25
+        assert fake.get("tutor/v1-e2e/live")["session"] == sid
+        assert fake.get("tutor/v1-e2e/rev/stats") == 1
+        assert fake.get("tutor/v1-e2e/stats/today/new_cap") == 25
         assert await pub.startup() == 0  # up to date
-        fake.set("tutor/v1/session_index/" + sid + "/rev", "junk")
+        fake.set("tutor/v1-e2e/session_index/" + sid + "/rev", "junk")
         assert await pub.startup() == 1
         fake.log.clear()
         await pub.live()  # unchanged: no write
@@ -145,13 +145,13 @@ def test_publisher_appends_only_new_messages(tmp_path: Path) -> None:
         await eng.start()
         sid = eng.session_id
         await pub.after({sid, ""})
-        assert set(fake.get(f"tutor/v1/sessions/{sid}/msgs")) == {"m0001"}
+        assert set(fake.get(f"tutor/v1-e2e/sessions/{sid}/msgs")) == {"m0001"}
         await eng.reply("a", msg_id=RIDS[1])
         fake.log.clear()
         await pub.after({sid})
         assert ("PATCH", f"/sessions/{sid}/msgs") in fake.log
         assert ("PUT", f"/sessions/{sid}/msgs") not in fake.log
-        assert set(fake.get(f"tutor/v1/sessions/{sid}/msgs")) == {
+        assert set(fake.get(f"tutor/v1-e2e/sessions/{sid}/msgs")) == {
             "m0001",
             "m0002",
             "m0003",
@@ -171,7 +171,7 @@ def test_publisher_appends_only_new_messages(tmp_path: Path) -> None:
         assert all(p != f"/sessions/{sid}/meta" for _, p in fake.log)
         await eng.stop()
         await pub.refresh()
-        assert fake.get("tutor/v1/live") is None
+        assert fake.get("tutor/v1-e2e/live") is None
         await w.rtdb.aclose()
 
     asyncio.run(go())
@@ -186,9 +186,9 @@ def test_publisher_skips_missing_and_migrates_archived(tmp_path: Path) -> None:
     async def go() -> None:
         w = wiring(fake, eng)
         await w.publisher.session("20260101-000000-abcd")
-        assert fake.get("tutor/v1/sessions") is None
+        assert fake.get("tutor/v1-e2e/sessions") is None
         assert await w.publisher.archived() == 1
-        assert fake.get("tutor/v1/sessions/20261001-100000-abcd/user") == {
+        assert fake.get("tutor/v1-e2e/sessions/20261001-100000-abcd/user") == {
             "archived": True
         }
         assert w.publisher.sessions_dir == eng.store.root / "sessions"

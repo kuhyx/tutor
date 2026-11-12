@@ -19,6 +19,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/rev_watcher.dart';
+import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
 import 'package:tutor/util/ulid.dart';
 
@@ -41,9 +42,10 @@ TutorServices services(
   RtdbStream stream, {
   String uid = 'right',
   KvStore? kv,
+  RtdbClient? client,
 }) {
   final store = kv ?? MemoryKv();
-  final client = db.client();
+  client ??= db.client();
   final auth = TutorAuth(
     config: testConfig,
     store: InMemoryCredentialStore(),

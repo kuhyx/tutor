@@ -1,9 +1,13 @@
+import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
+    show kE2ePassphraseKey;
+import 'package:crdt_sync_flutter/testing/fake_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/model/ids.dart';
 import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/ui/sign_in_screen.dart';
@@ -19,14 +23,14 @@ void main() {
 
   setUp(() {
     db = FakeRtdb()
-      ..root = setAt(null, 'tutor/v1/subjects/car/meta', {
+      ..root = setAt(null, 'tutor/v1-e2e/subjects/car/meta', {
         'title': 'How a car works',
         'status': 'draft',
         'created': 1,
         'rev': 1,
         'origin': 'generated',
       });
-    db.root = setAt(db.root, 'tutor/v1/stats/today', {
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/today', {
       'day': '2026-10-12',
       'credited_minutes': 23,
       'target': 60,
@@ -137,4 +141,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(signedIn, 1);
   });
+
+  testWidgets('locked e2e key: only the lock and a retry until it opens', (
+    tester,
+  ) async {
+    installFakeSecureStorage();
+    // The header exists with cheap Argon2 params, so unlocking is quick.
+    final seed = services(db, stream);
+    final needy = RtdbClient(
+      databaseUrl: 'https://fake',
+      idToken: () async => 'tok',
+      httpClient: seed.client.httpClient,
+      namespace: '',
+      sealRequired: true,
+    );
+    final s = services(db, stream, client: needy);
+    await s.auth.signInWithGoogle(tokenFetcher: () async => 'g');
+    await tester.pumpWidget(TutorApp(config: testConfig, open: () async => s));
+    await tester.runAsync(() => Future<void>.delayed(_settle));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.lock), findsOneWidget);
+    expect(find.text('How a car works'), findsNothing);
+    expect(s.e2e.locked, isTrue);
+    expect(db.log.where((l) => l.contains('v1-e2e')), isEmpty);
+    installFakeSecureStorage(initial: {kE2ePassphraseKey: 'pw'});
+    db.root = setAt(db.root, 'tutor/e2e', _cheapHeader);
+    await tester.tap(find.byIcon(Icons.refresh));
+    await tester.runAsync(() => Future<void>.delayed(_settle));
+    await tester.pumpAndSettle();
+    expect(s.e2e.locked, isFalse);
+    expect(find.byIcon(Icons.lock), findsNothing);
+  });
 }
+
+const _settle = Duration(milliseconds: 300);
+
+// A header for passphrase "pw" with Argon2id m=8, t=1 (tutor/relay/e2e.py).
+const _cheapHeader =
+    '{"v":1,"kdf":"argon2id","salt":"4b1P1RihoW2TnBqgn7Q+0Q==","m":8,"t":1,"p":1,"check":"pEUMpNXh5i38wAKSfk/hbh3XjmHYF91315FMyMTSxUo="}';

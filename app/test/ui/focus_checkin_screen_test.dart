@@ -108,7 +108,7 @@ void main() {
   }
 
   List<Map<String, dynamic>> focusEvents() {
-    final reqs = getAt(db.root, 'tutor/v1/requests') as Map<String, dynamic>?;
+    final reqs = getAt(db.root, 'tutor/v1-e2e/requests') as Map<String, dynamic>?;
     return [
       for (final r in (reqs ?? {}).values)
         if (((r as Map<String, dynamic>)['req'] as Map)['kind'] ==
@@ -118,7 +118,7 @@ void main() {
   }
 
   List<Map<String, dynamic>> reviews() {
-    final log = getAt(db.root, 'tutor/v1/log/$testDev') as Map?;
+    final log = getAt(db.root, 'tutor/v1-e2e/log/$testDev') as Map?;
     return [
       for (final e in (log ?? {}).values)
         if ((e as Map)['k'] == 'review') e.cast<String, dynamic>(),

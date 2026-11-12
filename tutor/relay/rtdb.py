@@ -1,6 +1,10 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """A minimal async RTDB REST client: GET/PUT/PATCH/DELETE, ETags, server time.
 
+Under ``tutor/v1-e2e`` every value goes through ``e2e.Sealer`` (sealed on
+write, opened on read) once ``sealer`` is set; ``at()`` gives the raw
+client the e2e header and the one-time copy use.
+
 Every call authenticates with ``?auth=<idToken>`` (RTDB REST has no header
 form), so nothing here ever formats a URL or an ``httpx`` error into a
 message or a log line: errors name the method, the path and the status only.
@@ -16,10 +20,12 @@ from urllib.parse import quote
 
 import httpx
 
+from tutor.relay import e2e
+
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
 
-ROOT: Final = "tutor/v1"
+ROOT: Final = e2e.ROOT
 SERVER_TIME: Final = {".sv": "timestamp"}
 NULL_ETAG: Final = "null_etag"
 _PRECONDITION_FAILED: Final = 412
@@ -53,16 +59,32 @@ class Rtdb:
         database_url: str,
         token: Callable[[], Awaitable[str]],
         client: httpx.AsyncClient | None = None,
+        *,
+        root: str = ROOT,
+        sealer: e2e.Sealer | None = None,
     ) -> None:
         """Bind the database; ``client`` is injectable (tests use a fake)."""
         self._base = database_url.rstrip("/")
         self._token = token
         self.client = client or httpx.AsyncClient(timeout=_TIMEOUT)
+        self.root = root
+        self.sealer = sealer
+
+    def at(self, root: str) -> Rtdb:
+        """A raw (unsealed) client on ``root`` sharing this one's connection."""
+        return Rtdb(self._base, self._token, self.client, root=root)
 
     def url(self, path: str) -> str:
-        """The REST URL of ``path`` (relative to the tutor root), no token."""
-        rel = "/".join(quote(p, safe="") for p in path.strip("/").split("/") if p)
-        return f"{self._base}/{ROOT}/{rel}.json" if rel else f"{self._base}/{ROOT}.json"
+        """The REST URL of ``path`` (relative to the root), no token."""
+        parts = [*e2e.parts_of(self.root), *e2e.parts_of(path)]
+        return f"{self._base}/{'/'.join(quote(p, safe='') for p in parts)}.json"
+
+    def _seal(self, path: str, value: object) -> object:
+        return value if self.sealer is None else self.sealer.seal(path, value)
+
+    def opened(self, path: str, value: object) -> object:
+        """``value`` read at ``path`` with its sealed units opened."""
+        return value if self.sealer is None else self.sealer.open(path, value)
 
     async def params(self, extra: dict[str, str] | None = None) -> dict[str, str]:
         """Query parameters: the auth token plus ``extra``."""
@@ -88,37 +110,52 @@ class Rtdb:
             msg = f"{method} {path}: {type(err).__name__}"
             raise RtdbError(msg) from None
         if response.status_code == _PRECONDITION_FAILED:
-            raise ConflictError(path, response.json(), response.headers.get("etag", ""))
+            current = self.opened(path, response.json())
+            raise ConflictError(path, current, response.headers.get("etag", ""))
         if response.is_error:
             msg = f"{method} {path}: HTTP {response.status_code}"
             raise RtdbError(msg)
         return response
 
     async def get(self, path: str, params: dict[str, str] | None = None) -> object:
-        """The value at ``path`` (``None`` when absent)."""
+        """The value at ``path`` (``None`` when absent).
+
+        Below a sealed unit the whole unit is read and opened, then walked.
+        """
+        unit = None if self.sealer is None else e2e.unit_path(path)
+        if unit is not None:
+            node: Any = await self.get(unit)
+            for part in e2e.parts_of(path)[len(e2e.parts_of(unit)) :]:
+                node = node.get(part) if isinstance(node, dict) else None
+            return node
         value: object = (await self._call("GET", path, params=params)).json()
-        return value
+        return self.opened(path, value)
 
     async def get_etag(self, path: str) -> tuple[Any, str]:
         """The value at ``path`` and its ETag (``null_etag`` when absent)."""
         response = await self._call("GET", path, headers={"X-Firebase-ETag": "true"})
-        return response.json(), response.headers.get("etag", NULL_ETAG)
+        value = self.opened(path, response.json())
+        return value, response.headers.get("etag", NULL_ETAG)
 
     async def put(self, path: str, value: object) -> object:
         """Write ``value``; returns it as stored (server timestamps resolved)."""
-        stored: object = (await self._call("PUT", path, value=value)).json()
-        return stored
+        sealed = self._seal(path, value)
+        stored: object = (await self._call("PUT", path, value=sealed)).json()
+        return self.opened(path, stored)
 
     async def put_etag(
         self, path: str, value: object, if_match: str
     ) -> tuple[Any, str]:
         """A conditional PUT that also returns the new ETag."""
         headers = {"if-match": if_match, "X-Firebase-ETag": "true"}
-        response = await self._call("PUT", path, value=value, headers=headers)
-        return response.json(), response.headers.get("etag", "")
+        sealed = self._seal(path, value)
+        response = await self._call("PUT", path, value=sealed, headers=headers)
+        return self.opened(path, response.json()), response.headers.get("etag", "")
 
     async def patch(self, path: str, value: dict[str, Any]) -> None:
         """Merge ``value``'s children into ``path`` (``None`` children delete)."""
+        if self.sealer is not None:
+            value = self.sealer.seal_patch(path, value)
         await self._call("PATCH", path, value=value)
 
     async def delete(self, path: str, if_match: str | None = None) -> None:

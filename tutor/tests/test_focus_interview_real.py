@@ -101,7 +101,7 @@ def test_the_phone_report_is_accepted_and_latches_a_check(tmp_path: Path) -> Non
     pid = call("focus_create", INTERVIEW | {"trips": trips})["id"]
     fake = FakeRtdb()
     fake.set(
-        "tutor/v1/presence/clients/phone", {"platform": "android", "seen": CREATED}
+        "tutor/v1-e2e/presence/clients/phone", {"platform": "android", "seen": CREATED}
     )
     wiring = SimpleNamespace(
         rtdb=fake.rtdb(),

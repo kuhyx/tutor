@@ -15,7 +15,7 @@ from tutor.tests.test_relay_lanes import Rig, run
 if TYPE_CHECKING:
     from pathlib import Path
 
-PICK = "tutor/v1/prefs/current_subject"
+PICK = "tutor/v1-e2e/prefs/current_subject"
 
 
 def _car(root: Path) -> None:

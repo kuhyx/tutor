@@ -27,18 +27,18 @@ def run(coro: Coroutine[Any, Any, None]) -> None:
 
 
 def test_url_quotes_segments_and_root() -> None:
-    fake = FakeRtdb()
+    fake = FakeRtdb(sealed=False)
     db = fake.rtdb()
-    assert db.url("requests/a b") == f"{DB}/tutor/v1/requests/a%20b.json"
-    assert db.url("/") == f"{DB}/tutor/v1.json"
+    assert db.url("requests/a b") == f"{DB}/tutor/v1-e2e/requests/a%20b.json"
+    assert db.url("/") == f"{DB}/tutor/v1-e2e.json"
     assert db.url("subjects/pojęcia-z-łodzi") == (
-        f"{DB}/tutor/v1/subjects/poj%C4%99cia-z-%C5%82odzi.json"
+        f"{DB}/tutor/v1-e2e/subjects/poj%C4%99cia-z-%C5%82odzi.json"
     )
     run(db.aclose())
 
 
 def test_put_get_patch_delete_round_trip() -> None:
-    fake = FakeRtdb(now_ms=42)
+    fake = FakeRtdb(now_ms=42, sealed=False)
 
     async def go() -> None:
         db = fake.rtdb()
@@ -55,7 +55,7 @@ def test_put_get_patch_delete_round_trip() -> None:
 
 
 def test_conditional_put_and_lost_race() -> None:
-    fake = FakeRtdb()
+    fake = FakeRtdb(sealed=False)
 
     async def go() -> None:
         db = fake.rtdb()
@@ -77,7 +77,7 @@ def test_conditional_put_and_lost_race() -> None:
 def test_http_errors_never_show_the_url_or_token(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    fake = FakeRtdb()
+    fake = FakeRtdb(sealed=False)
     fake.fail[("GET", "/x")] = 500
     fake.raise_on.add(("PUT", "/y"))
 
@@ -95,7 +95,7 @@ def test_http_errors_never_show_the_url_or_token(
 
 
 def test_wrong_token_is_an_error() -> None:
-    fake = FakeRtdb()
+    fake = FakeRtdb(sealed=False)
     fake.token = fake.token[::-1]
 
     async def go() -> None:
@@ -114,7 +114,7 @@ def test_default_client_is_created() -> None:
     async def go() -> None:
         db = Rtdb(DB + "/", token)
         assert isinstance(db.client, httpx.AsyncClient)
-        assert db.url("x") == f"{DB}/tutor/v1/x.json"
+        assert db.url("x") == f"{DB}/tutor/v1-e2e/x.json"
         with pytest.raises(RtdbError, match="GET x: "):
             await db.get("x")  # the test sandbox blocks real network
         await db.aclose()
@@ -123,7 +123,7 @@ def test_default_client_is_created() -> None:
 
 
 def test_open_stream_errors() -> None:
-    fake = FakeRtdb()
+    fake = FakeRtdb(sealed=False)
     fake.fail[("GET", "/s")] = 401
     fake.raise_on.add(("GET", "/t"))
 

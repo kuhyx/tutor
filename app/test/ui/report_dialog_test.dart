@@ -63,7 +63,7 @@ void main() {
     await t.tap(glyphsLabelled('Save report'));
     await t.pumpAndSettle();
     expect(cueOfKind(CueKind.ok), findsOneWidget); // saved
-    final fb = getAt(db.root, 'tutor/v1/feedback')! as Map;
+    final fb = getAt(db.root, 'tutor/v1-e2e/feedback')! as Map;
     final report = fb.values.single as Map;
     expect(report['category'], 'ui');
     expect(report['msg'], 'm0004');

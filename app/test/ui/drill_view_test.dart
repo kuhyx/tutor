@@ -178,7 +178,7 @@ void main() {
     await t.tap(spoken('Retry'));
     await sent(t);
     // The requests listen ends with no result.
-    unawaited(stream.listens['tutor/v1/requests']!.close());
+    unawaited(stream.listens['tutor/v1-e2e/requests']!.close());
     await t.pumpAndSettle();
     expect(cueLabelled('The PC did not answer.'), findsOne);
     await t.tap(spoken('Retry'));
@@ -186,7 +186,7 @@ void main() {
     await answer(t, db, stream, data: drillQuestion());
     expect(find.text('What does the crankshaft do?'), findsOne);
     // A pick while offline: the question is kept, Retry sends it again.
-    db.failPrefix = '/tutor/v1/requests';
+    db.failPrefix = '/tutor/v1-e2e/requests';
     await t.tap(find.text('Opens valves'));
     await t.pumpAndSettle();
     expect(cueLabelled('Not sent: no connection', prefix: true), findsOne);

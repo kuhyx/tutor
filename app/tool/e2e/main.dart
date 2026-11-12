@@ -17,6 +17,8 @@ import 'dart:convert';
 
 import 'package:crdt_sync/crdt_sync.dart'
     show FirebaseCredentials, InMemoryCredentialStore;
+import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
+    show saveE2ePassphrase;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tutor/app/services.dart';
@@ -28,6 +30,10 @@ import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 
 const _loopback = {'127.0.0.1', 'localhost'};
+
+/// The sandbox's e2e passphrase (scripts/e2e_key.py), never the real one:
+/// the emulator's header was made with it.
+const _sandboxPassphrase = 'e2e-sandbox-passphrase';
 
 /// The emulator URL from `?db=`, or empty (the app then shows "not
 /// configured") when it is missing or not on this machine.
@@ -63,6 +69,7 @@ void main() {
     serverClientId: '',
   );
   Future<TutorServices> open() async {
+    await saveE2ePassphrase(_sandboxPassphrase);
     final store = InMemoryCredentialStore();
     await store.save(
       FirebaseCredentials(

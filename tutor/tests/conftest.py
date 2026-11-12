@@ -74,6 +74,11 @@ def memoised_sandbox() -> Iterator[None]:
         yield
 
 
+def _no_real_password() -> str:
+    msg = "a test read the crdt-sync password: inject a passphrase"
+    raise AssertionError(msg)
+
+
 @pytest.fixture(autouse=True)
 def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     """Redirect HOME, the data dir, the key and the image cache; block the network."""
@@ -97,6 +102,10 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[P
         httpx.AsyncHTTPTransport, "handle_async_request", _offline_async
     )
     monkeypatch.setattr(httpx.HTTPTransport, "handle_request", _offline)
+    # Never the real crdt-sync password: tests pass their own passphrase.
+    from tutor.relay import config
+
+    monkeypatch.setattr(config, "passphrase", _no_real_password)
     yield tmp_path
     monkeypatch.undo()
     time.tzset()

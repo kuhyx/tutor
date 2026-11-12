@@ -13,12 +13,12 @@ import '../support/label_finders.dart';
 import '../support/services.dart';
 import '../support/ui.dart';
 
-const _base = 'tutor/v1/sessions/$fixtureLiveSid';
-const _rev = 'tutor/v1/rev';
+const _base = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
+const _rev = 'tutor/v1-e2e/rev';
 
 /// Feeds the screen's listens from [db] (live, meta, msgs).
 Future<void> _feed(WidgetTester t, FakeRtdb db, FakeStream stream) async {
-  for (final path in ['tutor/v1/live', '$_base/meta', '$_base/msgs']) {
+  for (final path in ['tutor/v1-e2e/live', '$_base/meta', '$_base/msgs']) {
     stream.emit(path, RtdbPut('/', getAt(db.root, path)));
     await t.pump();
   }
@@ -89,7 +89,7 @@ void main() {
     expect(next['body'], {'session': fixtureLiveSid, 'device': 'desktop'});
     expect(
       stream.listens.keys,
-      contains('tutor/v1/sessions/20261012-180000-aaaa'),
+      contains('tutor/v1-e2e/sessions/20261012-180000-aaaa'),
     );
   });
 
@@ -132,10 +132,10 @@ void main() {
     expect(find.text('• intake stroke'), findsOneWidget);
     expect(find.text('• valve timing'), findsNothing);
     final concepts = [
-      ...getAt(db.root, 'tutor/v1/subjects/car/concepts')! as List<Object?>,
+      ...getAt(db.root, 'tutor/v1-e2e/subjects/car/concepts')! as List<Object?>,
       {'name': 'valve timing', 'at': 1},
     ];
-    db.root = setAt(db.root, 'tutor/v1/subjects/car/concepts', concepts);
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/concepts', concepts);
     stream.listens[_rev]!
       ..add(const RtdbConnected())
       ..add(RtdbPut('/', getAt(db.root, _rev)));
@@ -224,7 +224,7 @@ void main() {
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, SessionScreen(services: s), settle: false);
-    stream.emit('tutor/v1/live', const RtdbPut('/', null));
+    stream.emit('tutor/v1-e2e/live', const RtdbPut('/', null));
     await t.pumpAndSettle();
     expect(bySpoken('No session yet', prefix: true), findsOneWidget);
     await t.tap(controlByLabel('Start session'));

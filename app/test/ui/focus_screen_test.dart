@@ -85,7 +85,7 @@ void main() {
   }
 
   int statusRequests() {
-    final reqs = getAt(db.root, 'tutor/v1/requests') as Map<String, dynamic>?;
+    final reqs = getAt(db.root, 'tutor/v1-e2e/requests') as Map<String, dynamic>?;
     return [
       for (final r in (reqs ?? {}).values)
         if (((r as Map<String, dynamic>)['req'] as Map)['kind'] ==
@@ -95,7 +95,7 @@ void main() {
   }
 
   List<Object?> focusEvents() {
-    final reqs = getAt(db.root, 'tutor/v1/requests') as Map<String, dynamic>?;
+    final reqs = getAt(db.root, 'tutor/v1-e2e/requests') as Map<String, dynamic>?;
     return [
       for (final r in (reqs ?? {}).values)
         if (((r as Map<String, dynamic>)['req'] as Map)['kind'] ==

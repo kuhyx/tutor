@@ -173,7 +173,7 @@ start_server() {
     }
     # The worker is serving once its presence beat is in the emulator.
     for _ in {1..30}; do
-        [[ "$(curl -sf "$db/tutor/v1/presence/workers/$dev.json")" != "null" ]] && break
+        [[ "$(curl -sf "$db/tutor/v1-e2e/presence/workers/$dev.json")" != "null" ]] && break
         sleep 0.5
     done
 }
@@ -233,7 +233,7 @@ cmd_restart() {
         sed -i "s/^MODEL=.*/MODEL=${2:?--model-down network|refuse|none}/" "$STATE"
     fi
     systemctl --user stop "$HOLD_UNIT" "$SERVER_UNIT" 2>/dev/null || true
-    curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1/stats.json" >/dev/null
+    curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1-e2e/stats.json" >/dev/null
     start_server
     echo "e2e sandbox server restarted"
 }

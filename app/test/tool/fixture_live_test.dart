@@ -23,7 +23,7 @@ void main() {
   ) async {
     final db = FakeRtdb()
       ..root = fixtureGenerating(
-        setAt(null, 'tutor/v1', fixtureTree(fixtureNow)),
+        setAt(null, 'tutor/v1-e2e', fixtureTree(fixtureNow)),
       );
     final stream = FixtureStream(
       db.client(),
@@ -45,9 +45,9 @@ void main() {
     expect(markOf(ModuleMark.generating), findsNothing);
     expect(spokenHas('ready · 3 cards'), findsNWidgets(2));
     expect(markOf(ModuleMark.ready), findsNWidgets(2));
-    expect(getAt(db.root, 'tutor/v1/rev/catalog'), 8);
+    expect(getAt(db.root, 'tutor/v1-e2e/rev/catalog'), 8);
     expect(
-      getAt(db.root, 'tutor/v1/subjects/car/cards/drv-gears/module'),
+      getAt(db.root, 'tutor/v1-e2e/subjects/car/cards/drv-gears/module'),
       'drivetrain',
     );
   });

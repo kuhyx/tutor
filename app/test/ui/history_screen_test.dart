@@ -8,7 +8,7 @@ import '../support/fake_stream.dart';
 import '../support/label_finders.dart';
 import '../support/ui.dart';
 
-const _old = 'tutor/v1/sessions/20261011-090000-a1b2';
+const _old = 'tutor/v1-e2e/sessions/20261011-090000-a1b2';
 
 void main() {
   testWidgets('list, archived toggle, transcript actions', (t) async {
@@ -65,7 +65,7 @@ void main() {
 
   testWidgets('empty and unreachable', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/session_index', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/session_index', null);
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, HistoryScreen(services: s));

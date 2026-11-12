@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from tutor.trace import Observer
 
 SID = "20200101-000000-abcd"
-PROGRESS = f"tutor/v1/sessions/{SID}/progress"
+PROGRESS = f"tutor/v1-e2e/sessions/{SID}/progress"
 RID = RIDS[0]
 
 

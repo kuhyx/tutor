@@ -31,10 +31,11 @@ import time
 from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import urlsplit
 
+from e2e_key import SANDBOX_ARGON, SANDBOX_PASSPHRASE
 import uvicorn
 
 from tutor.engine import Engine
-from tutor.relay import cli, phases
+from tutor.relay import cli, config, e2e, phases
 from tutor.relay.context import Wiring
 from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.relay.done import DoneMap
@@ -108,9 +109,12 @@ def check_sandbox(data: Path, port: int) -> None:
 
 async def seed(db: str, subject: str | None) -> None:
     """Publish the data dir into the empty emulator (``publish-all`` + log + prefs)."""
-    rtdb = emulator(db)
+    # Sealed with the sandbox's own passphrase (the header is made here,
+    # cheap Argon2id); never the real password.
+    rtdb = await config.seal(emulator(db), SANDBOX_PASSPHRASE, SANDBOX_ARGON)
     engine = Engine()
     try:
+        await e2e.migrate(rtdb)
         done = DoneMap(engine.store.root / "requests_done.jsonl", time.time())
         publisher = Publisher(rtdb, engine, done)
         sessions = await publisher.startup(force=True)
@@ -164,7 +168,8 @@ def serve(db: str, port: int, prompts: Path) -> None:
 
     @contextlib.asynccontextmanager
     async def lifespan(host: Starlette) -> AsyncIterator[None]:
-        async with inner(host), running(Relay(engine, emulator(db), sink, time.time)):
+        relay = Relay(engine, emulator(db), sink, time.time, lambda: SANDBOX_PASSPHRASE)
+        async with inner(host), running(relay):
             yield
 
     app.router.lifespan_context = lifespan

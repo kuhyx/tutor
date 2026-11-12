@@ -31,7 +31,7 @@ void main() {
       expect(body['sha256'], sha256.convert(fakePng).toString());
       final chunk = getAt(
         h.db.root,
-        'tutor/v1/uploads/${body['upload']}/c0001',
+        'tutor/v1-e2e/uploads/${body['upload']}/c0001',
       );
       expect(base64Decode(chunk! as String), fakePng);
       // The chunks were written before the request.

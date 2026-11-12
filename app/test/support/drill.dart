@@ -62,7 +62,7 @@ Future<void> reply(
   bool settle = true,
 }) async {
   final (rid, _) = lastRequest(db);
-  stream.emit('tutor/v1/requests/$rid', RtdbPut('/', {'result': result}));
+  stream.emit('tutor/v1-e2e/requests/$rid', RtdbPut('/', {'result': result}));
   settle ? await tester.pumpAndSettle() : await sent(tester);
 }
 

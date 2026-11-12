@@ -60,15 +60,15 @@ void main() {
     });
 
     test('paths validate every segment', () {
-      expect(Paths.requestReq(_rid), 'tutor/v1/requests/$_rid/req');
-      expect(Paths.client(_dev), 'tutor/v1/presence/clients/$_dev');
-      expect(Paths.subject('car'), 'tutor/v1/subjects/car');
+      expect(Paths.requestReq(_rid), 'tutor/v1-e2e/requests/$_rid/req');
+      expect(Paths.client(_dev), 'tutor/v1-e2e/presence/clients/$_dev');
+      expect(Paths.subject('car'), 'tutor/v1-e2e/subjects/car');
       expect(
         Paths.session('20261012-170448-5b71'),
-        'tutor/v1/sessions/20261012-170448-5b71',
+        'tutor/v1-e2e/sessions/20261012-170448-5b71',
       );
-      expect(Paths.logEvent(_dev, _rid), 'tutor/v1/log/$_dev/$_rid');
-      expect(Paths.feedback(_rid), 'tutor/v1/feedback/$_rid');
+      expect(Paths.logEvent(_dev, _rid), 'tutor/v1-e2e/log/$_dev/$_rid');
+      expect(Paths.feedback(_rid), 'tutor/v1-e2e/feedback/$_rid');
       expect(() => Paths.subject('../x'), throwsArgumentError);
       expect(() => Paths.logOf('phone'), throwsArgumentError);
     });

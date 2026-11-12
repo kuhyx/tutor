@@ -50,7 +50,7 @@ def test_a_report_carries_plan_due_cards_and_the_phones_last_seen(rig: Rig) -> N
     taught(rig.cur, "hosting", "c0", NOW_MS - 10 * D, 0)  # long overdue
     rig.presence(NOW_MS - H)
     rig.fake.set(
-        f"tutor/v1/presence/clients/{WEB}", {"platform": "web", "seen": NOW_MS}
+        f"tutor/v1-e2e/presence/clients/{WEB}", {"platform": "web", "seen": NOW_MS}
     )
     tick(rig)
     (args,) = rig.reports()
@@ -88,7 +88,7 @@ def test_no_plan_no_due_cards_and_no_phone_report_zeros_and_warn(
 def test_presence_without_a_usable_phone_reads_as_never_seen(
     rig: Rig, node: object, caplog: pytest.LogCaptureFixture
 ) -> None:
-    rig.fake.set(f"tutor/v1/presence/clients/{PHONE}", node)
+    rig.fake.set(f"tutor/v1-e2e/presence/clients/{PHONE}", node)
     with caplog.at_level(logging.WARNING):
         tick(rig)
     assert rig.reports()[0]["value"]["seen_ms"] == 0
@@ -98,7 +98,7 @@ def test_presence_without_a_usable_phone_reads_as_never_seen(
 def test_the_newest_of_several_phones_wins(rig: Rig) -> None:
     rig.presence(1000)
     rig.fake.set(
-        f"tutor/v1/presence/clients/{WEB}", {"platform": "android", "seen": 2000}
+        f"tutor/v1-e2e/presence/clients/{WEB}", {"platform": "android", "seen": 2000}
     )
     tick(rig)
     assert rig.reports()[0]["value"]["seen_ms"] == 2000

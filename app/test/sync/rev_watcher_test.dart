@@ -55,7 +55,7 @@ void main() {
       final w = RevWatcher(s);
       final seen = <int>[];
       final sub = w.catalogChanges.listen(seen.add);
-      expect(s.paths, ['tutor/v1/rev']);
+      expect(s.paths, ['tutor/v1-e2e/rev']);
       s.events!
         ..add(const RtdbConnected())
         ..add(const RtdbPut('/', {'catalog': 7, 'stats': 3}))
@@ -161,7 +161,7 @@ void main() {
     final catalog = <int>[];
     final a = w.statsChanges.listen(stats.add);
     final b = w.catalogChanges.listen(catalog.add);
-    expect(s.paths, ['tutor/v1/rev']); // the second listener shares it
+    expect(s.paths, ['tutor/v1-e2e/rev']); // the second listener shares it
     s.events!
       ..add(const RtdbPut('/', {'catalog': 1, 'stats': 4}))
       ..add(const RtdbPut('/', {'catalog': 1, 'stats': 4}))

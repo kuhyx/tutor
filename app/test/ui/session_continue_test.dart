@@ -8,7 +8,7 @@ import '../support/fake_stream.dart';
 import '../support/label_finders.dart';
 import '../support/ui.dart';
 
-const _live = 'tutor/v1/sessions/$fixtureLiveSid';
+const _live = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
 
 void main() {
   testWidgets('Continue in automation never shows the live car session', (
@@ -26,13 +26,13 @@ void main() {
     );
     await sent(t);
     stream.emit(
-      'tutor/v1/live',
+      'tutor/v1-e2e/live',
       const RtdbPut('/', {'session': fixtureLiveSid, 'subject': 'car'}),
     );
     await t.pump();
     expect(
       stream.listens.keys,
-      isNot(contains('tutor/v1/sessions/$fixtureLiveSid')),
+      isNot(contains('tutor/v1-e2e/sessions/$fixtureLiveSid')),
     );
     final start = await answer(
       t,
@@ -50,7 +50,7 @@ void main() {
     });
     expect(
       stream.listens.keys,
-      contains('tutor/v1/sessions/20261012-180000-aaaa'),
+      contains('tutor/v1-e2e/sessions/20261012-180000-aaaa'),
     );
   });
 
@@ -64,11 +64,11 @@ void main() {
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     const next = '20261012-180000-aaaa';
     stream.emit(
-      'tutor/v1/live',
+      'tutor/v1-e2e/live',
       const RtdbPut('/', {'session': next, 'subject': 'car'}),
     );
     await t.pump();
-    const base = 'tutor/v1/sessions/$next';
+    const base = 'tutor/v1-e2e/sessions/$next';
     stream
       ..emit(
         '$base/meta',

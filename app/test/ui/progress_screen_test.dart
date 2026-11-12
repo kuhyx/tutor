@@ -25,7 +25,7 @@ void main() {
 
   testWidgets('no days yet; unreachable', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/stats/days', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/days', null);
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, ProgressScreen(services: s));

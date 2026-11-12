@@ -37,7 +37,7 @@ Map<String, Object?> _module(
 
 String _day(DateTime d) => d.toIso8601String().substring(0, 10);
 
-/// The fixture tree under `tutor/v1`, relative to [now] (ms).
+/// The fixture tree under `tutor/v1-e2e`, relative to [now] (ms).
 Map<String, Object?> fixtureTree(int now) {
   const day = 86400000;
   return {

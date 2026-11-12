@@ -18,7 +18,7 @@ import '../support/fake_stream.dart';
 import '../support/label_finders.dart';
 import '../support/ui.dart';
 
-const _cardPath = 'tutor/v1/subjects/car/cards/eng-crank';
+const _cardPath = 'tutor/v1-e2e/subjects/car/cards/eng-crank';
 const _mnemonic = 'Crank: up-down in, round and round out';
 const _offer = 'Struggling with this card?';
 const _day = 86400000;

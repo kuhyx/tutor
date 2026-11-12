@@ -44,7 +44,7 @@ void main() {
   test('a Polish id is a legal subject path, percent-encoded on the wire', () {
     expect(
       Paths.subject('pojęcia-z-łodzi'),
-      'tutor/v1/subjects/pojęcia-z-łodzi',
+      'tutor/v1-e2e/subjects/pojęcia-z-łodzi',
     );
     expect(Uri.encodeComponent('pojęcia-z-łodzi'), 'poj%C4%99cia-z-%C5%82odzi');
     final nfd = 'zażo${String.fromCharCode(0x301)}łć';

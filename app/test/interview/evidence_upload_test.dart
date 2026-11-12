@@ -60,7 +60,7 @@ void main() {
     expect(ref.mime, 'image/png');
     expect(ref.sha256, sha256.convert(bytes).toString());
     expect(ref.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
-    final chunk = getAt(db.root, 'tutor/v1/uploads/${ref.upload}/c0001');
+    final chunk = getAt(db.root, 'tutor/v1-e2e/uploads/${ref.upload}/c0001');
     expect(base64Decode(chunk! as String), bytes);
   });
 
@@ -69,7 +69,7 @@ void main() {
     final ref = await uploader().upload(bytes);
     expect(ref.chunks, inInclusiveRange(2, 16));
     final parts =
-        getAt(db.root, 'tutor/v1/uploads/${ref.upload}')!
+        getAt(db.root, 'tutor/v1-e2e/uploads/${ref.upload}')!
             as Map<String, dynamic>;
     final keys = parts.keys.toList()..sort();
     expect(keys, [
@@ -128,7 +128,7 @@ void main() {
   test('upload paths check the ulid and zero-pad the chunk key', () {
     expect(
       Paths.uploadChunk('01HZZZZZZZZZZZZZZZZZZZZZZZ', 7),
-      'tutor/v1/uploads/01HZZZZZZZZZZZZZZZZZZZZZZZ/c0007',
+      'tutor/v1-e2e/uploads/01HZZZZZZZZZZZZZZZZZZZZZZZ/c0007',
     );
     expect(() => Paths.upload('nope'), throwsArgumentError);
   });

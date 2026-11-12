@@ -70,10 +70,10 @@ const _config = FirebaseConfig(
 Future<TutorServices> _open() async {
   final now = DateTime.now().millisecondsSinceEpoch;
   final db = FakeRtdb()
-    ..root = fixtureGenerating(setAt(null, 'tutor/v1', fixtureTree(now)));
+    ..root = fixtureGenerating(setAt(null, 'tutor/v1-e2e', fixtureTree(now)));
   // The older session's transcript: the live one's first turns, stopped.
-  const live = 'tutor/v1/sessions/20261012-170448-5b71';
-  const old = 'tutor/v1/sessions/20261011-090000-a1b2';
+  const live = 'tutor/v1-e2e/sessions/20261012-170448-5b71';
+  const old = 'tutor/v1-e2e/sessions/20261011-090000-a1b2';
   db.root = setAt(db.root, '$old/msgs', getAt(db.root, '$live/msgs'));
   db.root = setAt(db.root, '$old/meta', {
     ...getAt(db.root, '$live/meta')! as Map<String, dynamic>,

@@ -57,12 +57,12 @@ def test_request_queues_generation_and_the_cards_stay_locked(
         task = asyncio.create_task(sync.generate_forever())
         for _ in range(200):
             await asyncio.sleep(0.01)
-            b = rig.fake.get("tutor/v1/subjects/car/plan")["modules"][1]
+            b = rig.fake.get("tutor/v1-e2e/subjects/car/plan")["modules"][1]
             if b["status"] != "generating":
                 break
         task.cancel()
         assert (b["status"], b["cards"], b["pregenerated"]) == ("locked", 4, True)
-        assert rig.fake.get("tutor/v1/subjects/car/cards/bee-0/module") == "b"
+        assert rig.fake.get("tutor/v1-e2e/subjects/car/cards/bee-0/module") == "b"
         got = await rig.send("session_start", {"subject": "car", "card": "bee-0"})
         assert got["code"] == "locked"
         got = await rig.send(
@@ -83,7 +83,7 @@ def test_request_queues_generation_and_the_cards_stay_locked(
         }
         got = await rig.send("card_edit", edited)  # reviewable before it opens
         assert got == {"ok": True, "data": {"card": "bee-0", "rev": 2}}
-        b = rig.fake.get("tutor/v1/subjects/car/plan")["modules"][1]
+        b = rig.fake.get("tutor/v1-e2e/subjects/car/plan")["modules"][1]
         assert (b["status"], b["pregenerated"]) == ("locked", True)
 
     run(eng, script)

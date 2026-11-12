@@ -32,7 +32,7 @@ async def _take(agen: AsyncIterator[Event], n: int) -> list[Event]:
 
 def test_listen_snapshot_then_writes_and_reconnects() -> None:
     fake = FakeRtdb()
-    fake.set("tutor/v1/requests/a", {"req": 1})
+    fake.set("tutor/v1-e2e/requests/a", {"req": 1})
     sleeps: list[float] = []
 
     async def sleep(delay: float) -> None:

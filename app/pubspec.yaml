@@ -16,8 +16,15 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.12.1
+      ref: crdt_sync_dart-v0.14.1
       path: crdt_sync_dart
+  # E2E key in the OS keystore and the text-free passphrase lock button
+  # (DOCS-contract §12).
+  crdt_sync_flutter:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: crdt_sync_flutter-v0.8.1
+      path: crdt_sync_flutter
   # Chunked screenshot upload: sha256 of the decoded bytes (focus_evidence).
   crypto: 3.0.8
   # The shared palette, spacing and type scale. No local theme to drift from.
@@ -35,7 +42,7 @@ dependencies:
   # Refresh token in the Android keystore (DOCS-contract §10).
   flutter_secure_storage: 11.2.0
   # Worker-drawn circuit diagrams arrive as inline SVG (DOCS-contract §8).
-  flutter_svg: 2.3.3
+  flutter_svg: 2.3.4
   # One-tap Google ID token via the framework AccountManager chooser (FOSS).
   google_account_token:
     git:

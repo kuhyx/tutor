@@ -48,7 +48,7 @@ void main() {
     final caps = (await s.events.all()).map((e) => e.event);
     expect(caps.whereType<NewCapEvent>().map((e) => e.n), [40]);
     // Synced: under this device's log.
-    final log = getAt(db.root, 'tutor/v1/log/$testDev')! as Map;
+    final log = getAt(db.root, 'tutor/v1-e2e/log/$testDev')! as Map;
     expect(log.values.single, containsPair('k', 'new_cap'));
     expect(log.values.single, containsPair('n', 40));
 

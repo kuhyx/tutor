@@ -69,17 +69,17 @@ void main() {
     await t.pumpAndSettle();
     expect(find.byType(BottomSheet), findsNothing);
 
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'active');
-    db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'active');
+    db.root = setAt(db.root, 'tutor/v1-e2e/rev/catalog', 8);
     await _refresh(t);
     await _tap(t, _subject('garden'));
-    expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');
+    expect(getAt(db.root, 'tutor/v1-e2e/prefs/current_subject'), 'garden');
   });
 
   testWidgets('Home: Review only and Try again from sheets', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/subjects/car/meta/status', 'completed');
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'failed');
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/meta/status', 'completed');
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'failed');
     final stream = FakeStream();
     await _home(t, db, stream);
     await _longPress(t, _subject('car'));
@@ -114,13 +114,13 @@ void main() {
     await t.pageBack();
     await t.pumpAndSettle();
 
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'active');
-    db.root = setAt(db.root, 'tutor/v1/subjects/car/meta/status', 'completed');
-    db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'active');
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/meta/status', 'completed');
+    db.root = setAt(db.root, 'tutor/v1-e2e/rev/catalog', 8);
     await _refresh(t);
     await _longPress(t, _subject('garden'));
     await _tap(t, controlByLabel('Learn this next'));
-    expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');
+    expect(getAt(db.root, 'tutor/v1-e2e/prefs/current_subject'), 'garden');
     await _longPress(t, _subject('car'));
     await t.tap(controlByLabel('Go deeper'));
     await sent(t);
@@ -148,7 +148,7 @@ void main() {
   testWidgets('Home: more subjects than fit page sideways', (t) async {
     final db = fixtureDb();
     for (var i = 0; i < 24; i++) {
-      db.root = setAt(db.root, 'tutor/v1/subjects/extra$i/meta', {
+      db.root = setAt(db.root, 'tutor/v1-e2e/subjects/extra$i/meta', {
         'title': 'Extra $i',
         'goal': 'g',
         'status': 'failed',
@@ -169,7 +169,7 @@ void main() {
 
   testWidgets('Plan: chips switch; sheets Retry and Review', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/subjects/car/plan/history', [
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/plan/history', [
       {'rev': 1, 'comment': 'less history', 'at': 1},
     ]);
     final stream = FakeStream();
@@ -226,7 +226,7 @@ void main() {
 
   testWidgets('Progress: no days yet', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/stats/days', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/days', null);
     final s = await fixtureServices(db, FakeStream());
     await pumpScreen(t, ProgressScreen(services: s), size: _phone);
     expect(spokenHas('No days yet'), findsOneWidget);

@@ -206,7 +206,7 @@ def test_sync_credits_a_pulled_phone_review(tmp_path: Path) -> None:
     sync = CurriculumSync(wiring(fake, eng, now=lambda: sync_now))
     event = rev(PHONE, at(15, 11, 0, 0), 60_000)
     body = {k: v for k, v in event.items() if k not in {"dev", "eid"}}
-    fake.set(f"tutor/v1/log/{PHONE}/{event['eid']}", body)
+    fake.set(f"tutor/v1-e2e/log/{PHONE}/{event['eid']}", body)
 
     async def go() -> None:
         await sync.sync()

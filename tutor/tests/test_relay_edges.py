@@ -34,6 +34,10 @@ class _Lines:
         for line in self.lines:
             yield line
 
+    def opened(self, path: str, value: object) -> object:
+        del path
+        return value
+
 
 def test_unknown_events_are_skipped() -> None:
     lines = [
@@ -109,7 +113,7 @@ def test_lane_skips_a_request_held_elsewhere(tmp_path: Path) -> None:
         w = wiring(fake, eng)
         box = Inbox(w, server(w))
         held = {"by": "other", "lease_until": 10**15}
-        fake.set(f"tutor/v1/requests/{RIDS[0]}/claim", held)
+        fake.set(f"tutor/v1-e2e/requests/{RIDS[0]}/claim", held)
         box.tree = {RIDS[0]: {"req": request("stop", {})}}
         box.queued.add(RIDS[0])
         await box.queues["chat"].put(RIDS[0])

@@ -33,7 +33,7 @@ void main() {
       final w = PresenceWatcher(s)
         ..start()
         ..start();
-      expect(s.paths, ['tutor/v1/presence/workers']);
+      expect(s.paths, ['tutor/v1-e2e/presence/workers']);
       s.events!
         ..add(const RtdbConnected())
         ..add(const RtdbPut('/', {'dev1': _beat}));

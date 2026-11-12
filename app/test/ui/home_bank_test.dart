@@ -11,7 +11,7 @@ import '../support/ui.dart';
 Future<void> _home(WidgetTester t, Map<String, Object> today) async {
   final db = fixtureDb();
   for (final MapEntry(:key, :value) in today.entries) {
-    db.root = setAt(db.root, 'tutor/v1/stats/today/$key', value);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/today/$key', value);
   }
   final s = await fixtureServices(db, FakeStream());
   await pumpScreen(

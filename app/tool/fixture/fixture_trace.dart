@@ -8,7 +8,7 @@ import 'package:tutor/sync/json_tree.dart';
 
 import 'fixture_sessions.dart' show fixtureLiveSid;
 
-const _base = 'tutor/v1/sessions/$fixtureLiveSid';
+const _base = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
 const _rid = '01M4RBCX52MMHCK7K73E6KV9ZZ';
 
 const _trace = <Map<String, String>>[
@@ -64,7 +64,7 @@ const _progress = <String, Map<String, String>>{
 /// History opens (`20261011-090000-a1b2`).
 Object? fixtureWithTrace(Object? root) => setAt(
   setAt(root, '$_base/msgs/m0004/trace', _trace),
-  'tutor/v1/sessions/20261011-090000-a1b2/msgs/m0004/trace',
+  'tutor/v1-e2e/sessions/20261011-090000-a1b2/msgs/m0004/trace',
   _trace,
 );
 

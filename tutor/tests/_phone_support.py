@@ -47,7 +47,7 @@ class Rig:
         node: dict[str, Any] = {"platform": platform, "app": "1"}
         if seen is not None:
             node["seen"] = seen
-        self.fake.set(f"tutor/v1/presence/clients/{PHONE}", node)
+        self.fake.set(f"tutor/v1-e2e/presence/clients/{PHONE}", node)
 
     def reports(self) -> list[dict[str, Any]]:
         return [a for n, a in self.fp.calls if n == "record_evidence"]

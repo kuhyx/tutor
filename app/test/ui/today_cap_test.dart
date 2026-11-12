@@ -32,14 +32,14 @@ void main() {
     t,
   ) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/stats/today/new_cap', 25);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/today/new_cap', 25);
     final s = await fixtureServices(db, FakeStream());
     await pumpScreen(t, HomeScreen(services: s, onSignedOut: () {}));
     expect(bySpoken('new cards 4/25'), findsOneWidget);
     expect(find.byIcon(Icons.lock_open), findsNothing);
 
-    db.root = setAt(db.root, 'tutor/v1/stats/today/new', 27);
-    db.root = setAt(db.root, 'tutor/v1/stats/today/new_cap_lifted', true);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/today/new', 27);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/today/new_cap_lifted', true);
     await t.tap(glyphsLabelled('Refresh'));
     await t.pumpAndSettle();
     expect(bySpoken('new cards 27/25'), findsOneWidget);

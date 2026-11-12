@@ -25,7 +25,7 @@ import 'package:tutor/sync/rtdb_client.dart';
 const kSchema = 1;
 
 /// This client's version for `min_client`.
-const kClientVersion = 1;
+const kClientVersion = 2;
 
 /// One subject on Home.
 class SubjectEntry {

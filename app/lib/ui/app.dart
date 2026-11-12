@@ -1,6 +1,8 @@
-/// Root widget: not configured -> sign in -> Home.
+/// Root widget: not configured -> sign in -> e2e key -> Home.
 library;
 
+import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
+    show E2ePassphraseButton;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
@@ -87,13 +89,67 @@ class _GateState extends State<_Gate> {
             _session = services.auth.hasSession();
           });
           return session.data!
-              ? StartScreen(
+              ? E2eUnlock(
                   services: services,
-                  onSignedOut: recheck,
-                  initialRoute: widget.initialRoute,
+                  child: StartScreen(
+                    services: services,
+                    onSignedOut: recheck,
+                    initialRoute: widget.initialRoute,
+                  ),
                 )
               : SignInScreen(services: services, onSignedIn: recheck);
         },
+      );
+    },
+  );
+}
+
+/// Shows [child] once the e2e key is open; until then only the lock button
+/// (icon only, no text) and a retry: nothing syncs in plaintext meanwhile.
+class E2eUnlock extends StatefulWidget {
+  /// Creates the gate.
+  const new({required this.services, required this.child, super.key});
+
+  /// Whose key to open.
+  final TutorServices services;
+
+  /// Shown once unlocked.
+  final Widget child;
+
+  @override
+  State<E2eUnlock> createState() => _E2eUnlockState();
+}
+
+class _E2eUnlockState extends State<E2eUnlock> {
+  late Future<bool> _open = widget.services.e2e.unlock();
+
+  void _retry() => setState(() {
+    _open = widget.services.e2e.unlock();
+  });
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<bool>(
+    future: _open,
+    builder: (context, snap) {
+      if (snap.data ?? false) return widget.child;
+      if (snap.connectionState != ConnectionState.done) {
+        return const _Loading();
+      }
+      final why = snap.hasError ? '${snap.error}' : widget.services.e2e.reason;
+      return Scaffold(
+        body: Center(
+          child: Semantics(
+            label: 'Sync is locked ($why): enter the crdt-sync password',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                E2ePassphraseButton(locked: true, onSaved: _retry),
+                const SizedBox(width: AppSpacing.md),
+                IconButton(icon: const Icon(Icons.refresh), onPressed: _retry),
+              ],
+            ),
+          ),
+        ),
       );
     },
   );

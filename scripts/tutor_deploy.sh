@@ -211,7 +211,7 @@ main() {
         { echo "$UNIT is not installed; run $REPO/install.sh" >&2; exit 1; }
     command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
     # Releases run on the repo venv; the relay needs crdt-sync and httpx in it.
-    "$REPO/.venv/bin/python" -c 'import crdt_sync, httpx' 2>/dev/null ||
+    "$REPO/.venv/bin/python" -c 'from crdt_sync import unlock_e2e; import nacl, argon2, httpx' 2>/dev/null ||
         { echo "The venv lacks the relay deps; run scripts/setup_dev.sh" >&2; exit 1; }
     release="$LIVE_ROOT/releases/$(date +%Y%m%d-%H%M%S)"
     copy_release "$release"

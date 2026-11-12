@@ -5,6 +5,11 @@ REST semantics the relay relies on: GET (shallow, orderBy/startAt), PUT,
 PATCH, DELETE, ``X-Firebase-ETag`` / ``if-match`` with 412 + current value,
 ``{".sv": "timestamp"}``, ``?auth=`` checking, and SSE streams (initial put,
 put/patch events, keep-alive, auth_revoked, cancel, drop).
+
+The stored tree (``raw``) is what RTDB would hold: under ``tutor/v1-e2e``
+every unit is sealed with :data:`TEST_KEY`, as the relay writes it.
+``get``/``set`` are the test's clear view (``set`` writes like a client
+would: sealed); ``sealed=False`` stores and serves plaintext.
 """
 
 from __future__ import annotations
@@ -12,10 +17,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 from typing import TYPE_CHECKING, Any
 
+from crdt_sync import E2eCipher
 import httpx
 
+from tutor.relay import e2e
 from tutor.relay.rtdb import Rtdb
 
 if TYPE_CHECKING:
@@ -23,6 +31,13 @@ if TYPE_CHECKING:
 
 AUTH = "test-token"
 DB = "https://db.test"
+TEST_KEY = bytes(range(32))
+ROOT = e2e.ROOT
+
+
+def sealer() -> e2e.Sealer:
+    """The sealer of :data:`TEST_KEY`."""
+    return e2e.Sealer(E2eCipher(TEST_KEY))
 
 
 def _parts(path: str) -> list[str]:
@@ -38,8 +53,9 @@ def etag(value: object) -> str:
 class FakeRtdb:
     """The database; ``now_ms`` resolves server timestamps."""
 
-    def __init__(self, now_ms: int = 1_800_000_000_000) -> None:
-        self.root: dict[str, Any] = {}
+    def __init__(self, now_ms: int = 1_800_000_000_000, *, sealed: bool = True) -> None:
+        self.raw: dict[str, Any] = {}
+        self.sealer = sealer() if sealed else None
         self.now_ms = now_ms
         self.streams: list[tuple[list[str], asyncio.Queue[str | None]]] = []
         self.fail: dict[tuple[str, str], int] = {}  # (method, rel path) -> status
@@ -47,9 +63,50 @@ class FakeRtdb:
         self.log: list[tuple[str, str]] = []
         self.token = AUTH
 
-    # -- tree -----------------------------------------------------------------
+    # -- the test's clear view -------------------------------------------------
+    def _rel(self, path: str) -> list[str] | None:
+        parts = _parts(path)
+        root = _parts(ROOT)
+        return parts[len(root) :] if parts[: len(root)] == root else None
+
     def get(self, path: str) -> Any:
-        node: Any = self.root
+        """The value at ``path``, sealed units opened."""
+        rel = self._rel(path)
+        if self.sealer is None or rel is None:
+            return self.raw_get(path)
+        opened = self.sealer.open("", self.raw_get(ROOT))
+        node: Any = opened
+        for part in rel:
+            if not isinstance(node, dict) or part not in node:
+                return None
+            node = node[part]
+        return node
+
+    def set(self, path: str, value: Any) -> None:
+        """Write ``value`` as a client would (sealed; inside a unit: resealed)."""
+        rel = self._rel(path)
+        if self.sealer is None or rel is None:
+            self.raw_set(path, value)
+            return
+        unit = e2e.unit_path("/".join(rel))
+        if unit is None:
+            try:
+                sealed = self.sealer.seal("/".join(rel), self._sv(value))
+            except e2e.E2eLayoutError as err:
+                # A mis-shaped node no sealer writes: stored as a hostile client would.
+                logging.getLogger(__name__).warning("stored unsealed: %s", err)
+                sealed = value
+            self.raw_set(path, sealed)
+            return
+        node = self.get(f"{ROOT}/{unit}")
+        node = node if isinstance(node, dict) else {}
+        _assign(node, rel[len(_parts(unit)) :], value)
+        self.raw_set(f"{ROOT}/{unit}", self.sealer.seal(unit, self._sv(node)))
+
+    # -- tree -----------------------------------------------------------------
+    def raw_get(self, path: str) -> Any:
+        """The stored value at ``path`` (ciphertext under the root)."""
+        node: Any = self.raw
         for part in _parts(path):
             if not isinstance(node, dict) or part not in node:
                 return None
@@ -64,13 +121,14 @@ class FakeRtdb:
             return {k: v for k, v in out.items() if v is not None} or None
         return value
 
-    def set(self, path: str, value: Any) -> None:
+    def raw_set(self, path: str, value: Any) -> None:
+        """Store ``value`` at ``path`` as given (server timestamps resolved)."""
         parts = _parts(path)
         value = self._sv(value)
         if not parts:
-            self.root = value if isinstance(value, dict) else {}
+            self.raw = value if isinstance(value, dict) else {}
             return
-        node = self.root
+        node = self.raw
         for part in parts[:-1]:
             if not isinstance(node.get(part), dict):
                 node[part] = {}
@@ -79,7 +137,7 @@ class FakeRtdb:
             node.pop(parts[-1], None)
         else:
             node[parts[-1]] = value
-        self.root = _prune(self.root) or {}
+        self.raw = _prune(self.raw) or {}
 
     # -- streams --------------------------------------------------------------
     def _notify(self, kind: str, path: str, data: Any) -> None:
@@ -89,7 +147,7 @@ class FakeRtdb:
                 rel = "/" + "/".join(where[len(listen) :])
                 queue.put_nowait(_event(kind, rel, data))
             elif listen[: len(where)] == where:
-                queue.put_nowait(_event("put", "/", self.get("/".join(listen))))
+                queue.put_nowait(_event("put", "/", self.raw_get("/".join(listen))))
 
     def push(self, raw: str | None) -> None:
         """Send a raw SSE block (or ``None``: close) to every stream."""
@@ -104,10 +162,15 @@ class FakeRtdb:
         async def token() -> str:
             return self.token
 
-        return Rtdb(DB, token, client=self.client())
+        return Rtdb(DB, token, client=self.client(), sealer=self.sealer)
 
     async def handle(self, request: httpx.Request) -> httpx.Response:
-        path = request.url.path.removesuffix(".json").removeprefix("/tutor/v1")
+        full = request.url.path.removesuffix(".json").strip("/")
+        path = (
+            "/" + full.removeprefix(ROOT).strip("/")
+            if full.startswith(ROOT)
+            else "/" + full
+        )
         method = request.method
         self.log.append((method, path))
         if (method, path) in self.raise_on:
@@ -117,10 +180,9 @@ class FakeRtdb:
             return _reply(401, {"error": "Permission denied"})
         if (method, path) in self.fail:
             return _reply(self.fail[(method, path)], {"error": "x"})
-        full = f"tutor/v1{path}"
         if request.headers.get("accept") == "text/event-stream":
             return self._stream(full)
-        current = self.get(full)
+        current = self.raw_get(full)
         match = request.headers.get("if-match")
         if match is not None and match != etag(current):
             return _reply(412, current, headers={"ETag": etag(current)})
@@ -130,17 +192,17 @@ class FakeRtdb:
 
     def _write(self, method: str, full: str, request: httpx.Request) -> httpx.Response:
         if method == "PUT":
-            self.set(full, json.loads(request.content))
-            self._notify("put", full, self.get(full))
-            stored = self.get(full)
+            self.raw_set(full, json.loads(request.content))
+            self._notify("put", full, self.raw_get(full))
+            stored = self.raw_get(full)
             return _reply(200, stored, headers={"ETag": etag(stored)})
         if method == "PATCH":
             body = json.loads(request.content)
             for key, value in body.items():
-                self.set(f"{full}/{key}", value)
+                self.raw_set(f"{full}/{key}", value)
             self._notify("patch", full, self._sv(body))
             return _reply(200, body)
-        self.set(full, None)  # DELETE
+        self.raw_set(full, None)  # DELETE
         self._notify("put", full, None)
         return _reply(200, None)
 
@@ -160,7 +222,7 @@ class FakeRtdb:
         queue: asyncio.Queue[str | None] = asyncio.Queue()
         entry = (_parts(full), queue)
         self.streams.append(entry)
-        queue.put_nowait(_event("put", "/", self.get(full)))
+        queue.put_nowait(_event("put", "/", self.raw_get(full)))
 
         async def body() -> AsyncIterator[bytes]:
             try:
@@ -176,6 +238,14 @@ class FakeRtdb:
 
 def _event(kind: str, path: str, data: Any) -> str:
     return f"event: {kind}\ndata: {json.dumps({'path': path, 'data': data})}\n\n"
+
+
+def _assign(node: dict[str, Any], parts: list[str], value: Any) -> None:
+    for part in parts[:-1]:
+        if not isinstance(node.get(part), dict):
+            node[part] = {}
+        node = node[part]
+    node[parts[-1]] = value
 
 
 def _prune(node: Any) -> Any:

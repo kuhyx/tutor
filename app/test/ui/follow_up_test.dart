@@ -20,7 +20,7 @@ const _older = '20261010-200000-c3d4';
 /// The transcript screen of [sid] (its messages set to one tutor turn).
 Future<(FakeRtdb, FakeStream)> _transcript(WidgetTester t, String sid) async {
   final db = fixtureDb();
-  db.root = setAt(db.root, 'tutor/v1/sessions/$sid/msgs', {
+  db.root = setAt(db.root, 'tutor/v1-e2e/sessions/$sid/msgs', {
     'm0001': {'role': 'tutor', 'text': 'Card done.'},
   });
   final stream = FakeStream();

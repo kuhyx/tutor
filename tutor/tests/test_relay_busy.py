@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from tutor.relay.lanes import Server
 
 SID = "20200101-000000-abcd"
-BUSY = f"tutor/v1/sessions/{SID}/meta/busy"
+BUSY = f"tutor/v1-e2e/sessions/{SID}/meta/busy"
 STALE = {"rid": RIDS[29], "phase": "thinking", "since": 1, "text": "x"}
 
 
@@ -157,7 +157,7 @@ def test_startup_clears_busy_on_the_live_session(tmp_path: Path) -> None:
         req = request("session_start", {"subject": None, "card": None})
         sid = (await srv.serve(RIDS[0], req, "chat") or {})["data"]["session"]
         await srv.w.rtdb.aclose()
-        busy = f"tutor/v1/sessions/{sid}/meta/busy"
+        busy = f"tutor/v1-e2e/sessions/{sid}/meta/busy"
         fake.set(busy, STALE)  # the old process died mid-reply
         relay = worker.Relay(eng, fake.rtdb(), PhaseSink(), eng.time)
         await relay._startup()

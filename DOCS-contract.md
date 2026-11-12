@@ -50,7 +50,7 @@ session/subject whose RTDB `rev` < local `rev` (covers crash between the two).
   narrowly (§9).
 - Server time: `{".sv":"timestamp"}`; PUT response body has it resolved.
 
-## 3. Layout (root `/tutor/v1`)
+## 3. Layout (root `/tutor/v1-e2e`, sealed: §12)
 ```
 meta                    {"schema":1,"min_client":1}                    worker
 rev                     {"catalog":42,"stats":7}  bumped on change     worker
@@ -243,8 +243,35 @@ per device (shallow first), ~150 B/event. 1 h chat/day ~2-5 MB/device/day, <0.2 
   SVG only from worker.
 - Credit unforgeable via RTDB: root-owned HMAC key stays on the PC; time
   inputs server-stamped.
-- Tokens: Android keystore; `~/.config/tutor/` on PC. Transcripts/reviews in
-  Google RTDB are personal, not secret.
+- Tokens: Android keystore; `~/.config/tutor/` on PC. Transcripts, reviews
+  and everything else in RTDB are end-to-end encrypted (§12).
 
 ## 11. Migration
 The one-off A2/B migration (`python -m tutor migrate`): `DOCS-migration.md`.
+
+## 12. End-to-end encryption (2026-11-12)
+- Root `tutor/v1-e2e` (`E2eLayout.of("tutor/v1")`). Key = Argon2id of the
+  shared crdt-sync password; the clear header (salt, cost, check MAC, never a
+  key) is a JSON string leaf at `tutor/e2e`. Worker: `~/.config/crdt-sync/password`;
+  app: the OS keystore (crdt_sync_flutter, key cached after the first derive).
+- Keys stay clear (ids, slugs, `m0001`): `orderBy="$key"`, PATCH and SSE paths
+  are unchanged. Every *unit* is stored as `{"_e2e": blob, <clear>}`; blob =
+  crdt_sync `E2eCipher` (XChaCha20-Poly1305) of the unit's JSON, AAD = the
+  unit's full path. Units: `live`, `prefs/*`, `stats/*`, `presence/workers/*`
+  (`beat` clear), `presence/clients/*` (`seen` clear), `uploads/*/*`,
+  `requests/*/req` (`created` clear), `requests/*/result` (`at` clear),
+  `sessions/*/meta/*|msgs/*|receipts/*|user/*|progress/steps/*`,
+  `session_index/*`, `subjects/*/meta|plan|cards|concepts`, `log/*/*`,
+  `feedback/*`. Clear: `meta`, `rev`, `migration`, `requests/*/claim`,
+  `sessions/*/progress/rid`. Any other write is refused (fail closed); a
+  write never lands inside a unit. Tables: `tutor/relay/e2e.py`,
+  `app/lib/sync/e2e_seal.dart`; parity vectors `contract/e2e_vectors.json`.
+- A unit that does not open reads as absent; a unit without `_e2e` (legacy
+  plaintext) is accepted.
+- Locked (no or wrong password): the worker retries its startup and writes
+  nothing; the app shows only the lock button (icon) and a retry.
+- Migration: the worker, once (`migration/v1_copied_at`), first raises
+  `tutor/v1/meta.min_client` to 2 (pre-e2e apps stop), then patches in the
+  RTDB-canonical nodes the new root lacks: `log`, `prefs`, `feedback`,
+  `sessions/*/user`. Projections are re-published from its files.
+  `tutor/v1` is never deleted.

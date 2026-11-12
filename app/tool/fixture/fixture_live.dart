@@ -6,8 +6,8 @@ library;
 
 import 'package:tutor/sync/json_tree.dart';
 
-const _plan = 'tutor/v1/subjects/car/plan/modules';
-const _cards = 'tutor/v1/subjects/car/cards';
+const _plan = 'tutor/v1-e2e/subjects/car/plan/modules';
+const _cards = 'tutor/v1-e2e/subjects/car/cards';
 const _drivetrain = 2;
 
 /// Seconds from the first `rev` listen to the change; `?bump=<s>` sets it.
@@ -46,6 +46,6 @@ Object? fixtureCardsReady(Object? root) {
       'front': value,
     });
   }
-  final rev = getAt(next, 'tutor/v1/rev/catalog')! as int;
-  return setAt(next, 'tutor/v1/rev/catalog', rev + 1);
+  final rev = getAt(next, 'tutor/v1-e2e/rev/catalog')! as int;
+  return setAt(next, 'tutor/v1-e2e/rev/catalog', rev + 1);
 }

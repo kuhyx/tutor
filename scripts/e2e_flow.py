@@ -15,6 +15,10 @@ import time
 from typing import TYPE_CHECKING, Any
 import urllib.request
 
+from e2e_key import opened, sandbox_key
+
+from tutor.relay import e2e
+
 if TYPE_CHECKING:
     import argparse
 
@@ -32,25 +36,37 @@ class FlowError(RuntimeError):
 
 
 class Emulator:
-    """REST view of the sandbox RTDB (``/tutor/v1``)."""
+    """Opened REST view of the sandbox RTDB (``/tutor/v1-e2e``, sealed at rest)."""
 
     def __init__(self, url: str) -> None:
         """Bind the emulator base URL (``http://127.0.0.1:N``)."""
         self.url = url.rstrip("/")
+        self._sealer: e2e.Sealer | None = None
 
-    def get(self, path: str) -> object:
-        """The JSON at ``path`` (``None`` if absent)."""
+    @property
+    def sealer(self) -> e2e.Sealer:
+        """The sandbox key's sealer (the header is read on first use)."""
+        if self._sealer is None:
+            self._sealer = e2e.Sealer(sandbox_key(self.url).cipher())
+        return self._sealer
+
+    def raw(self, path: str) -> object:
+        """The stored JSON at ``path`` (ciphertext; ``None`` if absent)."""
         with urllib.request.urlopen(
-            f"{self.url}/tutor/v1/{path}.json", timeout=10
+            f"{self.url}/{e2e.ROOT}/{path}.json", timeout=10
         ) as r:
             value: object = json.load(r)
             return value
 
+    def get(self, path: str) -> object:
+        """The JSON at ``path``, opened (``None`` if absent)."""
+        return opened(self.sealer, path, self.raw)
+
     def put(self, path: str, value: object) -> None:
         """Write ``value`` at ``path`` (F5 sends a request the app never would)."""
         req = urllib.request.Request(
-            f"{self.url}/tutor/v1/{path}.json",
-            data=json.dumps(value).encode(),
+            f"{self.url}/{e2e.ROOT}/{path}.json",
+            data=json.dumps(self.sealer.seal(path, value)).encode(),
             method="PUT",
         )
         with urllib.request.urlopen(req, timeout=10) as r:

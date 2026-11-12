@@ -52,7 +52,7 @@ void main() {
   });
 
   test('reads stats.today now and on every rev.stats move', () async {
-    final db = FakeRtdb()..root = setAt(null, 'tutor/v1/stats/today', _today);
+    final db = FakeRtdb()..root = setAt(null, 'tutor/v1-e2e/stats/today', _today);
     final stream = FakeStream();
     final rev = RevWatcher(stream);
     final feed = TodayFeed(client: db.client(), rev: rev)
@@ -61,8 +61,8 @@ void main() {
     await _tick();
     await _tick();
     expect(feed.today.value!.activeMinutes, 31);
-    db.root = setAt(db.root, 'tutor/v1/stats/today/active_minutes', 40);
-    stream.listens['tutor/v1/rev']!
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats/today/active_minutes', 40);
+    stream.listens['tutor/v1-e2e/rev']!
       ..add(const RtdbPut('/', {'stats': 1}))
       ..add(const RtdbPatch('/', {'stats': 2}));
     await _tick();
@@ -73,7 +73,7 @@ void main() {
     expect(feed.today.value!.activeMinutes, 40);
     db
       ..offline = false
-      ..root = setAt(db.root, 'tutor/v1/stats', null);
+      ..root = setAt(db.root, 'tutor/v1-e2e/stats', null);
     await feed.load();
     expect(feed.today.value, isNull);
     await feed.dispose();

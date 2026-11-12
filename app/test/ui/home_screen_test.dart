@@ -37,13 +37,13 @@ void main() {
     await t.pageBack();
     await t.pumpAndSettle();
 
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'active');
-    db.root = setAt(db.root, 'tutor/v1/rev/catalog', 8);
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'active');
+    db.root = setAt(db.root, 'tutor/v1-e2e/rev/catalog', 8);
     await t.tap(glyphsLabelled('Refresh'));
     await t.pumpAndSettle();
     await t.tap(glyphsLabelled('Learn this next'));
     await t.pumpAndSettle();
-    expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'garden');
+    expect(getAt(db.root, 'tutor/v1-e2e/prefs/current_subject'), 'garden');
 
     await t.enterText(find.byType(TextField), 'how bridges stand');
     await t.tap(glyphsLabelled('Draft a plan'));
@@ -66,8 +66,8 @@ void main() {
     t,
   ) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/subjects/car/meta/status', 'completed');
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta', {
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/meta/status', 'completed');
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta', {
       'title': 'Vegetable gardening',
       'goal': 'grow vegetables',
       'status': 'failed',

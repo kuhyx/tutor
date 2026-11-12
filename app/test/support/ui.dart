@@ -21,9 +21,9 @@ import 'services.dart';
 /// Fixture "now" (ms).
 final int fixtureNow = DateTime.utc(2026, 10, 12, 17).millisecondsSinceEpoch;
 
-/// A fake DB holding the screenshot fixture under `tutor/v1`.
+/// A fake DB holding the screenshot fixture under `tutor/v1-e2e`.
 FakeRtdb fixtureDb() =>
-    FakeRtdb()..root = setAt(null, 'tutor/v1', fixtureTree(fixtureNow));
+    FakeRtdb()..root = setAt(null, 'tutor/v1-e2e', fixtureTree(fixtureNow));
 
 /// Services over [db] with a primed catalog cache.
 Future<TutorServices> fixtureServices(FakeRtdb db, FakeStream stream) async {
@@ -65,7 +65,7 @@ Future<void> pumpScreen(
 
 /// The latest request written, as (rid, req).
 (String, Map<String, dynamic>) lastRequest(FakeRtdb db) {
-  final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+  final reqs = getAt(db.root, 'tutor/v1-e2e/requests')! as Map<String, dynamic>;
   final rid = (reqs.keys.toList()..sort()).last;
   return (
     rid,
@@ -87,7 +87,7 @@ Future<Map<String, dynamic>> answer(
 }) async {
   final (rid, req) = lastRequest(db);
   final heard = stream.emit(
-    'tutor/v1/requests/$rid',
+    'tutor/v1-e2e/requests/$rid',
     RtdbPut('/', {
       'result': code == null
           ? {'ok': true, 'at': 1, 'data': data}

@@ -42,7 +42,7 @@ def test_take_counts_attempts_and_refuses_a_live_lease() -> None:
         first = Claim(db, RID, "w1", lambda: NOW)
         assert await first.take()
         assert first.attempt == 1
-        node = fake.get(f"tutor/v1/requests/{RID}/claim")
+        node = fake.get(f"tutor/v1-e2e/requests/{RID}/claim")
         assert node["by"] == "w1"
         assert node["lease_until"] == claims.ms(NOW + claims.LEASE_S)
         assert not await Claim(db, RID, "w2", lambda: NOW).take()
@@ -66,7 +66,7 @@ def test_take_loses_the_race(
 
         async def racing_get(path: str) -> tuple[Any, str]:
             value, tag = await real_get(path)
-            fake.set(f"tutor/v1/{path}", {"by": "w2", "attempt": "x"})
+            fake.set(f"tutor/v1-e2e/{path}", {"by": "w2", "attempt": "x"})
             return value, tag
 
         monkeypatch.setattr(db, "get_etag", racing_get)
@@ -94,7 +94,7 @@ def test_keep_renews_mirrors_busy_and_survives_a_takeover(
         assert await claim.take()
         keeper = asyncio.create_task(claim.keep())
         await asyncio.sleep(0.03)
-        busy = fake.get("tutor/v1/sessions/20261012-172346-1a58/meta/busy")
+        busy = fake.get("tutor/v1-e2e/sessions/20261012-172346-1a58/meta/busy")
         assert busy == {
             "rid": RID,
             "phase": "claimed",
@@ -105,20 +105,20 @@ def test_keep_renews_mirrors_busy_and_survives_a_takeover(
         claim.set_phase("thinking")
         claim.set_phase("thinking")  # no change, no write
         await asyncio.sleep(0.03)
-        node = fake.get(f"tutor/v1/requests/{RID}/claim")
+        node = fake.get(f"tutor/v1-e2e/requests/{RID}/claim")
         assert node["phase"] == "thinking"
         assert node["lease_until"] == claims.ms(NOW + 5 + claims.LEASE_S)
         assert (
-            fake.get("tutor/v1/sessions/20261012-172346-1a58/meta/busy/phase")
+            fake.get("tutor/v1-e2e/sessions/20261012-172346-1a58/meta/busy/phase")
             == "thinking"
         )
-        fake.set(f"tutor/v1/requests/{RID}/claim", {"by": "w2"})  # taken over
+        fake.set(f"tutor/v1-e2e/requests/{RID}/claim", {"by": "w2"})  # taken over
         await asyncio.sleep(0.03)
         fake.fail[("PUT", f"/requests/{RID}/claim")] = 503
         await asyncio.sleep(0.03)
         keeper.cancel()
         await claim.clear_busy()
-        assert fake.get("tutor/v1/sessions") is None
+        assert fake.get("tutor/v1-e2e/sessions") is None
         await db.aclose()
 
     with caplog.at_level(logging.WARNING):

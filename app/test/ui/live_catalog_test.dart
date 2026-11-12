@@ -12,9 +12,9 @@ import '../support/fake_stream.dart';
 import '../support/learn_finders.dart';
 import '../support/ui.dart';
 
-const _rev = 'tutor/v1/rev';
-const _car = 'tutor/v1/subjects/car';
-const _garden = 'tutor/v1/subjects/garden';
+const _rev = 'tutor/v1-e2e/rev';
+const _car = 'tutor/v1-e2e/subjects/car';
+const _garden = 'tutor/v1-e2e/subjects/garden';
 
 /// The rev listen's connect snapshot (the watcher's baseline).
 void _connect(FakeRtdb db, FakeStream stream) => stream.listens[_rev]!
@@ -178,10 +178,10 @@ void main() {
     await t.tap(find.text('Balcony vegetables'));
     await t.pumpAndSettle();
     expect(stream.listens[_rev]!.hasListener, isTrue); // one shared listen
-    final homeLoads = _gets(db, 'tutor/v1/meta');
+    final homeLoads = _gets(db, 'tutor/v1-e2e/meta');
     db.root = setAt(db.root, '$_garden/meta/title', 'Herbs');
     await _bump(t, db, stream);
-    expect(_gets(db, 'tutor/v1/meta'), homeLoads);
+    expect(_gets(db, 'tutor/v1-e2e/meta'), homeLoads);
     await t.pageBack();
     await t.pumpAndSettle();
     expect(find.text('Herbs'), findsOneWidget); // refreshed on return

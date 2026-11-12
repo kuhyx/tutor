@@ -38,7 +38,7 @@ void main() {
 
   test('cached and fetch', () async {
     final db = FakeRtdb()
-      ..root = setAt(null, 'tutor/v1/subjects/car', {'meta': subjectMeta});
+      ..root = setAt(null, 'tutor/v1-e2e/subjects/car', {'meta': subjectMeta});
     final kv = MemoryKv();
     final catalog = Catalog(client: db.client(), kv: kv);
     expect(await catalog.cached(), isEmpty);
@@ -53,9 +53,9 @@ void main() {
     final client = db.client();
     expect(await fetchStats(client), isNull);
     await setCurrentSubject(client, 'car');
-    expect(getAt(db.root, 'tutor/v1/prefs/current_subject'), 'car');
+    expect(getAt(db.root, 'tutor/v1-e2e/prefs/current_subject'), 'car');
     expect(() => setCurrentSubject(client, 'B A D'), throwsArgumentError);
-    db.root = setAt(db.root, 'tutor/v1/stats', stats);
+    db.root = setAt(db.root, 'tutor/v1-e2e/stats', stats);
     expect((await fetchStats(client))!.today.target, 60);
   });
 }

@@ -50,8 +50,8 @@ def test_the_publisher_spends_before_it_builds_stats(tmp_path: Path) -> None:
 
     asyncio.run(go())
     assert [r["entry_id"] for r in carry_rows()] == ["carry-2026-10-24-m20"]
-    assert fake.get("tutor/v1/stats/today/prepaid") == 20
-    assert fake.get("tutor/v1/stats/today/banked") == 0
+    assert fake.get("tutor/v1-e2e/stats/today/prepaid") == 20
+    assert fake.get("tutor/v1-e2e/stats/today/banked") == 0
 
 
 def test_the_curriculum_tick_spends_after_review_credit(

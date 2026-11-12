@@ -22,7 +22,7 @@ import '../support/fake_stream.dart';
 import '../support/no_words.dart';
 import '../support/ui.dart';
 
-const _base = 'tutor/v1/sessions/$fixtureLiveSid';
+const _base = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
 const _old = '20261011-090000-a1b2';
 
 void main() {
@@ -59,7 +59,7 @@ void main() {
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, SessionScreen(services: s), settle: false);
     for (final path in [
-      'tutor/v1/live',
+      'tutor/v1-e2e/live',
       '$_base/meta',
       '$_base/msgs',
       '$_base/progress',

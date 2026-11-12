@@ -108,8 +108,8 @@ def test_build_lane_runs_the_curriculum_and_publishes(
     async def script(rig: Rig) -> None:
         got = await rig.send("subject_new", {"text": "cars"})
         assert got == {"ok": True, "data": {"subject": "car"}}
-        assert rig.fake.get("tutor/v1/subjects/car/meta/title") == "Cars"
-        assert rig.fake.get("tutor/v1/rev/catalog") == 1
+        assert rig.fake.get("tutor/v1-e2e/subjects/car/meta/title") == "Cars"
+        assert rig.fake.get("tutor/v1-e2e/rev/catalog") == 1
         got = await rig.send("plan_approve", {"subject": "car", "plan_rev": 1})
         assert (got["code"], got["error"]) == ("plan_conflict", "plan rev moved on")
 

@@ -35,7 +35,7 @@ void main() {
     t,
   ) async {
     final db = fixtureDb();
-    const cards = 'tutor/v1/subjects/car/cards';
+    const cards = 'tutor/v1-e2e/subjects/car/cards';
     db.root = setAt(
       db.root,
       '$cards/eng-old',
@@ -80,7 +80,7 @@ void main() {
     t,
   ) async {
     final db = fixtureDb();
-    const cards = 'tutor/v1/subjects/car/cards';
+    const cards = 'tutor/v1-e2e/subjects/car/cards';
     db.root = setAt(
       db.root,
       '$cards/eng-mine',

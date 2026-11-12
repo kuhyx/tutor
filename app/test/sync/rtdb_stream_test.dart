@@ -68,7 +68,7 @@ void main() {
           ], close: false),
         )
         ..script.add((_) => _sse([_frame('cancel', 'permission denied')]));
-      final events = await s.stream().listen('tutor/v1/presence').toList();
+      final events = await s.stream().listen('tutor/v1-e2e/presence').toList();
       expect(events.map((e) => e.runtimeType).toList(), [
         RtdbConnected,
         RtdbPut,
@@ -175,7 +175,7 @@ void main() {
       ),
       sleep: (d) async {},
     );
-    final sub = stream.listen('tutor/v1/live').listen((_) {});
+    final sub = stream.listen('tutor/v1-e2e/live').listen((_) {});
     await Future<void>.delayed(Duration.zero);
     final req = server.requests.single as http.Abortable;
     var aborted = false;

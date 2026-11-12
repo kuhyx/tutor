@@ -28,7 +28,7 @@ def test_serving_a_request_pokes_the_phone_check(tmp_path: Path) -> None:
     poked: list[int] = []
     server = Server(w, CurriculumSync(w), poke=lambda: poked.append(1))
     req = request("plan_today", {}, created=int(eng.time() * 1000))
-    fake.set(f"tutor/v1/requests/{RIDS[0]}/req", req)
+    fake.set(f"tutor/v1-e2e/requests/{RIDS[0]}/req", req)
     result = asyncio.run(server.serve(RIDS[0], req, "chat"))
     assert result is not None
     assert result["ok"] is True

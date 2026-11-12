@@ -82,7 +82,7 @@ void main() {
 
   testWidgets('Plan fits one Pixel 6a screen', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/subjects/car/plan/history', [
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/plan/history', [
       {'rev': 1, 'comment': 'less history', 'at': 1},
     ]);
     final s = await fixtureServices(db, FakeStream());

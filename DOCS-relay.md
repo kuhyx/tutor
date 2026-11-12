@@ -27,8 +27,13 @@ conflict; this file holds the worker-only details.
 a copy of the `firebase_backup` app's session of the same account. Run the
 seeder once to give the tutor its own refresh token.
 
+E2E (DOCS-contract §12): the worker also needs the shared crdt-sync password
+in `~/.config/crdt-sync/password`. Without it (or with a wrong one) the relay
+startup retries every 60 s and writes nothing; the web app still serves.
+
 ## Modules
-- `rtdb.py` REST (httpx; `?auth=` never logged), `sse.py` streams with
+- `e2e.py` the sealed layout, the key unlock and the one-time `tutor/v1` copy;
+  `rtdb.py` REST (httpx; `?auth=` never logged; seals/opens via `e2e.Sealer`), `sse.py` streams with
   reconnect (`auth_revoked` -> fresh token, errors back off 1-30 s, `cancel`
   fatal), `mirror.py` local copy of a streamed node.
 - `inbox.py` watches `requests`, queues per lane, rescans every 60 s, GCs

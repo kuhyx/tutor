@@ -15,8 +15,8 @@ import '../support/ui.dart';
 void main() {
   testWidgets('a subject tile reviews only that subject', (t) async {
     final db = fixtureDb();
-    final card = getAt(db.root, 'tutor/v1/subjects/car/cards/eng-crank')!;
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/cards', {
+    final card = getAt(db.root, 'tutor/v1-e2e/subjects/car/cards/eng-crank')!;
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/cards', {
       'g-sun': {
         ...card as Map<String, dynamic>,
         'module': 'light',

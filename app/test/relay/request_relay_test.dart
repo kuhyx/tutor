@@ -49,7 +49,7 @@ void main() {
 
   /// Delivers [event] for `requests/{rid}` (over the shared listen).
   void feed(String rid, RtdbEvent event) =>
-      expect(stream.emit('tutor/v1/requests/$rid', event), isTrue);
+      expect(stream.emit('tutor/v1-e2e/requests/$rid', event), isTrue);
 
   test('PUTs only req, then follows claim phases to the result', () async {
     final pending = relay.prepare(
@@ -58,7 +58,7 @@ void main() {
     final statuses = <RelayStatus>[];
     final done = relay.resend(pending).listen(statuses.add).asFuture<void>();
     await pump();
-    expect(puts.single.url.path, '/tutor/v1/requests/${pending.rid}/req.json');
+    expect(puts.single.url.path, '/tutor/v1-e2e/requests/${pending.rid}/req.json');
     final body = jsonDecode(puts.single.body) as Map<String, dynamic>;
     expect(body['created'], {'.sv': 'timestamp'});
     expect(body['sent_at'], pending.req.sentAt);

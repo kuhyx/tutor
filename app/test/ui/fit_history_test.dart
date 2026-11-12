@@ -17,18 +17,18 @@ const _old = '20261011-090000-a1b2';
 /// The fixture plus [extra] copies of an old session, and a long transcript.
 FakeRtdb _db({int extra = 30, int turns = 40}) {
   final db = fixtureDb();
-  final index = getAt(db.root, 'tutor/v1/session_index/$_old');
-  final session = getAt(db.root, 'tutor/v1/sessions/$_old');
+  final index = getAt(db.root, 'tutor/v1-e2e/session_index/$_old');
+  final session = getAt(db.root, 'tutor/v1-e2e/sessions/$_old');
   for (var i = 0; i < extra; i++) {
     final sid =
         '202609${(i + 1).toString().padLeft(2, '0')}-090000-'
         '${(0xa000 + i).toRadixString(16)}';
-    db.root = setAt(db.root, 'tutor/v1/sessions/$sid', session);
+    db.root = setAt(db.root, 'tutor/v1-e2e/sessions/$sid', session);
     if (index != null) {
-      db.root = setAt(db.root, 'tutor/v1/session_index/$sid', index);
+      db.root = setAt(db.root, 'tutor/v1-e2e/session_index/$sid', index);
     }
   }
-  db.root = setAt(db.root, 'tutor/v1/sessions/$_old/msgs', {
+  db.root = setAt(db.root, 'tutor/v1-e2e/sessions/$_old/msgs', {
     for (var i = 0; i < turns; i++)
       'm${i.toString().padLeft(4, '0')}': {
         'role': i.isEven ? 'tutor' : 'user',
@@ -54,8 +54,8 @@ void main() {
   fitTest('History empty', (t, scale) async {
     pixelView(t, scale: scale);
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/sessions', null);
-    db.root = setAt(db.root, 'tutor/v1/session_index', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/sessions', null);
+    db.root = setAt(db.root, 'tutor/v1-e2e/session_index', null);
     final s = await fixtureServices(db, FakeStream());
     await pumpFit(t, HistoryScreen(services: s));
     expectFits(t, state: 'empty');

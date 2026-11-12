@@ -32,9 +32,9 @@ void main() {
 
   /// Delivers [event] for the latest request (over the shared listen).
   void toLatest(RtdbEvent event) {
-    final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+    final reqs = getAt(db.root, 'tutor/v1-e2e/requests')! as Map<String, dynamic>;
     final rid = (reqs.keys.toList()..sort()).last;
-    expect(stream.emit('tutor/v1/requests/$rid', event), isTrue);
+    expect(stream.emit('tutor/v1-e2e/requests/$rid', event), isTrue);
   }
 
   test('run follows to done; busy while working', () async {
@@ -93,7 +93,7 @@ void main() {
     final sentAt = db.log.length;
     final third = runner.retry();
     await Future<void>.delayed(Duration.zero);
-    final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+    final reqs = getAt(db.root, 'tutor/v1-e2e/requests')! as Map<String, dynamic>;
     expect(reqs, hasLength(2), reason: 'retry:true -> a new rid');
     final sent = reqs.values
         .map((r) => ((r as Map)['req'] as Map)['sent_at'])

@@ -12,14 +12,14 @@ const _c = '20261012-100000-cccc';
 
 void main() {
   test('load: rows with archived flags; malformed rows skipped', () async {
-    var root = setAt(null, 'tutor/v1/session_index', {
+    var root = setAt(null, 'tutor/v1-e2e/session_index', {
       _a: indexRow,
       _b: {...indexRow, 'auto_archived': true},
       _c: indexRow,
       'junk': indexRow,
       '20261013-100000-dddd': {'rev': 'x'},
     });
-    root = setAt(root, 'tutor/v1/sessions/$_c/user', {'archived': true});
+    root = setAt(root, 'tutor/v1-e2e/sessions/$_c/user', {'archived': true});
     final repo = HistoryRepo((FakeRtdb()..root = root).client());
     final rows = await repo.load();
     expect(rows.map((r) => r.sid), [_a, _b, _c]);
@@ -31,7 +31,7 @@ void main() {
 
   test('transcript and archiving', () async {
     final db = FakeRtdb()
-      ..root = setAt(null, 'tutor/v1/sessions/$_a', {
+      ..root = setAt(null, 'tutor/v1-e2e/sessions/$_a', {
         'meta': sessionMeta,
         'msgs': {'m0001': tutorMessage},
         'user': {'archived': true},

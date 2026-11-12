@@ -122,7 +122,7 @@ void main() {
       t,
     ) async {
       final db = fixtureDb();
-      const cards = 'tutor/v1/subjects/car/cards';
+      const cards = 'tutor/v1-e2e/subjects/car/cards';
       Map<String, Object?> card(int order, Map<String, Object?> tutor) => {
         'module': 'engine',
         'order': order,
@@ -158,7 +158,7 @@ void main() {
 
     testWidgets('plan: approved, revisions, drafting, failed ($at)', (t) async {
       final db = fixtureDb();
-      db.root = setAt(db.root, 'tutor/v1/subjects/car/plan/history', [
+      db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/plan/history', [
         {'rev': 1, 'comment': 'less history', 'at': 1},
       ]);
       final s = await fixtureServices(db, FakeStream());
@@ -182,12 +182,12 @@ void main() {
       for (final status in ['drafting', 'failed']) {
         db.root = setAt(
           db.root,
-          'tutor/v1/subjects/garden/meta/status',
+          'tutor/v1-e2e/subjects/garden/meta/status',
           status,
         );
         db.root = setAt(
           db.root,
-          'tutor/v1/subjects/garden/meta/error',
+          'tutor/v1-e2e/subjects/garden/meta/error',
           'no sources',
         );
         await pumpScreen(
@@ -234,7 +234,7 @@ void main() {
         await t.pumpAndSettle();
         expectNoWords(t, 'progress all days');
       }
-      db.root = setAt(db.root, 'tutor/v1/stats/days', null);
+      db.root = setAt(db.root, 'tutor/v1-e2e/stats/days', null);
       await pumpScreen(
         t,
         ProgressScreen(services: s, key: UniqueKey()),

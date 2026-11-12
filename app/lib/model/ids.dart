@@ -45,7 +45,7 @@ String _check(String id, bool Function(String) ok, String what) {
 /// RTDB paths under the contract root.
 abstract final class Paths {
   /// The contract root.
-  static const root = 'tutor/v1';
+  static const root = 'tutor/v1-e2e';
 
   /// `meta`.
   static const meta = '$root/meta';

@@ -27,9 +27,9 @@ void main() {
 
   /// Delivers [event] for the latest request (over the shared listen).
   void toLatest(RtdbEvent event) {
-    final reqs = getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>;
+    final reqs = getAt(db.root, 'tutor/v1-e2e/requests')! as Map<String, dynamic>;
     final rid = (reqs.keys.toList()..sort()).last;
-    expect(stream.emit('tutor/v1/requests/$rid', event), isTrue);
+    expect(stream.emit('tutor/v1-e2e/requests/$rid', event), isTrue);
   }
 
   group('no reply from the PC', () {
@@ -66,7 +66,7 @@ void main() {
         });
 
     int rids() =>
-        (getAt(db.root, 'tutor/v1/requests')! as Map<String, dynamic>).length;
+        (getAt(db.root, 'tutor/v1-e2e/requests')! as Map<String, dynamic>).length;
 
     test('stalled after 3 minutes with no result or progress', () {
       fake((async, r) {
@@ -152,7 +152,7 @@ void main() {
         expect(lastRequest(db).$1, isNot(rid));
         expect(r.stalled.value, isFalse);
         // A late result for the abandoned rid changes nothing on screen.
-        stream.emit('tutor/v1/requests/$rid', result);
+        stream.emit('tutor/v1-e2e/requests/$rid', result);
         async.flushMicrotasks();
         expect(r.busy, isTrue);
       });

@@ -24,6 +24,7 @@ import 'package:tutor/storage/device_id.dart';
 import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
+import 'package:tutor/sync/e2e_gate.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -85,6 +86,8 @@ class TutorServices {
       databaseUrl: config.databaseUrl,
       idToken: auth.idToken,
       httpClient: web,
+      // Fail closed: nothing reaches RTDB until [e2e] holds the key.
+      sealRequired: true,
     );
     final stream = RtdbStream(client);
     final ulid = UlidGenerator();
@@ -133,6 +136,9 @@ class TutorServices {
 
   /// REST client.
   final RtdbClient client;
+
+  /// The e2e key of [client] (DOCS-contract §12).
+  late final E2eGate e2e = E2eGate(client: client);
 
   /// SSE transport.
   final RtdbStream stream;

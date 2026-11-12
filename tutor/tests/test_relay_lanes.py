@@ -38,7 +38,7 @@ class Rig:
         rid = RIDS[self.n]
         self.n += 1
         req = request(kind, body, created=int(self.eng.time() * 1000), **kw)
-        self.fake.set(f"tutor/v1/requests/{rid}/req", req)
+        self.fake.set(f"tutor/v1-e2e/requests/{rid}/req", req)
         return await self.server.serve(rid, req, "chat")
 
 
@@ -62,21 +62,24 @@ def test_start_message_next_stop(tmp_path: Path) -> None:
         got = await rig.send("session_start", {"subject": None, "card": None})
         sid = got["data"]["session"]
         assert got["ok"]
-        assert rig.fake.get(f"tutor/v1/requests/{RIDS[0]}/result/at") == rig.fake.now_ms
-        assert rig.fake.get(f"tutor/v1/sessions/{sid}/meta/n") == 1
+        assert (
+            rig.fake.get(f"tutor/v1-e2e/requests/{RIDS[0]}/result/at")
+            == rig.fake.now_ms
+        )
+        assert rig.fake.get(f"tutor/v1-e2e/sessions/{sid}/meta/n") == 1
         got = await rig.send("message", {"session": sid, "text": "an answer"})
         assert got["data"] == {"msg": "m0003"}
-        learner = rig.fake.get(f"tutor/v1/sessions/{sid}/msgs/m0002")
+        learner = rig.fake.get(f"tutor/v1-e2e/sessions/{sid}/msgs/m0002")
         assert learner["rid"] == RIDS[1]
         assert learner["dev"] is None or isinstance(learner["dev"], str)
         got = await rig.send("next", {"session": sid})
         assert got["data"]["session"] != sid
         new = got["data"]["session"]
-        assert rig.fake.get(f"tutor/v1/sessions/{sid}/meta/stopped") is True
-        assert rig.fake.get("tutor/v1/live/session") == new
+        assert rig.fake.get(f"tutor/v1-e2e/sessions/{sid}/meta/stopped") is True
+        assert rig.fake.get("tutor/v1-e2e/live/session") == new
         got = await rig.send("stop", {"session": new})
         assert got == {"ok": True, "data": {}}
-        assert rig.fake.get("tutor/v1/live") is None
+        assert rig.fake.get("tutor/v1-e2e/live") is None
 
     rig = run(eng, script)
     assert (rig.w.done.get(RIDS[1]) or {})["kind"] == "message"
@@ -146,10 +149,10 @@ def test_done_map_answers_again_without_running(tmp_path: Path) -> None:
     async def script(rig: Rig) -> None:
         req = request("session_start", {"subject": None, "card": None})
         first = await rig.server.serve(RIDS[0], req, "chat")
-        rig.fake.set(f"tutor/v1/requests/{RIDS[0]}", None)  # GC'd
+        rig.fake.set(f"tutor/v1-e2e/requests/{RIDS[0]}", None)  # GC'd
         again = await rig.server.serve(RIDS[0], req, "chat")
         assert again == first
-        assert rig.fake.get(f"tutor/v1/requests/{RIDS[0]}/result/ok") is True
+        assert rig.fake.get(f"tutor/v1-e2e/requests/{RIDS[0]}/result/ok") is True
 
     run(eng, script)
     assert len(fake_session.prompts) == 1
@@ -164,10 +167,10 @@ def test_live_lease_elsewhere_and_gave_up(tmp_path: Path) -> None:
             "lease_until": int(eng.time() * 1000) + 60_000,
             "attempt": 1,
         }
-        rig.fake.set(f"tutor/v1/requests/{RIDS[0]}/claim", held)
+        rig.fake.set(f"tutor/v1-e2e/requests/{RIDS[0]}/claim", held)
         assert await rig.server.serve(RIDS[0], request("stop", {}), "chat") is None
         tired = {"by": "other", "lease_until": 0, "attempt": claims.MAX_ATTEMPTS}
-        rig.fake.set(f"tutor/v1/requests/{RIDS[1]}/claim", tired)
+        rig.fake.set(f"tutor/v1-e2e/requests/{RIDS[1]}/claim", tired)
         got = await rig.server.serve(RIDS[1], request("stop", {}), "chat")
         assert (got or {})["code"] == "gave_up"
 

@@ -67,10 +67,10 @@ def test_watch_lane_collect_and_tick(
     eng, _ = engine(tmp_path, turn("Q?"))
     fake = FakeRtdb()
     fake.set(
-        f"tutor/v1/requests/{RIDS[5]}", {"req": {}, "result": {"ok": True, "at": 5}}
+        f"tutor/v1-e2e/requests/{RIDS[5]}", {"req": {}, "result": {"ok": True, "at": 5}}
     )
     fake.set(
-        f"tutor/v1/requests/{RIDS[6]}", {"req": {}, "result": {"ok": True, "at": 6}}
+        f"tutor/v1-e2e/requests/{RIDS[6]}", {"req": {}, "result": {"ok": True, "at": 6}}
     )
     monkeypatch.setattr(inbox, "RESCAN_S", 0.01)
 
@@ -85,14 +85,14 @@ def test_watch_lane_collect_and_tick(
         await w.rtdb.put(f"requests/{RIDS[0]}/req", start)
         for _ in range(200):
             await asyncio.sleep(0.01)
-            if fake.get(f"tutor/v1/requests/{RIDS[0]}/result"):
+            if fake.get(f"tutor/v1-e2e/requests/{RIDS[0]}/result"):
                 break
-        assert fake.get(f"tutor/v1/requests/{RIDS[0]}/result/ok") is True
+        assert fake.get(f"tutor/v1-e2e/requests/{RIDS[0]}/result/ok") is True
         await asyncio.sleep(0.05)
-        assert fake.get(f"tutor/v1/requests/{RIDS[5]}") is None  # collected
+        assert fake.get(f"tutor/v1-e2e/requests/{RIDS[5]}") is None  # collected
         fake.fail.clear()
         await asyncio.sleep(0.05)
-        assert fake.get(f"tutor/v1/requests/{RIDS[6]}") is None  # retried
+        assert fake.get(f"tutor/v1-e2e/requests/{RIDS[6]}") is None  # retried
         # A request vanished before its turn, and an RTDB error mid-serve.
         box.queued.add(RIDS[7])
         await box.queues["chat"].put(RIDS[7])
@@ -118,7 +118,7 @@ def test_presence_beats_measure_skew_and_leave(
         w = wiring(fake, eng, now=lambda: NOW_MS / 1000 - 9)
         beats = presence.Presence(w, {"chat": RIDS[0], "build": None})
         await beats.beat()
-        node = fake.get(f"tutor/v1/presence/workers/{WORKER}")
+        node = fake.get(f"tutor/v1-e2e/presence/workers/{WORKER}")
         assert node["beat"] == NOW_MS
         assert node["lanes"] == {"chat": RIDS[0]}
         assert beats.skew_ms == 9000
@@ -129,7 +129,7 @@ def test_presence_beats_measure_skew_and_leave(
         task.cancel()
         fake.fail.clear()
         await beats.leave()
-        assert fake.get("tutor/v1/presence") is None
+        assert fake.get("tutor/v1-e2e/presence") is None
         fake.now_ms = -1  # an odd answer
         monkeypatch.setattr(fake, "_sv", lambda value: {**value, "beat": "x"})
         await beats.beat()  # an odd answer: skew kept
@@ -159,20 +159,20 @@ def test_feedback_drain(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
             "dev": PHONE,
             "route": "/s",
         }
-        fake.set(f"tutor/v1/feedback/{RIDS[0]}", good)
-        fake.set(f"tutor/v1/feedback/{RIDS[1]}", {"category": "nope", "text": "x"})
-        fake.set(f"tutor/v1/feedback/{RIDS[2]}", "junk")
+        fake.set(f"tutor/v1-e2e/feedback/{RIDS[0]}", good)
+        fake.set(f"tutor/v1-e2e/feedback/{RIDS[1]}", {"category": "nope", "text": "x"})
+        fake.set(f"tutor/v1-e2e/feedback/{RIDS[2]}", "junk")
         fake.set(
-            f"tutor/v1/feedback/{RIDS[3]}",
+            f"tutor/v1-e2e/feedback/{RIDS[3]}",
             {"category": "other", "text": "old", "session": "20200101-000000-abcd"},
         )
-        fake.set("tutor/v1/feedback/bad-key", {"category": "ui", "text": "x"})
+        fake.set("tutor/v1-e2e/feedback/bad-key", {"category": "ui", "text": "x"})
         assert await feedback_drain.drain(w) == 2
-        assert set(fake.get("tutor/v1/feedback")) == {"bad-key"}
-        fake.set(f"tutor/v1/feedback/{RIDS[0]}", good)  # a delete that failed
+        assert set(fake.get("tutor/v1-e2e/feedback")) == {"bad-key"}
+        fake.set(f"tutor/v1-e2e/feedback/{RIDS[0]}", good)  # a delete that failed
         assert await feedback_drain.drain(w) == 0
         await eng.stop()
-        fake.set(f"tutor/v1/feedback/{RIDS[4]}", {**good, "text": "after stop"})
+        fake.set(f"tutor/v1-e2e/feedback/{RIDS[4]}", {**good, "text": "after stop"})
         assert await feedback_drain.drain(w) == 1
         monkeypatch.setattr(feedback_drain, "POLL_S", 0.01)
         fake.fail[("GET", "/feedback")] = 500

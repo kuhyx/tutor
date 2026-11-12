@@ -25,9 +25,10 @@ readonly PORT=8778
 
 log() { printf 'tutor install: %s\n' "$*"; }
 
-# The unit runs the repo venv; the relay needs crdt-sync and httpx in it.
+# The unit runs the repo venv; the relay needs crdt-sync (>= 0.10: e2e, with
+# pynacl + argon2-cffi) and httpx in it.
 ensure_venv() {
-    if ! "$REPO/.venv/bin/python" -c 'import crdt_sync, httpx' 2>/dev/null; then
+    if ! "$REPO/.venv/bin/python" -c 'from crdt_sync import unlock_e2e; import nacl, argon2, httpx' 2>/dev/null; then
         log "setting up the venv"
         "$REPO/scripts/setup_dev.sh"
     fi

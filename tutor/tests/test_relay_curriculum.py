@@ -42,19 +42,19 @@ def rig(tmp_path: Path) -> tuple[Engine, FakeRtdb, CurriculumSync]:
 
 def test_pull_mirrors_other_devices_incrementally(tmp_path: Path) -> None:
     eng, fake, sync = rig(tmp_path)
-    fake.set(f"tutor/v1/log/{PHONE}/{EID}", review(EID))
-    fake.set(f"tutor/v1/log/{WORKER}/{EID}", review(EID))  # our own: skipped
-    fake.set(f"tutor/v1/log/not-a-device/{EID}", review(EID))
-    fake.set("tutor/v1/log/" + WORKER.replace("1", "2"), "junk")  # not an object
+    fake.set(f"tutor/v1-e2e/log/{PHONE}/{EID}", review(EID))
+    fake.set(f"tutor/v1-e2e/log/{WORKER}/{EID}", review(EID))  # our own: skipped
+    fake.set(f"tutor/v1-e2e/log/not-a-device/{EID}", review(EID))
+    fake.set("tutor/v1-e2e/log/" + WORKER.replace("1", "2"), "junk")  # not an object
 
     async def go() -> None:
         assert await sync.pull() == 1
-        fake.set(f"tutor/v1/log/{PHONE}/{EID2}", review(EID2))
+        fake.set(f"tutor/v1-e2e/log/{PHONE}/{EID2}", review(EID2))
         fake.log.clear()
         assert await sync.pull() == 1
         assert ("GET", f"/log/{PHONE}") in fake.log
         assert await sync.pull() == 0  # startAt re-reads the newest only
-        fake.set("tutor/v1/log", None)
+        fake.set("tutor/v1-e2e/log", None)
         assert await sync.pull() == 0
         await sync.w.rtdb.aclose()
 
@@ -75,9 +75,9 @@ def test_push_sends_own_events_once(tmp_path: Path) -> None:
         await sync.w.rtdb.aclose()
 
     asyncio.run(go())
-    node = fake.get(f"tutor/v1/log/{WORKER}/{own['eid']}")
+    node = fake.get(f"tutor/v1-e2e/log/{WORKER}/{own['eid']}")
     assert node == {k: v for k, v in own.items() if k not in {"dev", "eid"}}
-    assert fake.get(f"tutor/v1/log/{PHONE}") is None
+    assert fake.get(f"tutor/v1-e2e/log/{PHONE}") is None
 
 
 def test_publish_only_moved_parts(tmp_path: Path) -> None:
@@ -96,8 +96,8 @@ def test_publish_only_moved_parts(tmp_path: Path) -> None:
         await sync.w.rtdb.aclose()
 
     asyncio.run(go())
-    assert fake.get("tutor/v1/subjects/car/plan/status") == "approved"
-    assert fake.get("tutor/v1/subjects/car/meta/rev") == 2
+    assert fake.get("tutor/v1-e2e/subjects/car/plan/status") == "approved"
+    assert fake.get("tutor/v1-e2e/subjects/car/meta/rev") == 2
 
 
 def test_startup_and_sync_queue_generation(
@@ -106,9 +106,9 @@ def test_startup_and_sync_queue_generation(
     eng, fake, sync = rig(tmp_path)
     subject(eng.ctx, "car")
     subject(eng.ctx, "bike")
-    fake.set("tutor/v1/subjects/bike/meta/rev", 1)  # already published
-    fake.set("tutor/v1/rev/catalog", 7)
-    fake.set(f"tutor/v1/log/{WORKER}/{EID}", review(EID))
+    fake.set("tutor/v1-e2e/subjects/bike/meta/rev", 1)  # already published
+    fake.set("tutor/v1-e2e/rev/catalog", 7)
+    fake.set(f"tutor/v1-e2e/log/{WORKER}/{EID}", review(EID))
     made: list[tuple[str, str]] = []
 
     def fold(_ctx: Context) -> dict[str, Any]:
@@ -126,8 +126,8 @@ def test_startup_and_sync_queue_generation(
 
     async def go() -> None:
         await sync.startup()
-        assert fake.get("tutor/v1/rev/catalog") == 8
-        assert fake.get("tutor/v1/subjects/bike") == {"meta": {"rev": 1}}
+        assert fake.get("tutor/v1-e2e/rev/catalog") == 8
+        assert fake.get("tutor/v1-e2e/subjects/bike") == {"meta": {"rev": 1}}
         await sync.sync()  # already queued: not twice
         task = asyncio.create_task(sync.generate_forever())
         for _ in range(100):
@@ -162,15 +162,17 @@ def test_a_phone_review_unlocks_the_next_module_on_the_next_sync(
 
     async def go() -> None:
         await sync.startup()
-        assert fake.get("tutor/v1/subjects/car/plan/modules")[1]["status"] == "locked"
-        catalog = fake.get("tutor/v1/rev/catalog")
-        fake.set(f"tutor/v1/log/{PHONE}/{EID}", {**review(EID), "at": T + 60_000})
+        assert (
+            fake.get("tutor/v1-e2e/subjects/car/plan/modules")[1]["status"] == "locked"
+        )
+        catalog = fake.get("tutor/v1-e2e/rev/catalog")
+        fake.set(f"tutor/v1-e2e/log/{PHONE}/{EID}", {**review(EID), "at": T + 60_000})
         await sync.sync()
-        assert fake.get("tutor/v1/rev/catalog") == catalog + 1
+        assert fake.get("tutor/v1-e2e/rev/catalog") == catalog + 1
         await sync.w.rtdb.aclose()
 
     asyncio.run(go())
-    statuses = [m["status"] for m in fake.get("tutor/v1/subjects/car/plan/modules")]
+    statuses = [m["status"] for m in fake.get("tutor/v1-e2e/subjects/car/plan/modules")]
     assert statuses == ["mastered", "ready"]
 
 
@@ -187,7 +189,7 @@ def test_publish_subjects_for_the_migration(tmp_path: Path) -> None:
             await sync.w.rtdb.aclose()
 
     assert asyncio.run(go()) == 1
-    assert fake.get(f"tutor/v1/log/{WORKER}/{own['eid']}/k") == "taught"
+    assert fake.get(f"tutor/v1-e2e/log/{WORKER}/{own['eid']}/k") == "taught"
 
 
 def test_a_broken_fold_never_fails_chat_requests(

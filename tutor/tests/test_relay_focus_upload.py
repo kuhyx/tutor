@@ -31,7 +31,7 @@ def put(
     text = base64.b64encode(raw).decode()
     parts = [text[i : i + size] for i in range(0, len(text), size)]
     node = {f"c{n:04d}": part for n, part in enumerate(parts, start=1)}
-    fake.set(f"tutor/v1/uploads/{upload}", node)
+    fake.set(f"tutor/v1-e2e/uploads/{upload}", node)
     return {
         "id": "codility",
         "milestone": "rules",
@@ -70,7 +70,7 @@ def test_a_png_upload_becomes_the_rules_file_and_is_cleaned_up(
     name, data = args["file"]
     assert name.endswith(".png")
     assert data == PNG
-    assert fake.get(f"tutor/v1/uploads/{ULID}") is None
+    assert fake.get(f"tutor/v1-e2e/uploads/{ULID}") is None
     assert not list(data_dir().rglob("*.png"))  # the temp copy is gone
 
 
@@ -106,7 +106,7 @@ def test_a_bad_upload_is_refused_and_still_deleted(
 ) -> None:
     fake = FakeRtdb()
     body = put(fake, PNG)
-    path = f"tutor/v1/uploads/{ULID}"
+    path = f"tutor/v1-e2e/uploads/{ULID}"
     if damage == "sha":
         body["sha256"] = "0" * 64
     elif damage == "base64":
@@ -149,7 +149,7 @@ def test_the_registry_refusing_a_file_is_loud_and_cleans_up(
     fp.refuse = ValueError("'rules' is not a milestone")
     got = refused(body, fake)
     assert got.code == "focus_refused"
-    assert fake.get(f"tutor/v1/uploads/{ULID}") is None
+    assert fake.get(f"tutor/v1-e2e/uploads/{ULID}") is None
 
 
 def test_an_unreadable_database_is_a_retryable_error(fp: FakeInterviewFp) -> None:

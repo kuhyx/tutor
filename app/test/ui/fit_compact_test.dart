@@ -134,7 +134,7 @@ void main() {
     final semantics = t.ensureSemantics();
     final db = fixtureDb();
     for (var i = 0; i < 24; i++) {
-      db.root = setAt(db.root, 'tutor/v1/subjects/extra$i/meta', {
+      db.root = setAt(db.root, 'tutor/v1-e2e/subjects/extra$i/meta', {
         'title': 'Extra $i',
         'goal': 'g',
         'status': 'failed',

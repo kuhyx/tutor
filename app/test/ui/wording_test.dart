@@ -114,8 +114,8 @@ void main() {
       SessionScreen(services: s, now: () => DateTime(2030)),
       settle: false,
     );
-    const base = 'tutor/v1/sessions/$fixtureLiveSid';
-    for (final path in ['tutor/v1/live', '$base/meta', '$base/msgs']) {
+    const base = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
+    for (final path in ['tutor/v1-e2e/live', '$base/meta', '$base/msgs']) {
       stream.emit(path, RtdbPut('/', getAt(db.root, path)));
       await t.pump();
     }

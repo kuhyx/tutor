@@ -13,7 +13,7 @@ void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
   late FakeRtdb db;
   late ClientBeacon beacon;
-  const path = 'tutor/v1/presence/clients/$testDev';
+  const path = 'tutor/v1-e2e/presence/clients/$testDev';
 
   setUp(() {
     db = FakeRtdb()..serverTime = 111;

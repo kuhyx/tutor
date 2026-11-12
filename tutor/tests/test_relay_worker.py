@@ -72,12 +72,14 @@ def test_relay_lifecycle(
             # for one so the branch is hit however slow the machine is.
             seen = stats_calls[0]
             await until(lambda: stats_calls[0] > seen)
-            assert fake.get("tutor/v1/meta") == worker.META
+            assert fake.get("tutor/v1-e2e/meta") == worker.META
             req = request("session_start", {"subject": None, "card": None})
-            fake.set(f"tutor/v1/requests/{RIDS[0]}/req", req)
-            fake._notify("put", f"tutor/v1/requests/{RIDS[0]}/req", req)
-            await until(lambda: fake.get(f"tutor/v1/requests/{RIDS[0]}/result"))
-            await until(lambda: fake.get(f"tutor/v1/presence/workers/{relay.w.worker}"))
+            fake.set(f"tutor/v1-e2e/requests/{RIDS[0]}/req", req)
+            fake._notify("put", f"tutor/v1-e2e/requests/{RIDS[0]}/req", req)
+            await until(lambda: fake.get(f"tutor/v1-e2e/requests/{RIDS[0]}/result"))
+            await until(
+                lambda: fake.get(f"tutor/v1-e2e/presence/workers/{relay.w.worker}")
+            )
             fake.fail[("PUT", "/live")] = 500
             await eng.stop()
             await asyncio.sleep(0.05)  # refresh fails loudly, keeps going
@@ -89,7 +91,7 @@ def test_relay_lifecycle(
 
             relay._spawn(boom(), "boom")
             await asyncio.sleep(0.01)
-        assert fake.get("tutor/v1/presence") is None
+        assert fake.get("tutor/v1-e2e/presence") is None
 
     with caplog.at_level(logging.WARNING):
         asyncio.run(go())
@@ -162,6 +164,7 @@ def test_cli_publish_all_and_setup_errors(
     eng.store.archive("20200101-000000-abcd")
     fake = FakeRtdb()
     monkeypatch.setattr(config, "connect", fake.rtdb)
+    monkeypatch.setattr(config, "passphrase", lambda: "pw")
     monkeypatch.setattr(cli, "Engine", lambda: eng)
     assert cli.main(["publish-all"]) == 0
     assert "published 1 session(s), 1 archived flag(s)" in capsys.readouterr().out
@@ -187,7 +190,7 @@ def test_cli_worker_runs_until_stopped(
     async def go() -> None:
         stop = asyncio.Event()
         task = asyncio.create_task(cli._worker(stop))
-        await until(lambda: fake.get("tutor/v1/meta") is not None)
+        await until(lambda: fake.get("tutor/v1-e2e/meta") is not None)
         stop.set()
         await task
 
@@ -216,7 +219,7 @@ def test_server_hosts_the_relay(
     cli.with_relay(app, eng, PhaseSink())
     with TestClient(app) as client:
         assert client.get("/api/state").status_code == 200
-    assert fake.get("tutor/v1/meta") == worker.META
+    assert fake.get("tutor/v1-e2e/meta") == worker.META
 
     def refuse() -> Any:
         msg = "no session"

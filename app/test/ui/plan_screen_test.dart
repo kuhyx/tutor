@@ -106,17 +106,17 @@ void main() {
     final db = fixtureDb();
     db.root = setAt(
       db.root,
-      'tutor/v1/subjects/garden/meta/status',
+      'tutor/v1-e2e/subjects/garden/meta/status',
       'drafting',
     );
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
     await pumpScreen(t, PlanScreen(services: s, subject: 'garden'));
     expect(spokenHas('The tutor is drafting the plan'), findsOneWidget);
-    db.root = setAt(db.root, 'tutor/v1/subjects/garden/meta/status', 'failed');
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'failed');
     db.root = setAt(
       db.root,
-      'tutor/v1/subjects/garden/meta/error',
+      'tutor/v1-e2e/subjects/garden/meta/error',
       'no sources',
     );
     await t.tap(spoken('Reload'));

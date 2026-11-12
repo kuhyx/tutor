@@ -7,7 +7,7 @@ import 'package:tutor/sync/rtdb_event.dart';
 
 import '../support/fake_stream.dart';
 
-const _requests = 'tutor/v1/requests';
+const _requests = 'tutor/v1-e2e/requests';
 const _a = '01M4RBCX52MMHCK7K73E6KV910';
 const _b = '01M4RBCX52MMHCK7K73E6KV911';
 const _older = '01M4RBCX52MMHCK7K73E6KV900';

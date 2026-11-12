@@ -14,9 +14,11 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Final
 
+from crdt_sync import E2eLockedError
+
 from tutor import anki_watch, carry, leftover
-from tutor.relay import feedback_drain
-from tutor.relay.config import device_id
+from tutor.relay import config, e2e, feedback_drain
+from tutor.relay.config import device_id, seal
 from tutor.relay.context import Wiring
 from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.relay.done import DoneMap
@@ -35,7 +37,7 @@ if TYPE_CHECKING:
     from tutor.relay.phases import PhaseSink
     from tutor.relay.rtdb import Rtdb
 
-META: Final = {"schema": 1, "min_client": 1}
+META: Final = {"schema": 1, "min_client": e2e.MIN_CLIENT}
 REFRESH_S: Final = 30.0
 STATS_EVERY: Final = 10  # refreshes (5 min)
 CURRICULUM_EVERY: Final = 2  # refreshes (1 min)
@@ -48,9 +50,19 @@ class Relay:
     """Every relay task for one engine; :meth:`start` returns at once."""
 
     def __init__(
-        self, engine: Engine, rtdb: Rtdb, sink: PhaseSink, now: Callable[[], float]
+        self,
+        engine: Engine,
+        rtdb: Rtdb,
+        sink: PhaseSink,
+        now: Callable[[], float],
+        secret: Callable[[], str] | None = None,
     ) -> None:
-        """Wire the parts; nothing touches the network yet."""
+        """Wire the parts; nothing touches the network yet.
+
+        An ``rtdb`` without a sealer is unlocked first (``secret`` is read on
+        every attempt, so fixing the password file needs no restart).
+        """
+        self._secret = secret or self._passphrase
         root = engine.store.root
         done = DoneMap(root / "requests_done.jsonl", now())
         publisher = Publisher(rtdb, engine, done)
@@ -63,6 +75,11 @@ class Relay:
         self.ready = asyncio.Event()
         self._tasks: list[asyncio.Task[None]] = []
 
+    @staticmethod
+    def _passphrase() -> str:
+        """Looked up per call (never bound at import): tests replace it."""
+        return config.passphrase()
+
     def _spawn(self, coro: Coroutine[object, object, None], name: str) -> None:
         task = asyncio.create_task(coro, name=f"relay-{name}")
         task.add_done_callback(_report)
@@ -73,10 +90,13 @@ class Relay:
         attempt = 0
         while True:
             try:
+                if self.w.rtdb.sealer is None:
+                    await seal(self.w.rtdb, self._secret())
+                await e2e.migrate(self.w.rtdb)
                 await self.w.rtdb.put("meta", META)
                 count = await self.w.publisher.startup()
                 await self.curriculum.startup()
-            except RtdbError as err:
+            except (RtdbError, E2eLockedError) as err:
                 delay = RETRY_S[min(attempt, len(RETRY_S) - 1)]
                 attempt += 1
                 _logger.warning("relay startup failed (%s); retry in %.0fs", err, delay)

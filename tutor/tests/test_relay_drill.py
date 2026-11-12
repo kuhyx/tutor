@@ -89,7 +89,7 @@ def test_drill_over_the_relay(tmp_path: Path) -> None:
         seen["answer"] = await rig.send("drill_answer", pick)
         seen["again"] = await rig.send("drill_answer", pick)
         seen["bad"] = await rig.send("drill_answer", {"prompt_id": "x", "choice": 0})
-        seen["log"] = rig.fake.get(f"tutor/v1/log/{WORKER}")
+        seen["log"] = rig.fake.get(f"tutor/v1-e2e/log/{WORKER}")
 
     run(eng, script)
     answer = seen["answer"]["data"]

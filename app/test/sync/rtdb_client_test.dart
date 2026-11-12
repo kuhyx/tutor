@@ -15,8 +15,8 @@ RtdbClient _client(MockClientHandler handler, {String url = 'https://db/'}) =>
 void main() {
   test('uri encodes segments and carries the token and query', () async {
     final c = _client((_) async => http.Response('null', 200));
-    final uri = await c.uri('/tutor/v1/a b/', query: keyRangeQuery('m0003'));
-    expect(uri.path, '/tutor/v1/a%20b.json');
+    final uri = await c.uri('/tutor/v1-e2e/a b/', query: keyRangeQuery('m0003'));
+    expect(uri.path, '/tutor/v1-e2e/a%20b.json');
     expect(uri.queryParameters['auth'], 'tok');
     expect(uri.queryParameters['orderBy'], r'"$key"');
     expect(uri.queryParameters['startAt'], '"m0003"');

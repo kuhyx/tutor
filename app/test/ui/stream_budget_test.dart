@@ -27,7 +27,7 @@ import '../support/ui.dart';
 /// The most streams the app may hold at once.
 const maxStreams = 4;
 
-const _base = 'tutor/v1/sessions/$fixtureLiveSid';
+const _base = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
 const _old = '20261011-090000-a1b2';
 const _wide = Size(1366, 1500);
 const _phone = Size(412, 915);
@@ -45,10 +45,10 @@ Future<void> _sync(WidgetTester t, FakeRtdb db, FakeStream stream) async {
   await t.pump(const Duration(milliseconds: 50));
 }
 
-const _rev = 'tutor/v1/rev';
-const _workers = 'tutor/v1/presence/workers';
-const _live = 'tutor/v1/live';
-const _requests = 'tutor/v1/requests';
+const _rev = 'tutor/v1-e2e/rev';
+const _workers = 'tutor/v1-e2e/presence/workers';
+const _live = 'tutor/v1-e2e/live';
+const _requests = 'tutor/v1-e2e/requests';
 
 /// Exactly [paths] are open now.
 void _holds(FakeStream stream, Set<String> paths) =>
@@ -159,7 +159,7 @@ void main() {
       t,
     ) async {
       final (db, stream, s) = await _home(t, size);
-      db.root = setAt(db.root, 'tutor/v1/sessions/$_old/msgs', {
+      db.root = setAt(db.root, 'tutor/v1-e2e/sessions/$_old/msgs', {
         'm0001': {'role': 'tutor', 'text': 'Card done.'},
       });
       unawaited(openHistory(_top(t), s));

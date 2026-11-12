@@ -20,7 +20,7 @@ import time
 from typing import TYPE_CHECKING
 
 from tutor.engine import Engine
-from tutor.relay import config, phases
+from tutor.relay import config, e2e, phases
 from tutor.relay.context import Wiring
 from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.relay.done import DoneMap
@@ -87,10 +87,11 @@ async def _worker(stop: asyncio.Event | None = None) -> None:
 
 async def _publish_all() -> None:
     engine = Engine()
-    rtdb = config.connect()
+    rtdb = await config.connect_sealed()
     done = DoneMap(engine.store.root / "requests_done.jsonl", time.time())
     publisher = Publisher(rtdb, engine, done)
     try:
+        await e2e.migrate(rtdb)
         sessions = await publisher.startup(force=True)
         archived = await publisher.archived()
         sink, now = phases.PhaseSink(), time.time

@@ -19,7 +19,7 @@ import 'fake_rtdb.dart';
 import 'fake_stream.dart';
 import 'ui.dart';
 
-const composeBase = 'tutor/v1/sessions/$fixtureLiveSid';
+const composeBase = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
 const _phoneSize = Size(412, 915);
 
 /// Opens the live session with the 3-question message as the latest turn.
@@ -56,7 +56,7 @@ Future<(FakeRtdb, FakeStream)> openComposer(
     settle: false,
   );
   for (final path in [
-    'tutor/v1/live',
+    'tutor/v1-e2e/live',
     '$composeBase/meta',
     '$composeBase/msgs',
   ]) {

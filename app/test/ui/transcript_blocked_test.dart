@@ -14,7 +14,7 @@ const _sid = '20261011-090000-a1b2';
 void main() {
   testWidgets('Repeat -> locked -> Review <module>', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1/sessions/$_sid/msgs', {
+    db.root = setAt(db.root, 'tutor/v1-e2e/sessions/$_sid/msgs', {
       'm0001': {'role': 'tutor', 'text': 'Earlier turn'},
     });
     final stream = FakeStream();

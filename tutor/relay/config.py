@@ -12,10 +12,13 @@ password and fails with a misleading error.
 from __future__ import annotations
 
 import asyncio
+import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from crdt_sync import (
     ConfigError,
+    E2eLockedError,
     FirebaseAuthError,
     FirebaseConfig,
     FirebaseTokenProvider,
@@ -23,13 +26,16 @@ from crdt_sync import (
     load_device_identity,
 )
 
+from tutor.relay import e2e
 from tutor.relay.rtdb import Rtdb, RtdbError
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from pathlib import Path
+
+    from crdt_sync import Argon2Params
 
 APP: Final = "tutor"
+_logger = logging.getLogger(__name__)
 
 
 class RelaySetupError(RuntimeError):
@@ -70,3 +76,52 @@ def device_id(data_dir: Path) -> str:
     """This worker's persisted uuid4 (``<data>/device_id``)."""
     identity = load_device_identity(data_dir / "device_id")
     return str(identity.device_id)
+
+
+def password_file() -> Path:
+    """``~/.config/crdt-sync/password``, resolved now (tests move HOME)."""
+    return Path.home() / ".config" / "crdt-sync" / "password"
+
+
+def read_passphrase(path: Path) -> str:
+    """The password stored in ``path``, or "" when there is none (locked)."""
+    if not path.is_file():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except OSError as err:
+        _logger.warning("cannot read %s (%s): e2e stays locked", path, err)
+        return ""
+
+
+def passphrase() -> str:
+    """The shared crdt-sync password of this PC (crdt_sync's ``PASSWORD_FILE``)."""
+    return read_passphrase(password_file())
+
+
+async def seal(rtdb: Rtdb, secret: str, params: Argon2Params | None = None) -> Rtdb:
+    """Unlock the e2e key on ``rtdb``; it seals everything it writes from now on.
+
+    Raises:
+        E2eLockedError: No, or a wrong, passphrase: nothing may be read or
+            written (fail closed).
+        RtdbError: The header could not be read or written.
+    """
+    key = await e2e.unlock(rtdb, secret, params)
+    rtdb.sealer = e2e.Sealer(key.cipher())
+    return rtdb
+
+
+async def connect_sealed(secret: str | None = None) -> Rtdb:
+    """:func:`connect` and :func:`seal` (one-shot commands; no retry).
+
+    Raises:
+        RelaySetupError: No session, or the e2e key is locked.
+    """
+    rtdb = connect()
+    try:
+        return await seal(rtdb, passphrase() if secret is None else secret)
+    except (E2eLockedError, RtdbError) as err:
+        await rtdb.aclose()
+        msg = f"e2e locked or unreachable ({err}); see {password_file()}"
+        raise RelaySetupError(msg) from err

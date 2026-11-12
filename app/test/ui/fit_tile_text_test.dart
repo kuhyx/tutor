@@ -28,11 +28,11 @@ const _long = 'Hosting WWW: DNS, Apache, PHP, poczta, TLS';
 FakeRtdb _longTitles() {
   final db = fixtureDb();
   for (final id in ['car', 'garden']) {
-    db.root = setAt(db.root, 'tutor/v1/subjects/$id/meta/title', '$_long $id');
+    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/$id/meta/title', '$_long $id');
   }
   // setAt on a list index would turn the list into a map: replace it whole.
-  final mods = getAt(db.root, 'tutor/v1/subjects/car/plan/modules')! as List;
-  db.root = setAt(db.root, 'tutor/v1/subjects/car/plan/modules', [
+  final mods = getAt(db.root, 'tutor/v1-e2e/subjects/car/plan/modules')! as List;
+  db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/plan/modules', [
     for (var i = 0; i < mods.length; i++)
       {...(mods[i] as Map), 'title': 'Module $i: $_long'},
   ]);

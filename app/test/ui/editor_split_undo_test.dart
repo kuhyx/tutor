@@ -34,7 +34,7 @@ Map<String, Object?> _card(
 void main() {
   testWidgets('Restore a split original; its parts offer none', (t) async {
     final db = fixtureDb();
-    const cards = 'tutor/v1/subjects/car/cards';
+    const cards = 'tutor/v1-e2e/subjects/car/cards';
     db.root = setAt(
       db.root,
       '$cards/eng-big',

@@ -22,7 +22,7 @@ void main() {
       session: '20261012-170448-5b71',
       msg: 'm0007',
     );
-    final node = getAt(db.root, 'tutor/v1/feedback/$fid')! as Map;
+    final node = getAt(db.root, 'tutor/v1-e2e/feedback/$fid')! as Map;
     expect(node['text'], 'same image twice');
     expect(node['category'], 'response');
     expect(node['at'], 42);
@@ -41,6 +41,6 @@ void main() {
       text: 'x',
       route: '/',
     );
-    expect((getAt(db.root, 'tutor/v1/feedback/$id')! as Map)['at'], isPositive);
+    expect((getAt(db.root, 'tutor/v1-e2e/feedback/$id')! as Map)['at'], isPositive);
   });
 }

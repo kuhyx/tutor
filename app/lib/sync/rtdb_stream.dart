@@ -52,6 +52,10 @@ class RtdbStream {
       if (!stopped && !out.isClosed) out.add(event);
     }
 
+    // Sealed units open asynchronously; a chain keeps the events in order.
+    final sealed = client.e2eRel(path) != null;
+    var chain = Future<void>.value();
+
     Future<_End> consume(http.StreamedResponse res) {
       final done = Completer<_End>();
       final parser = SseParser();
@@ -76,7 +80,20 @@ class RtdbStream {
                   return;
                 }
                 if (event == null) continue;
-                emit(event);
+                if (!sealed) {
+                  emit(event);
+                } else {
+                  final sealedEvent = event;
+                  chain = chain.then((_) async {
+                    try {
+                      emit(await openEvent(client, path, sealedEvent));
+                    } on Object catch (error) {
+                      // Locked, or an event inside a unit: resync later.
+                      emit(RtdbDisconnected(error));
+                      finish(_End.backoff);
+                    }
+                  });
+                }
                 if (event is RtdbAuthRevoked) finish(_End.reconnectNow);
                 if (event is RtdbCancel) finish(_End.stop);
               }
@@ -86,8 +103,10 @@ class RtdbStream {
               finish(_End.backoff);
             },
             onDone: () {
-              emit(const RtdbDisconnected(null));
-              finish(_End.backoff);
+              chain = chain.then((_) {
+                emit(const RtdbDisconnected(null));
+                finish(_End.backoff);
+              });
             },
           );
       return done.future;
@@ -162,5 +181,31 @@ class RtdbStream {
       return res;
     }
     throw RtdbError('stream ${uri.path}: too many redirects');
+  }
+}
+
+/// [event] (from a listen on [listened]) with its sealed units opened.
+Future<RtdbEvent> openEvent(
+  RtdbClient client,
+  String listened,
+  RtdbEvent event,
+) async {
+  String at(String rel) => [
+    listened,
+    rel,
+  ].expand((p) => p.split('/')).where((s) => s.isNotEmpty).join('/');
+  switch (event) {
+    case RtdbPut():
+      return RtdbPut(
+        event.path,
+        await client.opened(at(event.path), event.data),
+      );
+    case RtdbPatch():
+      return RtdbPatch(event.path, {
+        for (final e in event.data.entries)
+          e.key: await client.opened(at('${event.path}/${e.key}'), e.value),
+      });
+    default:
+      return event;
   }
 }

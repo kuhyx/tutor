@@ -63,6 +63,19 @@ async def _blocks(source: AsyncIterator[str]) -> AsyncIterator[tuple[str, str]]:
             block = []
 
 
+def opened(rtdb: Rtdb, path: str, event: Event) -> Event:
+    """``event`` with its sealed units opened (``path``: the listened node).
+
+    A ``put``/``patch`` never lands below a unit: units are written whole.
+    """
+    where = f"{path.strip('/')}/{event.path.strip('/')}".strip("/")
+    if event.kind == "put":
+        return Event(event.kind, event.path, rtdb.opened(where, event.data))
+    data = event.data if isinstance(event.data, dict) else {}
+    body = {k: rtdb.opened(f"{where}/{k}", v) for k, v in data.items()}
+    return Event(event.kind, event.path, body)
+
+
 async def _one_connection(
     rtdb: Rtdb, path: str, params: dict[str, str] | None
 ) -> AsyncIterator[Event]:
@@ -70,7 +83,8 @@ async def _one_connection(
     async for kind, raw in _blocks(rtdb.open_stream(path, params)):
         if kind in {"put", "patch"}:
             payload = json.loads(raw)
-            yield Event(kind, str(payload.get("path", "/")), payload.get("data"))
+            event = Event(kind, str(payload.get("path", "/")), payload.get("data"))
+            yield opened(rtdb, path, event)
         elif kind == "auth_revoked":
             _logger.info("stream %s: token expired, reconnecting", path)
             return
