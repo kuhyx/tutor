@@ -14,7 +14,7 @@ from tutor.relay import cli, config, feedback_drain, inbox, presence, worker
 from tutor.relay.phases import PhaseSink
 from tutor.server import create_app
 from tutor.tests._fake_rtdb import FakeRtdb
-from tutor.tests._fakes import turn
+from tutor.tests._fakes import BASE_URL, turn
 from tutor.tests._relay_support import RIDS, engine, request
 
 if TYPE_CHECKING:
@@ -217,7 +217,7 @@ def test_server_hosts_the_relay(
     monkeypatch.setattr(config, "connect", fake.rtdb)
     app = create_app(eng)
     cli.with_relay(app, eng, PhaseSink())
-    with TestClient(app) as client:
+    with TestClient(app, base_url=BASE_URL) as client:
         assert client.get("/api/state").status_code == 200
     assert fake.get("tutor/v1-e2e/meta") == worker.META
 
@@ -228,5 +228,5 @@ def test_server_hosts_the_relay(
     monkeypatch.setattr(config, "connect", refuse)
     app = create_app(eng)
     cli.with_relay(app, eng, PhaseSink())
-    with TestClient(app) as client:
+    with TestClient(app, base_url=BASE_URL) as client:
         assert client.get("/api/state").status_code == 200

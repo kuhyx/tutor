@@ -65,7 +65,13 @@ def _call(url: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
     host, path = _local(url)
     method = "POST" if data else "GET"
     with urllib.request.urlopen(
-        urllib.request.Request(f"http://{host}{path}", data=data, method=method),
+        urllib.request.Request(
+            f"http://{host}{path}",
+            data=data,
+            method=method,
+            # The server refuses a body that is not declared JSON.
+            headers={"Content-Type": "application/json"},
+        ),
         timeout=420,
     ) as resp:
         parsed: dict[str, Any] = json.loads(resp.read())

@@ -12,6 +12,7 @@ from starlette.testclient import TestClient
 from tutor import webapp
 from tutor.engine import Engine
 from tutor.server import create_app
+from tutor.tests._fakes import BASE_URL
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -115,7 +116,7 @@ def test_server_mounts_it(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     web = tmp_path / "web"
     _build(web)
     monkeypatch.setenv(webapp.WEB_DIR_ENV, str(web))
-    with TestClient(create_app(Engine())) as client:
+    with TestClient(create_app(Engine()), base_url=BASE_URL) as client:
         assert client.get("/app/").status_code == 200
         assert client.get("/").status_code == 200
 

@@ -15,6 +15,10 @@ if TYPE_CHECKING:
     from tutor.trace import Observer
 
 
+# The origin the live server answers on; TestClient must talk to it.
+BASE_URL = "http://127.0.0.1:8778"
+
+
 def turn(message: str = "What do you know about a coil?", **fields: Any) -> TutorTurn:
     """A valid tutor turn; any field can be overridden."""
     fields.setdefault("low_effort", False)

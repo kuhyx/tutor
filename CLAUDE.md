@@ -9,6 +9,12 @@ Read README.md first. These are the invariants that are easy to break.
   while a reply is in flight. The live server is `tutor.service`; never
   stop or restart it by hand mid-session, and never start a second server
   on :8778 (same relay device id: it would steal the live worker's claims).
+- **The HTTP server only answers its own page.** `tutor/local_guard.py`
+  refuses (403) any Host that is not a loopback origin of the bound port and
+  requires `application/json` (415) plus a same-origin `Origin`, if sent, on
+  every POST/PUT/PATCH/DELETE: a cross-site `text/plain` POST or a DNS-rebound
+  name must never reach `/api/start` (it runs Claude). Pass `port=` to
+  `create_app`; scripted clients must send `Content-Type: application/json`.
 - **Tests never touch real data.** `tutor/tests/conftest.py` moves HOME, the
   data dir, the ledger key and the image cache into `tmp_path` and blocks
   the network. Keep it that way; the real ledger mints gaming time.

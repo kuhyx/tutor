@@ -225,11 +225,11 @@ def test_call_get_and_post(monkeypatch: pytest.MonkeyPatch) -> None:
     get, post = seen
     assert get[0].full_url == "http://127.0.0.1:8779/api/state?x=1"
     assert post[0].full_url == "http://localhost/api/start"
-    assert get[0].get_method() == "GET"
-    assert get[0].data is None
+    assert (get[0].get_method(), get[0].data) == ("GET", None)
     assert get[1] == 420
     assert post[0].get_method() == "POST"
     assert post[0].data == b'{"card_id": "c"}'
+    assert post[0].get_header("Content-type") == "application/json"  # else 415
 
 
 @pytest.mark.parametrize(

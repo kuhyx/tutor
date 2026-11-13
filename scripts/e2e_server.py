@@ -163,7 +163,7 @@ def serve(db: str, port: int, prompts: Path) -> None:
     sink = phases.PhaseSink()
     engine = Engine(session_factory=logged(phases.session_factory(sink), prompts))
     cli.prepare(engine)
-    app: Starlette = create_app(engine)
+    app: Starlette = create_app(engine, port=port)
     inner = app.router.lifespan_context
 
     @contextlib.asynccontextmanager

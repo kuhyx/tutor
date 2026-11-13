@@ -11,7 +11,7 @@ from starlette.testclient import TestClient
 from tutor.engine import Engine
 from tutor.server import create_app
 from tutor.store import Store
-from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor.tests._fakes import BASE_URL, FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -28,7 +28,7 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
         credit_fn=FakeCredit(),
         session_factory=lambda _prompt: FakeSession(turn("Hi")),
     )
-    with TestClient(create_app(engine)) as c:
+    with TestClient(create_app(engine), base_url=BASE_URL) as c:
         yield c
 
 

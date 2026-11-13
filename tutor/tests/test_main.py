@@ -47,12 +47,14 @@ class Recorder:
     def __init__(self) -> None:
         self.runs: list[tuple[object, dict[str, Any]]] = []
         self.apps: list[object] = []
+        self.ports: list[int] = []
 
     def run(self, app: object, **kwargs: Any) -> None:
         self.runs.append((app, kwargs))
 
-    def create_app(self, engine: object) -> object:
+    def create_app(self, engine: object, *, port: int) -> object:
         self.apps.append(engine)
+        self.ports.append(port)
         return APP
 
 
@@ -93,6 +95,7 @@ def test_serves_on_localhost_and_reports_resume(
     assert "http://127.0.0.1:18999/app/" in err
     engine = FakeEngine.built[0]
     assert served.apps == [engine]
+    assert served.ports == [18999]
     assert engine.simulated_time is False
     assert engine.resume_calls == 1
     assert engine.backfills == 1

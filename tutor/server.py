@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from claude_agent_sdk import ClaudeSDKError
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.responses import (
     FileResponse,
     JSONResponse,
@@ -27,6 +28,7 @@ from starlette.routing import Route
 
 from tutor import delivery, diagrams, images, webapp
 from tutor.engine import Engine
+from tutor.local_guard import LocalGuard
 from tutor.outage import ClaudeUnavailableError
 from tutor.session import SessionError
 
@@ -38,14 +40,20 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 _SAFE_NAME: Final = re.compile(r"^[0-9a-f]{16}(-\d)?\.(png|jpg|svg)$")
+DEFAULT_PORT: Final = 8778
 
 
 def create_app(
     engine: Engine | None = None,
     *,
+    port: int = DEFAULT_PORT,
     media_dirs: tuple[Path, Path] | None = None,
 ) -> Starlette:
-    """Build the app; the engine and the media dirs are injectable."""
+    """Build the app; the engine and the media dirs are injectable.
+
+    ``port`` is the one uvicorn binds: only a loopback Host of that port is served
+    (``tutor.local_guard``).
+    """
     eng = engine or Engine()
     image_dir, diagram_dir = media_dirs or (images.cache_dir(), diagrams.cache_dir())
 
@@ -96,7 +104,10 @@ def create_app(
     # (Starlette's ServerErrorMiddleware runs this, then re-raises so uvicorn
     # logs the traceback): typed handlers below, this net for the rest.
     app = Starlette(
-        routes=routes, lifespan=lifespan, exception_handlers={Exception: _unhandled}
+        routes=routes,
+        lifespan=lifespan,
+        exception_handlers={Exception: _unhandled},
+        middleware=[Middleware(LocalGuard, port=port)],
     )
     app.state.engine = eng
     return app

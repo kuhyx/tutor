@@ -14,7 +14,7 @@ from tutor.engine import Engine
 from tutor.outage import ClaudeUnavailableError
 from tutor.server import create_app
 from tutor.store import Store
-from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
+from tutor.tests._fakes import BASE_URL, FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -48,7 +48,9 @@ def rig(tmp_path: Path) -> Rig:
 
 @pytest.fixture
 def client(rig: Rig) -> Iterator[TestClient]:
-    with TestClient(create_app(rig.engine, media_dirs=(rig.images, rig.svgs))) as c:
+    with TestClient(
+        create_app(rig.engine, media_dirs=(rig.images, rig.svgs)), base_url=BASE_URL
+    ) as c:
         yield c
     assert rig.engine._session is None
 
@@ -67,8 +69,8 @@ def test_state(client: TestClient) -> None:
 def test_stop_ends_the_live_session(client: TestClient) -> None:
     started = client.post("/api/start", json={}).json()
     assert started["session_id"]
-    assert client.post("/api/stop").json()["session_id"] == ""
-    assert client.post("/api/stop").status_code == 200  # nothing live: a no-op
+    assert client.post("/api/stop", json={}).json()["session_id"] == ""
+    assert client.post("/api/stop", json={}).status_code == 200  # nothing live: a no-op
 
 
 def test_start_then_message(client: TestClient, rig: Rig) -> None:
@@ -102,7 +104,9 @@ def test_message_passes_a_numeric_sent_at_only(
 
 
 def test_leaving_the_app_closes_the_model_session(rig: Rig) -> None:
-    with TestClient(create_app(rig.engine, media_dirs=(rig.images, rig.svgs))) as c:
+    with TestClient(
+        create_app(rig.engine, media_dirs=(rig.images, rig.svgs)), base_url=BASE_URL
+    ) as c:
         c.post("/api/start", json={})
         assert rig.fake.closed == 0
     assert rig.fake.closed == 1
@@ -133,7 +137,10 @@ def test_empty_message_is_a_400(client: TestClient) -> None:
     response = client.post("/api/message", json={"text": "  "})
     assert response.status_code == 400
     assert response.json() == {"error": "empty message"}
-    assert client.post("/api/message", content="oops").status_code == 400
+    bad = client.post(
+        "/api/message", content="oops", headers={"content-type": "application/json"}
+    )
+    assert bad.status_code == 400
 
 
 def test_message_before_start_is_a_502(client: TestClient) -> None:
@@ -156,7 +163,7 @@ def test_unexpected_error_is_a_500_with_the_error_body(rig: Rig) -> None:
     # No route maps a KeyError: the app-level handler answers, then Starlette
     # re-raises for uvicorn's log (hence raise_server_exceptions=False).
     app = create_app(rig.engine, media_dirs=(rig.images, rig.svgs))
-    with TestClient(app, raise_server_exceptions=False) as c:
+    with TestClient(app, base_url=BASE_URL, raise_server_exceptions=False) as c:
         c.post("/api/start", json={})
         rig.fake.replies.insert(0, KeyError("boom"))
         response = c.post("/api/message", json={"text": "hi"})
@@ -210,7 +217,7 @@ def test_create_app_builds_its_own_engine(
     cache = tmp_path / "images"
     cache.mkdir()
     (cache / f"{NAME}.jpg").write_bytes(b"JPG")
-    with TestClient(create_app()) as c:
+    with TestClient(create_app(), base_url=BASE_URL) as c:
         assert c.get("/api/state").status_code == 200
         assert c.get(f"/media/{NAME}.jpg").content == b"JPG"
         assert rig.engine.deck

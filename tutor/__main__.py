@@ -21,13 +21,14 @@ import uvicorn
 from tutor.curriculum import migrate, regen, sql_cards_cli
 from tutor.engine import Engine
 from tutor.relay import cli, mock_prebuild
+from tutor.server import DEFAULT_PORT as SERVER_PORT
 from tutor.server import create_app
 from tutor.sql_pack import cli as sql_pack_cli
 
 if TYPE_CHECKING:
     from types import ModuleType
 
-DEFAULT_PORT = 8778
+DEFAULT_PORT = SERVER_PORT
 TOOLS: Final[dict[str, ModuleType]] = {
     "regenerate": regen,
     "migrate": migrate,
@@ -83,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     engine.backfill_today()
     if not args.fresh and engine.resume_latest():
         print(f"resumed session {engine.session_id}", file=sys.stderr)
-    app = create_app(engine)
+    app = create_app(engine, port=args.port)
     if sink is not None:
         cli.with_relay(app, engine, sink)
         print("tutor: Firebase relay enabled", file=sys.stderr)

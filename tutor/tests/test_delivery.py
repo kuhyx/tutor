@@ -13,7 +13,7 @@ from tutor import delivery, filler, resume
 from tutor.delivery import PHONE_NOTE, Delivery
 from tutor.relay import protocol
 from tutor.server import create_app
-from tutor.tests._fakes import FakeSession, ManualClock, turn
+from tutor.tests._fakes import BASE_URL, FakeSession, ManualClock, turn
 from tutor.tests._relay_support import engine as relay_engine
 from tutor.tests.test_engine import ANSWER, CARD, events, make
 from tutor.tests.test_relay_lanes import Rig, run
@@ -111,7 +111,9 @@ def test_http_message_takes_a_device_and_refuses_an_unknown_one(
 ) -> None:
     fake = FakeSession(turn("Begin"), turn("Next"))
     eng = make(tmp_path, fake)
-    with TestClient(create_app(eng, media_dirs=(tmp_path, tmp_path))) as client:
+    with TestClient(
+        create_app(eng, media_dirs=(tmp_path, tmp_path)), base_url=BASE_URL
+    ) as client:
         client.post("/api/start", json={})
         body = {"text": "magnet", "device": "tablet"}
         refused = client.post("/api/message", json=body)
@@ -155,7 +157,9 @@ def test_http_start_takes_a_device_and_refuses_an_unknown_one(
 ) -> None:
     fake = FakeSession(turn("Begin"))
     eng = make(tmp_path, fake)
-    with TestClient(create_app(eng, media_dirs=(tmp_path, tmp_path))) as client:
+    with TestClient(
+        create_app(eng, media_dirs=(tmp_path, tmp_path)), base_url=BASE_URL
+    ) as client:
         refused = client.post("/api/start", json={"device": "tablet"})
         assert refused.status_code == 400
         assert fake.prompts == []
