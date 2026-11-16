@@ -15,21 +15,22 @@ license = "MIT"
 # runner) is in-repo at packages/code_runner: scripts/setup_dev.sh installs
 # it editable before tutor, so it is not listed here.
 dependencies = [
-    "claude-agent-sdk==0.2.180",
-    "fsrs==6.3.2",
+    "claude-agent-sdk==0.2.182",
+    "fsrs==6.3.3",
     "starlette==1.10.0",
     "uvicorn==0.54.0",
     "schemdraw==0.23",
     "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.21.0#subdirectory=earned_time",
     "focus-project @ git+https://github.com/kuhyx/utils@focus-project-v0.10.0#subdirectory=focus_project",
-    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.0#subdirectory=crdt-sync",
+    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync",
+    "rtdb-relay @ git+https://github.com/kuhyx/utils@rtdb-relay-v0.1.1#subdirectory=rtdb_relay",
     "sql-drills @ git+https://github.com/kuhyx/utils@sql-drills-v0.2.2#subdirectory=sql_drills",
-    "leetcode-coach @ git+https://github.com/kuhyx/utils@leetcode-coach-v0.1.3#subdirectory=leetcode_coach",
+    "leetcode-coach @ git+https://github.com/kuhyx/utils@leetcode-coach-v0.1.4#subdirectory=leetcode_coach",
     "httpx==0.28.1",
 ]
 
 [project.optional-dependencies]
-dev = ["mypy==2.4.1", "pylint==4.1.3", "pytest==9.2.0", "pytest-cov==7.1.0", "pytest-xdist==3.8.0", "ruff==0.17.4"]
+dev = ["mypy==2.4.1", "pylint==4.1.4", "pytest==9.2.0", "pytest-cov==7.1.0", "pytest-xdist==3.8.0", "ruff==0.17.5"]
 
 [build-system]
 requires = ["setuptools>=61"]

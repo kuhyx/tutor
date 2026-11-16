@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""End-to-end encryption: nothing the relay writes to RTDB is readable there."""
+"""E2E: tutor layout, migrate, config, startup (mechanics: rtdb_relay's tests)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from crdt_sync import Argon2Params, E2eCipher, E2eKey, E2eLockedError
 import pytest
 
-from tutor.relay import config, e2e, sse, worker
+from tutor.relay import config, e2e, worker
 from tutor.relay.config import passphrase as unpatched_passphrase
 from tutor.relay.phases import PhaseSink
 from tutor.tests._fake_rtdb import FakeRtdb
@@ -79,40 +79,6 @@ def test_seal_refuses_unknown_and_inside_unit_writes() -> None:
         s.open("stats/today/x", 1)
     assert e2e.unit_path("stats/today/x") == "stats/today"
     assert e2e.unit_path("stats/today") is None
-
-
-def test_open_drops_a_moved_or_tampered_unit_and_keeps_plaintext() -> None:
-    s = _sealer()
-    sealed = s.seal("prefs/current_subject", "car")
-    assert s.open("prefs", {"current_subject": sealed}) == {"current_subject": "car"}
-    # The AAD binds a blob to its path: copied elsewhere it does not open.
-    assert s.open("prefs", {"other": sealed}) == {}
-    assert s.open("prefs", {"current_subject": {e2e.SEALED: "AQ=="}}) == {}
-    # Legacy plaintext (no `_e2e`) still reads during the migration.
-    assert s.open("prefs/current_subject", "car") == "car"
-    assert s.open("sessions", [{"x": 1}]) == [{"x": 1}]
-
-
-def test_rtdb_reads_below_a_unit_and_streams_open(tmp_path: Path) -> None:
-    fake = FakeRtdb()
-    fake.set(f"{e2e.ROOT}/stats/today", {"new_cap": 25})
-
-    async def go() -> None:
-        db = fake.rtdb()
-        assert await db.get("stats/today/new_cap") == 25
-        assert await db.get("stats/today/nope/deeper") is None
-        stream = sse.listen(db, "stats")
-        first = await anext(stream)
-        assert first.data == {"today": {"new_cap": 25}}
-        await db.patch("stats", {"days": {"2026-11-12": {"m": 3}}})
-        second = await anext(stream)
-        assert second.kind == "patch"
-        assert second.data == {"days": {"2026-11-12": {"m": 3}}}
-        await stream.aclose()
-        await db.aclose()
-
-    asyncio.run(go())
-    assert "new_cap" not in json.dumps(fake.raw)
 
 
 def test_unlock_creates_the_header_then_refuses_a_wrong_passphrase() -> None:
@@ -258,21 +224,6 @@ def test_header_vector_unlocks_and_opens_for_flutter_parity() -> None:
 
     unit = header["unit"]
     assert asyncio.run(go()).open(unit["path"], unit["stored"]) == unit["value"]
-
-
-def test_header_store_protocol_extras() -> None:
-    fake = FakeRtdb(sealed=False)
-
-    async def go() -> None:
-        db = fake.rtdb()
-        store = e2e._HeaderStore(db, asyncio.get_running_loop())
-        assert store.list_directory("tutor") == []
-        assert store.can_access_remote()
-        with pytest.raises(NotImplementedError):
-            store.delete_file("tutor/e2e")
-        await db.aclose()
-
-    asyncio.run(go())
 
 
 def test_passphrase_reads_the_password_under_the_redirected_home() -> None:

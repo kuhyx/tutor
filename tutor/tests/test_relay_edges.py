@@ -5,57 +5,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
-from tutor.relay import cli, sse, views
+from tutor.relay import cli, views
 from tutor.relay.inbox import Inbox
 from tutor.tests._fake_rtdb import FakeRtdb
 from tutor.tests._fakes import turn
 from tutor.tests._relay_support import RIDS, engine, request, server, wiring
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
     from pathlib import Path
 
     import pytest
 
     from tutor.engine import Engine
-    from tutor.relay.rtdb import Rtdb
-
-
-class _Lines:
-    """An Rtdb stand-in whose one stream yields fixed SSE lines."""
-
-    def __init__(self, lines: list[str]) -> None:
-        self.lines = lines
-
-    async def open_stream(self, path: str, params: Any = None) -> AsyncIterator[str]:
-        del path, params
-        for line in self.lines:
-            yield line
-
-    def opened(self, path: str, value: object) -> object:
-        del path
-        return value
-
-
-def test_unknown_events_are_skipped() -> None:
-    lines = [
-        "event: keep-alive",
-        "data: null",
-        "",
-        "",
-        "event: put",
-        'data: {"data": 1}',
-        "",
-    ]
-
-    async def go() -> list[sse.Event]:
-        return [
-            e async for e in sse._one_connection(cast("Rtdb", _Lines(lines)), "p", None)
-        ]
-
-    assert asyncio.run(go()) == [sse.Event("put", "/", 1)]
 
 
 def test_non_object_transcript_lines_are_skipped(tmp_path: Path) -> None:

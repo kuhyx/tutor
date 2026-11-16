@@ -16,6 +16,8 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from rtdb_relay.lease import claimable, ms
+
 from tutor.relay.rtdb import ConflictError, RtdbError
 
 if TYPE_CHECKING:
@@ -25,28 +27,13 @@ if TYPE_CHECKING:
     from tutor.relay.rtdb import Rtdb
     from tutor.trace import Trace
 
+__all__ = ["LEASE_S", "MAX_ATTEMPTS", "PHASES", "Claim", "claimable", "ms"]
+
 LEASE_S: Final = 300.0
 RENEW_S: Final = 60.0
 MAX_ATTEMPTS: Final = 3
 PHASES: Final = ("claimed", "thinking", "images", "checking_images", "publishing")
 _logger = logging.getLogger(__name__)
-
-
-def ms(t: float) -> int:
-    """Unix seconds -> unix ms."""
-    return int(t * 1000)
-
-
-def claimable(claim: object, now: float, own: str = "") -> bool:
-    """Null, a lease that ran out, or ``own`` (a dead process of this worker).
-
-    The caller has checked there is no result.
-    """
-    if not isinstance(claim, dict):
-        return True
-    lease = claim.get("lease_until")
-    mine = bool(own) and claim.get("by") == own
-    return mine or not isinstance(lease, (int, float)) or lease < ms(now)
 
 
 class Claim:
