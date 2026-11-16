@@ -52,6 +52,13 @@ def test_a_hint_request_earns_nothing(text: str) -> None:
     assert filler.is_filler(text, check_open=True)
 
 
+# The phone's "I don't know" button sends this fixed text.
+@pytest.mark.parametrize("text", ["I don't know", "i dont know.", "I don\u2019t know"])
+def test_the_dont_know_button_earns_nothing(text: str) -> None:
+    assert filler.is_filler(text, check_open=True)
+    assert filler.is_filler(text, check_open=False)
+
+
 def test_a_phone_reply_carries_the_note_and_is_logged(tmp_path: Path) -> None:
     fake = FakeSession(turn(), turn("Short?"), turn("Long?"))
     engine = make(tmp_path, fake)

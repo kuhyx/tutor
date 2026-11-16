@@ -18,7 +18,8 @@ FILLER: Final = frozenset({
     "got it", "gotcha", "i see", "right", "alright", "mhm", "hm", "um", "uh",
     "idk", "i dont know", "dunno", "no idea", "whatever", "idc", "lol", "lmao",
     "thanks", "thx", "ty", "continue", "go on", "next", "more", "and",
-    # The app's Hint chip: answered with a hint (prompt rule 12), never credit.
+    # The app's Hint chip (and its "I don't know" button, "i dont know" above):
+    # answered per prompt rule 12, never credit.
     "hint", "give me a hint",
 })
 # fmt: on

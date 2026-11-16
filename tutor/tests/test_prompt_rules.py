@@ -180,3 +180,23 @@ def test_check_answer_is_a_reference_not_a_checklist(
     edits = _rule(system_prompt(CARD, [], profile), 15)
     assert "answers exactly what its `front` asks" in edits
     assert "only what its source supports" in edits
+
+
+# 2026-11-16: the phone app got an "I don't know" button next to Hint. Rule 6
+# ("idk": no lecture, no new material) must not swallow it: the tutor teaches
+# the missing idea briefly and asks an easier question on the same point.
+@PROFILES
+def test_dont_know_button_gets_a_short_explanation_and_an_easier_question(
+    profile: profiles.Profile,
+) -> None:
+    text = system_prompt(CARD, [], profile)
+    rule = _rule(text, 12)
+    assert 'a reply of just "I don\'t know"' in rule
+    assert "at most 3 sentences" in rule
+    assert "never the target card's answer" in rule
+    assert "EASIER question" in rule
+    assert "in `questions`" in rule
+    assert "`low_effort` false and do not scold" in rule
+    assert "If a check is open it is not graded and stays open" in rule
+    # Rule 6 points at the exception instead of contradicting it.
+    assert 'the "I don\'t know" button (rule 12)' in _rule(text, 6)
