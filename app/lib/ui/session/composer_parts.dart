@@ -1,23 +1,18 @@
 /// Small parts of the answer composer: the question label and tap-to-fill
-/// chips above an answer box, and the phone's step dots and its one row
-/// hint, field, action.
+/// chips above an answer box, and the answer box itself. The phone's own
+/// parts (dots, glyph row) live in `composer_phone.dart`.
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/session/answers.dart';
+import 'package:tutor/ui/session/composer_phone.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/icon_field.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
-/// Phone session density (kuhy, 2026-11-10): question and field text (sp).
-const double kPhoneText = 13;
-
-/// Phone session density: glyph size (dp).
-const double kPhoneIcon = 20;
-
-/// Phone session density: tap target (dp).
-const double kPhoneTarget = 40;
+export 'package:tutor/ui/session/composer_drafts.dart';
+export 'package:tutor/ui/session/composer_phone.dart';
 
 /// The tutor's suggested answers as chips, plus a fixed "Hint" chip.
 class AnswerChips extends StatelessWidget {
@@ -30,8 +25,12 @@ class AnswerChips extends StatelessWidget {
     required this.onPick,
     required this.onHint,
     this.hint = true,
+    this.selected,
     super.key,
   });
+
+  /// The choice now in the box (drawn picked); null = none.
+  final String? selected;
 
   /// The "Hint" glyph sits among the chips (the phone has it in its row).
   final bool hint;
@@ -60,6 +59,9 @@ class AnswerChips extends StatelessWidget {
               for (final c in choices)
                 ActionChip(
                   visualDensity: VisualDensity.compact,
+                  backgroundColor: c == selected
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : null,
                   label: ContentText(c),
                   onPressed: () => onPick(c),
                 ),
@@ -110,87 +112,6 @@ class QuestionLabel extends StatelessWidget {
   }
 }
 
-/// Phone: one dot per question, the current one filled (no "1/3" text;
-/// the position is spoken only).
-class StepDots extends StatelessWidget {
-  /// Creates the dots for step [step] (0-based) of [total].
-  const new({required this.step, required this.total, super.key});
-
-  /// Current step, 0-based.
-  final int step;
-
-  /// Number of questions.
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
-    return SpokenLabel(
-      key: const ValueKey('step-dots'),
-      semanticLabel: '${step + 1}/$total',
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < total; i++)
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i == step ? color.primary : color.outlineVariant,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Phone: [hint] (optional), the answer [field] and the [action] glyph in
-/// one row.
-class PhoneRow extends StatelessWidget {
-  /// Creates the row.
-  const new({required this.field, required this.action, this.hint, super.key});
-
-  /// The lightbulb (null: a plain box has none).
-  final Widget? hint;
-
-  /// The answer box.
-  final Widget field;
-
-  /// Next (checkmark) or Send.
-  final Widget action;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      ?hint,
-      Expanded(child: field),
-      const SizedBox(width: AppSpacing.xs),
-      action,
-    ],
-  );
-}
-
-/// A dense phone glyph button ([kPhoneIcon] glyph, [kPhoneTarget] target).
-GlyphButton phoneGlyph(
-  IconData icon,
-  String semanticLabel,
-  VoidCallback? onPressed, {
-  bool filled = false,
-}) => GlyphButton(
-  icon: icon,
-  semanticLabel: semanticLabel,
-  onPressed: onPressed,
-  filled: filled,
-  size: kPhoneIcon,
-  target: kPhoneTarget,
-);
-
 /// Desktop and plain box: the keyboard hint (none on the phone) and Send.
 class SendRow extends StatelessWidget {
   /// Creates the row.
@@ -234,24 +155,6 @@ class SendRow extends StatelessWidget {
   );
 }
 
-/// Fills each box of [boxes] that is still empty from the draft [saved], so
-/// a draft read that lands late never overwrites what was typed meanwhile.
-/// Extra entries (an old draft's comment box) are ignored.
-void fillEmptyBoxes(List<TextEditingController> boxes, List<String> saved) {
-  for (final (i, v) in saved.indexed) {
-    if (i < boxes.length && boxes[i].text.isEmpty) boxes[i].text = v;
-  }
-}
-
-/// The step to resume on: the first of [questions] boxes still empty, else
-/// the last.
-int resumeStep(List<TextEditingController> boxes, int questions) {
-  for (var i = 0; i < questions; i++) {
-    if (boxes[i].text.isEmpty) return i;
-  }
-  return questions - 1;
-}
-
 /// One answer box: always typeable, even while a turn is in flight.
 class AnswerBox extends StatelessWidget {
   /// Creates the box.
@@ -261,8 +164,12 @@ class AnswerBox extends StatelessWidget {
     required this.minLines,
     required this.maxLines,
     this.dense = false,
+    this.focusNode,
     super.key,
   });
+
+  /// Focus owner (the composer opens a closed field and focuses it).
+  final FocusNode? focusNode;
 
   /// The phone session: no pencil, [kPhoneText] text, no bottom gap (it
   /// sits in a row).
@@ -287,6 +194,7 @@ class AnswerBox extends StatelessWidget {
       semanticLabel: label,
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         minLines: minLines,
         maxLines: maxLines,
         style: dense ? const TextStyle(fontSize: kPhoneText) : null,

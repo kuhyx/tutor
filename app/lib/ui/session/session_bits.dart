@@ -150,8 +150,12 @@ class NotLiveStatus extends StatelessWidget {
 
 /// The bottom panel's frame: on the phone the step bar stays pinned and
 /// the composer scrolls itself; elsewhere the whole panel scrolls.
-Widget sessionPanel(Widget child, {required bool phone}) => phone
-    ? Padding(padding: const EdgeInsets.all(AppSpacing.md), child: child)
+Widget sessionPanel(Widget child, {required bool phone, bool dense = false}) =>
+    phone
+    ? Padding(
+        padding: EdgeInsets.all(dense ? AppSpacing.sm : AppSpacing.md),
+        child: child,
+      )
     : SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: child,

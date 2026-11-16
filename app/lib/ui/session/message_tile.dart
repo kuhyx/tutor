@@ -12,6 +12,7 @@ import 'package:tutor/session/answers.dart';
 import 'package:tutor/ui/code_glyphs.dart';
 import 'package:tutor/ui/session/md_text.dart';
 import 'package:tutor/ui/session/media.dart';
+import 'package:tutor/ui/session/message_parts.dart';
 import 'package:tutor/ui/session/thinking_panel.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/cue_chip.dart';
@@ -26,8 +27,12 @@ class MessageTile extends StatelessWidget {
     this.onReport,
     this.questionsAsBoxes = false,
     this.pending = false,
+    this.mediaHeight,
     super.key,
   });
+
+  /// Caps pictures and diagrams (dp); null = their own caps.
+  final double? mediaHeight;
 
   /// The message.
   final Message message;
@@ -133,11 +138,13 @@ class MessageTile extends StatelessWidget {
                 child: Icon(Icons.schedule_send_outlined, size: 16),
               ),
             MarkdownText(m.text),
-            for (final img in m.images) CommonsFigure(img),
-            for (final d in m.diagrams) DiagramView(d),
-            if (m.checkResult case final r?) _CheckResult(r),
+            for (final img in m.images)
+              CommonsFigure(img, maxHeight: mediaHeight ?? 360),
+            for (final d in m.diagrams)
+              DiagramView(d, maxHeight: mediaHeight ?? 320),
+            if (m.checkResult case final r?) CheckResultBanner(r),
             if (!questionsAsBoxes)
-              for (final a in askedOf(m)) _Question(a),
+              for (final a in askedOf(m)) AskedQuestion(a),
             if (m.masteredNew.isNotEmpty)
               Row(
                 children: [
@@ -165,7 +172,7 @@ class MessageTile extends StatelessWidget {
                 ),
               ),
             if (m.cardDone)
-              const _Banner(
+              const MessageBanner(
                 icon: Icons.check_circle,
                 spoken: 'Card done ✓',
                 ok: true,
@@ -176,104 +183,4 @@ class MessageTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CheckResult extends StatelessWidget {
-  const new(this.result);
-
-  final Map<String, dynamic> result;
-
-  @override
-  Widget build(BuildContext context) {
-    final passed = result['passed'] == true;
-    final feedback = result['feedback'];
-    return _Banner(
-      icon: passed ? Icons.fact_check : Icons.replay,
-      spoken: 'Check ${passed ? 'passed' : 'not yet'}',
-      // The tutor's feedback on the answer: content.
-      feedback: feedback is String ? feedback : null,
-      ok: passed,
-    );
-  }
-}
-
-class _Question extends StatelessWidget {
-  const new(this.asked);
-
-  final Asked asked;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(top: AppSpacing.sm),
-    padding: const EdgeInsets.only(left: AppSpacing.sm),
-    decoration: BoxDecoration(
-      border: Border(
-        left: BorderSide(
-          color: Theme.of(context).colorScheme.primary,
-          width: 3,
-        ),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            SpokenLabel(
-              semanticLabel: asked.heading,
-              child: Text(
-                asked.label,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-            ),
-            if (asked.check)
-              const Icon(Icons.fact_check_outlined, size: AppTextSize.label),
-          ],
-        ),
-        ContentText(asked.text),
-      ],
-    ),
-  );
-}
-
-class _Banner extends StatelessWidget {
-  const new({
-    required this.icon,
-    required this.spoken,
-    required this.ok,
-    this.feedback,
-  });
-
-  final IconData icon;
-  final String spoken;
-  final bool ok;
-  final String? feedback;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    margin: const EdgeInsets.only(top: AppSpacing.sm),
-    padding: const EdgeInsets.all(AppSpacing.sm),
-    decoration: BoxDecoration(
-      color: ok ? AppPalette.success : AppPalette.warning,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-    ),
-    child: Row(
-      children: [
-        SpokenLabel(
-          semanticLabel: spoken,
-          child: Icon(icon, color: AppPalette.onFill),
-        ),
-        if (feedback != null && feedback!.isNotEmpty) ...[
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: ContentText(
-              feedback!,
-              style: const TextStyle(color: AppPalette.onFill),
-            ),
-          ),
-        ],
-      ],
-    ),
-  );
 }

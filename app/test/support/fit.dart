@@ -7,6 +7,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
+import 'package:tutor/ui/session/last_message.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 import 'package:tutor/widgets/text_free_theme.dart';
 
@@ -73,7 +74,15 @@ double fitFloor(WidgetTester t) {
   return (view.physicalSize.height - bottom) / view.devicePixelRatio;
 }
 
-/// No vertical Scrollable can scroll, except a text field's own; the
+/// [s] is the keyboard-up region that holds the tutor's last message: it
+/// scrolls when the message is long (kuhy, 2026-11-16), by design.
+bool isLastMessageScroll(ScrollableState s) => find
+    .ancestor(of: find.byWidget(s.widget), matching: find.byType(LastMessage))
+    .evaluate()
+    .isNotEmpty;
+
+/// No vertical Scrollable can scroll, except a text field's own and the
+/// last-message region ([isLastMessageScroll]); the
 /// focused text field sits fully between the status bar and the keyboard
 /// (or nav inset).
 void expectFits(WidgetTester t, {String state = ''}) {
@@ -87,7 +96,7 @@ void expectFits(WidgetTester t, {String state = ''}) {
         )
         .evaluate()
         .isNotEmpty;
-    if (inField) continue;
+    if (inField || isLastMessageScroll(s)) continue;
     expect(
       s.position.maxScrollExtent,
       lessThanOrEqualTo(0),

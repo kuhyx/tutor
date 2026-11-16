@@ -17,6 +17,7 @@ import '../../tool/fixture/fixture_compose.dart';
 import '../../tool/fixture/fixture_sessions.dart';
 import 'fake_rtdb.dart';
 import 'fake_stream.dart';
+import 'label_finders.dart';
 import 'ui.dart';
 
 const composeBase = 'tutor/v1-e2e/sessions/$fixtureLiveSid';
@@ -30,11 +31,13 @@ Future<(FakeRtdb, FakeStream)> openComposer(
   List<String>? draft,
   bool questions = true,
   bool check = false,
+  void Function(Map<String, Object?> msg)? edit,
 }) async {
   debugPhone = phone;
   final db = fixtureDb();
   final msg = fixtureComposeMsg(fixtureNow);
   if (check) msg['check'] = fixtureComposeCheck;
+  edit?.call(msg);
   if (!questions) {
     msg
       ..remove('questions')
@@ -65,6 +68,12 @@ Future<(FakeRtdb, FakeStream)> openComposer(
   }
   await t.pumpAndSettle();
   return (db, stream);
+}
+
+/// Phone, a question with choices: opens its closed field (keyboard glyph).
+Future<void> openField(WidgetTester t) async {
+  await t.tap(glyphsLabelled('Type'));
+  await t.pumpAndSettle();
 }
 
 // The tutor text is rich text (markdown spans).

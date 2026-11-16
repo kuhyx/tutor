@@ -13,6 +13,7 @@ import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/session/composer.dart';
 
+import '../support/composer.dart' show openField;
 import '../support/label_finders.dart';
 
 const _sid = '20261017-120000-abcd';
@@ -132,6 +133,7 @@ void main() {
       phone: true,
     );
     expect(bySpoken('1/2'), findsOneWidget);
+    await openField(t);
     await t.enterText(find.byType(TextField), 'fresh');
     kv.reads.single.complete(jsonEncode(['', '']));
     await t.pump();

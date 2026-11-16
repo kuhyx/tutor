@@ -20,6 +20,7 @@ void main() {
     final (db, stream) = await openComposer(t, phone: true, check: true);
     expect(bySpoken('1/4'), findsOneWidget);
     for (final a in ['one', 'two', 'three']) {
+      await openField(t);
       await t.enterText(find.byType(TextField), a);
       await t.tap(controlByLabel('Next'));
       await t.pumpAndSettle();
@@ -29,7 +30,7 @@ void main() {
     expect(find.text('The flywheel'), findsOneWidget);
     await t.tap(find.text('The crankshaft'));
     await t.pump();
-    expect(boxText(t), 'The crankshaft');
+    expect(find.byType(TextField), findsNothing); // a pick sends as it is
     await t.tap(controlByLabel('Send'));
     await sent(t);
     final msg = await answer(t, db, stream, data: {'msg': 'm0006'});

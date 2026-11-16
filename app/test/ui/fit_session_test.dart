@@ -20,6 +20,9 @@ void main() {
       pixelView(t, scale: scale);
       await t.pumpAndSettle();
       expectFits(t, state: 'chat');
+      // Choices first: the field opens from its keyboard glyph.
+      if (questions) await openField(t);
+      expectFits(t, state: 'field open');
       final box = find.byType(TextField).hitTestable();
       expect(box, findsWidgets);
       await t.tap(box.first);

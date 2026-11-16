@@ -14,11 +14,14 @@ import 'package:tutor/widgets/spoken_label.dart';
 
 /// One Commons picture with its attribution.
 class CommonsFigure extends StatelessWidget {
-  /// Creates the figure.
-  const new(this.img, {super.key});
+  /// Creates the figure; [maxHeight] caps the picture (dp).
+  const new(this.img, {this.maxHeight = 360, super.key});
 
   /// The picture.
   final Img img;
+
+  /// The tallest the picture gets (dp).
+  final double maxHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +33,7 @@ class CommonsFigure extends StatelessWidget {
         children: [
           if (img.loadable)
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 360),
+              constraints: BoxConstraints(maxHeight: maxHeight),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
                 child: Image.network(
@@ -73,11 +76,14 @@ class CommonsFigure extends StatelessWidget {
 
 /// A worker-drawn diagram.
 class DiagramView extends StatelessWidget {
-  /// Creates the view.
-  const new(this.diagram, {super.key});
+  /// Creates the view; [maxHeight] caps the drawing (dp).
+  const new(this.diagram, {this.maxHeight = 320, super.key});
 
   /// The diagram.
   final Dgm diagram;
+
+  /// The tallest the drawing gets (dp).
+  final double maxHeight;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -88,7 +94,7 @@ class DiagramView extends StatelessWidget {
         Container(
           color: AppPalette.paperRaised,
           padding: const EdgeInsets.all(AppSpacing.sm),
-          constraints: const BoxConstraints(maxHeight: 320),
+          constraints: BoxConstraints(maxHeight: maxHeight),
           child: SvgPicture.string(
             diagram.svg,
             semanticsLabel: diagram.title,

@@ -14,6 +14,7 @@ import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_pages.dart';
 import 'package:tutor/ui/session/composer.dart';
+import 'package:tutor/ui/session/last_message.dart';
 import 'package:tutor/ui/session/session_bits.dart';
 import 'package:tutor/ui/session/session_header.dart';
 import 'package:tutor/ui/session/session_turns.dart';
@@ -74,9 +75,9 @@ class SessionChat extends StatefulWidget {
   /// The Android app (step-through composer).
   final bool phone;
 
-  /// The phone keyboard is open: no header lines; over question boxes no
-  /// feed at all, over a plain box the latest tutor message folded to its
-  /// last line.
+  /// The phone keyboard is open: no header lines; over question boxes the
+  /// feed is just the latest tutor message (text and pictures, scrolling),
+  /// over a plain box that message folded to its last line.
   final bool keyboard;
 
   @override
@@ -127,10 +128,10 @@ class _SessionChatState extends State<SessionChat> {
     // Nothing shown yet but something is coming: a request or a first turn.
     final waiting =
         widget.runner.busy || (view != null && !(meta?.stopped ?? false));
-    // Phone keyboard up over question boxes: the question takes the feed's
-    // room (kuhy, 2026-11-10). A plain box keeps the folded last line: it
-    // is the ask.
-    final noFeed = widget.keyboard && boxes;
+    // Phone keyboard up over question boxes: the feed is the latest tutor
+    // message alone, above the question and a small box (kuhy, 2026-11-16).
+    // A plain box keeps the folded last line: it is the ask.
+    final typing = widget.keyboard && boxes;
     return LayoutBuilder(
       builder: (context, box) => Column(
         children: [
@@ -144,8 +145,8 @@ class _SessionChatState extends State<SessionChat> {
             ),
           PcOfflineBanner(widget.services.presence.state),
           Expanded(
-            child: noFeed
-                ? const SizedBox.shrink()
+            child: typing
+                ? LastMessage(last.message)
                 : empty
                 ? NoChat(
                     waiting: waiting,
@@ -164,13 +165,12 @@ class _SessionChatState extends State<SessionChat> {
                     ),
                   ),
           ),
-          if (!noFeed) const Divider(height: 1),
+          const Divider(height: 1),
           ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: box.maxHeight * (noFeed ? 1 : _share),
-            ),
+            constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
             child: sessionPanel(
               phone: widget.phone,
+              dense: widget.keyboard,
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -201,6 +201,7 @@ class _SessionChatState extends State<SessionChat> {
                           (busy == null && !widget.runner.busy),
                       onSend: (t) => widget.onSend(view.sid, t),
                       phone: widget.phone,
+                      keyboard: widget.keyboard,
                     )
                   // A block's call to action replaces Start (same result).
                   else if (!(widget.runner.status.value?.blocks ?? false))

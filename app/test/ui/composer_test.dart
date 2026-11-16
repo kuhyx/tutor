@@ -16,7 +16,9 @@ import '../support/ui.dart';
 void main() {
   tearDown(() => debugPhone = false);
 
-  testWidgets('phone: swipe back/Next/Send gives ONE combined message', (t) async {
+  testWidgets('phone: swipe back/Next/Send gives ONE combined message', (
+    t,
+  ) async {
     final (db, stream) = await openComposer(t, phone: true);
     expect(bySpoken('1/3'), findsOneWidget);
     expect(find.textContaining('Which stroke makes the power?'), findsWidgets);
@@ -27,11 +29,13 @@ void main() {
 
     await t.tap(find.text('The power stroke')); // a chip fills the box ...
     await t.pump();
+    await openField(t); // the field opens on the pick
     expect(boxText(t), 'The power stroke');
     await t.enterText(find.byType(TextField), 'The power stroke, edited');
     await t.tap(controlByLabel('Next')); // ... which is edited before Next
     await t.pumpAndSettle();
     expect(bySpoken('2/3'), findsOneWidget);
+    await openField(t);
     expect(boxText(t), '');
     await t.enterText(find.byType(TextField), 'two');
     await swipeBack(t);
@@ -45,6 +49,7 @@ void main() {
     expect(bySpoken('3/3'), findsOneWidget);
     expect(controlByLabel('Next'), findsNothing);
     expect(pressOf(t, 'Send'), isNotNull);
+    await openField(t);
     await t.enterText(find.byType(TextField), 'three');
     await t.tap(controlByLabel('Send'));
     await sent(t);

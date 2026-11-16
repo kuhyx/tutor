@@ -12,33 +12,35 @@ import '../support/label_finders.dart';
 void main() {
   tearDown(() => debugPhone = false);
 
-  testWidgets('phone, keyboard open: no header, no feed, same text scale', (
-    t,
-  ) async {
-    await openComposer(t, phone: true);
-    expect(bySpoken('This card:', prefix: true), findsOneWidget);
-    expect(rich('Good. Now three quick ones'), findsOneWidget);
-    double scale() =>
-        MediaQuery.of(t.element(find.byType(Composer))).textScaler.scale(1);
-    expect(scale(), 1);
+  testWidgets(
+    'phone, keyboard open: no header, only the last message, same text scale',
+    (t) async {
+      await openComposer(t, phone: true);
+      expect(bySpoken('This card:', prefix: true), findsOneWidget);
+      expect(rich('Good. Now three quick ones'), findsOneWidget);
+      double scale() =>
+          MediaQuery.of(t.element(find.byType(Composer))).textScaler.scale(1);
+      expect(scale(), 1);
 
-    t.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(t.view.resetViewInsets);
-    await t.pumpAndSettle();
-    expect(bySpoken('This card:', prefix: true), findsNothing);
-    expect(bySpoken('Today:', prefix: true), findsNothing);
-    // The question takes the feed's room (no folded tile over boxes).
-    expect(rich('Good. Now three quick ones'), findsNothing);
-    expect(find.byType(CollapsedTile), findsNothing);
-    // Density is fixed (13 sp), no extra shrink on top.
-    expect(scale(), 1);
-    expect(bySpoken('1/3'), findsOneWidget);
+      t.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(t.view.resetViewInsets);
+      await t.pumpAndSettle();
+      expect(bySpoken('This card:', prefix: true), findsNothing);
+      expect(bySpoken('Today:', prefix: true), findsNothing);
+      // The feed is the last tutor message alone (no folded tile over boxes),
+      // above the question.
+      expect(rich('Good. Now three quick ones'), findsOneWidget);
+      expect(find.byType(CollapsedTile), findsNothing);
+      // Density is fixed (13 sp), no extra shrink on top.
+      expect(scale(), 1);
+      expect(bySpoken('1/3'), findsOneWidget);
 
-    t.view.resetViewInsets();
-    await t.pumpAndSettle();
-    expect(bySpoken('This card:', prefix: true), findsOneWidget);
-    expect(rich('Good. Now three quick ones'), findsOneWidget);
-  });
+      t.view.resetViewInsets();
+      await t.pumpAndSettle();
+      expect(bySpoken('This card:', prefix: true), findsOneWidget);
+      expect(rich('Good. Now three quick ones'), findsOneWidget);
+    },
+  );
 
   testWidgets('phone: the keyboard opening keeps focus, step and text', (
     t,
@@ -46,6 +48,7 @@ void main() {
     await openComposer(t, phone: true);
     await t.tap(controlByLabel('Next')); // 2/3
     await t.pumpAndSettle();
+    await openField(t);
     await t.tap(find.byType(TextField)); // focus the box
     await t.enterText(find.byType(TextField), 'half typed');
     await t.pump();

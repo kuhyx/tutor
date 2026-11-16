@@ -2,22 +2,24 @@
 /// latest tutor message, sent as ONE message; else a plain box. Boxes get
 /// the question's choices as chips plus "Hint" (sends "Hint"). Drafts
 /// survive a reload; Ctrl+Enter sends. Phone: one question at a time (dots,
-/// swipe right = back), one row [hint][field][check / send] at a tighter
-/// density, no Ctrl+Enter hint.
+/// swipe right = back), one row [hint][don't know][field][check / send] at a
+/// tighter density, no Ctrl+Enter hint. A question with choices shows them
+/// first and keeps the field behind a keyboard glyph; with the keyboard up
+/// the chips go and a small box (3 lines, growing to 6) sits under the
+/// question, the tutor's last message taking the room above.
 library;
 
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:design_system/design_system.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tutor/session/answers.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/storage/kv_store.dart';
-import 'package:tutor/ui/fit_pages.dart';
+import 'package:tutor/ui/session/composer_layout.dart';
 import 'package:tutor/ui/session/composer_parts.dart';
+import 'package:tutor/ui/session/composer_step.dart';
 
 /// The composer.
 class Composer extends StatefulWidget {
@@ -29,8 +31,12 @@ class Composer extends StatefulWidget {
     required this.enabled,
     required this.onSend,
     this.phone = false,
+    this.keyboard = false,
     super.key,
   });
+
+  /// The phone keyboard is up (false on the desktop).
+  final bool keyboard;
 
   /// Session id.
   final String sid;
@@ -64,6 +70,9 @@ class _ComposerState extends State<Composer> {
   List<TextEditingController> _boxes = [];
   int _step = 0; // phone: the question on screen
   bool _moved = false; // stepped by hand: a late draft keeps it
+  var _opened = <int>{}; // phone: choices questions whose field is open
+  final _focus = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -81,30 +90,23 @@ class _ComposerState extends State<Composer> {
     for (final b in _boxes) {
       b.dispose();
     }
+    _focus.dispose();
     super.dispose();
   }
 
-  List<Asked> _askedNow() {
-    final m = widget.latest;
-    return m != null && m.message.role == 'tutor'
-        ? askedOf(m.message)
-        : const [];
-  }
-
-  String _draftKey() => _askedNow().isEmpty
-      ? plainDraftKey(widget.sid)
-      : answersDraftKey(widget.sid, widget.latest!.key);
+  String _draftKey() => draftKeyFor(widget.sid, widget.latest);
 
   // Boxes are rebuilt only when the latest tutor message changes, so a
   // poll never wipes what is being typed; a re-keyed message asking the
   // same questions keeps their answers (and the phone's step).
   void _rebuild({bool carry = false}) {
     final (was, typed) = (_asked, [for (final b in _boxes) b.text]);
-    _asked = _askedNow();
+    _asked = askedIn(widget.latest);
     _key = _draftKey();
     final same = carry && listEquals(textsOf(was), textsOf(_asked));
     _step = same ? _step : 0;
     _moved = same && _moved;
+    _opened = same ? _opened : <int>{};
     for (final b in _boxes) {
       b.dispose();
     }
@@ -129,6 +131,7 @@ class _ComposerState extends State<Composer> {
 
   void _save() {
     setState(() {}); // Send enables with the first typed character.
+    latchOwnWords(_boxes, _asked, _opened);
     final values = [for (final b in _boxes) b.text];
     unawaited(widget.kv.set(_key, jsonEncode(values)));
   }
@@ -150,9 +153,22 @@ class _ComposerState extends State<Composer> {
             ..clear()
             ..addListener(_save);
         }
-        setState(() => _step = 0);
+        setState(() {
+          _step = 0;
+          _opened = <int>{};
+        });
       }
     }
+  }
+
+  // Phone, a question with choices: the field stays closed until asked for
+  // (the keyboard glyph), the keyboard rising, or own words in it.
+  bool _fieldOpen(int i) =>
+      _asked[i].choices.isEmpty || _opened.contains(i) || widget.keyboard;
+
+  void _openField() {
+    setState(() => _opened.add(_step));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
   }
 
   void _pick(int i, String c) => _boxes[i].value = TextEditingValue(
@@ -164,131 +180,66 @@ class _ComposerState extends State<Composer> {
     if (widget.enabled) unawaited(widget.onSend('Hint'));
   }
 
+  void _dontKnow() {
+    if (widget.enabled) unawaited(widget.onSend(kDontKnow));
+  }
+
   void _go(int step) => setState(() {
     _step = step;
     _moved = true;
   });
 
+  // Keyboard up over question boxes: no chips; the message above gets the
+  // room, the field is a small box that grows with the typing.
+  bool get _typing => widget.phone && widget.keyboard && _asked.isNotEmpty;
+
   Widget _box(int i, String label) => AnswerBox(
     controller: _boxes[i],
     label: label,
-    minLines: _asked.isEmpty && !widget.phone ? 3 : 1,
+    focusNode: widget.phone ? _focus : null,
+    minLines: widget.phone
+        ? (widget.keyboard ? 3 : 1)
+        : (_asked.isEmpty ? 3 : 1),
     maxLines: widget.phone ? 6 : 12,
     dense: widget.phone,
   );
 
   Widget _chips(int i) => AnswerChips(
-    choices: _asked[i].choices,
+    // Typing: the chips make room for the field (the keyboard is up).
+    choices: _typing ? const [] : _asked[i].choices,
+    selected: _boxes[i].text,
     enabled: widget.enabled,
     onPick: (c) => _pick(i, c),
     onHint: _hint,
     hint: !widget.phone,
   );
 
-  Offset _swipe = Offset.zero; // phone: the drag on the question so far
-
-  // One question at a time: dots, its text and chips, then one row
-  // [hint][box][check], the check turning into Send on the last question.
-  List<Widget> _phoneStep(bool canSend) {
-    final a = _asked[_step];
-    final last = _step == _asked.length - 1;
-    return [
-      if (_asked.length > 1) StepDots(step: _step, total: _asked.length),
-      // Pages, never a scroll (build-mobile-app R7): a long question pages.
-      Flexible(
-        // Swipe right on the question: the previous one. Raw pointers, so
-        // the question's SelectionArea cannot win the drag in the arena.
-        child: Listener(
-          onPointerDown: (e) => _swipe = Offset.zero,
-          onPointerMove: (e) => _swipe += e.delta,
-          onPointerUp: (_) {
-            final d = _swipe;
-            if (d.dx > kPhoneTarget && d.dx > 2 * d.dy.abs() && _step > 0) {
-              _go(_step - 1);
-            }
-          },
-          child: FitPages(
-            key: ValueKey('step-$_step'),
-            children: [
-              QuestionLabel(a, fontSize: kPhoneText),
-              const SizedBox(height: AppSpacing.sm),
-              _chips(_step),
-            ],
-          ),
-        ),
-      ),
-      PhoneRow(
-        hint: phoneGlyph(
-          Icons.lightbulb_outline,
-          'Hint',
-          widget.enabled ? _hint : null,
-        ),
-        field: _box(_step, 'Your answer'),
-        action: last
-            ? phoneGlyph(
-                Icons.send,
-                'Send',
-                canSend ? _send : null,
-                filled: true,
-              )
-            : phoneGlyph(
-                Icons.check,
-                'Next',
-                () => _go(_step + 1),
-                filled: true,
-              ),
-      ),
-    ];
-  }
-
-  List<Widget> _deskBoxes(TextTheme text, bool canSend) => [
-    for (final (i, a) in _asked.indexed) ...[
-      QuestionLabel(a),
-      const SizedBox(height: AppSpacing.xs),
-      _chips(i),
-      _box(i, 'Your answer'),
-    ],
-    SendRow(canSend: canSend, onSend: _send, hint: 'Ctrl+Enter to send'),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final canSend = widget.enabled && _compose().trim().isNotEmpty;
-    final body = CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.enter, control: true): () =>
-            unawaited(_send()),
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_asked.isEmpty && widget.phone)
-            PhoneRow(
-              field: _box(0, _plainLabel),
-              action: phoneGlyph(
-                Icons.send,
-                'Send',
-                canSend ? _send : null,
-                filled: true,
-              ),
-            )
-          else if (_asked.isEmpty) ...[
-            _box(0, _plainLabel),
-            SendRow(
-              canSend: canSend,
-              onSend: _send,
-              hint: 'Ctrl+Enter to send',
-            ),
-          ] else if (widget.phone)
-            ..._phoneStep(canSend)
-          else
-            ..._deskBoxes(text, canSend),
-        ],
+    return ComposerLayout(
+      asked: _asked,
+      phone: widget.phone,
+      canSend: canSend,
+      plainLabel: _plainLabel,
+      field: _box,
+      chips: _chips,
+      onSend: () => unawaited(_send()),
+      step: () => PhoneStep(
+        asked: _asked,
+        step: _step,
+        typing: _typing,
+        fieldOpen: _fieldOpen(_step),
+        enabled: widget.enabled,
+        canSend: canSend,
+        chips: _chips,
+        field: (i) => _box(i, 'Your answer'),
+        onGo: _go,
+        onHint: _hint,
+        onDontKnow: _dontKnow,
+        onOpenField: _openField,
+        onSend: () => unawaited(_send()),
       ),
     );
-    // Phone: the scrolling step view takes the panel's height (flex child).
-    return widget.phone ? Flexible(child: body) : body;
   }
 }

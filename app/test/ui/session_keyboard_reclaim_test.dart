@@ -1,9 +1,8 @@
 // Phone session with the keyboard up reclaims the screen (todo 340c295b-10):
-// no top bar, no sidebar, no message feed, no pencil, one row
-// [hint][field][action], 13 sp / 20 dp / 40 dp density, the status bar
+// no top bar, no sidebar, only the last tutor message as feed, no pencil,
+// one row [hint][field][action], 13 sp / 20 dp / 40 dp density, the status bar
 // hidden via SystemChrome; keyboard down brings the bar and sidebar back.
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/ui/session/collapsed_tile.dart';
 import 'package:tutor/ui/session/composer_parts.dart';
@@ -34,27 +33,6 @@ Future<void> _keyboardDown(WidgetTester t) async {
   await t.pumpAndSettle();
 }
 
-/// SystemChrome system-UI calls, in order (fake platform channel).
-List<MethodCall> _recordChrome(WidgetTester t) {
-  final calls = <MethodCall>[];
-  t.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    SystemChannels.platform,
-    (call) async {
-      if (call.method.startsWith('SystemChrome.setEnabledSystemUI')) {
-        calls.add(call);
-      }
-      return null;
-    },
-  );
-  addTearDown(
-    () => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      null,
-    ),
-  );
-  return calls;
-}
-
 /// [part] inside the composer's question label (the feed repeats it).
 Finder _asked(String part) => find.descendant(
   of: find.byType(QuestionLabel),
@@ -70,7 +48,7 @@ void main() {
     await openComposer(t, phone: true);
     pixelView(t);
     await t.pumpAndSettle();
-    await t.tap(_field.first);
+    await openField(t);
     await _keyboardUp(t);
 
     expect(find.byType(AppBar), findsNothing);
@@ -78,18 +56,20 @@ void main() {
     expect(find.byIcon(Icons.expand_more), findsNothing);
     expect(find.byIcon(Icons.edit_outlined), findsNothing);
     expect(find.byType(CollapsedTile), findsNothing);
-    expect(rich('Good. Now three quick ones'), findsNothing);
+    // The last tutor message alone fills the feed, above the question.
+    expect(rich('Good. Now three quick ones'), findsOneWidget);
     expectReachable(t, _question, state: 'keyboard');
     expectReachable(t, _field, state: 'keyboard');
     expectReachable(t, glyphsLabelled('Next'), state: 'keyboard');
     expectReachable(t, glyphsLabelled('Hint'), state: 'keyboard');
     for (final s in t.stateList<ScrollableState>(find.byType(Scrollable))) {
       if (s.position.axis != Axis.vertical) continue;
+      if (isLastMessageScroll(s)) continue; // scrolls by design
       expect(s.position.maxScrollExtent, 0, reason: '${s.context.widget}');
     }
-    // Hint, field and action share one row.
+    // Glyphs share the small box's row, left and right of it.
     final field = t.getRect(_field.first);
-    for (final glyph in ['Hint', 'Next']) {
+    for (final glyph in ['Hint', "I don't know", 'Next']) {
       final r = t.getRect(glyphsLabelled(glyph).hitTestable().first);
       expect(r.center.dy, closeTo(field.center.dy, 12), reason: glyph);
     }
@@ -101,11 +81,8 @@ void main() {
       t.getRect(glyphsLabelled('Next').first).left,
       greaterThanOrEqualTo(field.right - 0.5),
     );
-    // Choice chips sit above the row.
-    expect(
-      t.getRect(find.text('The power stroke')).bottom,
-      lessThanOrEqualTo(field.top + 0.5),
-    );
+    // The chips make room while typing.
+    expect(find.text('The power stroke'), findsNothing);
 
     // No edge swipe opens the drawer.
     final size = t.view.physicalSize / t.view.devicePixelRatio;
@@ -120,7 +97,7 @@ void main() {
     await openComposer(t, phone: true);
     pixelView(t);
     await t.pumpAndSettle();
-    await t.tap(_field.first);
+    await openField(t);
     await _keyboardUp(t);
     await _keyboardDown(t);
     expect(find.byType(AppBar), findsOneWidget);
@@ -165,6 +142,7 @@ void main() {
     await openComposer(t, phone: true);
     pixelView(t);
     await t.pumpAndSettle();
+    await openField(t);
     final field = t.widget<TextField>(find.byType(TextField));
     expect(field.style?.fontSize, 13);
     final q = t.widget<Text>(_asked('Which stroke makes the power?'));
@@ -192,6 +170,7 @@ void main() {
     expect(glyphsLabelled('Back'), findsNothing);
     expect(find.byIcon(Icons.check), findsOneWidget);
 
+    await openField(t);
     await t.enterText(find.byType(TextField), 'one');
     await t.tap(glyphsLabelled('Next'));
     await t.pumpAndSettle();
@@ -208,6 +187,7 @@ void main() {
     await t.pumpAndSettle();
     expect(glyphsLabelled('Next'), findsNothing);
     expect(find.byIcon(Icons.send), findsOneWidget);
+    await openField(t);
     await t.enterText(find.byType(TextField), 'three');
     await t.pump();
     await t.tap(glyphsLabelled('Send'));
@@ -219,42 +199,5 @@ void main() {
       'Q2: Why does the crankshaft turn twice per cycle?\nA: (skipped)\n\n'
       'Q3: What closes the valves again after they open?\nA: three',
     );
-  });
-
-  testWidgets('status bar hides with the keyboard, back on close and leave', (
-    t,
-  ) async {
-    final calls = _recordChrome(t);
-    await openComposer(t, phone: true);
-    pixelView(t);
-    await t.pumpAndSettle();
-    expect(calls, isEmpty);
-    await t.tap(_field.first);
-    await _keyboardUp(t);
-    expect(calls, hasLength(1));
-    expect(calls.last.method, 'SystemChrome.setEnabledSystemUIOverlays');
-    expect(calls.last.arguments, ['SystemUiOverlay.bottom']);
-    await _keyboardDown(t);
-    expect(calls, hasLength(2));
-    expect(calls.last.method, 'SystemChrome.setEnabledSystemUIMode');
-    expect(calls.last.arguments, 'SystemUiMode.edgeToEdge');
-    // Up again, then leave the screen: restored.
-    await t.tap(_field.first);
-    await _keyboardUp(t);
-    expect(calls, hasLength(3));
-    await t.pumpWidget(const SizedBox());
-    expect(calls, hasLength(4));
-    expect(calls.last.arguments, 'SystemUiMode.edgeToEdge');
-  });
-
-  testWidgets('desktop: keyboard insets change nothing', (t) async {
-    final calls = _recordChrome(t);
-    await openComposer(t, phone: false);
-    t.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(t.view.resetViewInsets);
-    await t.pumpAndSettle();
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(find.byIcon(Icons.edit_outlined), findsNWidgets(3));
-    expect(calls, isEmpty);
   });
 }

@@ -1,6 +1,6 @@
 /// The Session's header: the day's totals and this card's minutes, plus the
-/// paused / stalled / stopped marks. With the phone keyboard open only the
-/// marks stay (the lines are what the typing room is taken from).
+/// paused / stalled / stopped marks. With the phone keyboard open nothing
+/// shows (the typing room is taken from it).
 /// Text-free: glyph + number; the old sentences are the spoken labels.
 library;
 
@@ -38,7 +38,7 @@ class SessionHeader extends StatelessWidget {
   /// The session is live (not stopped).
   final bool live;
 
-  /// Lines hidden, marks only.
+  /// Nothing shows (the phone keyboard is open).
   final bool compact;
 
   @override
@@ -69,7 +69,7 @@ class SessionHeader extends StatelessWidget {
           child: Icon(Icons.stop_circle_outlined),
         ),
     ];
-    if (compact && marks.isEmpty) return const SizedBox.shrink();
+    if (compact) return const SizedBox.shrink();
     return Container(
       alignment: AlignmentDirectional.centerStart,
       padding: const EdgeInsets.fromLTRB(
@@ -83,52 +83,50 @@ class SessionHeader extends StatelessWidget {
         runSpacing: AppSpacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          if (!compact) ...[
-            // The day's totals lead; this card's minutes are secondary.
-            SpokenLabel(
-              semanticLabel: lines.$1,
-              child: Wrap(
-                spacing: AppSpacing.md,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (t?.activeMinutes != null)
-                    GlyphStat(
-                      Icons.timer_outlined,
-                      '${t!.activeMinutes}',
-                      size: AppTextSize.subtitle,
-                    ),
-                  if (t != null)
-                    GlyphStat(
-                      Icons.bolt,
-                      '${t.creditedMinutes}/${t.target}',
-                      size: AppTextSize.subtitle,
-                    ),
-                  if (t != null && bankNote(t) != null) ...[
-                    GlyphStat(Icons.savings_outlined, '${t.banked ?? 0}'),
-                    GlyphStat(Icons.event_available, '${t.prepaid ?? 0}'),
-                  ],
-                ],
-              ),
-            ),
-            SpokenLabel(
-              semanticLabel: lines.$2,
-              child: Wrap(
-                spacing: AppSpacing.sm,
-                children: [
+          // The day's totals lead; this card's minutes are secondary.
+          SpokenLabel(
+            semanticLabel: lines.$1,
+            child: Wrap(
+              spacing: AppSpacing.md,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (t?.activeMinutes != null)
                   GlyphStat(
-                    Icons.style_outlined,
-                    '${(clock.activeSeconds / 60).floor()}',
-                    color: scheme.onSurfaceVariant,
+                    Icons.timer_outlined,
+                    '${t!.activeMinutes}',
+                    size: AppTextSize.subtitle,
                   ),
+                if (t != null)
                   GlyphStat(
                     Icons.bolt,
-                    '${meta.creditedMinutes}',
-                    color: scheme.onSurfaceVariant,
+                    '${t.creditedMinutes}/${t.target}',
+                    size: AppTextSize.subtitle,
                   ),
+                if (t != null && bankNote(t) != null) ...[
+                  GlyphStat(Icons.savings_outlined, '${t.banked ?? 0}'),
+                  GlyphStat(Icons.event_available, '${t.prepaid ?? 0}'),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
+          SpokenLabel(
+            semanticLabel: lines.$2,
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                GlyphStat(
+                  Icons.style_outlined,
+                  '${(clock.activeSeconds / 60).floor()}',
+                  color: scheme.onSurfaceVariant,
+                ),
+                GlyphStat(
+                  Icons.bolt,
+                  '${meta.creditedMinutes}',
+                  color: scheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
           ...marks,
         ],
       ),
