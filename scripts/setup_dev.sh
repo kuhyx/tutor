@@ -19,4 +19,8 @@ fi
 # code_runner first: tutor imports it but does not declare it (see pyproject).
 "${VENV}/bin/python" -m pip install --quiet --no-deps -e "${REPO_DIR}/packages/code_runner"
 "${VENV}/bin/python" -m pip install --quiet -e "${REPO_DIR}[dev]"
+# The evening gate (tutor.gate) is a gatelock window; its tests import it. The
+# gate itself runs on the system python (README, "Evening gate"), so tutor.service
+# and pyproject need no gatelock dependency.
+"${VENV}/bin/python" -m pip install --quiet --no-deps "gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.14.0#subdirectory=gatelock"
 "${VENV}/bin/python" -c "import code_runner, tutor, pytest, mypy, pylint; print('dev venv OK')"
