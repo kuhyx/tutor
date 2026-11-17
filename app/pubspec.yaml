@@ -23,7 +23,7 @@ dependencies:
   crdt_sync_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_flutter-v0.8.1
+      ref: crdt_sync_flutter-v0.8.2
       path: crdt_sync_flutter
   # Chunked screenshot upload: sha256 of the decoded bytes (focus_evidence).
   crypto: 3.0.8
@@ -34,7 +34,7 @@ dependencies:
       ref: design_system-v0.3.1
       path: design_system
   # The rules screenshot of an interview project (Android picker / web input).
-  file_picker: 13.3.3
+  file_picker: 13.4.0
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -42,7 +42,7 @@ dependencies:
   # Refresh token in the Android keystore (DOCS-contract §10).
   flutter_secure_storage: 11.2.0
   # Worker-drawn circuit diagrams arrive as inline SVG (DOCS-contract §8).
-  flutter_svg: 2.3.4
+  flutter_svg: 2.4.0
   # One-tap Google ID token via the framework AccountManager chooser (FOSS).
   google_account_token:
     git:
@@ -53,6 +53,13 @@ dependencies:
   # Device id and the offline event queue on web live in IndexedDB.
   idb_shim: 2.11.3
   intl: 0.20.3
+  # The relay client (RTDB REST/SSE, e2e sealing, request hub, rev watcher,
+  # passphrase gate, session): shared with other apps' PC relays.
+  rtdb_relay:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: rtdb-relay-v0.2.0
+      path: rtdb_relay/dart
   shared_preferences: 2.5.6
   # Source links and picture attribution open in the browser.
   url_launcher: 6.3.3

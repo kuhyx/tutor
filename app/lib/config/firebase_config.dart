@@ -5,16 +5,17 @@
 /// public, so the uid / API key never appear in source (DOCS-contract §10).
 library;
 
+import 'package:rtdb_relay/rtdb_relay.dart' show RelayFirebaseConfig;
 import 'package:tutor/config/firebase_local.dart' as local;
 
 /// The four identifiers the sync layer needs.
-class FirebaseConfig {
+class FirebaseConfig extends RelayFirebaseConfig {
   /// Creates a config; tests pass fakes.
   const new({
-    required this.apiKey,
-    required this.databaseUrl,
-    required this.syncUid,
-    required this.serverClientId,
+    required super.apiKey,
+    required super.databaseUrl,
+    required super.syncUid,
+    required super.serverClientId,
   });
 
   /// The values compiled into this build.
@@ -24,19 +25,6 @@ class FirebaseConfig {
     syncUid: local.kFirebaseSyncUid,
     serverClientId: local.kGoogleServerClientId,
   );
-
-  /// Web API key of the kuhy-syncs project.
-  final String apiKey;
-
-  /// Regional RTDB URL (`*.europe-west1.firebasedatabase.app`).
-  final String databaseUrl;
-
-  /// The uid the sync account must resolve to. A wrong Google account signs
-  /// up a second user; this guard refuses it before anything is stored.
-  final String syncUid;
-
-  /// Google *Web* OAuth client id, used as the ID-token audience.
-  final String serverClientId;
 
   /// Names of the identifiers that are empty in this build.
   List<String> get missing => [
