@@ -7,6 +7,7 @@ ledger), ``~/.cache`` or ``~/.claude`` can only ever land in ``tmp_path``.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import time
 from typing import TYPE_CHECKING, Any
 import urllib.request
@@ -14,7 +15,7 @@ import urllib.request
 import httpx
 import pytest
 
-from tutor import images
+from tutor import images, model_fault
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
@@ -77,6 +78,25 @@ def memoised_sandbox() -> Iterator[None]:
 def _no_real_password() -> str:
     msg = "a test read the crdt-sync password: inject a passphrase"
     raise AssertionError(msg)
+
+
+@dataclass
+class FaultRig:
+    """The model-fault monitor tests get: a temp spool and a toast recorder."""
+
+    monitor: model_fault.Monitor
+    spool: Path
+    notices: list[str]
+
+
+@pytest.fixture(autouse=True)
+def fault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FaultRig:
+    """Model faults land in ``tmp_path``; no real spool, no real notify-send."""
+    notices: list[str] = []
+    spool = tmp_path / "app-errors-spool"
+    monitor = model_fault.Monitor(spool=spool, notify=lambda: notices.append("toast"))
+    monkeypatch.setattr(model_fault, "MONITOR", monitor)
+    return FaultRig(monitor, spool, notices)
 
 
 @pytest.fixture(autouse=True)
