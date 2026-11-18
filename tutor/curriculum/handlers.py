@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor.curriculum.advance import fold_and_advance, pending
+from tutor.curriculum.archive import subject_archive, subject_unarchive
 from tutor.curriculum.card_edit import card_edit
 from tutor.curriculum.card_undo import card_remove, card_restore
 from tutor.curriculum.cardgen import generate
@@ -50,6 +51,8 @@ BUILD_HANDLERS: Final[dict[str, Handler]] = {
     "card_restore": card_restore,
     "card_remove": card_remove,
     "module_pregenerate": module_pregenerate,
+    "subject_archive": subject_archive,
+    "subject_unarchive": subject_unarchive,
 }
 
 __all__ = [

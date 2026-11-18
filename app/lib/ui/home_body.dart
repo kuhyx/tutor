@@ -12,6 +12,7 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_parts.dart';
+import 'package:tutor/ui/home_archive.dart';
 import 'package:tutor/ui/home_fit.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
@@ -37,8 +38,18 @@ class HomeBody extends StatelessWidget {
     required this.onFinish,
     this.onReviewModule,
     this.onReviewSubject,
+    this.archiver,
     super.key,
   });
+
+  /// Archives a subject (with undo); its hidden set filters [shown].
+  final SubjectArchiver? archiver;
+
+  /// The subjects to list: [data]'s minus those being archived.
+  List<SubjectEntry> get shown => [
+    for (final s in data.subjects)
+      if (!(archiver?.hidden.value.contains(s.id) ?? false)) s,
+  ];
 
   /// Reviews one subject's due cards (id, title).
   final void Function(String subject, String title)? onReviewSubject;
@@ -154,7 +165,7 @@ class HomeBody extends StatelessWidget {
       ),
     ];
     final second = <Widget>[
-      if (data.subjects.isEmpty)
+      if (shown.isEmpty)
         const Padding(
           padding: EdgeInsets.all(AppSpacing.lg),
           child: Icon(
@@ -163,7 +174,7 @@ class HomeBody extends StatelessWidget {
             semanticLabel: 'No subjects yet. Say what you want to learn below.',
           ),
         ),
-      for (final s in data.subjects)
+      for (final s in shown)
         SubjectTile(
           entry: s,
           toReview: data.toReview[s.id],
@@ -179,6 +190,9 @@ class HomeBody extends StatelessWidget {
           onPick: () => onPick(s.id),
           onFinish: (goDeeper) => onFinish(s.id, goDeeper: goDeeper),
           onRetry: () => onNewSubject(s.meta.goal),
+          onArchive: archiver == null
+              ? null
+              : () => archiver!.archive(context, s.id, s.meta.title),
         ),
       const Divider(height: AppSpacing.xl),
       NewSubjectField(runner: runner, onSubmit: onNewSubject),

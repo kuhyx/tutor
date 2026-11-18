@@ -16,10 +16,10 @@ Exit 0 = PASS.
 * F5 help on a struggling card (``e2e_struggle.py``; phased like F1).
 * F6 the carry-over bank (``e2e_carry.py``): ``check``, then ``again`` after
   ``e2e_sandbox.sh restart``.
-* F7-F17, one module each: ``e2e_focus`` (F7, F8), ``e2e_checkin`` (F9,
+* F7-F18, one module each: ``e2e_focus`` (F7, F8), ``e2e_checkin`` (F9,
   F10), ``e2e_unbacked`` (F11), ``e2e_blocked`` (F12), ``e2e_codes`` (F13),
   ``e2e_failures`` (F14), ``e2e_interview`` (F15), ``e2e_glyphs`` (F16),
-  ``e2e_keyless`` (F17); each docstring says what it checks and its calls.
+  ``e2e_keyless`` (F17), ``e2e_archive`` (F18); each docstring says what it checks.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -39,6 +39,7 @@ import sys
 import time
 from typing import TYPE_CHECKING
 
+from e2e_archive import f18
 from e2e_blocked import f12
 from e2e_carry import f6_again, f6_check
 from e2e_cdp import Browser, CdpError
@@ -118,7 +119,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = [f"F{n}" for n in range(1, 18)]  # F1..F17
+FLOWS = [f"F{n}" for n in range(1, 19)]  # F1..F18
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -131,6 +132,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F15": f15,
     "F16": f16,
     "F17": f17,
+    "F18": f18,
 }
 
 

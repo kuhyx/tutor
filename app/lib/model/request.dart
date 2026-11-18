@@ -41,6 +41,12 @@ enum RequestKind {
   /// Remove (suspend) a card the tutor added.
   cardRemove('card_remove', Lane.build),
 
+  /// Hide a subject from Home and unlearn it (DOCS-relay-kinds.md).
+  subjectArchive('subject_archive', Lane.build),
+
+  /// Undo [subjectArchive]; same lane, so it never overtakes it.
+  subjectUnarchive('subject_unarchive', Lane.build),
+
   /// Start a teaching session.
   sessionStart('session_start', Lane.chat),
 

@@ -112,6 +112,7 @@ scripts/e2e_sandbox.sh flow F12  # with E2E_SUBJECT=how-a-car-works): result `ki
                                    # `error` + `next`; the app speaks its own line (DOCS-relay-kinds.md)
 scripts/e2e_sandbox.sh flow F9   # fresh `up` each: check-in card at 421 s, rated -> tutor/heartbeat
 scripts/e2e_sandbox.sh flow F10  # card rated at 650 s (lapsed) -> start, start; still graded
+scripts/e2e_sandbox.sh flow F18  # fresh `up`: archive a subject on Home, then undo it
 scripts/e2e_sandbox.sh down
 ```
 

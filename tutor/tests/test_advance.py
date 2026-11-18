@@ -82,6 +82,8 @@ def test_registry_and_context_defaults(tmp_path: Path) -> None:
         "card_edit",
         "card_restore",
         "card_remove",
+        "subject_archive",
+        "subject_unarchive",
     }
     ctx = Context(tmp_path)
     assert ctx.device == (tmp_path / "device_id").read_text(encoding="utf-8").strip()

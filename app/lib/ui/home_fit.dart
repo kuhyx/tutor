@@ -31,7 +31,7 @@ class HomeFit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subjects = body.data.subjects;
+    final subjects = body.shown;
     return fitPage([
       _pad(Column(mainAxisSize: MainAxisSize.min, children: today)),
       _pad(RequestStatusLine(body.runner)),
@@ -121,6 +121,10 @@ class HomeFit extends StatelessWidget {
               onFinish: (deeper) =>
                   close(() => body.onFinish(s.id, goDeeper: deeper))(),
               onRetry: close(() => body.onNewSubject(s.meta.goal)),
+              onArchive: switch (body.archiver) {
+                final a? => close(() => a.archive(context, s.id, s.meta.title)),
+                null => null,
+              },
             ),
           ];
         },

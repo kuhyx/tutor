@@ -16,6 +16,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
+import 'package:tutor/ui/home_archive.dart';
 import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/home_icons.dart';
 import 'package:tutor/ui/home_menu.dart';
@@ -62,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final AppLifecycleListener _lifecycle;
   late final StreamSubscription<void> _opens;
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
+  late final _archiver = SubjectArchiver(_s.relay, _snapshot.reload);
 
   TutorServices get _s => widget.services;
   PresenceWatcher get _presence => _s.presence;
@@ -115,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _snapshot.dispose();
     unawaited(_presence.stop());
     unawaited(_runner.dispose());
+    _archiver.dispose();
     super.dispose();
   }
 
@@ -205,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     ),
     body: ListenableBuilder(
-      listenable: _snapshot,
+      listenable: Listenable.merge([_snapshot, _archiver.hidden]),
       builder: (context, _) {
         // A failed load shows an error cue (the loader already falls back
         // to the cache when offline, so what is left is worth reading).
@@ -237,6 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPick: _pick,
           onNewSubject: _newSubject,
           onFinish: _finish,
+          archiver: _archiver,
         );
       },
     ),

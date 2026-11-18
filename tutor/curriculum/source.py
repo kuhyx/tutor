@@ -21,6 +21,7 @@ from tutor.cards import Card, load_deck
 from tutor.curriculum import card_rules, profiles, rules
 from tutor.curriculum.errors import BAD_REQUEST, LOCKED, NO_CARD_LEFT, RequestError
 from tutor.curriculum.eventlog import worker_event
+from tutor.curriculum.no_card import no_card_left
 from tutor.curriculum.subject_store import LOCK, Change
 
 if TYPE_CHECKING:
@@ -142,8 +143,17 @@ class SubjectSource:
         }
 
     def pick(self, card_id: str | None, skip: str = "") -> Card:
-        """``rules.pick`` over the subject (``skip`` left out of the pick)."""
+        """``rules.pick`` over the subject (``skip`` left out of the pick).
+
+        An archived subject (``archive.py``) has nothing to teach.
+        """
         view, fold, now = self._view(), self.ctx.fold(), self.ctx.clock()
+        if self.subject in self.ctx.archived():
+            err = no_card_left(
+                view.title, module=None, due_at=None, writing=False, now_ms=now
+            )
+            err.extra |= {"subject_id": self.subject, "due_in_subject": 0}
+            raise err
         chosen = rules.pick(view, fold, card_id, now, "" if card_id else skip)
         return next(c for c in self.cards() if c.id == chosen)
 

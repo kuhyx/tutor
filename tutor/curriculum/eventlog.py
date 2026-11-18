@@ -8,7 +8,8 @@ from RTDB are untrusted: :func:`parse` keeps only well-formed ones and drops
 unknown keys. The worker's own ``taught``/``untaught`` (and ``cap_lift``)
 events are written here first (the commit point) and published by the relay
 worker. ``cap_lift`` and ``new_cap`` name no subject or card
-(``DOCS-contract-curriculum.md`` §4/§6).
+(``DOCS-contract-curriculum.md`` §4/§6); ``subject_archive`` /
+``subject_unarchive`` (worker) name a subject only (``DOCS-relay-kinds.md``).
 """
 
 from __future__ import annotations
@@ -30,8 +31,11 @@ CAP_LIFT: Final = "cap_lift"  # {"day"}: the daily new cap is off that local day
 NEW_CAP: Final = "new_cap"  # {"n"}: Settings' daily new cap, latest ``at`` wins
 GLOBAL_KINDS: Final = frozenset({CAP_LIFT, NEW_CAP})  # no subject or card
 REVIEW_UNDO: Final = "review_undo"  # {"of"}: that review eid never counts
+ARCHIVE: Final = "subject_archive"  # {"s"}: hidden and unlearned (worker)
+UNARCHIVE: Final = "subject_unarchive"  # {"s"}: back, state intact (worker)
+SUBJECT_KINDS: Final = frozenset({ARCHIVE, UNARCHIVE})  # a subject, no card
 KINDS: Final = frozenset(
-    {"review", REVIEW_UNDO, "flag", "taught", "untaught", *GLOBAL_KINDS}
+    {"review", REVIEW_UNDO, "flag", "taught", "untaught", *GLOBAL_KINDS} | SUBJECT_KINDS
 )
 CAP_MIN: Final = 1
 CAP_MAX: Final = 200
@@ -113,6 +117,14 @@ def _global_event(raw: dict[str, Any], head: dict[str, Any]) -> dict[str, Any]:
     return {**head, "n": n}
 
 
+def _subject_event(raw: dict[str, Any], head: dict[str, Any]) -> dict[str, Any]:
+    """``subject_archive`` / ``subject_unarchive``: ``s`` only, no card."""
+    if not valid_id(raw.get("s")):
+        msg = "bad subject id"
+        raise _MalformedError(msg)
+    return {**head, "s": raw["s"]}
+
+
 def parse(dev: str, eid: str, raw: object) -> dict[str, Any] | None:
     """A clean event, or None (logged) when ``raw`` breaks the contract."""
     if not isinstance(raw, dict) or not valid_eid(eid) or not dev:
@@ -125,6 +137,8 @@ def parse(dev: str, eid: str, raw: object) -> dict[str, Any] | None:
     try:
         if kind in GLOBAL_KINDS:
             return _global_event(raw, head)
+        if kind in SUBJECT_KINDS:
+            return _subject_event(raw, head)
         return _card_event(raw, head)
     except _MalformedError as err:
         _logger.warning("dropped %s %s/%s: %s", kind, dev, eid, err)
@@ -222,3 +236,13 @@ def review_event(
         "rev": rev,
         "dur_ms": max(0, at - shown),
     }
+
+
+def archived_subjects(events: Iterable[dict[str, Any]]) -> set[str]:
+    """Subjects whose latest archive event by ``(at, eid)`` is ``subject_archive``."""
+    marks = sorted(
+        (e for e in events if e["k"] in SUBJECT_KINDS),
+        key=lambda e: (e["at"], e["eid"]),
+    )
+    latest = {e["s"]: e["k"] == ARCHIVE for e in marks}
+    return {subject for subject, on in latest.items() if on}

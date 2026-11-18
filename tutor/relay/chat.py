@@ -69,11 +69,11 @@ def _sessions(engine: Engine) -> Path:
 
 
 async def _home_pick(ctx: RequestContext) -> str | None:
-    """``prefs.current_subject`` (picked on Home), if it is a slug."""
+    """``prefs.current_subject`` (picked on Home): a slug, not archived."""
     value = await ctx.rtdb.get("prefs/current_subject")
-    if isinstance(value, str) and len(value) <= SLUG_MAX and SLUG.fullmatch(value):
-        return value
-    return None
+    if not isinstance(value, str) or len(value) > SLUG_MAX or not SLUG.fullmatch(value):
+        return None
+    return None if value in ctx.engine.ctx.archived() else value
 
 
 async def session_start(ctx: RequestContext) -> dict[str, Any]:
