@@ -4,7 +4,8 @@
 ``sync`` (before and after every request, and every minute) pulls every other
 device's new ``log/{dev}`` events into the local log, re-folds
 (``fold_and_advance``), publishes every subject whose local ``rev`` moved,
-PATCHes this worker's own ``taught``/``untaught`` events to ``log/{own}``,
+deletes archived subjects (``curriculum/archive.py``), PATCHes this
+worker's own ``taught``/``untaught`` events to ``log/{own}``,
 queues card generation, and pays new app-review minutes
 (:mod:`tutor.review_credit`; a failure there is logged, never blocks the
 rest), today's and yesterday's leftover minutes (:mod:`tutor.leftover`), then
@@ -70,7 +71,7 @@ class CurriculumSync:
         self._catalog = catalog if isinstance(catalog, int) else 0
         mine = await rtdb.get(f"log/{self.w.worker}", {"shallow": "true"})
         self._pushed = set(mine) if isinstance(mine, dict) else set()
-        for subject in self.ctx.subjects.subjects():
+        for subject in self.ctx.subjects.subjects(archived=True):
             rev = await rtdb.get(f"subjects/{subject}/meta/rev")
             self._revs[subject] = rev if isinstance(rev, int) else -1
         await self.sync()
@@ -128,6 +129,19 @@ class CurriculumSync:
         self._revs[subject] = rev
         return True
 
+    async def _remove(self, subject: str) -> bool:
+        """Delete an archived subject's RTDB copy; False when it has none.
+
+        Its caches are dropped, so an unarchive re-PUTs every part.
+        """
+        if self._revs.get(subject, -1) < 0:
+            return False
+        await self.w.rtdb.delete(f"subjects/{subject}")
+        self._revs[subject] = -1
+        for part in _PARTS:
+            self._sent.pop((subject, part), None)
+        return True
+
     async def sync(self) -> None:
         """Pull, fold, publish moved subjects, push own events, queue generation.
 
@@ -145,7 +159,8 @@ class CurriculumSync:
             cur.fold_and_advance, self.ctx
         )
         published = [s for s in self.ctx.subjects.subjects() if await self.publish(s)]
-        if published:
+        removed = [s for s in sorted(self.ctx.archived()) if await self._remove(s)]
+        if published or removed:
             self._catalog += 1
             await self.w.rtdb.patch("rev", {"catalog": self._catalog})
         await self.push()
@@ -173,7 +188,8 @@ class CurriculumSync:
             subject, module = await self.queue.get()
             async with self.lock:
                 try:
-                    await asyncio.to_thread(cur.generate, self.ctx, subject, module)
+                    if subject not in self.ctx.archived():  # not archived since
+                        await asyncio.to_thread(cur.generate, self.ctx, subject, module)
                 except hooks.BASE_ERRORS as err:
                     _logger.warning("generating %s/%s failed: %s", subject, module, err)
                     self._failed.add((subject, module))

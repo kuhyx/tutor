@@ -114,3 +114,49 @@ One glyph beside the spinner per `claims.PHASES` name:
   `next` (`kindOfResult`). The parity test checks every golden row with
   `kind` removed.
 - Deploy order: web build, then `scripts/tutor_deploy.sh` (server first).
+
+## Archived subjects (request kinds)
+
+Two request kinds (`req.kind`, the `DOCS-contract.md` §4 table) archive a
+subject and undo it. Both are on the `build` lane, so an undo never overtakes
+its archive. App: `RequestKind.subjectArchive` / `subjectUnarchive`
+(`app/lib/model/request.dart`), bodies in `app/lib/ui/home_archive.dart`.
+Worker: `tutor/relay/protocol.py` `KINDS`, `tutor/curriculum/archive.py`.
+
+| kind | body | result `data` | lane |
+|---|---|---|---|
+| `subject_archive` | `{"subject"}` | `{"subject","archived":true}` | build |
+| `subject_unarchive` | `{"subject"}` | `{"subject","archived":false}` | build |
+
+An unknown or malformed id is `bad_request` (`err_bad_request`). Archiving an
+archived subject (or unarchiving a live one) appends nothing and is ok.
+
+- **Log, append-only.** Each call appends one worker event,
+  `{"k":"subject_archive"|"subject_unarchive","s":"car","at":ms}` (no `c`).
+  The latest one per subject by `(at, eid)` decides. History is never
+  rewritten, so undo restores everything exactly.
+- **Not learned while archived.** The shared fold (Python and Dart) ignores
+  both kinds, and the app skips them as unknown. `Context.fold()` on the PC
+  then drops the subject's cards and events: nothing in it counts as taught,
+  reviewed, due or new today (this frees today's new-card cap), and
+  `SubjectSource.pick` answers `no_card_left` (`next: none`). The earned-time
+  ledger is never read or written.
+- **Hidden everywhere.** `SubjectStore.subjects()` leaves it out, so nothing
+  advances, generates, drills or publishes it. The worker DELETEs
+  `subjects/{id}` and bumps `rev.catalog` before it writes the result, so
+  Home drops it on every device (the app hides it already at the tap). A
+  Home pick (`prefs.current_subject`) of an archived subject is ignored.
+  Undo re-PUTs every part.
+- **Kept.** Its files under `subjects/{id}/`, its transcripts and its ids
+  stay. A new `subject_new` with the same text gets a new id (`car-2`),
+  even when the archived draft had failed.
+- **Home.** Each subject tile has a delete glyph (`Icons.delete_outline`,
+  spoken "Archive <title>"; on the phone it is in the tile's sheet). A tap
+  archives at once and shows an undo glyph (`Icons.undo`, spoken "Undo
+  archive <title>") for 8 s.
+- **CLI** (same handlers, any data dir, default the live one):
+  `python -m tutor subject archive|unarchive <id> [--data DIR]`. It prints the
+  result, or `refused: ...` with exit 2. The live worker pushes the event and
+  updates the catalog on its next sync (within a minute).
+- A live session on the subject keeps running until it stops. Only later
+  starts are refused.

@@ -13,12 +13,14 @@ from typing import TYPE_CHECKING, Any
 from tutor import backfill, leftover, repair, resume
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
+from tutor.curriculum.source import transcript_subject
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
     from tutor.clock import BlockReady
+    from tutor.curriculum.context import Context
     from tutor.store import Store
 
 
@@ -35,6 +37,10 @@ class Upkeep:
         @property
         def minutes_today(self) -> int:
             """Today's ledger total (``CardFlow``)."""
+
+        @property
+        def ctx(self) -> Context:
+            """The curriculum context (``CardFlow``)."""
 
     def repair_done_cards(self) -> list[tuple[str, str]]:
         """Run the one-off card_done repair (see ``repair``)."""
@@ -55,7 +61,9 @@ class Upkeep:
         path = resume.latest_today(
             self.store.root / "sessions", time.strftime("%Y%m%d")
         )
-        return self.resume_path(path) if path else False
+        if path is None or transcript_subject(path) in self.ctx.archived():
+            return False  # none today, or its subject is archived since
+        return self.resume_path(path)
 
     def _opening(self, sid: str, card_id: str) -> tuple[Conversation, dict[str, Any]]:
         """A new card's conversation and ``start`` event.

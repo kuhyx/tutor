@@ -1,6 +1,6 @@
 /// One subject on Home: status, modules reviewed, and its actions as glyph
 /// buttons (Plan, Cards, Learn this next, Review a done module, Review with
-/// the subject's due count, Try again, Go deeper / Review only).
+/// the subject's due count, Try again, Go deeper / Review only, Archive).
 library;
 
 import 'package:design_system/design_system.dart';
@@ -30,6 +30,7 @@ class SubjectTile extends StatelessWidget {
     this.onReviewModule,
     this.due = 0,
     this.onReviewDue,
+    this.onArchive,
     super.key,
   });
 
@@ -38,6 +39,9 @@ class SubjectTile extends StatelessWidget {
 
   /// Reviews only this subject's due cards (shown while [due] > 0).
   final VoidCallback? onReviewDue;
+
+  /// Archives it (hidden, unlearned; Home offers undo).
+  final VoidCallback? onArchive;
 
   /// The subject.
   final SubjectEntry entry;
@@ -189,6 +193,12 @@ class SubjectTile extends StatelessWidget {
                     onPressed: () => onFinish(false),
                   ),
                 ],
+                if (onArchive != null)
+                  GlyphButton(
+                    icon: Icons.delete_outline,
+                    semanticLabel: 'Archive ${entry.meta.title}',
+                    onPressed: onArchive,
+                  ),
               ],
             ),
           ),

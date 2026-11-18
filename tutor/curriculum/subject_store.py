@@ -18,6 +18,7 @@ import threading
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor.curriculum.errors import BAD_REQUEST, RequestError
+from tutor.curriculum.eventlog import EventLog, archived_subjects
 from tutor.curriculum.ids import valid_id
 from tutor.curriculum.records import CardRec, Meta, Plan, bad
 
@@ -90,14 +91,19 @@ class SubjectStore:
             raise RequestError(BAD_REQUEST, msg)
         return self.base / subject
 
-    def subjects(self) -> list[str]:
-        """Every subject with a ``meta.json``, sorted."""
+    def subjects(self, *, archived: bool = False) -> list[str]:
+        """Every subject with a ``meta.json``, sorted; ``archived``: also those.
+
+        An archived subject (``archive.py``) keeps its files but is left out
+        by default, so nothing schedules, advances or publishes it.
+        """
         if not self.base.is_dir():
             return []
+        hidden = set() if archived else archived_subjects(EventLog(self.root).read())
         return sorted(
             p.name
             for p in self.base.iterdir()
-            if valid_id(p.name) and (p / "meta.json").is_file()
+            if valid_id(p.name) and (p / "meta.json").is_file() and p.name not in hidden
         )
 
     def meta(self, subject: str) -> Meta | None:

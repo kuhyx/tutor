@@ -4,6 +4,7 @@
 ``python -m tutor migrate [--data DIR]``: the one-off curriculum migration.
 ``python -m tutor sql-cards``: seed the SQL lesson cards (``sql_cards_cli``).
 ``python -m tutor sql-pack`` / ``mock-prebuild``: drill pack, pre-built mocks.
+``python -m tutor subject archive|unarchive ID``: hide a subject, or undo it.
 ``python -m tutor worker`` runs the RTDB relay alone, ``publish-all`` publishes
 every transcript once (``tutor.relay.cli``).
 """
@@ -18,7 +19,7 @@ from typing import TYPE_CHECKING, Final
 
 import uvicorn
 
-from tutor.curriculum import migrate, regen, sql_cards_cli
+from tutor.curriculum import archive, migrate, regen, sql_cards_cli
 from tutor.engine import Engine
 from tutor.relay import cli, mock_prebuild
 from tutor.server import DEFAULT_PORT as SERVER_PORT
@@ -35,6 +36,7 @@ TOOLS: Final[dict[str, ModuleType]] = {
     "sql-cards": sql_cards_cli,
     "sql-pack": sql_pack_cli,
     "mock-prebuild": mock_prebuild,
+    "subject": archive,
 }
 
 

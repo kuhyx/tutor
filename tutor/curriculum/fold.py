@@ -22,7 +22,9 @@
    naming an unknown or non-review eid does nothing;
 8. ``cap_lift`` days and the latest ``new_cap`` (§6) are folded log-wide;
 9. ``struggle(rev)`` (``DOCS-contract-struggle.md`` §3): the trailing run of
-   Again among the kept reviews since taught at the card's current ``rev``.
+   Again among the kept reviews since taught at the card's current ``rev``;
+10. ``subject_archive``/``subject_unarchive`` change no card here (the app
+   skips them too): the PC masks archived subjects afterwards (:func:`without`).
 
 ``contract/fsrs_vectors.json`` (``fsrs_vectors.py``) pins the results.
 """
@@ -35,7 +37,13 @@ from typing import TYPE_CHECKING, Any, Final
 
 import fsrs
 
-from tutor.curriculum.eventlog import CAP_LIFT, DRILL, GLOBAL_KINDS, REVIEW_UNDO
+from tutor.curriculum.eventlog import (
+    CAP_LIFT,
+    DRILL,
+    GLOBAL_KINDS,
+    REVIEW_UNDO,
+    SUBJECT_KINDS,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -197,7 +205,7 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
         if kind in GLOBAL_KINDS:
             _global(out, event)
             continue
-        if kind == REVIEW_UNDO:  # its work is done: ``undone`` above
+        if kind == REVIEW_UNDO or kind in SUBJECT_KINDS:  # undo: ``undone`` above
             out.kept.append(event)
             continue
         if kind == "review" and event["eid"] in undone:
@@ -227,3 +235,10 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
             state.flag_revs.add(int(event["rev"]))
         out.kept.append(event)
     return out
+
+
+def without(folded: Fold, subjects: set[str]) -> Fold:
+    """``folded`` minus ``subjects``' cards and events: nothing there is learned."""
+    folded.cards = {r: s for r, s in folded.cards.items() if r[0] not in subjects}
+    folded.kept = [e for e in folded.kept if e.get("s") not in subjects]
+    return folded

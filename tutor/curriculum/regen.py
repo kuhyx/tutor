@@ -61,6 +61,9 @@ def _suspend(ctx: Context, subject: str, module_id: str, gone: list[str]) -> Non
 
 def _scope(ctx: Context, subject: str, module_id: str) -> Scope:
     """The module to repair, refused unless its plan is approved and it is done."""
+    if subject in ctx.archived():  # its masked fold has no taught card to keep
+        msg = f"{subject} is archived; unarchive it first"
+        raise RequestError(BAD_REQUEST, msg)
     plan = ctx.subjects.plan(subject)
     module = plan.module(module_id) if plan else None
     if plan is None or plan.status != "approved" or module is None:

@@ -69,6 +69,9 @@ void main() {
           'at': 5,
         },
         '01JA0000000000000000000002': {'k': 'bogus'},
+        // The worker's archive mark: the app skips it (the catalog drops
+        // the subject instead; DOCS-relay-kinds.md).
+        '01JA0000000000000000000000': {'k': 'subject_archive', 's': 'car'},
       },
       'not-a-device': {'x': 1},
     });

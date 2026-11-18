@@ -1,9 +1,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Validation of every request read from RTDB (``DOCS-contract.md`` §4, §10).
 
-All RTDB content is untrusted: ids are checked against their regexes before
-any path or file name is built from them, sizes are capped, and unknown
-fields are dropped (the handler only ever sees the fields named here).
+Untrusted: ids checked before any path is built, sizes capped, unknown fields dropped.
 """
 
 from __future__ import annotations
@@ -151,6 +149,8 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
     ),
     "card_restore": (BUILD, {"subject": _slug, "card": _slug}),  # Editor's undo
     "card_remove": (BUILD, {"subject": _slug, "card": _slug}),
+    "subject_archive": (BUILD, {"subject": _slug}),  # undo: subject_unarchive
+    "subject_unarchive": (BUILD, {"subject": _slug}),
     # ``device``: "phone" | "desktop", absent = desktop (``tutor.delivery``).
     "session_start": (
         CHAT,

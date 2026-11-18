@@ -67,7 +67,13 @@ def subject_new(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
     """Create a subject and draft its plan (``meta`` first, ``drafting``)."""
     goal = text(body, "text", MAX_GOAL)
     store = ctx.subjects
-    live = {s for s in store.subjects() if store.need_meta(s).status != "failed"}
+    # A failed draft's id is reused (a retry), never an archived one's.
+    gone = ctx.archived()
+    live = {
+        s
+        for s in store.subjects(archived=True)
+        if s in gone or store.need_meta(s).status != "failed"
+    }
     subject = subject_id(goal, live)
     meta = Meta(title=goal[:60], goal=goal, status="drafting", created=ctx.clock())
     old = store.meta(subject)

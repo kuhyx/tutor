@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any
 
 from tutor import sources
 from tutor.curriculum import modelcall, wiki
-from tutor.curriculum.eventlog import EventLog
-from tutor.curriculum.fold import Fold, fold
+from tutor.curriculum.eventlog import EventLog, archived_subjects
+from tutor.curriculum.fold import Fold, fold, without
 from tutor.curriculum.ids import device_id
 from tutor.curriculum.subject_store import SubjectStore
 
@@ -61,5 +61,10 @@ class Context:
         return EventLog(self.data_dir)
 
     def fold(self) -> Fold:
-        """The fold of the whole local log."""
-        return fold(self.log.read())
+        """The fold of the whole local log, archived subjects masked out."""
+        events = self.log.read()
+        return without(fold(events), archived_subjects(events))
+
+    def archived(self) -> set[str]:
+        """Subjects archived now (``subject_archive``, not undone)."""
+        return archived_subjects(self.log.read())
