@@ -106,6 +106,29 @@ def test_home_pick_of_an_archived_subject_is_ignored(tmp_path: Path) -> None:
     run(eng, script)
 
 
+def test_continue_never_resumes_an_archived_subjects_session(tmp_path: Path) -> None:
+    eng, _ = engine(tmp_path, turn("Q1?"))
+    _car(tmp_path / "data")
+
+    async def script(rig: Rig) -> None:
+        got = await rig.send("session_start", {"subject": "car", "card": None})
+        assert got["ok"], got  # live and unstopped on car
+        sid = eng.session_id
+        archive.subject_archive({"subject": "car"}, eng.ctx)
+        rig.fake.set(PICK, "car")
+        for name in (None, "car"):
+            body = {"subject": name, "card": None, "resume": True}
+            got = await rig.send("session_start", body)
+            assert (got["ok"], got["code"]) == (False, "no_card_left")
+        assert eng.session_id == sid  # nothing new started
+
+    run(eng, script)
+    # A restart does not pick it back up either.
+    again, _ = engine(tmp_path)
+    assert not again.resume_latest()
+    assert again.source.subject == "automation"
+
+
 def test_a_module_queued_before_archiving_is_not_generated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

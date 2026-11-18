@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from tutor import __main__ as tutor_main
-from tutor.curriculum import archive, plan_ops
+from tutor.curriculum import archive, plan_ops, regen
 from tutor.curriculum.advance import fold_and_advance, pending
 from tutor.curriculum.archive import subject_event
 from tutor.curriculum.errors import RequestError
@@ -213,3 +213,14 @@ def test_cli_archives_and_unarchives(
     assert ctx.archived() == set()
     assert tutor_main.main(["subject", "archive", "nope", *data]) == 2
     assert "refused: unknown subject" in capsys.readouterr().out
+
+
+def test_regenerate_refuses_an_archived_subject(tmp_path: Path) -> None:
+    # Its masked fold has no taught cards: a repair would judge them all.
+    ctx, _ = make_ctx(tmp_path)
+    _car(ctx)
+    archive.subject_archive({"subject": "car"}, ctx)
+    with pytest.raises(RequestError) as err:
+        regen.regenerate(ctx, "car", "a")
+    assert err.value.code == "bad_request"
+    assert "archived" in err.value.message

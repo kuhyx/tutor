@@ -143,6 +143,8 @@ class CardFlow:
         No subject: the live one. Raises ``RequestError`` for an unknown subject.
         """
         src = self._source_for(subject)
+        if src.subject in self.ctx.archived():  # never: the start's pick refuses
+            return False
         if self._conv is not None and src.subject == self.source.subject:
             return True
         found = continuing.open_session(
