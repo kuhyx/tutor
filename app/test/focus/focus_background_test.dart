@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/focus/checkin_notifier.dart';
 import 'package:tutor/focus/event_queue.dart';
@@ -15,6 +16,7 @@ class _Notifier extends NoopCheckinNotifier {
 }
 
 void main() {
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
   const min = 60000;
   const grace = Duration(milliseconds: 80);
   late MemoryKv kv;
@@ -137,6 +139,30 @@ void main() {
     await t.leftForeground();
     await pastGrace();
     expect(sent.last, 'stop@${1001 * min}');
+    t.dispose();
+  });
+
+  test('watchLifecycle: hide holds, show drops, detach ends', () async {
+    final t = open()
+      ..watchLifecycle()
+      ..watchLifecycle(); // a second call keeps the one listener
+    await t.start();
+    Future<void> go(AppLifecycleState s) async {
+      binding.handleAppLifecycleStateChanged(s);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
+    await go(AppLifecycleState.inactive);
+    await go(AppLifecycleState.hidden);
+    expect((await queue.pending()).last.event, 'stop');
+    await go(AppLifecycleState.inactive); // shown again
+    expect(t.isRunning, isTrue);
+    final events = (await queue.pending()).map((e) => e.event);
+    expect(events, isNot(contains('stop')));
+    await go(AppLifecycleState.hidden);
+    await go(AppLifecycleState.paused);
+    await go(AppLifecycleState.detached);
+    expect(t.isRunning, isFalse);
     t.dispose();
   });
 }

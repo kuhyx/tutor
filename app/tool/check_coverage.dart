@@ -23,10 +23,13 @@ void main(List<String> args) {
   exitCode = gaps.isEmpty ? 0 : 1;
 }
 
-/// Whether [path] is held to 100%.
+/// Whether [path] is held to 100%. Generated gen-l10n output is not: its
+/// strings are exercised through the UI and its locale-lookup throw is
+/// generator boilerplate.
 bool isLogic(String path) =>
     path.startsWith('lib/') &&
     !path.startsWith('lib/ui/') &&
+    !path.startsWith('lib/l10n/gen/') &&
     path != 'lib/main.dart';
 
 /// Uncovered, non-exempt line numbers per logic file.

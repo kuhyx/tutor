@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/focus/android_checkin_notifier.dart';
@@ -109,5 +110,13 @@ void main() {
       platformCheckinNotifier(isAndroid: true),
       isA<AndroidCheckinNotifier>(),
     );
+  });
+
+  test('platformCheckinNotifier reads the host platform by default', () {
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    expect(platformCheckinNotifier(), isA<NoopCheckinNotifier>());
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    expect(platformCheckinNotifier(), isA<AndroidCheckinNotifier>());
   });
 }

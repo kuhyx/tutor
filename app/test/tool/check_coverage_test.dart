@@ -35,6 +35,8 @@ void main() {
     expect(isLogic('lib/log/fold.dart'), isTrue);
     expect(isLogic('lib/ui/home.dart'), isFalse);
     expect(isLogic('lib/main.dart'), isFalse);
+    expect(isLogic('lib/l10n/gen/app_localizations.dart'), isFalse);
+    expect(isLogic('lib/l10n/strings.dart'), isTrue);
     expect(isLogic('tool/x.dart'), isFalse);
   });
 }

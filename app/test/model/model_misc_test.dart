@@ -228,6 +228,12 @@ void main() {
       expect(all.last.body['done'], isTrue);
     });
 
+    test('focus_end names the project', () {
+      final b = RequestBody.focusEnd('hr');
+      expect(b.kind, RequestKind.focusEnd);
+      expect(b.body, {'id': 'hr'});
+    });
+
     test('oversize text is refused before sending', () {
       expect(() => RequestBody.subjectNew('x' * 2001), throwsArgumentError);
       expect(() => RequestBody.message('s', 'x' * 8001), throwsArgumentError);
