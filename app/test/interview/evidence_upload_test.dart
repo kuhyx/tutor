@@ -112,6 +112,10 @@ void main() {
     expect(ref.sha256, sha256.convert(small).toString());
   });
 
+  test('a refusal prints its reason', () {
+    expect(const UploadRefused('why').toString(), 'UploadRefused: why');
+  });
+
   test('not an image: refused before any write', () {
     expect(
       uploader().upload(Uint8List.fromList(utf8.encode('hello world!'))),

@@ -20,6 +20,13 @@ void main() {
     queue = open();
   });
 
+  test('the default clock and ulid stamp events with the wall time', () async {
+    final before = DateTime.now().millisecondsSinceEpoch;
+    final e = await FocusEventQueue(MemoryKv()).enqueue('start');
+    expect(e.ts, greaterThanOrEqualTo(before));
+    expect(e.rid, hasLength(26));
+  });
+
   test('enqueue keeps the tap time and mints a rid at tap time', () async {
     final a = await queue.enqueue('start');
     clock = 5000;

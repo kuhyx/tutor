@@ -72,6 +72,19 @@ void main() {
     expect(find.byKey(const ValueKey('interview-error')), findsOneWidget);
   });
 
+  testWidgets('rules: a failed chunk upload is shown, nothing requested', (
+    t,
+  ) async {
+    await h.open(t, interviewProject());
+    final before = lastRequest(h.db).$1;
+    h.db.offline = true;
+    await t.tap(h.key('rules'));
+    await sent(t);
+    h.db.offline = false;
+    expect(lastRequest(h.db).$1, before);
+    expect(find.byKey(const ValueKey('interview-error')), findsOneWidget);
+  });
+
   testWidgets('a done milestone is not re-asked', (t) async {
     await h.open(
       t,
