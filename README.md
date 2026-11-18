@@ -61,6 +61,14 @@ the host before each turn. Each turn has 90 s of tool time; later calls are
 refused and the tutor answers with what it has. Card generation, drills and
 the other model calls keep no tools (`session.isolated_options`).
 
+A sandbox that will not start (the wrapper or the fence names itself on the
+CLI's stderr, `tutor_model_netfence: ...`) is filed on the shared app-errors
+board (`tutor/model_fault.py`: spool `~/.local/state/app-errors-spool/tutor.jsonl`,
+kind `model.sandbox`, repo `kuhyx/tutor`) and shows one icon-only critical
+`notify-send` toast (restart icon, no words) per failure streak, until a model
+call succeeds again. Every other model failure is filed as `model.error`, no
+toast; API outages are not filed.
+
 ## Agent E2E
 
 `scripts/e2e_sandbox.sh` lets an agent click through the real web app

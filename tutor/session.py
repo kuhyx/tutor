@@ -23,7 +23,7 @@ from claude_agent_sdk import (
     SystemMessage,
 )
 
-from tutor import outage
+from tutor import model_fault, outage
 from tutor.futures import settle
 from tutor.models import TURN_SCHEMA, TurnError, TutorTurn
 from tutor.store import data_dir
@@ -63,10 +63,7 @@ def isolated_options(
     cwd: Path | None = None,
     effort: Effort = "medium",
 ) -> ClaudeAgentOptions:
-    """Options with no user/project settings, tools, hooks, MCP or skills.
-
-    ``structured`` asks for a :data:`TURN_SCHEMA` object; off for free text.
-    """
+    """No user/project settings, tools, hooks, MCP or skills; ``structured``: a turn."""
     cwd = cwd or sandbox_dir()
     cwd.mkdir(parents=True, exist_ok=True)
     return ClaudeAgentOptions(
@@ -135,8 +132,8 @@ class TutorSession:
     """A multi-turn conversation owned by one background task."""
 
     def __init__(self, options: ClaudeAgentOptions) -> None:
-        """Remember the options; nothing is spawned until :meth:`ask`."""
-        self._options = options
+        """Remember the options (stderr watched); nothing spawns until :meth:`ask`."""
+        self._options = replace(options, stderr=model_fault.watch(options.stderr))
         self._queue: asyncio.Queue[_Item | None] = asyncio.Queue()
         self._task: asyncio.Task[None] | None = None
         self._inflight: asyncio.Future[Reply] | None = None
@@ -218,23 +215,25 @@ class TutorSession:
                     return  # a clean close with nobody waiting
                 err = SessionError("the model session closed before replying")
             _logger.error("model process ended: %r; failing %d", err, len(waiting))
+            model_fault.MONITOR.failed(err)
         for fut in waiting:
             settle(fut, err)
 
     async def _serve(self, client: ClaudeSDKClient, item: _Item) -> None:
         """One model call; a failed turn is relayed and the process kept.
 
-        Only an error result (:class:`SessionError`) or an outage (retried once)
-        is caught: the whole turn was read, so the stream is clean. Anything
-        else (the CLI died, a line would not parse) ends :meth:`_run`.
+        Only an error result or an outage (retried once) is caught: the turn
+        was read whole, the stream is clean. Anything else ends :meth:`_run`.
         """
         prompt, fut, on_trace = item
         try:
             reply = await outage.retrying(lambda: _once(client, prompt, on_trace))
         except (SessionError, outage.ClaudeUnavailableError) as err:
             _logger.warning("model turn failed; relayed to the caller: %s", err)
+            model_fault.MONITOR.failed(err)
             settle(fut, err)
             return
+        model_fault.MONITOR.succeeded()
         if reply.init:
             self.last_init = reply.init
         if not fut.done():  # the caller may have timed out meanwhile
