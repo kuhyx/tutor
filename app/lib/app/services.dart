@@ -51,6 +51,7 @@ class TutorServices {
     required this.history,
     required this.feedback,
     this.checkinNotifier = const NoopCheckinNotifier(),
+    this.recoverPassphrase,
   });
 
   /// Opens the platform stores and builds every service. Tests inject
@@ -119,6 +120,9 @@ class TutorServices {
       history: HistoryRepo(client),
       feedback: FeedbackSender(client: client, dev: dev, ulid: ulid),
       checkinNotifier: checkinNotifier ?? const NoopCheckinNotifier(),
+      recoverPassphrase: wrapperBase == null
+          ? null
+          : () => fetchWrapperPassphrase(base: wrapperBase, client: web),
     );
   }
 
@@ -138,7 +142,11 @@ class TutorServices {
   final RtdbClient client;
 
   /// The e2e key of [client] (DOCS-contract §12).
-  late final E2eGate e2e = E2eGate(client: client);
+  late final E2eGate e2e = E2eGate(client: client, recover: recoverPassphrase);
+
+  /// The desktop's PC wrapper hands over a missing or wrong e2e passphrase
+  /// (`/app/sync-passphrase`); null on the phone, which has no wrapper.
+  final Future<String?> Function()? recoverPassphrase;
 
   /// SSE transport.
   final RtdbStream stream;

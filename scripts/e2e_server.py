@@ -34,6 +34,7 @@ from urllib.parse import urlsplit
 from e2e_key import SANDBOX_ARGON, SANDBOX_PASSPHRASE
 import uvicorn
 
+from tutor import webapp
 from tutor.engine import Engine
 from tutor.relay import cli, config, e2e, phases
 from tutor.relay.context import Wiring
@@ -105,6 +106,18 @@ def check_sandbox(data: Path, port: int) -> None:
     if not (data / "device_id").is_file():
         msg = f"{data} has no device_id: run scripts/e2e_prepare.py first"
         raise SystemExit(msg)
+
+
+def isolate_secrets(sandbox: Path) -> None:
+    """Point the web app's one-shot routes at sandbox files, never ~/.config.
+
+    ``/app/sync-passphrase`` serves the sandbox passphrase (F17); the
+    sign-in route finds no session file. Set before ``create_app`` reads them.
+    """
+    secret = sandbox / "crdt-password"
+    secret.write_text(SANDBOX_PASSPHRASE, encoding="utf-8")
+    os.environ[webapp.CRDT_SYNC_FILE_ENV] = str(secret)
+    os.environ[webapp.CREDENTIALS_ENV] = str(sandbox / "no-firebase-auth.json")
 
 
 async def seed(db: str, subject: str | None) -> None:
@@ -186,6 +199,7 @@ def main() -> int:
     args = parser.parse_args()
     data = Path(os.environ.get("TUTOR_DATA", REAL_DATA))
     check_sandbox(data, args.port)
+    isolate_secrets(data.parent)
     asyncio.run(seed(args.db, args.subject))
     serve(args.db, args.port, data.parent / "prompts.jsonl")
     return 0

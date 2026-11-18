@@ -3,4 +3,9 @@
 library;
 
 export 'package:rtdb_relay/rtdb_relay.dart'
-    show adoptWrapperCredentials, kSyncCredentialsRoute, uidOfIdToken;
+    show
+        adoptWrapperCredentials,
+        fetchWrapperPassphrase,
+        kSyncCredentialsRoute,
+        kSyncPassphraseRoute,
+        uidOfIdToken;

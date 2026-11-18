@@ -2,8 +2,12 @@
 // request relay) pointed at a local Firebase RTDB emulator instead of the
 // real database, with a throwaway session (an unsigned JWT: the emulator
 // streams only for a parseable token; its rules are open) and an in-memory
-// store. Never the compiled config, never the
-// wrapper's /app/sync-credentials.
+// store. Never the compiled config; never the
+// wrapper's /app/sync-credentials (the store holds a session already).
+//
+// `?nokey=1` (F17) starts with an empty keystore and the page's own server as
+// the wrapper, so the e2e key must come from `/app/sync-passphrase` (the
+// sandbox passphrase there, scripts/e2e_server.py).
 //
 // `?db=http://127.0.0.1:<port>` names the emulator (required; only a
 // loopback URL is accepted). Plain HTTP/1.1, as the real database answers:
@@ -18,7 +22,7 @@ import 'dart:convert';
 import 'package:crdt_sync/crdt_sync.dart'
     show FirebaseCredentials, InMemoryCredentialStore;
 import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
-    show saveE2ePassphrase;
+    show clearE2ePassphrase, saveE2ePassphrase;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tutor/app/services.dart';
@@ -68,8 +72,13 @@ void main() {
     syncUid: 'e2e',
     serverClientId: '',
   );
+  final keyless = Uri.base.queryParameters['nokey'] == '1';
   Future<TutorServices> open() async {
-    await saveE2ePassphrase(_sandboxPassphrase);
+    if (keyless) {
+      await clearE2ePassphrase();
+    } else {
+      await saveE2ePassphrase(_sandboxPassphrase);
+    }
     final store = InMemoryCredentialStore();
     await store.save(
       FirebaseCredentials(
@@ -82,6 +91,7 @@ void main() {
       config,
       store: store,
       kv: MemoryKv(),
+      wrapperBase: keyless ? Uri.base : null,
       // The desktop build's browser notification (scripts/e2e_focus.py).
       checkinNotifier: createWebCheckinNotifier(),
     );

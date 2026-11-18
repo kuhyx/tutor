@@ -102,11 +102,11 @@ packages:
     dependency: "direct main"
     description:
       path: crdt_sync_flutter
-      ref: "crdt_sync_flutter-v0.8.2"
-      resolved-ref: "1962d303336dfe260850466b8ee841033b9ad1ce"
+      ref: "crdt_sync_flutter-v0.9.1"
+      resolved-ref: "48dc28ad97b97c787aba4479c3ce51aade6e86b5"
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.8.2"
+    version: "0.9.1"
   cross_file:
     dependency: transitive
     description:
@@ -461,10 +461,10 @@ packages:
     dependency: transitive
     description:
       name: material_ui
-      sha256: "474c135fd46b56ff1d35ca982155e8863d28fbc6464d1192acf4ee53a738680e"
+      sha256: a6b19012df437a356cbc01f8ea22a105e07194c47c9a6009da0032a0ce35c4ab
       url: "https://pub.dev"
     source: hosted
-    version: "1.11.0"
+    version: "1.11.1"
   meta:
     dependency: transitive
     description:
@@ -489,6 +489,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  package_info_plus:
+    dependency: transitive
+    description:
+      name: package_info_plus
+      sha256: "73ef2cd5c11a7548f9b7f6fc2a4f6113de2e64aa2a70de63feede95548822908"
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.2.2"
+  package_info_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: package_info_plus_platform_interface
+      sha256: db762cb2f4f25ee60fb6359773861b0f199e00b90d237bd85a76a1e806b46ef4
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   path:
     dependency: transitive
     description:
@@ -605,11 +621,11 @@ packages:
     dependency: "direct main"
     description:
       path: "rtdb_relay/dart"
-      ref: "rtdb-relay-v0.2.0"
-      resolved-ref: f304eadc53a7a7113c5cef6af21ba0de25d490be
+      ref: "rtdb-relay-v0.2.1"
+      resolved-ref: d36826e2b5f41f9aa2ec0459a3bd5e1d08563858
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.2.0"
+    version: "0.2.1"
   sembast:
     dependency: transitive
     description:

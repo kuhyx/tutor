@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The Flutter web client at ``/app/`` and its one-shot sign-in route.
+"""The Flutter web client at ``/app/`` and its one-shot sign-in routes.
 
 The desktop app is this page in a Chrome ``--app`` window. The page cannot
 run Google sign-in programmatically, and nothing outside the Chrome profile
@@ -9,6 +9,11 @@ crdt-sync's ``link_google.py``) ONCE per server process; the page keeps it
 from then on. It answers 404 once served, when the file is missing or
 malformed, and to anything that is not a same-origin request on localhost
 (a probe cannot tell which case it hit).
+
+``/app/sync-passphrase`` does the same for the e2e key: the page asks for it
+only while it is locked (no, or a wrong, crdt-sync password in its storage)
+and gets this PC's ``~/.config/crdt-sync/password``, once per server process,
+under the same refusals.
 """
 
 from __future__ import annotations
@@ -29,15 +34,21 @@ from starlette.responses import (
 from starlette.routing import BaseRoute, Mount, Route
 from starlette.staticfiles import StaticFiles
 
+from tutor.relay.config import password_file, read_passphrase
+
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
     from os import PathLike
 
     from starlette.requests import Request
     from starlette.types import Receive, Scope, Send
 
 _logger = logging.getLogger(__name__)
+type Endpoint = Callable[[Request], Awaitable[Response]]
 WEB_DIR_ENV: Final = "TUTOR_WEBAPP_DIR"
 CREDENTIALS_ENV: Final = "TUTOR_FIREBASE_AUTH"
+# The sandbox points this at its own passphrase, never the PC's real one.
+CRDT_SYNC_FILE_ENV: Final = "TUTOR_CRDT_PASSWORD"
 # The build output: the repo's, or the copy tutor_deploy.sh puts in each release.
 DEFAULT_WEB_DIR: Final = Path(__file__).resolve().parents[1] / "app" / "build" / "web"
 _FIELDS: Final = ("id_token", "refresh_token", "expires_at")
@@ -63,6 +74,12 @@ def credentials_from_env() -> Path:
     return (
         Path(raw) if raw else Path.home() / ".config" / "tutor" / "firebase_auth.json"
     )
+
+
+def passphrase_from_env() -> Path:
+    """The crdt-sync password file (``$TUTOR_CRDT_PASSWORD`` or ~/.config)."""
+    raw = os.environ.get(CRDT_SYNC_FILE_ENV, "")
+    return Path(raw) if raw else password_file()
 
 
 def paths_from_env() -> tuple[Path, Path]:
@@ -121,28 +138,45 @@ def _same_origin_local(request: Request) -> bool:
     return host in _LOCAL_HOSTS and site in {"same-origin", "none"}
 
 
-def webapp_routes(web_dir: Path, credentials: Path) -> list[BaseRoute]:
-    """``/app`` -> ``/app/``, the one-shot credentials route, the build."""
+def _once(read: Callable[[], dict[str, str] | None]) -> Endpoint:
+    """A route serving ``read()`` to the local page once; 404 otherwise.
+
+    A refused request does not burn the one serve.
+    """
     served = False
 
-    async def sync_credentials(request: Request) -> Response:
+    async def endpoint(request: Request) -> Response:
         nonlocal served
-        body = (
-            None
-            if served or not _same_origin_local(request)
-            else read_credentials(credentials)
-        )
+        body = None if served or not _same_origin_local(request) else read()
         if body is None:
             return Response(status_code=404)
         served = True
         return JSONResponse(body, headers={"Cache-Control": "no-store"})
+
+    return endpoint
+
+
+def _passphrase_body(path: Path) -> dict[str, str] | None:
+    secret = read_passphrase(path)
+    return {"passphrase": secret} if secret else None
+
+
+def webapp_routes(
+    web_dir: Path, credentials: Path, passphrase: Path | None = None
+) -> list[BaseRoute]:
+    """``/app`` -> ``/app/``, the one-shot sign-in routes, the build.
+
+    ``passphrase`` defaults to :func:`passphrase_from_env`, resolved now.
+    """
+    secret = passphrase if passphrase is not None else passphrase_from_env()
 
     async def to_slash(_: Request) -> Response:
         return RedirectResponse("/app/", status_code=308)
 
     return [
         Route("/app", to_slash),
-        Route("/app/sync-credentials", sync_credentials),
+        Route("/app/sync-credentials", _once(lambda: read_credentials(credentials))),
+        Route("/app/sync-passphrase", _once(lambda: _passphrase_body(secret))),
         Mount("/app", app=_WebApp(web_dir)),
     ]
 

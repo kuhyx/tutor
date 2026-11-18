@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from starlette.applications import Starlette
@@ -15,8 +16,6 @@ from tutor.server import create_app
 from tutor.tests._fakes import BASE_URL
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     import pytest
 
 CREDS = {
@@ -94,6 +93,55 @@ def test_credentials_refused(tmp_path: Path) -> None:
     # Refusals did not burn the one serve.
     typed = missing.get("/app/sync-credentials", headers={"sec-fetch-site": "none"})
     assert typed.status_code == 200
+
+
+def _pass_client(
+    tmp_path: Path, secret: Path, host: str = "127.0.0.1:8778"
+) -> TestClient:
+    routes = webapp.webapp_routes(tmp_path / "web", tmp_path / "none.json", secret)
+    return TestClient(Starlette(routes=routes), base_url=f"http://{host}")
+
+
+def test_passphrase_served_once(tmp_path: Path) -> None:
+    secret = tmp_path / "password"
+    secret.write_text("hunter2\n", encoding="utf-8")
+    client = _pass_client(tmp_path, secret)
+    first = client.get("/app/sync-passphrase")
+    assert first.status_code == 200
+    assert first.json() == {"passphrase": "hunter2"}
+    assert first.headers["cache-control"] == "no-store"
+    assert client.get("/app/sync-passphrase").status_code == 404
+
+
+def test_passphrase_refused(tmp_path: Path) -> None:
+    secret = tmp_path / "password"
+    client = _pass_client(tmp_path, secret)
+    assert client.get("/app/sync-passphrase").status_code == 404
+    secret.write_text("  \n", encoding="utf-8")
+    assert client.get("/app/sync-passphrase").status_code == 404
+    secret.write_text("hunter2", encoding="utf-8")
+    cross = client.get("/app/sync-passphrase", headers={"sec-fetch-site": "cross-site"})
+    assert cross.status_code == 404
+    rebound = _pass_client(tmp_path, secret, host="evil.example")
+    assert rebound.get("/app/sync-passphrase").status_code == 404
+    # Refusals did not burn the one serve.
+    assert client.get("/app/sync-passphrase").json() == {"passphrase": "hunter2"}
+
+
+def test_passphrase_defaults_to_crdt_sync_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv(webapp.CRDT_SYNC_FILE_ENV, raising=False)
+    secret = Path.home() / ".config" / "crdt-sync" / "password"
+    secret.parent.mkdir(parents=True, exist_ok=True)
+    secret.write_text("pc-secret", encoding="utf-8")
+    client = TestClient(
+        Starlette(routes=webapp.webapp_routes(tmp_path, tmp_path / "none.json")),
+        base_url="http://127.0.0.1:8778",
+    )
+    assert client.get("/app/sync-passphrase").json() == {"passphrase": "pc-secret"}
+    monkeypatch.setenv(webapp.CRDT_SYNC_FILE_ENV, str(tmp_path / "sandbox"))
+    assert webapp.passphrase_from_env() == tmp_path / "sandbox"
 
 
 def test_paths_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

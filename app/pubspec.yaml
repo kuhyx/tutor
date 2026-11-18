@@ -23,7 +23,7 @@ dependencies:
   crdt_sync_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_flutter-v0.8.2
+      ref: crdt_sync_flutter-v0.9.1
       path: crdt_sync_flutter
   # Chunked screenshot upload: sha256 of the decoded bytes (focus_evidence).
   crypto: 3.0.8
@@ -58,7 +58,7 @@ dependencies:
   rtdb_relay:
     git:
       url: https://github.com/kuhyx/utils
-      ref: rtdb-relay-v0.2.0
+      ref: rtdb-relay-v0.2.1
       path: rtdb_relay/dart
   shared_preferences: 2.5.6
   # Source links and picture attribution open in the browser.

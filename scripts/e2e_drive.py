@@ -16,17 +16,10 @@ Exit 0 = PASS.
 * F5 help on a struggling card (``e2e_struggle.py``; phased like F1).
 * F6 the carry-over bank (``e2e_carry.py``): ``check``, then ``again`` after
   ``e2e_sandbox.sh restart``.
-* F7 the desktop Focus screen (``e2e_focus.py``): one call.
-* F8 the focus deep link ``#/focus?start=1`` (``e2e_focus.py``): one call.
-* F9, F10 the focus check-in card (``e2e_checkin.py``): one call each.
-* F15 an interview project's milestone icon row (``e2e_interview.py``): one call;
-  ``send`` only creates it, ``check`` only asserts.
-* F12 a forced ``no_card_left`` drawn by its result ``kind``
-  (``e2e_blocked.py``, sandbox ``up --nocard due|review``): one call.
-* F13 outage codes and glyphs (``e2e_codes.py``): one reason per call.
-* F14 real failures and their codes (``e2e_failures.py``): one phase per call.
-* F16 every code, no-card state, pause and phase glyph, the worker held
-  (``e2e_glyphs.py``): one phase per call after ``e2e_sandbox.sh hold``.
+* F7-F17, one module each: ``e2e_focus`` (F7, F8), ``e2e_checkin`` (F9,
+  F10), ``e2e_unbacked`` (F11), ``e2e_blocked`` (F12), ``e2e_codes`` (F13),
+  ``e2e_failures`` (F14), ``e2e_interview`` (F15), ``e2e_glyphs`` (F16),
+  ``e2e_keyless`` (F17); each docstring says what it checks and its calls.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -59,6 +52,7 @@ from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
 from e2e_glyphs import PHASES as F16_PHASES
 from e2e_glyphs import f16
 from e2e_interview import f15
+from e2e_keyless import f17
 from e2e_struggle import f5_check, f5_send
 from e2e_unbacked import f11
 
@@ -124,7 +118,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
 }
-FLOWS = [f"F{n}" for n in range(1, 17)]  # F1..F16
+FLOWS = [f"F{n}" for n in range(1, 18)]  # F1..F17
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -136,6 +130,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F14": f14,
     "F15": f15,
     "F16": f16,
+    "F17": f17,
 }
 
 

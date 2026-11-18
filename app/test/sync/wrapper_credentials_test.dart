@@ -93,4 +93,36 @@ void main() {
     expect(s.history.client, same(s.client));
     expect(s.feedback.dev, s.dev);
   });
+
+  test(
+    'services: only the desktop recovers the passphrase from the PC',
+    () async {
+      const config = FirebaseConfig(
+        apiKey: 'k',
+        databaseUrl: 'https://db',
+        syncUid: 'u',
+        serverClientId: '',
+      );
+      final desktop = await TutorServices.open(
+        config,
+        store: InMemoryCredentialStore(),
+        kv: MemoryKv(),
+        wrapperBase: base,
+        httpClient: MockClient((r) async {
+          if (r.url.path == '/app/sync-passphrase') {
+            return http.Response(jsonEncode({'passphrase': 'pc'}), 200);
+          }
+          return http.Response('', 404);
+        }),
+      );
+      expect(await desktop.e2e.recover!(), 'pc');
+      final phone = await TutorServices.open(
+        config,
+        store: InMemoryCredentialStore(),
+        kv: MemoryKv(),
+        httpClient: MockClient((_) async => http.Response('', 404)),
+      );
+      expect(phone.e2e.recover, isNull);
+    },
+  );
 }
