@@ -172,3 +172,31 @@ def test_a_split_child_is_exempt_from_the_new_cap(car: tuple[Context, Fakes]) ->
     assert rules.pick(view, ctx.fold(), None, T0 + 10) == ids[0]  # 1 new today
     with pytest.raises(ValueError, match="daily"):
         rules.pick(view, ctx.fold(), "a2", T0 + 10)
+
+
+def test_a_two_word_hint_quotes_its_sentence(car: tuple[Context, Fakes]) -> None:
+    """A hint like "storage limitation" has two content words: still enough.
+
+    Live 2026-11-18: a two-part split whose quotes were two-word terms was
+    refused ("no sentence ... supports that answer"), so the card stayed.
+    """
+    ctx, _ = car
+    part = card_split.Part(
+        "Which engine part slides in the cylinder?",
+        "The piston.",
+        PISTON,
+        "reciprocating engines",
+    )
+    rec, ids = card_split.split(ctx, "car", "a1", [part, SLIDES])
+    assert len(ids) == 2
+    assert "reciprocating engines" in ctx.subjects.cards("car")[ids[0]].excerpt
+    assert rec.suspended
+
+
+def test_a_one_word_hint_still_supports_nothing(car: tuple[Context, Fakes]) -> None:
+    ctx, _ = car
+    part = card_split.Part("Which part?", "The piston.", PISTON, "piston")
+    assert (
+        "supports"
+        in refused(lambda: card_split.split(ctx, "car", "a1", [part, SLIDES])).message
+    )

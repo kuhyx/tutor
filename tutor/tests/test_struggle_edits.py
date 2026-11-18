@@ -74,3 +74,35 @@ def test_the_session_moves_on_to_the_first_half(
     assert cards[engine.card.id].split_of == "c0"
     assert engine.messages[0]["notices"] == ["Card split into 2: What is thing 0 of a?"]
     assert engine.messages[0]["notice_kinds"] == ["split"]
+
+
+def test_a_split_with_two_word_quotes_moves_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Live 2026-11-18: the quotes were two-word terms; the split was refused.
+
+    The real quote picker runs (only the page and the final excerpt check are
+    faked), and the session ends on the split's first half, not the old card.
+    """
+    _car(tmp_path)
+    page = (
+        "A piston is a component of reciprocating engines. It slides up and "
+        "down inside the cylinder, pushed by the expanding gas of the fuel."
+    )
+    monkeypatch.setattr(card_ops, "_page", lambda *_a: page)
+    monkeypatch.setattr(card_rules, "source_problem", lambda *_a: None)
+    into = (
+        SplitPart(KIND_F, KIND_B, PISTON, "reciprocating engines"),
+        SplitPart(FRONT, BACK, PISTON, "expanding gas"),
+    )
+    fake = FakeSession(
+        turn("What do you remember of thing 0?"),
+        turn("Splitting it.", card_edits=(CardEdit("split", into=into),)),
+        turn("First half: what kind of engine has a piston?"),
+    )
+    engine = _engine(tmp_path, fake)
+    asyncio.run(engine.start(subject="car"))
+    asyncio.run(engine.reply("split it please"))
+    assert engine.ctx.subjects.cards("car")["c0"].suspended
+    assert engine.card is not None
+    assert engine.card.id == "what-kind-of-engine-has-a-piston"

@@ -21,6 +21,9 @@ MAX_WORDS: Final = 40
 # An excerpt must share this many of the answer's content words (and at
 # least a third of them), or nothing on the page is taken to support it.
 MIN_SHARED: Final = 3
+# A short hint ("storage limitation") cannot share three words; it needs all
+# of its own, but never fewer than this.
+MIN_HINT: Final = 2
 _MIN_LEN: Final = 3  # shorter words never count
 _SENTENCE: Final = re.compile(r"(?<=[.!?])\s+")
 _FOOTNOTE: Final = re.compile(r"\[\s*(?:\d+|[a-z]|citation needed|note \d+)\s*\]")
@@ -97,9 +100,12 @@ def supporting(text: str, back: str, front: str = "", hint: str = "") -> str | N
     tutor expects in the sentence (in the page's language: a card in another
     language shares no word with it), replaces the answer's words.
     """
-    answer = content_words(hint) or content_words(back)
+    hinted = content_words(hint)
+    answer = hinted or content_words(back)
     question = content_words(f"{front} {back}")
     need = max(MIN_SHARED, math.ceil(len(answer) / 3))
+    if hinted:  # the tutor named the words: a two-word term is enough
+        need = max(MIN_HINT, min(need, len(answer)))
     best: tuple[int, int] = (0, 0)
     chosen = None
     flat = " ".join(_FOOTNOTE.sub("", text).split())

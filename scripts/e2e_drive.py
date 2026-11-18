@@ -19,7 +19,8 @@ Exit 0 = PASS.
 * F7-F17, one module each: ``e2e_focus`` (F7, F8), ``e2e_checkin`` (F9,
   F10), ``e2e_unbacked`` (F11), ``e2e_blocked`` (F12), ``e2e_codes`` (F13),
   ``e2e_failures`` (F14), ``e2e_interview`` (F15), ``e2e_glyphs`` (F16),
-  ``e2e_keyless`` (F17); each docstring says what it checks and its calls.
+  ``e2e_keyless`` (F17), ``e2e_split`` (F18); each docstring says what it
+  checks and its calls.
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -53,6 +54,7 @@ from e2e_glyphs import PHASES as F16_PHASES
 from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_keyless import f17
+from e2e_split import f18_check, f18_send
 from e2e_struggle import f5_check, f5_send
 from e2e_unbacked import f11
 
@@ -117,8 +119,9 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F3": (f3_send, f3_check),
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
+    "F18": (f18_send, f18_check),
 }
-FLOWS = [f"F{n}" for n in range(1, 18)]  # F1..F17
+FLOWS = [f"F{n}" for n in range(1, 19)]  # F1..F18
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
