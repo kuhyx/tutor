@@ -183,7 +183,9 @@ def run(only: int | None, *, full: bool = False) -> int:
         return 0
     state = _load(tree, files, todo)
     code = _work(tree, state, only, full=full)
-    if code or not _coverage_ok(tree, state.sources):
+    # Only tests changed: nothing to cover (pytest_changed's inline path agrees).
+    covered = not state.full and not state.sources
+    if code or not (covered or _coverage_ok(tree, state.sources)):
         return code or 1
     info = {"full": state.full, "files": files, "chunks": len(state.chunks)}
     store.write_stamp(tree, info)

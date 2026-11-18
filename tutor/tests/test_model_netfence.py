@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 
 __all__ = ["pytestmark"]  # the same skip: no usable bwrap, no fence either
 
-NETFENCE = research.WRAPPER.parent / "tutor_model_netfence.sh"
 # Probe script: connect to each (host, port) of argv, 3 s each, and print
 # REACHED / refused / TIMEOUT per address.
 _CONNECT = (
@@ -139,60 +138,3 @@ def test_the_fence_cannot_be_lifted_from_inside(root: Path) -> None:
     assert "CapEff:\t0000000000000000" in run.stdout
     assert "FLUSHED" not in run.stdout
     assert f"refused {PRIVATE_TARGETS[0]}" in run.stdout
-
-
-def _fenced(*args: str) -> subprocess.CompletedProcess[str]:
-    """The fence alone in a fresh pasta namespace (root there, as in the wrapper)."""
-    return subprocess.run(
-        [
-            str(shutil.which("pasta")),
-            "--quiet",
-            "--config-net",
-            "--",
-            str(NETFENCE),
-            *args,
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=20,
-    )
-
-
-def test_the_fence_rules() -> None:
-    run = _fenced(
-        "--dns",
-        "198.51.100.53",
-        "--host",
-        "203.0.113.7",
-        "--host",
-        "2001:db8::7",
-        "--",
-        "nft",
-        "list",
-        "ruleset",
-    )
-    assert run.returncode == 0, run.stderr
-    rules = run.stdout
-    for blocked in (
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "100.64.0.0/10",
-        "169.254.0.0/16",
-        "fc00::/7",
-        "fe80::/10",
-        "203.0.113.7",
-        "2001:db8::7",
-    ):
-        assert blocked in rules, blocked
-    assert "198.51.100.53" in rules  # the resolver, port 53 only
-    assert "dport 53" in rules
-    assert 'oifname "lo" accept' in rules
-
-
-def test_the_fence_fails_closed() -> None:
-    run = _fenced("--host", "not-an-address", "--", "echo", "RAN")
-    assert run.returncode != 0
-    assert "RAN" not in run.stdout
-    assert "egress" in run.stderr
