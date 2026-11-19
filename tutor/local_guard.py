@@ -29,6 +29,8 @@ from starlette.responses import PlainTextResponse
 if TYPE_CHECKING:
     from starlette.types import ASGIApp, Receive, Scope, Send
 
+    from tutor.device_gate import PublicGate
+
 _SAFE_METHODS: Final = frozenset({"GET", "HEAD", "OPTIONS"})
 _LOOPBACK_NAMES: Final = ("127.0.0.1", "localhost", "[::1]")
 
@@ -45,10 +47,17 @@ def _is_json(content_type: str) -> bool:
 class LocalGuard:
     """ASGI middleware: refuse requests that did not come from the tutor's page."""
 
-    def __init__(self, app: ASGIApp, *, port: int) -> None:
-        """Wrap ``app``; only loopback origins of ``port`` get through."""
+    def __init__(
+        self, app: ASGIApp, *, port: int, gate: PublicGate | None = None
+    ) -> None:
+        """Wrap ``app``: loopback origins of ``port`` get through.
+
+        The gate's public hostname gets through only for a paired phone
+        (``tutor.device_gate``).
+        """
         self.app = app
         self.hosts = local_hosts(port)
+        self.gate = gate
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Answer 403 / 415 for a foreign request, else pass it on."""
@@ -69,6 +78,8 @@ class LocalGuard:
         headers = Headers(scope=scope)
         host = headers.get("host", "").lower()
         if host not in self.hosts:
+            if self.gate is not None and self.gate.is_public(host):
+                return self.gate.refusal(scope)
             return 403, "forbidden host"
         if scope["type"] != "http" or scope["method"] in _SAFE_METHODS:
             return None

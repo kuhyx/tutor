@@ -27,6 +27,7 @@ from starlette.responses import (
 from starlette.routing import Route
 
 from tutor import delivery, diagrams, images, webapp
+from tutor.device_gate import NO_STORE, PublicGate
 from tutor.engine import Engine
 from tutor.local_guard import LocalGuard
 from tutor.outage import ClaudeUnavailableError
@@ -48,11 +49,13 @@ def create_app(
     *,
     port: int = DEFAULT_PORT,
     media_dirs: tuple[Path, Path] | None = None,
+    gate: PublicGate | None = None,
 ) -> Starlette:
     """Build the app; the engine and the media dirs are injectable.
 
     ``port`` is the one uvicorn binds: only a loopback Host of that port is served
-    (``tutor.local_guard``).
+    (``tutor.local_guard``). ``gate`` lets a paired phone in on the public
+    hostname (``tutor.device_gate``); None (the default) leaves that name closed.
     """
     eng = engine or Engine()
     image_dir, diagram_dir = media_dirs or (images.cache_dir(), diagrams.cache_dir())
@@ -84,17 +87,6 @@ def create_app(
         path = folder / name
         return FileResponse(path) if path.is_file() else Response(status_code=404)
 
-    routes = [
-        Route("/", index),
-        Route("/api/state", state),
-        Route("/api/start", start, methods=["POST"]),
-        Route("/api/message", message, methods=["POST"]),
-        Route("/api/stop", stop, methods=["POST"]),
-        Route("/media/{name}", media),
-        # The Flutter client (desktop: Chrome --app window).
-        *webapp.webapp_routes(*webapp.paths_from_env()),
-    ]
-
     @asynccontextmanager
     async def lifespan(_: Starlette) -> AsyncIterator[None]:
         yield
@@ -104,13 +96,42 @@ def create_app(
     # (Starlette's ServerErrorMiddleware runs this, then re-raises so uvicorn
     # logs the traceback): typed handlers below, this net for the rest.
     app = Starlette(
-        routes=routes,
+        routes=[
+            Route("/", index),
+            Route("/api/state", state),
+            Route("/api/start", start, methods=["POST"]),
+            Route("/api/message", message, methods=["POST"]),
+            Route("/api/stop", stop, methods=["POST"]),
+            Route("/media/{name}", media),
+            # The Flutter client (desktop: Chrome --app window).
+            *webapp.webapp_routes(*webapp.paths_from_env()),
+            *(_pair_routes(gate) if gate is not None else []),
+        ],
         lifespan=lifespan,
         exception_handlers={Exception: _unhandled},
-        middleware=[Middleware(LocalGuard, port=port)],
+        middleware=[Middleware(LocalGuard, port=port, gate=gate)],
     )
     app.state.engine = eng
     return app
+
+
+def _pair_routes(gate: PublicGate) -> list[Route]:
+    """Pairing: the phone redeems a code (``GET /pair``); the PC mints one."""
+
+    async def pair(request: Request) -> Response:
+        cookie = gate.redeem(request.url.query, request.headers.get("user-agent"))
+        if cookie is None:
+            return Response(status_code=403, headers=NO_STORE)
+        return Response(
+            status_code=303,
+            headers={"Location": "/", "Set-Cookie": cookie, **NO_STORE},
+        )
+
+    async def mint(_: Request) -> Response:
+        # The guard keeps the public host off POST, so only the PC gets here.
+        return JSONResponse({"url": gate.mint_url()}, headers=NO_STORE)
+
+    return [Route("/pair", pair), Route("/api/pair", mint, methods=["POST"])]
 
 
 async def _json(request: Request) -> dict[str, Any]:

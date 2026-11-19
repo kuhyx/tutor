@@ -15,6 +15,9 @@ Read README.md first. These are the invariants that are easy to break.
   every POST/PUT/PATCH/DELETE: a cross-site `text/plain` POST or a DNS-rebound
   name must never reach `/api/start` (it runs Claude). Pass `port=` to
   `create_app`; scripted clients must send `Content-Type: application/json`.
+- **The public name `tutor.kuhy.duckdns.org` is closed to unpaired phones** (`tutor/device_gate.py`,
+  `DOCS-public.md`): a paired phone reaches `/` and `/app/*` only, never `/api/*`. Never `header_up Host` in
+  Caddy. Pair a phone with `scripts/tutor_pair.sh`.
 - **Tests never touch real data.** `tutor/tests/conftest.py` moves HOME, the
   data dir, the ledger key and the image cache into `tmp_path` and blocks
   the network. Keep it that way; the real ledger mints gaming time.

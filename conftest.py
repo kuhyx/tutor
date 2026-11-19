@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+pytest_plugins = ["tutor.tests._public_fixtures"]
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
