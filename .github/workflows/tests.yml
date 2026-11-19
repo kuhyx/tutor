@@ -45,7 +45,7 @@ jobs:
       - if: matrix.task == 'pytest'
         uses: actions/setup-node@v4
         with:
-          node-version: "26.13.0"
+          node-version: "26.13.1"
       # code_runner's sandbox tests need bwrap; Ubuntu 24.04 blocks the
       # unprivileged user namespaces it uses.
       - if: matrix.task == 'pytest'
