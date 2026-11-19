@@ -15,7 +15,7 @@ license = "MIT"
 # runner) is in-repo at packages/code_runner: scripts/setup_dev.sh installs
 # it editable before tutor, so it is not listed here.
 dependencies = [
-    "claude-agent-sdk==0.2.184",
+    "claude-agent-sdk==0.2.185",
     "fsrs==6.3.3",
     "starlette==1.10.0",
     "uvicorn==0.54.0",
