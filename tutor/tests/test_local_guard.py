@@ -173,3 +173,14 @@ def test_websocket_from_a_foreign_host_is_closed_unanswered() -> None:
     scope: Scope = {"type": "websocket", "headers": [(b"host", b"evil.com")]}
     asyncio.run(LocalGuard(inner, port=8778)(scope, _no_receive, send))
     assert sent == [{"type": "websocket.close", "code": 1008}]
+
+
+@pytest.mark.parametrize(
+    "path", ["/app/", "/app/sync-credentials", "/pair", "/api/state"]
+)
+def test_the_closed_public_name_is_a_foreign_host(
+    client: TestClient, path: str
+) -> None:
+    """tutor.kuhy.duckdns.org was published once and closed again: never served."""
+    reply = client.get(path, headers={"host": "tutor.kuhy.duckdns.org"})
+    assert reply.status_code == 403

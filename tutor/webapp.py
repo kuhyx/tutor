@@ -34,7 +34,6 @@ from starlette.responses import (
 from starlette.routing import BaseRoute, Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from tutor.device_gate import PAIRED_KEY
 from tutor.relay.config import password_file, read_passphrase
 
 if TYPE_CHECKING:
@@ -139,39 +138,22 @@ def _same_origin_local(request: Request) -> bool:
     return host in _LOCAL_HOSTS and site in {"same-origin", "none"}
 
 
-def _same_origin_fetch(request: Request) -> bool:
-    """A request from the page itself, whatever host it was served on."""
-    return request.headers.get("sec-fetch-site", "same-origin") in {
-        "same-origin",
-        "none",
-    }
-
-
 def _once(read: Callable[[], dict[str, str] | None]) -> Endpoint:
     """A route serving ``read()`` to the local page once; 404 otherwise.
 
-    A refused request does not burn the one serve. A paired phone on the
-    public hostname (``tutor.device_gate`` marked the scope) gets it every
-    time, from its own page, without using up the desktop's serve.
+    A refused request does not burn the one serve.
     """
     served = False
 
     async def endpoint(request: Request) -> Response:
         nonlocal served
-        if request.scope.get(PAIRED_KEY):
-            body = read() if _same_origin_fetch(request) else None
-            return _reply(body)
         body = None if served or not _same_origin_local(request) else read()
-        served = served or body is not None
-        return _reply(body)
+        if body is None:
+            return Response(status_code=404)
+        served = True
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
     return endpoint
-
-
-def _reply(body: dict[str, str] | None) -> Response:
-    if body is None:
-        return Response(status_code=404)
-    return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
 
 def _passphrase_body(path: Path) -> dict[str, str] | None:

@@ -48,15 +48,13 @@ class Recorder:
         self.runs: list[tuple[object, dict[str, Any]]] = []
         self.apps: list[object] = []
         self.ports: list[int] = []
-        self.gates: list[object] = []
 
     def run(self, app: object, **kwargs: Any) -> None:
         self.runs.append((app, kwargs))
 
-    def create_app(self, engine: object, *, port: int, gate: object = None) -> object:
+    def create_app(self, engine: object, *, port: int) -> object:
         self.apps.append(engine)
         self.ports.append(port)
-        self.gates.append(gate)
         return APP
 
 
@@ -72,14 +70,6 @@ def served(monkeypatch: pytest.MonkeyPatch) -> Recorder:
     monkeypatch.setattr(tutor_main, "create_app", rec.create_app)
     monkeypatch.setattr(uvicorn, "run", rec.run)
     return rec
-
-
-def test_the_public_gate_is_built_from_the_environment(
-    monkeypatch: pytest.MonkeyPatch, served: Recorder
-) -> None:
-    monkeypatch.setenv("TUTOR_PUBLIC_HOST", "phone.example")
-    assert tutor_main.main(["--port", "18999"]) == 0
-    assert [getattr(g, "host", None) for g in served.gates] == ["phone.example"]
 
 
 def test_busy_port_is_refused(
