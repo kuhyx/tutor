@@ -36,16 +36,37 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
+from tutor.clock_events import (
+    ACTIVITY_MAX_AGE,
+    SEND_GRACE,
+    BlockReady,
+    activity_time,
+    reply_time,
+)
 from tutor.filler import is_filler
+
+# Re-exported from :mod:`tutor.clock_events`: callers import them from here.
+__all__ = [
+    "ACTIVITY_MAX_AGE",
+    "GENERATION_CAP",
+    "LOW_EFFORT",
+    "MAX_UNITS",
+    "OUTAGE_CAP",
+    "REPLY_TIMEOUT",
+    "SEND_GRACE",
+    "STALLED",
+    "TUTOR_OVERDUE",
+    "UNIT_SECONDS",
+    "BlockReady",
+    "EngagementClock",
+    "activity_time",
+    "reply_time",
+]
 
 # Long enough to think a design question through (kuhy, 2026-10-10: 3 min
 # cut off real thinking; 2026-10-11: 6 min cut off a long answer).
 REPLY_TIMEOUT: Final = 600.0
 OUTAGE_CAP: Final = 3600.0  # a gap restarts excuse never earns more than this
-# How far back the page's first Send press may date a reply (its retry window).
-SEND_GRACE: Final = 300.0
-# How old an answer may be and still back focus time (relay ``MAX_EVENT_AGE_MS``).
-ACTIVITY_MAX_AGE: Final = 48 * 3600.0
 GENERATION_CAP: Final = 60.0
 UNIT_SECONDS: Final = 60.0  # one credited unit = one active minute
 MAX_UNITS: Final = 60  # per session; the daily cap is the ledger's
@@ -53,46 +74,6 @@ MAX_UNITS: Final = 60  # per session; the daily cap is the ledger's
 STALLED: Final = f"no reply for {REPLY_TIMEOUT // 60:.0f} min"
 LOW_EFFORT: Final = "low-effort reply"
 TUTOR_OVERDUE: Final = "tutor not responding"
-
-
-def reply_time(received: float, sent_at: float | None) -> float:
-    """When a reply was sent: the page's first Send press if within grace."""
-    if sent_at is not None and 0.0 <= received - sent_at <= SEND_GRACE:
-        return sent_at
-    return received
-
-
-def activity_time(received: float, sent_at: float | None) -> float:
-    """When an answer was given, for the focus beat it backs.
-
-    ``sent_at`` if it lies in ``[received - ACTIVITY_MAX_AGE, received]``, else
-    ``received``: an offline answer backs the time it was given, not the sync
-    time, and a clock ahead of the server never puts a beat in the future.
-    Not :func:`reply_time`, whose short grace guards the credit arithmetic.
-    """
-    if sent_at is not None and 0.0 <= received - sent_at <= ACTIVITY_MAX_AGE:
-        return sent_at
-    return received
-
-
-@dataclass(frozen=True)
-class BlockReady:
-    """One newly earned active minute (a "unit"), ready to be credited.
-
-    Attributes:
-        block: Which unit of the session, 1..MAX_UNITS (the n-th active minute).
-        active_seconds: The session's *cumulative* active seconds at the moment
-            the unit was earned (>= block * UNIT_SECONDS - the session's carry_in).
-        ended_at: Unix time of the event that earned it.
-        checks_passed: Checks passed so far this session.
-        checks_total: Checks resolved (passed or failed) so far this session.
-    """
-
-    block: int
-    active_seconds: float
-    ended_at: float
-    checks_passed: int
-    checks_total: int
 
 
 @dataclass(slots=True)
@@ -166,13 +147,7 @@ class EngagementClock:
         """
         self._turn = _Turn(tutor_at=t)
 
-    def user_reply(
-        self,
-        t: float,
-        text: str,
-        *,
-        low_effort: bool,
-    ) -> None:
+    def user_reply(self, t: float, text: str, *, low_effort: bool) -> None:
         """The learner replied at ``t``; ``low_effort`` is the tutor's verdict."""
         if self._turn.tutor_at is None:
             return
@@ -194,12 +169,7 @@ class EngagementClock:
         del t
         self._turn.check_open = True
 
-    def check_result(
-        self,
-        t: float,
-        *,
-        passed: bool,
-    ) -> None:
+    def check_result(self, t: float, *, passed: bool) -> None:
         """The open check resolved at ``t``; tallied for the next unit's report."""
         self._turn.check_open = False
         self._tally.total += 1

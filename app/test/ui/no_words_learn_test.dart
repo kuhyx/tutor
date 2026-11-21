@@ -1,12 +1,11 @@
 // textgate guard, learning screens: Review, Drill, Editor, Plan, Progress and
 // their dialogs paint no app words in any state (only glyphs, numbers and
-// content). Complements no_words_test.dart (one frame per route).
+// content). Complements no_words_test.dart (one frame per route); the drill:
+// no_words_drill_test.dart.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tutor/drill/anki_sync.dart';
-import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/sync/json_tree.dart';
@@ -16,7 +15,6 @@ import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/review_screen.dart';
 
-import '../support/drill.dart';
 import '../support/fake_stream.dart';
 import '../support/learn_finders.dart';
 import '../support/no_words.dart';
@@ -74,48 +72,6 @@ void main() {
       await pumpScreen(t, ReviewScreen(services: s), size: size);
       expect(spokenHas('Nothing due'), findsOneWidget);
       expectNoWords(t, 'review nothing due');
-    });
-
-    testWidgets('drill: question, wrong, right, empty, failed ($at)', (
-      t,
-    ) async {
-      final db = fixtureDb();
-      final stream = FakeStream();
-      final s = await fixtureServices(db, stream);
-      await pumpScreen(
-        t,
-        ReviewScreen(
-          services: s,
-          drill: true,
-          unavailable: const Unavailable(until: kResetsAt, reason: 'limit'),
-          anki: AnkiSync(relay: s.relay, launcher: FakeLauncher()),
-        ),
-        size: size,
-        settle: false,
-      );
-      await answer(t, db, stream, data: drillQuestion());
-      expectNoWords(t, 'drill question + banner + anki');
-      await t.tap(find.text('Opens valves'));
-      await sent(t);
-      await answer(t, db, stream, data: drillGrade(0));
-      expectNoWords(t, 'drill wrong');
-      await t.tap(spoken('Next (Space)'));
-      await sent(t);
-      await answer(t, db, stream, data: drillQuestion());
-      await t.tap(find.text('Turns pistons into rotation'));
-      await sent(t);
-      await answer(t, db, stream, data: drillGrade(1));
-      expectNoWords(t, 'drill right');
-      await t.tap(spoken('Next (Space)'));
-      await sent(t);
-      await answer(t, db, stream, data: {'empty': true});
-      expectNoWords(t, 'drill empty');
-      await t.tap(spoken('Review'));
-      await t.pumpAndSettle();
-      await t.tap(spoken('Drill').last);
-      await sent(t);
-      await answer(t, db, stream, code: 'worker_error');
-      expectNoWords(t, 'drill failed');
     });
 
     testWidgets('editor: module open, removed cards, card form ($at)', (

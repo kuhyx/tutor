@@ -7,6 +7,7 @@ library;
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/request.dart';
+import 'package:tutor/model/text_cap.dart';
 
 /// A kind plus its body, ready for `RequestRelay.send`.
 class RequestBody {
@@ -17,7 +18,7 @@ class RequestBody {
 
   /// `subject_new`: "I want to learn how a car works" (<= 2000 chars).
   factory subjectNew(String text) =>
-      RequestBody._(RequestKind.subjectNew, {'text': _cap(text, 2000)});
+      RequestBody._(RequestKind.subjectNew, {'text': capText(text, 2000)});
 
   /// `plan_revise`: redraft from a comment.
   factory planRevise(String subject, int planRev, String comment) =>
@@ -108,7 +109,7 @@ class RequestBody {
   /// `message` (<= 8000 chars).
   factory message(String session, String text) => RequestBody._(
     RequestKind.message,
-    {'session': session, 'text': _cap(text, 8000)},
+    {'session': session, 'text': capText(text, 8000)},
   );
 
   /// `next`.
@@ -242,11 +243,4 @@ class RequestBody {
   /// Body; null values are kept (RTDB drops them; the worker reads absent as
   /// null).
   final Json body;
-}
-
-String _cap(String text, int max) {
-  if (text.length > max) {
-    throw ArgumentError.value(text.length, 'text', 'longer than $max chars');
-  }
-  return text;
 }

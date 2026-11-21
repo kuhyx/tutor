@@ -7,9 +7,7 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/request_body.dart';
@@ -21,19 +19,15 @@ import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/session_actions.dart';
 import 'package:tutor/ui/session/session_chat.dart';
+import 'package:tutor/ui/session/session_chrome.dart';
+import 'package:tutor/ui/session/session_layout.dart';
 import 'package:tutor/ui/session/session_side.dart';
 import 'package:tutor/ui/session/session_subjects.dart';
 import 'package:tutor/util/device.dart';
 import 'package:tutor/widgets/content_text.dart';
 
-/// Width from which the side panel sits beside the chat.
-const kWideLayout = 900.0;
-
-/// Widest the chat column gets (prose stays readable on wide windows).
-const kChatMaxWidth = 960.0;
-
-/// The side panel's width for a window [width] wide (wide layout only).
-double sideWidth(double width) => (width * 0.25).clamp(300, 420);
+export 'package:tutor/ui/session/session_layout.dart'
+    show kChatMaxWidth, kWideLayout, sideWidth;
 
 /// The Session screen.
 class SessionScreen extends StatefulWidget {
@@ -79,7 +73,7 @@ class _SessionScreenState extends State<SessionScreen> {
   late final VoidCallback _unwatch;
   final _scroll = ScrollController();
   final _scaffold = GlobalKey<ScaffoldState>();
-  bool _keyboard = false; // phone keyboard up at the last build
+  late final _keyboard = SessionKeyboard(_scaffold);
   late final SessionSubjects _subjectFeed = SessionSubjects(_s, _feed);
   Map<String, SubjectData> get _subjects => _subjectFeed.subjects.value;
 
@@ -106,7 +100,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   @override
   void dispose() {
-    if (_keyboard) unawaited(_statusBar(show: true));
+    _keyboard.dispose();
     _unwatch();
     _lifecycle.dispose();
     unawaited(_subjectFeed.dispose());
@@ -115,29 +109,6 @@ class _SessionScreenState extends State<SessionScreen> {
     unawaited(_today.dispose());
     _scroll.dispose();
     super.dispose();
-  }
-
-  // Android status bar (clock, battery): hidden while the phone keyboard
-  // is up on this screen, the nav bar stays (kuhy, 2026-11-10).
-  static Future<void> _statusBar({required bool show}) => show
-      ? SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)
-      : SystemChrome.setEnabledSystemUIMode(
-          SystemUiMode.manual,
-          overlays: const [SystemUiOverlay.bottom],
-        );
-
-  // The keyboard rose or fell: the status bar follows, and a rising
-  // keyboard closes the sidebar (it cannot be opened while it is up).
-  void _keyboardChanged(bool keyboard) {
-    if (keyboard == _keyboard) return;
-    _keyboard = keyboard;
-    unawaited(_statusBar(show: !keyboard));
-    if (keyboard) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final s = _scaffold.currentState;
-        if (s != null && s.isEndDrawerOpen) s.closeEndDrawer();
-      });
-    }
   }
 
   /// Runs [body]; a result naming a session is followed at once.
@@ -168,18 +139,6 @@ class _SessionScreenState extends State<SessionScreen> {
     }
   }
 
-  // Forwards a wheel over the margins/buttons to the chat (`wheel.js`):
-  // anything that scrolls itself (the chat, a text box) claims it first.
-  void _wheel(PointerSignalEvent e) {
-    if (e is! PointerScrollEvent || !_scroll.hasClients) return;
-    GestureBinding.instance.pointerSignalResolver.register(e, (event) {
-      final p = _scroll.position;
-      final d = (event as PointerScrollEvent).scrollDelta.dy;
-      // The chat list is reversed: wheel down = toward offset 0.
-      _scroll.jumpTo((p.pixels - d).clamp(0, p.maxScrollExtent));
-    });
-  }
-
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
@@ -194,7 +153,7 @@ class _SessionScreenState extends State<SessionScreen> {
       final view = _feed.view.value;
       final phone = isPhone;
       final keyboard = phone && MediaQuery.viewInsetsOf(context).bottom > 0;
-      _keyboardChanged(keyboard);
+      _keyboard.changed(keyboard: keyboard);
       final meta = view?.meta;
       final subject = _subjects[meta?.subject];
       final live = meta != null && !meta.stopped;
@@ -220,7 +179,7 @@ class _SessionScreenState extends State<SessionScreen> {
         onHistory: () => openHistory(context, _s),
       );
       final chat = Listener(
-        onPointerSignal: _wheel,
+        onPointerSignal: (e) => forwardWheel(_scroll, e),
         child: SessionChat(
           services: _s,
           feed: _feed,
@@ -255,32 +214,11 @@ class _SessionScreenState extends State<SessionScreen> {
             endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
             drawerEnableOpenDragGesture: !keyboard,
             endDrawerEnableOpenDragGesture: !keyboard,
-            // Under an AppBar the top inset is already 0; without one the
-            // body keeps clear of the status bar. The bottom keeps the row
-            // off the gesture bar (0 with the keyboard up). Same tree
-            // either way, so the box keeps its focus.
-            body: SafeArea(
-              child: wide
-                  ? Row(
-                      children: [
-                        // The chat keeps a reading width; the panel grows
-                        // with the window so long card fronts wrap, not clip.
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                maxWidth: kChatMaxWidth,
-                              ),
-                              child: chat,
-                            ),
-                          ),
-                        ),
-                        const VerticalDivider(width: 1),
-                        SizedBox(width: sideWidth(box.maxWidth), child: side),
-                      ],
-                    )
-                  : chat,
+            body: SessionBody(
+              wide: wide,
+              width: box.maxWidth,
+              chat: chat,
+              side: side,
             ),
           );
         },

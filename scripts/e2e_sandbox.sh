@@ -58,37 +58,14 @@ readonly SERVER_UNIT="tutor-e2e-server-$TAG"
 readonly MODEL_UNIT="tutor-e2e-model-$TAG"
 readonly HOLD_UNIT="tutor-e2e-hold-$TAG"
 # focus_project (F7-F10) lives outside this repo; its data dir is the sandbox's.
+# shellcheck disable=SC2034  # read by the sourced _e2e_sandbox_units.sh
 readonly FOCUS_SRC="${E2E_FOCUS_SRC:-$HOME/src/utils/focus_project}"
 
 die() { echo "e2e_sandbox: $*" >&2; exit 1; }
 
-# A free loopback port in 20000-29999 (never 8778).
-free_port() {
-    local port
-    for _ in {1..50}; do
-        port=$((20000 + RANDOM % 10000))
-        ss -ltnH "sport = :$port" | grep -q . || { echo "$port"; return 0; }
-    done
-    die "no free port"
-}
-
-# Poll a URL until it answers (up to $2 half-seconds).
-wait_http() {
-    local url="$1" tries="$2"
-    for ((i = 0; i < tries; i++)); do
-        curl -sf -o /dev/null "$url" && return 0
-        sleep 0.5
-    done
-    return 1
-}
-
-emulator_jar() {
-    local jar
-    jar="$(find "$HOME/.cache/firebase/emulators" -maxdepth 1 \
-        -name 'firebase-database-emulator-v*.jar' 2>/dev/null | sort -V | tail -1)"
-    [[ -n "$jar" ]] || die "no RTDB emulator jar; run: firebase setup:emulators:database"
-    echo "$jar"
-}
+# free_port, wait_http, emulator_jar, model_env, start_server.
+# shellcheck source-path=SCRIPTDIR source=_e2e_sandbox_units.sh
+source "$(dirname "${BASH_SOURCE[0]}")/_e2e_sandbox_units.sh"
 
 cmd_build() {
     cd "$ROOT/app"
@@ -114,68 +91,6 @@ cmd_down() {
     fi
     rm -f "$(dirname "$STATE")"/f[1-7].json  # a phased flow's send state
     echo "e2e sandbox down"
-}
-
-# The server's -E flags for how Claude fails (F14): `network` points the
-# CLI at a closed port (an outage, reason network), `refuse` at a stub that
-# answers 400 (a model error); none = the real API.
-# Sets MODEL_ENV; fails loudly (never a silent fall back to the real API).
-MODEL_ENV=()
-model_env() {
-    local mode="$1" port
-    MODEL_ENV=()
-    systemctl --user stop "$MODEL_UNIT" 2>/dev/null || true
-    case "$mode" in
-        "" | none) return 0 ;;
-        network) port=9 ;;
-        refuse)
-            port="$(free_port)"
-            systemd-run --user --quiet --collect --unit="$MODEL_UNIT" -p RuntimeMaxSec=3600 \
-                "$PY" "$ROOT/scripts/e2e_model_stub.py" --port "$port"
-            # It answers 400 to everything: any HTTP status means it is up.
-            for _ in {1..40}; do
-                [[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/")" != 000 ]] && break
-                sleep 0.25
-            done
-            [[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/")" == 400 ]] ||
-                die "model stub did not start"
-            ;;
-        *) die "--model-down network|refuse|none, not $mode" ;;
-    esac
-    MODEL_ENV=(-E "ANTHROPIC_BASE_URL=http://127.0.0.1:$port" -E CLAUDE_CODE_MAX_RETRIES=0)
-}
-
-# Start the sandbox server on the state file's sandbox (up, restart). A
-# CLOCK runs it under libfaketime from that moment on: the worker's "today".
-start_server() {
-    local sandbox db port dev clock
-    sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
-    db="$(sed -n 's/^DB=//p' "$STATE")"
-    port="$(sed -n 's/^PORT=//p' "$STATE")"
-    dev="$(sed -n 's/^DEV=//p' "$STATE")"
-    clock="$(sed -n 's/^CLOCK=//p' "$STATE")"
-    local -a fake=()
-    [[ -n "$clock" ]] && fake=(faketime "$clock")
-    model_env "$(sed -n 's/^MODEL=//p' "$STATE")"
-    systemd-run --user --quiet --collect --unit="$SERVER_UNIT" -p RuntimeMaxSec=3600 \
-        -p WorkingDirectory="$ROOT" \
-        -p StandardOutput="append:$sandbox/server.log" -p StandardError="append:$sandbox/server.log" \
-        -E TUTOR_DATA="$sandbox/data" -E TUTOR_KEY="$sandbox/test.key" \
-        -E TUTOR_WEBAPP_DIR="$WEB" -E TUTOR_IMAGE_CACHE="$sandbox/cache/images" \
-        -E TUTOR_SOURCE_CACHE="$sandbox/cache/sources" -E TUTOR_WIKI_CACHE="$sandbox/cache/wiki" \
-        -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
-        -E FOCUS_PROJECT_DATA="$sandbox/focus" \
-        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" \
-        "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
-    wait_http "http://127.0.0.1:$port/api/state" 80 || {
-        tail -20 "$sandbox/server.log" >&2
-        die "server did not start"
-    }
-    # The worker is serving once its presence beat is in the emulator.
-    for _ in {1..30}; do
-        [[ "$(curl -sf "$db/tutor/v1-e2e/presence/workers/$dev.json")" != "null" ]] && break
-        sleep 0.5
-    done
 }
 
 cmd_up() {

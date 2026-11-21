@@ -39,6 +39,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly REPO_DIR
 readonly PROJECT="${TUTOR_FIREBASE_PROJECT:-kuhy-syncs}"
+# shellcheck disable=SC2034  # read by the sourced _register_oauth_client_console.sh
 readonly CONSOLE_URL="https://console.cloud.google.com/auth/clients?project=${PROJECT}"
 readonly PACKAGE="com.kuhy.tutor"
 readonly CLIENT_NAME="tutor"
@@ -52,18 +53,9 @@ die() {
     exit 1
 }
 
-# Copies to the clipboard when a tool is available; prints regardless, so this
-# still works over ssh with no X display.
-clip() {
-    if command -v xclip >/dev/null 2>&1; then
-        printf '%s' "$1" | xclip -selection clipboard 2>/dev/null || true
-        printf '   \033[32m[copied]\033[0m %s\n' "$1"
-    else
-        printf '   %s\n' "$1"
-    fi
-}
-
-pause() { read -rp "   ...press Enter when that field is filled " _; }
+# clip, pause, register_in_console.
+# shellcheck source-path=SCRIPTDIR source=_register_oauth_client_console.sh
+source "$(dirname "${BASH_SOURCE[0]}")/_register_oauth_client_console.sh"
 
 # The repo's own key.properties wins; the shared one is the fallback.
 key_properties() {
@@ -176,33 +168,6 @@ register_with_cli() {
     fi
     log "$PACKAGE registered as $id"
     step "Firebase creates the OAuth client; it takes a few minutes to work."
-}
-
-# The manual fallback: one console form, three fields.
-register_in_console() {
-    local sha1="$1"
-    log "Register ONE Android OAuth client in project $PROJECT"
-    step "One form, three fields."
-    if command -v xdg-open >/dev/null 2>&1; then
-        xdg-open "$CONSOLE_URL" >/dev/null 2>&1 &
-    else
-        step "$CONSOLE_URL"
-    fi
-    sleep 2
-
-    step "Click '+ CREATE CLIENT', set Application type = Android."
-    step "Field 'Name':"
-    clip "$CLIENT_NAME"
-    pause
-    step "Field 'Package name':"
-    clip "$PACKAGE"
-    pause
-    step "Field 'SHA-1 certificate fingerprint':"
-    clip "$sha1"
-    pause
-    step "Click CREATE. Do NOT touch the existing Web client: it is the"
-    step "audience the app's tokens are minted for (kGoogleServerClientId)."
-    read -rp "   Propagation takes a few minutes. Install the APK, sign in on the phone, then Enter: " _
 }
 
 register() {

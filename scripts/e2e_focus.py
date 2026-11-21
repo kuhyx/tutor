@@ -26,16 +26,28 @@ Runs on a sandbox that is ``up`` (``e2e_sandbox.sh``): the worker's
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-import json
 from pathlib import Path
 import re
 import time
-from typing import Any
-import uuid
 
 from e2e_flow import Flow, FlowError
+from e2e_focus_support import _activity, _create_project, _wait_events
 
-from tutor.curriculum.ids import ulid
+# The helpers live in ``e2e_focus_support``; the F9-F11 modules import them here.
+__all__ = [
+    "CHECKIN",
+    "END",
+    "PAGE_HOOK",
+    "ROUTE",
+    "SKEW_MS",
+    "START",
+    "STOP",
+    "_activity",
+    "_create_project",
+    "_wait_events",
+    "f7",
+    "f8",
+]
 
 ROUTE = "/focus"
 START, CHECKIN, STOP = "Start", "Still working", "Stop"
@@ -69,64 +81,6 @@ PAGE_HOOK = """
   window.__skew = (ms) => { skew += ms; return skew; };
 })();
 """
-
-
-def _activity(path: Path) -> list[dict[str, Any]]:
-    """The sandbox's ``activity.jsonl`` rows, oldest first."""
-    if not path.is_file():
-        return []
-    return [json.loads(line) for line in path.read_text().splitlines() if line]
-
-
-def _wait_events(flow: Flow, path: Path, want: list[str], timeout: float = 20) -> None:
-    """Block until the file's timer events are exactly ``want``."""
-    flow.step(f"activity.jsonl timer events == {want}")
-    deadline = time.monotonic() + timeout
-    seen: list[str] = []
-    while time.monotonic() < deadline:
-        seen = [r["kind"] for r in _activity(path) if r["source"] == "timer"]
-        if seen == want:
-            flow.note(f"{path}: {seen}")
-            return
-        time.sleep(0.5)
-    msg = f"timer events {seen}, want {want} in {path}"
-    raise FlowError(msg)
-
-
-def _create_project(flow: Flow, subjects: list[str] | None = None) -> None:
-    """Send ``focus_create`` for a project covering today and wait for ok."""
-    flow.step(f"focus_create: a project covering today, subjects {subjects or []}")
-    now = int(time.time() * 1000)
-    rid = ulid(now)
-    today = datetime.now().astimezone().date()  # the worker's local day
-    flow.db.put(
-        f"requests/{rid}/req",
-        {
-            "kind": "focus_create",
-            "dev": str(uuid.uuid4()),
-            "created": now,
-            "body": {
-                "name": "E2E focus",
-                "start": today.isoformat(),
-                "end": (today + timedelta(days=2)).isoformat(),
-                "replaces": ["leetcode"],
-                "daily_minutes": 60,
-                "unlock_minutes": 10,
-                "subjects": subjects or [],
-            },
-        },
-    )
-    deadline = time.monotonic() + 20
-    while time.monotonic() < deadline:
-        if result := flow.result_of(rid):
-            if not result.get("ok"):
-                msg = f"focus_create refused: {json.dumps(result)[:300]}"
-                raise FlowError(msg)
-            flow.note(f"rid={rid} result={json.dumps(result)[:200]}")
-            return
-        time.sleep(0.5)
-    msg = "no focus_create result in 20 s"
-    raise FlowError(msg)
 
 
 def _notification_click(flow: Flow) -> None:

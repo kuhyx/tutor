@@ -24,6 +24,7 @@ import 'package:tutor/ui/home_menu.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/new_cap_dialog.dart';
+import 'package:tutor/ui/not_saved_snack.dart';
 import 'package:tutor/util/refresher.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/spoken_label.dart';
@@ -156,16 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await setCurrentSubject(_s.client, subject);
     } on Object catch (error) {
       // `on Object`: shown, never swallowed; the pick is simply not saved.
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: CueChip(
-              kind: CueKind.error,
-              semanticLabel: 'Not saved: $error',
-            ),
-          ),
-        );
-      }
+      if (mounted) showNotSaved(context, error);
       return;
     }
     _refresh();
