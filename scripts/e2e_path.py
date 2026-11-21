@@ -2,7 +2,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flow F20: a card's interrogation path reaches the tutor, unseen.
 
-Runs on a fresh ``up`` (no ``--as-of``). The draft tier writes a path per
+Runs on a fresh ``up`` (no ``--as-of``) with ``E2E_SUBJECT`` set for ``up``
+and every phase. The draft tier writes a path per
 card (``tutor.curriculum.paths``); the tutor reads it before its first
 question and the learner never sees it.
 
@@ -60,9 +61,10 @@ def f20_send(flow: Flow, start: Callable[[Flow], State]) -> State:
 
 def f20_check(flow: Flow, state: State, started: Callable[[Flow, State], None]) -> None:
     """``started`` (F1's check) holds, the first turn follows the path, unseen."""
-    started(flow, state)
     live = flow.db.node("live")
     card_id = str(live.get("card"))
+    flow.args.card = card_id  # any card of the subject will do: all carry the path
+    started(flow, state)
     if live.get("subject") != state["subject"]:
         msg = f"the session is not on {state['subject']}: live={live}"
         raise FlowError(msg)
