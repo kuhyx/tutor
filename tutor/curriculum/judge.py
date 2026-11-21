@@ -223,10 +223,26 @@ def gate(
     New: not repeating a card of ``known`` (the deck so far) or one earlier
     in ``drafted``.
     """
+    return gate_redraft(ctx, scope, drafted, (titles, known), ("", ""))
+
+
+def gate_redraft(
+    ctx: Context,
+    scope: Scope,
+    drafted: dict[str, CardRec],
+    deck: tuple[dict[str, str], dict[str, CardRec]],
+    old: tuple[str, str],
+) -> tuple[dict[str, CardRec], list[str]]:
+    """:func:`gate` with ``deck`` = (titles, known), for a redrafted module.
+
+    ``old`` (``redraft.prompts.gate_old``): a rule added to the system
+    prompt and the module's old cards added to the prompt.
+    """
     if not drafted:
         return {}, []
+    titles, known = deck
     ids = plan_context.module_ids(scope.plan, scope.module)
     schema = gate_schema(ids, [*known, *drafted])
-    prompt = _gate_prompt(scope, drafted, titles, known)
-    said = _verdicts(ctx.model(GATE_SYSTEM, prompt, schema))
+    prompt = _gate_prompt(scope, drafted, titles, known) + old[1]
+    said = _verdicts(ctx.model(GATE_SYSTEM + old[0], prompt, schema))
     return _sort(scope, drafted, said, set(known))

@@ -109,8 +109,9 @@ class Fable:
     def _kind(system: str) -> str:
         if system.startswith(draft_prompt.system(12)[:60]):
             return "draft"
+        if system.startswith(judge.GATE_SYSTEM):
+            return "gate"
         named = {
-            judge.GATE_SYSTEM: "gate",
             prompts.MATCH_SYSTEM: "match",
             prompts.SPLIT_SYSTEM: "split",
             paths.SYSTEM: "paths",

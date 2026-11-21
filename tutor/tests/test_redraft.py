@@ -48,6 +48,11 @@ def test_a_module_is_redrafted_and_swapped_in(tmp_path: Path) -> None:
     assert [(u.state, u.tries) for u in ended] == [(run.DONE, 1)]
     assert fable.seen == ["draft", "judge", "gate", "match", "audit", "paths"]
     assert '"flag": ["two questions in one card"]' in fable.prompts["draft"]
+    # The gate and the matcher read the flag too: a card a flag asks for is
+    # never refused as off topic, and the flagged card's id goes to its fix.
+    for kind in ("gate", "match"):
+        assert '"flag": ["two questions in one card"]' in fable.prompts[kind], kind
+    assert "being redrafted" in fable.prompts["gate"]
     cards = ctx.subjects.cards("car")
     live = {cid: c for cid, c in cards.items() if not c.suspended}
     assert sorted(live) == ["old-0", "old-1", "valve"]

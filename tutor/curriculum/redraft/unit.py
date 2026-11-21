@@ -58,13 +58,15 @@ class Result:
 
 
 def _match(
-    ctx: Context, old: dict[str, CardRec], new: dict[str, CardRec]
+    ctx: Context, snap: Before, module_id: str, new: dict[str, CardRec]
 ) -> dict[str, str]:
     """New id -> old id, each side used once (the model's first pair wins)."""
+    old = snap.live(module_id)
     if not old or not new:
         return {}
     schema = prompts.match_schema(list(new), list(old))
-    pairs = ctx.model(prompts.MATCH_SYSTEM, prompts.match(old, new), schema)
+    prompt = prompts.match(snap, module_id, new)
+    pairs = ctx.model(prompts.MATCH_SYSTEM, prompt, schema)
     found: dict[str, str] = {}
     raw = pairs.get("pairs")
     for pair in raw if isinstance(raw, list) else []:
@@ -165,10 +167,14 @@ def build(ctx: Context, snap: Before, module_id: str) -> Result:
         out.dropped = ["no readable source for this module"]
         return out
     batch, vetted = _draft(ctx, snap, scope, found)
-    kept, refused = judge.gate(
-        ctx, scope, vetted.kept, _titles(found), _others(snap, module_id)
+    kept, refused = judge.gate_redraft(
+        ctx,
+        scope,
+        vetted.kept,
+        (_titles(found), _others(snap, module_id)),
+        prompts.gate_old(snap, module_id),
     )
-    matched = _match(ctx, old, kept)
+    matched = _match(ctx, snap, module_id, kept)
     final = audit.run(
         ctx, batch, kept, {n for n, o in matched.items() if o in snap.hard}
     )

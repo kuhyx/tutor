@@ -27,7 +27,11 @@ PC-only: nothing here is published to the phone. Part of
   first question and may leave it whenever the learner does.
 - Redraft (`python -m tutor redraft start|status|drain|report`, PC-only):
   every module with cards is drafted again by the draft tier from the pages
-  its cards cite plus a fresh source search. A new card the model matches to
+  its cards cite plus a fresh source search. The drafter, the relevance gate
+  and the matcher all read the old cards with the learner's flags: a card
+  that carries what an old card taught, or that a flag asks for, stays in
+  the module, and a flagged card's id goes to the new card that does what
+  the flag asks. A new card the model matches to
   an old one takes the old id with `rev`+1 (taught state and schedule carry
   over, flags clear); an old card with no match is `suspended:true`
   (`tutor.redraft` = ms); over 12 cards the model cuts the module: the first
