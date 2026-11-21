@@ -66,6 +66,8 @@ model_env() {
 
 # Start the sandbox server on the state file's sandbox (up, restart). A
 # CLOCK runs it under libfaketime from that moment on: the worker's "today".
+# XDG_STATE_HOME stays in the sandbox: its staged model faults (F14, a
+# --model-down restart) must never reach kuhy's app-errors board.
 start_server() {
     local sandbox db port dev clock
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
@@ -83,7 +85,7 @@ start_server() {
         -E TUTOR_WEBAPP_DIR="$WEB" -E TUTOR_IMAGE_CACHE="$sandbox/cache/images" \
         -E TUTOR_SOURCE_CACHE="$sandbox/cache/sources" -E TUTOR_WIKI_CACHE="$sandbox/cache/wiki" \
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
-        -E FOCUS_PROJECT_DATA="$sandbox/focus" \
+        -E FOCUS_PROJECT_DATA="$sandbox/focus" -E XDG_STATE_HOME="$sandbox/state" \
         -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {

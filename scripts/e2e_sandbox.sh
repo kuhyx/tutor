@@ -75,11 +75,17 @@ cmd_build() {
         --release -t tool/e2e/main.dart -o build/web_e2e --base-href /app/
 }
 
-cmd_down() {
+# Stop units one by one: a single `systemctl stop a b` enqueues nothing when
+# one of them is not loaded, so `restart` used to leave the old server up.
+stop_units() {
     local unit
-    for unit in "$HOLD_UNIT" "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"; do  # one by one: a
-        systemctl --user stop "$unit" 2>/dev/null || true    # missing unit fails all
+    for unit in "$@"; do
+        systemctl --user stop "$unit" 2>/dev/null || true
     done
+}
+
+cmd_down() {
+    stop_units "$HOLD_UNIT" "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"
     if [[ -f "$STATE" ]]; then
         local sandbox
         sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
@@ -147,7 +153,7 @@ cmd_restart() {
     if [[ "${1:-}" == --model-down ]]; then
         sed -i "s/^MODEL=.*/MODEL=${2:?--model-down network|refuse|none}/" "$STATE"
     fi
-    systemctl --user stop "$HOLD_UNIT" "$SERVER_UNIT" 2>/dev/null || true
+    stop_units "$HOLD_UNIT" "$SERVER_UNIT"
     curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1-e2e/stats.json" >/dev/null
     start_server
     echo "e2e sandbox server restarted"
