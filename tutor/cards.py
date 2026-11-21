@@ -52,6 +52,10 @@ _REQUIRES: Final = "requires"
 # so it is never excerpt-checked (``DOCS-contract-struggle.md`` §1).
 _MNEMONIC: Final = "mnemonic"
 _MAX_MNEMONIC_WORDS: Final = 40
+# Optional: a code skeleton shown under the answer, newlines and indentation
+# kept. Like the mnemonic it is never excerpt-checked; the 2 KB card budget
+# (``records.MAX_CARD_BYTES``) bounds it.
+_CODE: Final = "code"
 _MAX_FRONT_WORDS: Final = 25
 _MAX_BACK_WORDS: Final = 30
 _EXCERPT_WORDS: Final = (6, 40)
@@ -73,6 +77,7 @@ class Card:
     topic: Topic
     requires: tuple[str, ...] = ()
     mnemonic: str = ""  # a memory aid; never excerpt-checked
+    code: str = ""  # a code skeleton, layout kept; never excerpt-checked
 
     @property
     def source_host(self) -> str:
@@ -86,11 +91,11 @@ def _words(text: str) -> int:
 
 def _validate(raw: object, topic: Topic, where: str) -> Card:
     """Build a card from one JSON object, or say exactly what is wrong."""
-    optional = {_REQUIRES, _MNEMONIC}
+    optional = {_REQUIRES, _MNEMONIC, _CODE}
     if not isinstance(raw, dict) or not _KEYS <= set(raw) <= _KEYS | optional:
         msg = (
             f"{where}: a card must be an object with exactly {sorted(_KEYS)}"
-            f" and optionally {_REQUIRES!r}, {_MNEMONIC!r}"
+            f" and optionally {_REQUIRES!r}, {_MNEMONIC!r}, {_CODE!r}"
         )
         raise CardError(msg)
     if not all(isinstance(raw[key], str) and raw[key].strip() for key in _KEYS):
@@ -101,6 +106,7 @@ def _validate(raw: object, topic: Topic, where: str) -> Card:
         topic=topic,
         requires=requires,
         mnemonic=_mnemonic(raw, where),
+        code=_code(raw, where),
         **{key: raw[key].strip() for key in _KEYS},
     )
     problems = []
@@ -137,6 +143,15 @@ def _mnemonic(raw: dict[str, object], where: str) -> str:
         msg = f"{where}: mnemonic is over {_MAX_MNEMONIC_WORDS} words"
         raise CardError(msg)
     return text
+
+
+def _code(raw: dict[str, object], where: str) -> str:
+    """The optional skeleton ("" when absent), trailing whitespace dropped."""
+    value = raw.get(_CODE, "")
+    if _CODE in raw and not (isinstance(value, str) and value.strip()):
+        msg = f"{where}: code must be a non-empty string"
+        raise CardError(msg)
+    return str(value).rstrip()
 
 
 def _requires(raw: object, where: str) -> tuple[str, ...]:

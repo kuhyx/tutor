@@ -12,6 +12,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_layouts.dart';
+import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/icon_field.dart';
 import 'package:tutor/widgets/spoken_label.dart';
@@ -60,10 +61,12 @@ class _CardFormState extends State<CardForm> {
     text: widget.card?.requires.join(', '),
   );
   late final _mnemonic = TextEditingController(text: widget.card?.mnemonic);
+  late final _code = TextEditingController(text: widget.card?.code);
 
   @override
   void dispose() {
-    for (final c in [_front, _back, _source, _excerpt, _requires, _mnemonic]) {
+    final all = [_front, _back, _source, _excerpt, _requires, _mnemonic, _code];
+    for (final c in all) {
       c.dispose();
     }
     super.dispose();
@@ -93,6 +96,8 @@ class _CardFormState extends State<CardForm> {
             if (r.trim().isNotEmpty) r.trim(),
         ],
         mnemonic: _mnemonic.text.trim(),
+        // Leading indentation is the skeleton's layout: only the end trims.
+        code: _code.text.trimRight(),
       ),
     );
     if (status is RelayDone && mounted) {
@@ -110,6 +115,7 @@ class _CardFormState extends State<CardForm> {
     String label, {
     int lines = 2,
     int? limit,
+    TextStyle? style,
   }) {
     final field = FieldLabel(
       semanticLabel: label,
@@ -117,6 +123,7 @@ class _CardFormState extends State<CardForm> {
         controller: c,
         minLines: 1,
         maxLines: lines,
+        style: style,
         onChanged: (_) => setState(() {}),
         decoration: iconDecoration(icon),
       ),
@@ -187,6 +194,13 @@ class _CardFormState extends State<CardForm> {
         Icons.tips_and_updates_outlined,
         'Mnemonic (optional, one line)',
         lines: 1,
+      ),
+      _field(
+        _code,
+        Icons.code,
+        'Code skeleton (optional, monospace)',
+        lines: 12,
+        style: sqlMono,
       ),
       if (problems.isNotEmpty)
         Wrap(

@@ -29,6 +29,9 @@ FIELDS: Final = """\
 list of who else uses it or which stack it belongs to).
 - `mnemonic`: a one-line memory aid of at most 40 words where the card \
 rules ask for one or it truly helps; "" otherwise.
+- `code`: only when the learner's goal asks for code on the cards, a short \
+skeleton (at most 20 lines, newlines and indentation kept) in the language \
+the goal names; "" otherwise. The whole card must stay under 2000 bytes.
 - `source`: the number of the source text the card is written from.
 - `excerpt`: 6-40 words copied EXACTLY, character for character, from that \
 source text, one contiguous span that supports the answer (code checks it).

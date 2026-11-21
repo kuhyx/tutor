@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Final
 
 from tutor.cards import CardError
 from tutor.curriculum import card_rules, quality, quality_judge
+from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import slug
 from tutor.curriculum.records import CardRec
 
@@ -67,6 +68,7 @@ def as_item(cid: str, rec: CardRec, found: list[wiki.Source]) -> dict[str, objec
         "front": rec.front,
         "back": rec.back,
         "mnemonic": rec.mnemonic,
+        "code": rec.code,
         "source": urls.index(rec.source) + 1 if rec.source in urls else 0,
         "excerpt": rec.excerpt,
         "requires": list(rec.requires),
@@ -100,10 +102,12 @@ def one(
         requires=[str(r) for r in needs] if isinstance(needs, list) else [],
         created=ctx.clock(),
         mnemonic=" ".join(str(item.get("mnemonic") or "").split()),
+        code=str(item.get("code") or "").rstrip(),  # a skeleton keeps its layout
     )
     try:
         card_rules.as_card(cid, rec, module)
-    except CardError as err:
+        rec.to_json()  # over the card budget: refused here, not at commit
+    except (CardError, RequestError) as err:
         _logger.warning("drafted card refused: %s", err)
         return str(err)
     reason = card_rules.source_problem(ctx, cid, rec)

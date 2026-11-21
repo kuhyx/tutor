@@ -29,7 +29,8 @@ as cards that obey every rule, and add what the module still lacks. A \
 exactly what it asks (a flag asking for the card to go means no such card; \
 "what does X stand for" means a card asking only for the expansion, with a \
 mnemonic). A card marked `hard` was hard for the learner: the card that \
-replaces it carries a `mnemonic`."""
+replaces it carries a `mnemonic`. An old card's `code` skeleton carries \
+over to the card that replaces it."""
 GATE_RULE: Final = """\
 This module is being redrafted: the prompt lists the old cards it held, each \
 with any `flag` (the learner's complaint about that card). A card that \
@@ -99,6 +100,7 @@ def _old(snap: Before, module_id: str) -> list[dict[str, Any]]:
             "id": cid,
             "front": c.front,
             "back": c.back,
+            **({"code": c.code} if c.code else {}),
             **({"flag": snap.flags[cid]} if cid in snap.flags else {}),
             **({"hard": True} if cid in snap.hard else {}),
         }

@@ -50,7 +50,7 @@ class RequestBody {
       });
 
   /// `card_edit`: a null [card] adds a new card; an empty [mnemonic]
-  /// clears it (struggle §1).
+  /// (struggle §1) or [code] (curriculum §3) clears it.
   factory cardEdit({
     required String subject,
     required String module,
@@ -61,6 +61,7 @@ class RequestBody {
     String? card,
     List<String> requires = const [],
     String mnemonic = '',
+    String code = '',
   }) => RequestBody._(RequestKind.cardEdit, {
     'subject': subject,
     'card': card,
@@ -71,6 +72,7 @@ class RequestBody {
     'excerpt': excerpt,
     'requires': requires,
     'mnemonic': mnemonic,
+    'code': code,
   });
 
   /// `card_restore`: undo the tutor's removal of [card].

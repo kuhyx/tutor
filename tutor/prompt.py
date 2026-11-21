@@ -72,6 +72,7 @@ def system_prompt(
     rules = render_system(profile or profiles.automation(), rule)
     help_ = section(struggle) if struggle else ""
     aid = f"mnemonic: {card.mnemonic}\n" if card.mnemonic else ""
+    aid += f"skeleton:\n{card.code}\n" if card.code else ""  # teach from it
     return (
         f"{rules}\n# Target card\n"
         f"topic: {card.topic.title}\nid: {card.id}\n"

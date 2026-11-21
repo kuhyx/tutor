@@ -51,6 +51,8 @@ what is wrong. Rewrite it so it passes, ONLY from the numbered source texts:
 card split off from it.
 - `front`: one question, at most 25 words. `back`: exactly its answer, at \
 most 30 words. `mnemonic`: a one-line memory aid of at most 40 words, or "".
+- `code`: the failing card's code skeleton as it was (shortened when the \
+card is over its byte budget), or "".
 - `source`: the number of the source text; `excerpt`: 6-40 words copied \
 EXACTLY, character for character, from that source text, one contiguous \
 span that supports the answer (code checks it).
@@ -70,6 +72,7 @@ CARD_FIELDS: Final[dict[str, Any]] = {
     "front": STRING,
     "back": STRING,
     "mnemonic": STRING,
+    "code": STRING,
     "source": {"type": "integer"},
     "excerpt": STRING,
     "requires": array_of(STRING),

@@ -29,7 +29,7 @@ MAX_NOTES: Final = 600
 MAX_GOAL: Final = 2000
 MAX_CARD_BYTES: Final = 2_000
 # Card keys left out of the JSON while empty: older cards keep their shape.
-_CARD_OPTIONAL: Final = frozenset({"tutor", "mnemonic", "split_of"})
+_CARD_OPTIONAL: Final = frozenset({"tutor", "mnemonic", "split_of", "code"})
 MIN_MODULES: Final = 3
 MAX_MODULES: Final = 12
 
@@ -49,6 +49,14 @@ def text(raw: dict[str, Any], key: str, limit: int, *, empty: bool = False) -> s
         msg = f"{key} must not be empty"
         raise bad(msg)
     return value.strip()
+
+
+def code(value: object) -> str:
+    """A card's ``code``: its layout kept, only trailing whitespace dropped."""
+    if value is not None and not isinstance(value, str):
+        msg = "code must be a string"
+        raise bad(msg)
+    return (value or "").rstrip()
 
 
 def id_list(raw: object, what: str) -> list[str]:
@@ -215,6 +223,7 @@ class CardRec:  # pylint: disable=too-many-instance-attributes  # the contract's
     tutor: dict[str, Any] = field(default_factory=dict)
     mnemonic: str = ""  # a memory aid (``DOCS-contract-struggle.md`` §1)
     split_of: str = ""  # the card a split made this one from; never edited
+    code: str = ""  # a code skeleton, layout kept (``DOCS-contract-curriculum.md``)
 
     @classmethod
     def from_json(cls, raw: dict[str, Any]) -> CardRec:

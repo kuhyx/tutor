@@ -11,6 +11,7 @@ import 'package:tutor/model/card.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/review/review_session.dart';
 import 'package:tutor/ui/common.dart';
+import 'package:tutor/ui/sql/rich_md.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
@@ -52,7 +53,7 @@ const backKeys = [
   SingleActivator(LogicalKeyboardKey.keyZ, control: true),
 ];
 
-/// The card: front; once [revealed], back, mnemonic, excerpt and source.
+/// The card: front; once [revealed], back, code, mnemonic, excerpt, source.
 class CardFace extends StatelessWidget {
   /// Creates the face.
   const new(this.card, {required this.revealed, super.key});
@@ -76,6 +77,10 @@ class CardFace extends StatelessWidget {
             if (revealed) ...[
               const Divider(height: AppSpacing.xl),
               ContentText(card.back, style: text.bodyLarge),
+              if (card.code case final c? when c.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                CodeBlock(c),
+              ],
               if (card.mnemonic case final m? when m.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
                 ContentText(m, style: text.bodyMedium),

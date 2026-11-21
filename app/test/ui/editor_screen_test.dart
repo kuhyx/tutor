@@ -79,6 +79,10 @@ void main() {
       fieldByLabel('Mnemonic (optional, one line)'),
       ' suck, squeeze, bang, blow ',
     );
+    await t.enterText(
+      fieldByLabel('Code skeleton (optional, monospace)'),
+      'for (;;) {\n  step();\n}  \n',
+    );
     await t.tap(spoken('Save card'));
     await sent(t);
     final edit = await answer(
@@ -90,6 +94,7 @@ void main() {
     expect(edit['body'], containsPair('card', 'eng-strokes'));
     expect(edit['body'], containsPair('requires', ['eng-crank']));
     expect(edit['body'], containsPair('mnemonic', 'suck, squeeze, bang, blow'));
+    expect(edit['body'], containsPair('code', 'for (;;) {\n  step();\n}'));
     expect(spoken('Edit cards'), findsOneWidget); // popped back
 
     await t.tap(spoken('Add card').first);

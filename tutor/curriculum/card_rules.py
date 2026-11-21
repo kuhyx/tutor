@@ -28,7 +28,7 @@ def topic(module: Module) -> cards.Topic:
 
 
 def raw(cid: str, rec: CardRec) -> dict[str, Any]:
-    """``rec`` in the deck file's card shape (``mnemonic`` only when set)."""
+    """``rec`` in the deck file's card shape (optional keys only when set)."""
     return {
         "id": cid,
         "front": rec.front,
@@ -37,6 +37,7 @@ def raw(cid: str, rec: CardRec) -> dict[str, Any]:
         "excerpt": rec.excerpt,
         "requires": list(rec.requires),
         **({"mnemonic": rec.mnemonic} if rec.mnemonic else {}),
+        **({"code": rec.code} if rec.code else {}),
     }
 
 

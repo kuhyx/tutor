@@ -28,6 +28,7 @@ MAX_REQUEST_BYTES: Final = 40_000
 MAX_MESSAGE: Final = 8000
 MAX_TEXT: Final = 2000
 MAX_CARD_FIELD: Final = 2000
+_CARD_TEXT: Final = ("front", "back", "source", "excerpt")  # card_edit.FIELDS
 
 CHAT: Final = "chat"
 BUILD: Final = "build"
@@ -138,13 +139,12 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "subject": _slug,
             "card": _opt_slug,
             "module": _slug,
-            "front": _text(MAX_CARD_FIELD, empty=True),
-            "back": _text(MAX_CARD_FIELD, empty=True),
-            "source": _text(MAX_CARD_FIELD, empty=True),
-            "excerpt": _text(MAX_CARD_FIELD, empty=True),
+            **{k: _text(MAX_CARD_FIELD, empty=True) for k in _CARD_TEXT},
             "requires": _requires,
-            # Absent keeps the card's memory aid, "" clears it (``card_edit``).
+            # Absent keeps the card's memory aid / skeleton, "" clears it;
+            # newlines are kept (the skeleton's layout, ``card_edit``).
             "mnemonic": _text(MAX_CARD_FIELD, empty=True, absent=True),
+            "code": _text(MAX_CARD_FIELD, empty=True, absent=True),
         },
     ),
     "card_restore": (BUILD, {"subject": _slug, "card": _slug}),  # Editor's undo

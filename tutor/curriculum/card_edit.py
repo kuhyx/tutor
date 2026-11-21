@@ -8,7 +8,8 @@ Any refusal is ``edit_refused`` with the reason; nothing is written. Success bum
 card's ``rev`` (clearing its flags) and sets ``origin`` to ``edited``. Ids are
 never renamed and a card never moves to another module. ``mnemonic``: absent
 keeps the card's, "" clears it (an Editor that does not know the field never
-wipes one); ``split_of`` is never taken from a request.
+wipes one); ``code`` (a skeleton) likewise, its layout kept; a card over
+the 2 KB budget is ``bad_request``; ``split_of`` is never taken from a request.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from tutor.curriculum import card_rules, quality, quality_judge
 from tutor.curriculum.errors import EDIT_REFUSED, RequestError
 from tutor.curriculum.ids import slug, valid_id
 from tutor.curriculum.plan_context import Scope
-from tutor.curriculum.records import CardRec, Module, Plan, bad, id_list
+from tutor.curriculum.records import CardRec, Module, Plan, bad, code, id_list
 from tutor.curriculum.subject_store import LOCK, Change
 
 if TYPE_CHECKING:
@@ -156,6 +157,9 @@ def card_edit(
             rec.front, rec.back = fields["front"], fields["back"]
             rec.source, rec.excerpt = fields["source"], fields["excerpt"]
         _mnemonic(body, rec)
+        if "code" in body:
+            rec.code = code(body["code"])
+        rec.to_json()  # over the budget: refused before anything is written
         ctx.subjects.commit(
             str(subject),
             meta,

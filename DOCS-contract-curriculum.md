@@ -68,9 +68,9 @@ pass the same vectors.
 ```json
 {"module":"engine-basics","order":3,"front":"<=25 words","back":"<=30 words",
  "source":"https://...","excerpt":"6-40 words, verbatim from source",
- "requires":[],"rev":1,"origin":"generated","created":ms,"suspended":false,"tutor"?,"mnemonic"?,"split_of"?}
+ "requires":[],"rev":1,"origin":"generated","created":ms,"suspended":false,"tutor"?,"mnemonic"?,"split_of"?,"code"?}
 ```
-- `mnemonic`, `split_of`, the `split` edit and fold step 7 (struggle): `DOCS-contract-struggle.md`.
+- `mnemonic`, `split_of`, the `split` edit and fold step 7 (struggle): `DOCS-contract-struggle.md`. `code`: `DOCS-contract-card-code.md`.
 - Rules as `plc_lab.cards` today: https source; excerpt verified verbatim in
   the fetched page text (`sources.check_excerpt`, normalised); `requires` are
   same-subject card ids, acyclic.

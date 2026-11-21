@@ -21,6 +21,7 @@ class StudyCard {
     this.tutor,
     this.mnemonic,
     this.splitOf,
+    this.code,
   });
 
   /// Parses a card.
@@ -41,6 +42,7 @@ class StudyCard {
       tutor: objOr(j, 'tutor'),
       mnemonic: strOr(j, 'mnemonic'),
       splitOf: strOr(j, 'split_of'),
+      code: strOr(j, 'code'),
     );
   }
 
@@ -87,6 +89,10 @@ class StudyCard {
   /// The card this one was split from (struggle §2; never edited).
   final String? splitOf;
 
+  /// A code skeleton shown as monospace under [back], layout kept
+  /// (curriculum §3; not excerpt-checked).
+  final String? code;
+
   /// Suspended by the tutor: the Editor offers Restore.
   bool get removedByTutor => suspended && tutor?['removed'] != null;
 
@@ -128,6 +134,7 @@ class StudyCard {
     'tutor': tutor,
     'mnemonic': mnemonic,
     'split_of': splitOf,
+    'code': code,
   });
 }
 
