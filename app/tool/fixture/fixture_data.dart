@@ -119,7 +119,10 @@ Map<String, Object?> fixtureTree(int now) {
           ],
         },
         'cards': {
-          'eng-strokes': _card('engine', 1, 'What are the four strokes?'),
+          'eng-strokes': {
+            ..._card('engine', 1, 'What are the four strokes?'),
+            'code': fixtureSkeleton,
+          },
           'eng-crank': _card('engine', 2, 'What does the crankshaft do?'),
           'eng-valves': _card('engine', 3, 'What opens the valves?'),
           'fuel-spark': _card('fuel', 1, 'What ignites the mixture?'),
@@ -160,6 +163,17 @@ Map<String, Object?> fixtureTree(int now) {
     ...fixtureSessions(now),
   };
 }
+
+/// A card's code skeleton (curriculum §3), long lines included: it wraps.
+const fixtureSkeleton =
+    'function fourStrokes(cycle: Stroke[]): Stroke[] {\n'
+    '  const order: Stroke[] = '
+    '["intake", "compression", "combustion", "exhaust"];\n'
+    '  for (const stroke of order) {\n'
+    '    // TODO: push the stroke, twice per crankshaft revolution pair\n'
+    '  }\n'
+    '  return cycle;\n'
+    '}';
 
 /// Cards taught a month ago (so they are due for review now).
 const fixtureTaught = ['eng-strokes', 'eng-crank', 'eng-valves'];

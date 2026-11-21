@@ -83,6 +83,12 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+  # The web build (CanvasKit) has no system "monospace": code is drawn in
+  # this bundled face everywhere (SQL, session code, card skeletons).
+  fonts:
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/RobotoMono-Regular.ttf
 
 flutter_launcher_icons:
   android: true

@@ -9,7 +9,7 @@ import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/widgets/icon_field.dart';
 
 const _strut = StrutStyle(
-  fontFamily: 'monospace',
+  fontFamily: kMonoFamily,
   fontSize: AppTextSize.label,
   height: 1.5,
   forceStrutHeight: true,

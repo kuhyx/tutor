@@ -6,6 +6,7 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/session/markdown.dart';
+import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/widgets/content_text.dart';
 
 /// Markdown text.
@@ -77,7 +78,8 @@ class MarkdownText extends StatelessWidget {
 /// [spans] as text spans, styled as [MarkdownText] styles them.
 List<InlineSpan> mdInlineSpans(List<MdSpan> spans, ColorScheme scheme) {
   final code = TextStyle(
-    fontFamily: 'monospace',
+    fontFamily: kMonoFamily,
+    fontFamilyFallback: const ['monospace'],
     backgroundColor: scheme.surfaceContainerHighest,
   );
   return [

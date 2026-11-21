@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/card.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/ui/review_answer.dart';
+import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/ui/sql/rich_md.dart';
 
 import '../support/ui.dart';
@@ -75,7 +76,7 @@ void main() {
       ),
     );
     expect(text.data, _skeleton);
-    expect(text.style?.fontFamily, 'monospace');
+    expect(text.style?.fontFamily, kMonoFamily);
     expect(t.getSize(find.byType(CodeBlock)).width, lessThanOrEqualTo(360));
   });
 

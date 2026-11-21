@@ -8,14 +8,23 @@ import 'package:flutter/material.dart';
 import 'package:tutor/sql/sql_models.dart';
 import 'package:tutor/widgets/content_text.dart';
 
+/// The bundled monospace face (pubspec `fonts`): the web build has no
+/// system "monospace", so code would fall back to a proportional font.
+const kMonoFamily = 'RobotoMono';
+
 /// Monospace text at table size.
 const TextStyle sqlMono = TextStyle(
-  fontFamily: 'monospace',
+  fontFamily: kMonoFamily,
+  fontFamilyFallback: ['monospace'],
   fontSize: AppTextSize.label,
 );
 
 /// The same at strip size.
-const TextStyle sqlMonoDense = TextStyle(fontFamily: 'monospace', fontSize: 11);
+const TextStyle sqlMonoDense = TextStyle(
+  fontFamily: kMonoFamily,
+  fontFamilyFallback: ['monospace'],
+  fontSize: 11,
+);
 
 /// Header [columns], body [rows], and the (row, col) cells to flag.
 class DataGridView extends StatelessWidget {
