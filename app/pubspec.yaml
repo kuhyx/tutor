@@ -42,7 +42,7 @@ dependencies:
   # Refresh token in the Android keystore (DOCS-contract §10).
   flutter_secure_storage: 11.2.0
   # Worker-drawn circuit diagrams arrive as inline SVG (DOCS-contract §8).
-  flutter_svg: 2.4.0
+  flutter_svg: 2.5.0
   # One-tap Google ID token via the framework AccountManager chooser (FOSS).
   google_account_token:
     git:
@@ -53,6 +53,12 @@ dependencies:
   # Device id and the offline event queue on web live in IndexedDB.
   idb_shim: 2.11.3
   intl: 0.20.3
+  # kuhy's logo credit, top-left of the home screen.
+  kuhy_credit:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: kuhy-credit-v0.3.0
+      path: kuhy_credit/flutter
   # The relay client (RTDB REST/SSE, e2e sealing, request hub, rev watcher,
   # passphrase gate, session): shared with other apps' PC relays.
   rtdb_relay:

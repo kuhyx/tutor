@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:kuhy_credit/kuhy_credit.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/home/home_loader.dart';
 import 'package:tutor/home/remote_bits.dart';
@@ -175,6 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
+      // kuhy's credit; the home screen is the root, so no back button here.
+      leading: const Padding(
+        padding: EdgeInsets.all(8),
+        child: KuhyCredit(size: 36, below: true, alignStart: true),
+      ),
       actions: [
         PresenceChip(_presence.state),
         ...homeIcons(context, _s, _go),
