@@ -43,7 +43,7 @@ Read README.md first. These are the invariants that are easy to break.
 
 ## Commands
 
-- install: `./install.sh` (installs + enables `tutor.service`, the live server; never restarts a running one)
+- install: `./install.sh` (installs + enables `tutor.service`, the live server; never restarts a running one; also writes the `~/.local/bin/tutor` launcher, `--launcher-only` just that)
 - run: `./run.sh` (opens the desktop app at 127.0.0.1:8778/app/, starts `tutor.service` if down; `--no-open` skips the browser)
 - deploy: `scripts/deploy.sh` (app web build, then `scripts/tutor_deploy.sh`, which refuses a missing or stale web build; smoke test, wait for idle, `systemctl --user restart tutor.service`)
 - test: `.venv/bin/python -m pytest -q` (serial, the CI authority; `-n 6` runs it in parallel with pytest-xdist; tests that count host processes carry `@pytest.mark.exclusive_host` and run alone via the flock in `conftest.py`)

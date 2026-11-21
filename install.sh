@@ -22,6 +22,7 @@ readonly UNIT_DIR="$HOME/.config/systemd/user"
 readonly LIVE_ROOT="$HOME/.local/lib/tutor-live"
 readonly LOG_DIR="$HOME/.local/state/tutor"
 readonly PORT=8778
+readonly BIN_DIR="${TUTOR_BIN_DIR:-$HOME/.local/bin}"
 
 log() { printf 'tutor install: %s\n' "$*"; }
 
@@ -56,6 +57,17 @@ install_unit() {
     log "$UNIT $(systemctl --user is-enabled "$UNIT")"
 }
 
+# `tutor` in any terminal opens the app: a wrapper (not a symlink: run.sh finds
+# its repo from its own path) that runs the live release's run.sh, which the
+# deploy keeps current, so it never points into a working tree or worktree.
+install_launcher() {
+    mkdir -p "$BIN_DIR"
+    printf '%s\n' '#!/bin/bash' \
+        "exec \"$LIVE_ROOT/current/run.sh\" \"\$@\"" >"$BIN_DIR/tutor"
+    chmod 755 "$BIN_DIR/tutor"
+    log "launcher $BIN_DIR/tutor"
+}
+
 start_unit() {
     if [[ ! -d "$LIVE_ROOT/current" ]]; then
         log "no live release yet; deploying one"
@@ -71,10 +83,15 @@ start_unit() {
 }
 
 main() {
+    if [[ "${1:-}" == --launcher-only ]]; then
+        install_launcher
+        return
+    fi
     command -v systemctl >/dev/null || { log "systemctl is required"; exit 1; }
     ensure_venv
     ensure_sandbox_tools
     install_unit
+    install_launcher
     start_unit
 }
 

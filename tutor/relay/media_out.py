@@ -29,6 +29,10 @@ _FORBIDDEN: Final = re.compile(
     r"<\s*script|<\s*foreignObject|\bon\w+\s*=", re.IGNORECASE
 )
 _HREF: Final = re.compile(r"""\bhref\s*=\s*["']([^"']*)["']""", re.IGNORECASE)
+# schemdraw writes ``stroke-dasharray:-`` for a solid line; flutter_svg cannot
+# parse "-" as a number and refuses the whole drawing ("Diagram could not be
+# drawn", feedback 2026-10-15). A solid line is the default: drop the property.
+_SOLID: Final = re.compile(r"stroke-dasharray\s*:\s*-\s*;?")
 _IMG_FIELDS: Final = ("title", "author", "licence", "licence_url", "page_url", "term")
 _logger = logging.getLogger(__name__)
 
@@ -68,7 +72,7 @@ def diagram(name: str, title: str, cache: Path | None = None) -> dict[str, str] 
     if len(svg.encode()) > MAX_SVG or not safe_svg(svg):
         _logger.warning("diagram %s not published: too big or unsafe", name)
         return None
-    return {"title": title[:_FIELD_MAX], "svg": svg}
+    return {"title": title[:_FIELD_MAX], "svg": _SOLID.sub("", svg)}
 
 
 def diagrams_of(
