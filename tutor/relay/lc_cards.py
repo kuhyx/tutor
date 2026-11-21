@@ -64,7 +64,9 @@ def _fsrs(ctx: Context, entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         sources.seed_text(url, line)
         new = card["front"] not in have
         if new:
-            draft = card_ops.Draft(MODULE, card["front"], card["back"], url, hint)
+            draft = card_ops.Draft(
+                MODULE, card["front"], card["back"], url, hint, code_built=True
+            )
             have[card["front"]], _ = card_ops.add(ctx, SUBJECT, draft)
         rows.append({"id": have[card["front"]], **card, "new": new})
     return rows

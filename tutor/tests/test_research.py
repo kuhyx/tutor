@@ -104,7 +104,7 @@ def test_research_budget_is_bounded_by_the_turn_timeout() -> None:
     # Last tool call at the cap, a full Bash timeout, then the answer: well
     # inside the turn timeout and the app's 3 minute stall.
     bash = int(research.BASH_TIMEOUT_MS) / 1000
-    assert research.RESEARCH_SECONDS + bash <= 120 < session._TURN_TIMEOUT
+    assert research.RESEARCH_SECONDS + bash <= 120 < session.TURN_TIMEOUT
 
 
 # --- the turn hooks ----------------------------------------------------------

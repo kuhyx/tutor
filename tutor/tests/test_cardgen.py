@@ -48,7 +48,7 @@ def gen(
 ) -> tuple[Context, Fakes, list[wiki.Source]]:
     ctx, fakes = make_ctx(tmp_path)
     found = list(SOURCES)
-    monkeypatch.setattr(cardgen, "_sources", lambda *_: found)
+    monkeypatch.setattr(cardgen, "sources", lambda *_: found)
     monkeypatch.setattr(judge, "gate", lambda _c, _s, cards, _t, _k: (cards, []))
     subject(
         ctx,
@@ -104,14 +104,23 @@ def test_generate_keeps_verified_cards(
     assert '- c "C": ' in later
 
 
-def test_too_few_cards_fails_the_module(
+def test_one_good_card_makes_a_module(
     gen: tuple[Context, Fakes, list[wiki.Source]],
 ) -> None:
     ctx, fakes, _ = gen
-    fakes.replies.append(drafted(2))
+    fakes.replies.append(drafted(1))
+    result = cardgen.generate(ctx, "car", "a")
+    assert (result["status"], result["cards"]) == ("ready", 1)
+
+
+def test_no_passing_card_fails_the_module(
+    gen: tuple[Context, Fakes, list[wiki.Source]],
+) -> None:
+    ctx, fakes, _ = gen
+    fakes.replies.append(drafted(1, source=9))
     result = cardgen.generate(ctx, "car", "a")
     assert result["status"] == "failed"
-    assert result["error"] == "only 2 card(s) passed the checks"
+    assert result["error"] == "no card passed the checks (card-0: no such source)"
     assert _module(ctx).error == result["error"]
     assert result["error_kind"] == _module(ctx).error_kind == "too_few_cards"
     assert cardgen.generate(ctx, "car", "a") == {"module": "a", "status": "failed"}
@@ -141,7 +150,7 @@ def test_source_problem_fails_the_module(
     gen: tuple[Context, Fakes, list[wiki.Source]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ctx, _, _ = gen
-    monkeypatch.setattr(cardgen, "_sources", lambda *_: "found 1 on-topic source")
+    monkeypatch.setattr(cardgen, "sources", lambda *_: "found 1 on-topic source")
     result = cardgen.generate(ctx, "car", "a")
     assert (result["status"], result["error"]) == ("failed", "found 1 on-topic source")
     assert _module(ctx).error_kind == "sources_missing"
@@ -157,7 +166,7 @@ def test_ready_on_existing_cards_clears_the_error(
     have = {f"a{i}": card("a", i) for i in range(1, 4)}
     meta = ctx.subjects.need_meta("car")
     ctx.subjects.commit("car", meta, Change(plan=plan, cards=have))
-    monkeypatch.setattr(cardgen, "_sources", lambda *_: "found 1 on-topic source")
+    monkeypatch.setattr(cardgen, "sources", lambda *_: "found 1 on-topic source")
     result = cardgen.generate(ctx, "car", "a")
     assert (result["status"], result["error"]) == ("ready", "found 1 on-topic source")
     assert (_module(ctx).status, _module(ctx).error) == ("ready", None)

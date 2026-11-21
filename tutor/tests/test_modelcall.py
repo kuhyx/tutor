@@ -20,8 +20,9 @@ class _Session:
     reply: Reply | Exception = Reply({"ok": 1}, "", {}, 0, 0.0)
     closed = 0
 
-    def __init__(self, options: Any) -> None:
+    def __init__(self, options: Any, timeout: float = 0.0) -> None:
         self.options = options
+        self.timeout = timeout
 
     async def ask_raw(self, prompt: str) -> Reply:
         del prompt

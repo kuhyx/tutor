@@ -13,24 +13,25 @@ step, so the history and progress views read the same done-set.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, Protocol
 
 from tutor import gating
-from tutor.cards import Card, load_deck
-from tutor.curriculum import card_rules, profiles, rules
+from tutor.cards import DECK_DIR, Card, load_deck
+from tutor.curriculum import card_rules, paths, profiles, rules
 from tutor.curriculum.errors import BAD_REQUEST, LOCKED, NO_CARD_LEFT, RequestError
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.no_card import no_card_left
 from tutor.curriculum.subject_store import LOCK, Change
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tutor.curriculum.context import Context
     from tutor.curriculum.profiles import Profile
     from tutor.store import Store
 
-DECK_DIR: Final = Path(__file__).resolve().parents[2] / "subjects/automation/deck"
 DEFAULT_SUBJECT: Final = "automation"
+_NO_PATHS: Final[dict[str, dict[str, Any]]] = {}
 
 
 class CardSource(Protocol):
@@ -53,6 +54,9 @@ class CardSource(Protocol):
 
     def mastered(self) -> list[str]:
         """Mastered concept names, oldest first."""
+
+    def path(self, card_id: str) -> dict[str, Any] | None:
+        """The card's fresh interrogation path (``paths``), if it has one."""
 
     def master(self, names: list[str], card_id: str, session: str) -> list[str]:
         """Record concepts; returns the new ones."""
@@ -98,6 +102,10 @@ class DeckSource:
     def mastered(self) -> list[str]:
         """``progress.json`` ``mastered``."""
         return self.store.mastered()
+
+    def path(self, card_id: str) -> dict[str, Any] | None:
+        """The old deck has no paths."""
+        return _NO_PATHS.get(card_id)
 
     def master(self, names: list[str], card_id: str, session: str) -> list[str]:
         """``progress.json`` ``mastered``."""
@@ -183,6 +191,10 @@ class SubjectSource:
         if module is not None and module.status == "locked":
             msg = f"{card_id} is locked: module {module.id} is not unlocked yet"
             raise RequestError(LOCKED, msg)
+
+    def path(self, card_id: str) -> dict[str, Any] | None:
+        """``paths.fresh``: only one written for the card's current rev."""
+        return paths.fresh(self.ctx, self.subject, card_id)
 
     def mastered(self) -> list[str]:
         """The subject's ``concepts.json`` names."""

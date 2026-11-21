@@ -41,6 +41,7 @@ class RelayEngine(Engine):
             self.store.root,
             clock=lambda: int(self.time() * 1000),
             model=f.model,
+            draft=f.model,
             fetch=f.fetch,
             check=f.check,
             device=WORKER,

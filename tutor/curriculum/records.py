@@ -111,7 +111,7 @@ def _kind(raw: dict[str, Any]) -> str | None:
 
 
 @dataclass
-class Module:
+class Module:  # pylint: disable=too-many-instance-attributes  # the contract's fields
     """One plan module; array order is teaching order."""
 
     id: str
@@ -126,6 +126,7 @@ class Module:
     error: str | None = None
     error_kind: str | None = None  # codes.ERROR_KIND, set with ``error``
     pregenerated: bool = False  # cards drafted ahead, still locked for study
+    repeat: bool = False  # a requested regeneration: the repeat tier drafts it
 
     @classmethod
     def from_json(cls, raw: object, *, client: bool = False) -> Module:
@@ -161,6 +162,7 @@ class Module:
             module.error = error if isinstance(error, str) else None
             module.error_kind = _kind(raw)
             module.pregenerated = raw.get("pregenerated") is True
+            module.repeat = raw.get("repeat") is True
         return module
 
 
@@ -193,29 +195,6 @@ class Plan:
     def module(self, module_id: str) -> Module | None:
         """The module with ``module_id``, if any."""
         return next((m for m in self.modules if m.id == module_id), None)
-
-
-def check_modules(modules: list[Module]) -> None:
-    """Unique ids, ``requires`` only on earlier modules, 3-12 per draft.
-
-    The count is of the newest draft (the deepest ``depth``): go-deeper
-    rounds append modules to a plan that already has some.
-    """
-    newest = max((m.depth for m in modules), default=1)
-    count = sum(m.depth == newest for m in modules)
-    if not MIN_MODULES <= count <= MAX_MODULES:
-        msg = f"a plan draft has {MIN_MODULES}-{MAX_MODULES} modules, not {count}"
-        raise bad(msg)
-    seen: set[str] = set()
-    for module in modules:
-        if module.id in seen:
-            msg = f"duplicate module id {module.id!r}"
-            raise bad(msg)
-        late = [r for r in module.requires if r not in seen]
-        if late:
-            msg = f"{module.id} requires {late}, which are not earlier modules"
-            raise bad(msg)
-        seen.add(module.id)
 
 
 @dataclass

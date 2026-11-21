@@ -10,7 +10,13 @@ import pytest
 
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.records import Meta, Plan
-from tutor.curriculum.subject_store import Change, SubjectStore, read_json, write_json
+from tutor.curriculum.subject_store import (
+    Change,
+    SubjectStore,
+    meta_json,
+    read_json,
+    write_json,
+)
 from tutor.tests._cur import card, module
 
 if TYPE_CHECKING:
@@ -82,3 +88,10 @@ def test_odd_files_read_as_empty(tmp_path: Path) -> None:
     assert store.concepts("car") == [{"name": "a"}]
     assert read_json(base / "nothing.json", 7) == 7
     assert json.loads((base / "cards.json").read_text(encoding="utf-8"))["n"] == 3
+
+
+def test_meta_json_names_an_error_kind_only_when_one_is_set() -> None:
+    meta = Meta("C", "g", "draft", 1)
+    assert "error_kind" not in meta_json(meta)
+    meta.error_kind = "claude_unavailable"
+    assert meta_json(meta)["error_kind"] == "claude_unavailable"

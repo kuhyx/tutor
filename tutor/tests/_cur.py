@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from tutor import sources
+from tutor.curriculum import quality_judge
 from tutor.curriculum.context import Context
 from tutor.curriculum.records import CardRec, Meta, Module, Plan
 from tutor.curriculum.subject_store import Change
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 T0 = 1_800_000_000_000
+_JUDGES = (quality_judge.JUDGE_SYSTEM, quality_judge.AUDIT_SYSTEM)
 H = 3_600_000
 D = 24 * H
 
@@ -29,9 +31,17 @@ class Fakes:
     bad_excerpts: set[str] = field(default_factory=set)
     texts: dict[str, str] = field(default_factory=dict)
     now: list[int] = field(default_factory=lambda: [T0])
+    # The card-rule judge passes every card and no repair is offered, unrecorded.
+    auto_judge: bool = True
 
     def model(self, system: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
-        del schema
+        if self.auto_judge and system in _JUDGES:
+            ids = schema["properties"]["verdicts"]["items"]["properties"]["id"]
+            return {
+                "verdicts": [{"id": i, "broken": [], "why": ""} for i in ids["enum"]]
+            }
+        if self.auto_judge and system == quality_judge.REPAIR_SYSTEM:
+            return {"cards": []}
         self.prompts.append((system, prompt))
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
@@ -66,6 +76,7 @@ def make_ctx(root: Path, fakes: Fakes | None = None) -> tuple[Context, Fakes]:
         root,
         clock=fakes.clock,
         model=fakes.model,
+        draft=fakes.model,
         fetch=fakes.fetch,
         check=fakes.check,
         text=fakes.text,

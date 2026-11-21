@@ -2,8 +2,9 @@
 """``card_edit``: fix or add one card, validated like the deck itself.
 
 Fields, word limits, the module's id prefixes, ``requires`` (known, no
-cycle), then the source fetch and the verbatim excerpt check. Any refusal is
-``edit_refused`` with the reason; nothing is written. Success bumps the
+cycle), the seven card rules (``quality``: the code checks, then the judge
+on the repeat tier), then the source fetch and the verbatim excerpt check.
+Any refusal is ``edit_refused`` with the reason; nothing is written. Success bumps the
 card's ``rev`` (clearing its flags) and sets ``origin`` to ``edited``. Ids are
 never renamed and a card never moves to another module. ``mnemonic``: absent
 keeps the card's, "" clears it (an Editor that does not know the field never
@@ -16,9 +17,10 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from tutor.cards import CardError
-from tutor.curriculum import card_rules
+from tutor.curriculum import card_rules, quality, quality_judge
 from tutor.curriculum.errors import EDIT_REFUSED, RequestError
 from tutor.curriculum.ids import slug, valid_id
+from tutor.curriculum.plan_context import Scope
 from tutor.curriculum.records import CardRec, Module, Plan, bad, id_list
 from tutor.curriculum.subject_store import LOCK, Change
 
@@ -77,8 +79,10 @@ def _new(
     )
 
 
-def _verify(ctx: Context, staged: dict[str, CardRec], plan: Plan, cid: str) -> None:
-    """Deck rules over the whole subject, then ``cid``'s excerpt check."""
+def _verified(
+    ctx: Context, staged: dict[str, CardRec], plan: Plan, cid: str
+) -> dict[str, CardRec]:
+    """``staged`` once the deck rules and ``cid``'s excerpt check hold."""
     try:
         card_rules.check_set(staged, {m.id: m for m in plan.modules})
     except CardError as err:
@@ -87,16 +91,49 @@ def _verify(ctx: Context, staged: dict[str, CardRec], plan: Plan, cid: str) -> N
     if reason:
         msg = f"excerpt check failed for {staged[cid].source}: {reason}"
         raise _refuse(msg)
+    return staged
 
 
-def card_edit(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
-    """Save one card; returns ``{"card": id, "rev": n}``."""
+def _card_rules(ctx: Context, body: dict[str, Any], fields: dict[str, str]) -> None:
+    """Refuse a card that breaks one of the seven rules (before any lock).
+
+    Code checks first; only a card passing them costs a judge call.
+    """
+    subject = str(body.get("subject"))
+    plan = ctx.subjects.plan(subject)
+    module = plan.module(str(body.get("module", ""))) if plan else None
+    if module is None:
+        return  # an unknown module is refused below, with its own message
+    old = ctx.subjects.cards(subject).get(str(body.get("card")))
+    rec = CardRec(module.id, 0, fields["front"], fields["back"], "", "")
+    rec.mnemonic = old.mnemonic if old else ""  # absent in the body: kept
+    if isinstance(aid := body.get("mnemonic"), str):
+        rec.mnemonic = aid
+    broken = quality.problems(rec.front, rec.back, rec.mnemonic)
+    if not broken:
+        about = Scope(ctx.subjects.need_meta(subject), module, plan).about()
+        broken = quality_judge.judge(ctx, about, {"card": rec}, set())["card"]
+    if broken:
+        msg = f"the card breaks a card rule ({quality.describe(broken)})"
+        raise _refuse(msg)
+
+
+def card_edit(
+    body: dict[str, Any], ctx: Context, *, judged: bool = True
+) -> dict[str, Any]:
+    """Save one card; returns ``{"card": id, "rev": n}``.
+
+    ``judged=False`` (never a client's choice: ``card_ops.Draft.code_built``)
+    skips the seven card rules for a card code built from a fixed bank.
+    """
     subject, given = body.get("subject"), body.get("card")
     if not valid_id(subject) or not (given is None or valid_id(given)):
         msg = "subject and card must be ids (card may be null for a new one)"
         raise bad(msg)
     fields = _fields(body)
     requires = id_list(body.get("requires", []), "requires")
+    if judged:
+        _card_rules(ctx, body, fields)
     with LOCK:
         meta = ctx.subjects.need_meta(str(subject))
         plan = ctx.subjects.plan(str(subject))
@@ -119,7 +156,9 @@ def card_edit(body: dict[str, Any], ctx: Context) -> dict[str, Any]:
             rec.front, rec.back = fields["front"], fields["back"]
             rec.source, rec.excerpt = fields["source"], fields["excerpt"]
         _mnemonic(body, rec)
-        staged = {**found, cid: rec}
-        _verify(ctx, staged, plan, cid)
-        ctx.subjects.commit(str(subject), meta, Change(plan=plan, cards=staged))
+        ctx.subjects.commit(
+            str(subject),
+            meta,
+            Change(plan=plan, cards=_verified(ctx, {**found, cid: rec}, plan, cid)),
+        )
     return {"card": cid, "rev": rec.rev}

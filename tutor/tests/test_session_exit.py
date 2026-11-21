@@ -91,7 +91,7 @@ def test_a_reply_after_the_caller_timed_out_is_dropped(
     monkeypatch: pytest.MonkeyPatch, late: list[Any]
 ) -> None:
     monkeypatch.setattr(session, "ClaudeSDKClient", Gated)
-    monkeypatch.setattr(session, "_TURN_TIMEOUT", 0.05)
+    monkeypatch.setattr(session, "TURN_TIMEOUT", 0.05)
     FakeClient.scripts = [late, [result(result="next")]]
 
     async def go() -> str:

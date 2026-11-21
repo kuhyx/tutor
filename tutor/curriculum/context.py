@@ -2,13 +2,14 @@
 """What every curriculum operation runs against, injectable for tests.
 
 ``Context(data_dir)`` is the real thing: the wall clock in ms, the isolated
-model (``modelcall.ask_model``), the MediaWiki fetch and the excerpt check.
-Tests replace any of them.
+model on its two tiers (``model``: Sonnet for what repeats, ``draft``: Fable
+for writing cards; ``tutor.tiers``), the MediaWiki fetch and the excerpt
+check. Tests replace any of them.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -38,7 +39,8 @@ class Context:
 
     data_dir: Path
     clock: Callable[[], int] = wall_ms
-    model: ModelFn = modelcall.ask_model
+    model: ModelFn = modelcall.ask_repeat
+    draft: ModelFn = modelcall.ask_draft  # writes cards; never a fallback
     fetch: Callable[[str], bytes] = wiki.http_get
     check: CheckFn = sources.check_excerpt
     # A source's plain text (fetched once, cached): what an added card quotes.
@@ -49,6 +51,10 @@ class Context:
         """Resolve the device id (``$TUTOR_DATA/device_id``) when not given."""
         if not self.device:
             self.device = device_id(self.data_dir / "device_id")
+
+    def drafting(self) -> Context:
+        """This context with the draft tier as its model (card writing)."""
+        return replace(self, model=self.draft)
 
     @property
     def subjects(self) -> SubjectStore:

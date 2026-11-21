@@ -49,7 +49,7 @@ pass the same vectors.
   `status:"draft"` and only for modules without cards: modules with cards (or
   not `locked`) must stay in the list and are restored verbatim. Every plan op
   carries `plan_rev`; mismatch -> `plan_conflict`. "3-12 modules" counts the
-  newest `depth` only (a go-deeper draft appends).
+  newest `depth` only (go-deeper appends); a module with cards never counts.
 - `plan_approve` -> `status:"approved"`, subject `active`; modules whose
   requires are met become `generating`. The worker runs `generate(ctx, subj,
   module)` on the build lane, one at a time, for every module
@@ -95,7 +95,7 @@ pass the same vectors.
      each), each fitting THIS module better than any other: another
      module's part or system only as what it is and does for the whole;
   6. code keeps the cards that pass the rules and the verbatim excerpt
-     check; 7. model gates each card against the module summary and names
+     check; 6a. the seven card rules (`DOCS-contract-redraft.md`); 7. model gates each card against the module summary and names
      the plan module it fits best (`module`, enum of the plan's ids); code
      keeps it only for `on_topic:true` AND `module` = this module (fail
      closed: no verdict -> refused; an earlier module -> "duplicates", a
@@ -103,7 +103,7 @@ pass the same vectors.
      so far (live cards of this and earlier modules, id + front) and names
      in `repeats` a card there or EARLIER in the batch that asks the same
      fact -> refused (a later or self reference is ignored, so of a pair the
-     first stays). < 3 kept -> `failed`;
+     first stays). No card kept -> `failed` (no minimum);
      else `ready` with `cards` = live (not suspended) count. A chosen
      page's extract is seeded into the excerpt-check cache for the article
      URL (unless cached already), so the model drafts from exactly the text
@@ -114,10 +114,11 @@ pass the same vectors.
   untouched), refused ones `suspended:true`, module back to
   `generating`; the worker drafts replacements (numbered after the module's
   last card, told not to repeat the suspended ones). A regeneration that
-  fails leaves a module with >= 3 live cards `ready` (`error` null: only
+  fails leaves a module with a live card `ready` (`error` null: only
   `failed` carries one; the fold clears a stale one on `ready`/`mastered`).
+- Tiers, paths, card rules, redraft (PC-only): `DOCS-contract-redraft.md`.
 - `card_edit` validates like the old page's deck editor did (fields, word limits,
-  prefixes, source fetch + excerpt check); refusal -> `edit_refused` with the
+  prefixes, the seven card rules, source fetch + excerpt check); refusal -> `edit_refused` with the
   reason; success -> `rev`+1, `origin:"edited"`. New id = given one, else slug of
   `front`. Tutor edits (rule 15): `tutor/edit_flow.py`; undo: `curriculum/card_undo.py`.
   A tutor `edit` may move a card to a new `source` its research found: code
@@ -242,9 +243,7 @@ a new session); that session's own minutes are secondary.
   card done; Switch card; mastered list; stalled/paused pill.
 - **History**: `session_index` (archived toggle, auto-archived hidden), past
   transcript view, Repeat, Continue (`session_resume`), mark card done/not done.
-- **Progress**: `stats.days` timeline + per-module recall.
-- **Editor**: subject -> module -> cards, `card_edit`, flag.
-- **Review**: §5, offline.
+- **Progress**: `stats.days` timeline + per-module recall. **Editor**: subject -> module -> cards, `card_edit`, flag. **Review**: §5, offline.
 - **Report a problem**: `feedback/`, optionally tied to one message.
 
 ## 9. Worker API (B2 -> B1): `tutor.curriculum.handlers`

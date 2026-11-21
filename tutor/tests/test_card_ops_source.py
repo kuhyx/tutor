@@ -98,7 +98,9 @@ def test_a_source_swap_is_checked_against_the_new_url(
             swapped,
             "car",
             "a2",
-            card_ops.Rewrite(front=FRONT + " Why?", back=BACK, source=PISTON),
+            card_ops.Rewrite(
+                front=FRONT.replace("?", " here?"), back=BACK, source=PISTON
+            ),
         )
     )
     assert f"excerpt check failed for {PISTON}" in err.message

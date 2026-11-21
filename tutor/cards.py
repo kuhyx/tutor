@@ -1,7 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Load and validate the deck's topic files.
 
-One JSON file per topic under ``deck/``. Each card names the URL it was written
+One JSON file per topic under ``deck/``, the topics listed in its
+``manifest.json`` (:data:`TOPICS`). Each card names the URL it was written
 from and a verbatim excerpt of that page; ``sources.check_excerpt`` is what
 proves the excerpt is really there.
 """
@@ -10,11 +11,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-from typing import TYPE_CHECKING, Final
+from pathlib import Path
+from typing import Final
 from urllib.parse import urlsplit
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -26,15 +25,21 @@ class Topic:
     prefixes: tuple[str, ...]
 
 
-TOPICS: Final = (
-    Topic("fundamentals", "Fundamentals", ("fund-",)),
-    Topic("languages", "IEC 61131-3 languages", ("lang-",)),
-    Topic("ladder", "Ladder logic", ("ld-",)),
-    Topic("structured_text", "Structured Text and SFC", ("st-", "sfc-")),
-    Topic("field_devices", "Field devices", ("io-",)),
-    Topic("protocols", "Protocols", ("net-",)),
-    Topic("ot_security", "OT security", ("sec-",)),
-)
+DECK_DIR: Final = Path(__file__).resolve().parents[1] / "subjects/automation/deck"
+MANIFEST: Final = "manifest.json"
+
+
+def topics(deck_dir: Path) -> tuple[Topic, ...]:
+    """The deck's topics in teaching order, from its ``manifest.json``.
+
+    The manifest is a JSON array of ``{"stem", "title", "prefixes"}``; the
+    redraft's deck export (``redraft.deck``) rewrites it when a topic is cut.
+    """
+    raw = json.loads((deck_dir / MANIFEST).read_text(encoding="utf-8"))
+    return tuple(Topic(t["stem"], t["title"], tuple(t["prefixes"])) for t in raw)
+
+
+TOPICS: Final = topics(DECK_DIR)
 _KEYS: Final = frozenset({"id", "front", "back", "source", "excerpt"})
 # Optional: ids of cards that must be done before this one opens in the tutor.
 # Anki has no gating, so deck.py ignores it.

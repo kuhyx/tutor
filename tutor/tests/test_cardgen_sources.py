@@ -9,6 +9,7 @@ import pytest
 
 from tutor import sources
 from tutor.curriculum import cardgen, wiki
+from tutor.curriculum.plan_context import Scope
 from tutor.curriculum.subject_store import Change
 from tutor.tests._cur import card, make_ctx, module, subject
 from tutor.tests.test_cardgen import drafted
@@ -125,7 +126,7 @@ def test_regeneration_appends_after_existing_cards(
     ctx.subjects.commit("car", ctx.subjects.need_meta("car"), Change(cards=old))
     monkeypatch.setattr(
         cardgen,
-        "_sources",
+        "sources",
         lambda *_: [wiki.Source("https://en.wikipedia.org/wiki/U", "U", "t")],
     )
     reply = drafted(3)
@@ -153,9 +154,45 @@ def test_regeneration_appends_after_existing_cards(
     fakes.replies += [drafted(1), _verdicts(["card-0"], off=("card-0",))]
     monkeypatch.setattr(
         cardgen,
-        "_sources",
+        "sources",
         lambda *_: [wiki.Source("https://en.wikipedia.org/wiki/U", "U", "t")],
     )
     result = cardgen.generate(ctx, "car", "a")
     assert (result["status"], result["cards"]) == ("ready", 6)
-    assert "only 0 card(s) passed" in str(result["error"])
+    assert "no card passed" in str(result["error"])
+
+
+GUIDE = "https://example.org/engine-guide"
+
+
+def _pinned(ctx: Context) -> Scope:
+    meta = ctx.subjects.need_meta("car")
+    meta.goal = f"learn cars from {GUIDE}."
+    ctx.subjects.commit("car", meta, Change())
+    plan = ctx.subjects.plan("car")
+    assert plan is not None
+    return Scope(meta, plan.modules[0], plan)
+
+
+def test_a_pinned_subject_drafts_from_the_pages_it_names(
+    ctx_fakes: tuple[Context, Fakes], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx, fakes = ctx_fakes
+    monkeypatch.setattr(wiki, "candidates", pytest.fail)  # no wiki search at all
+    fakes.texts[GUIDE] = f"Engine guide\n{LONG}"
+    fakes.replies.append({"keep": [1], "why": ""})
+    found = cardgen.sources(ctx, _pinned(ctx))
+    assert isinstance(found, list)
+    assert [(s.url, s.title) for s in found] == [(GUIDE, "Engine guide")]
+
+
+def test_a_pinned_page_that_cannot_be_read_or_fits_nothing(
+    ctx_fakes: tuple[Context, Fakes],
+) -> None:
+    ctx, fakes = ctx_fakes
+    scope = _pinned(ctx)
+    assert cardgen.sources(ctx, scope) == f"cannot fetch {GUIDE}: no text for {GUIDE}"
+    fakes.texts[GUIDE] = f"Engine guide\n{LONG}"
+    fakes.replies.append({"keep": [], "why": "about boats"})
+    msg = "none of the 1 pinned page(s) covers this module"
+    assert cardgen.sources(ctx, scope) == msg

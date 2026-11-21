@@ -28,6 +28,7 @@ from tutor.relay.phone_check import PhoneCheck
 from tutor.relay.presence import Presence
 from tutor.relay.projection import Publisher
 from tutor.relay.protocol import BUILD, CHAT
+from tutor.relay.redraft_task import CardWork
 from tutor.relay.rtdb import RtdbError
 
 if TYPE_CHECKING:
@@ -123,6 +124,8 @@ class Relay:
         self._spawn(self.phone.run(), "phone")
         self._spawn(self._refresh(), "refresh")
         self._spawn(self.curriculum.generate_forever(), "generate")
+        work = CardWork(self.w, self.curriculum, self.server.current)
+        self._spawn(work.run(), "cards")
         self.ready.set()
 
     async def _refresh(self) -> None:

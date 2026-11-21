@@ -18,7 +18,7 @@ no hook events, so ``tutor.isolation`` still counts 0):
 - PreToolUse: :class:`ResearchBudget` denies a remote subagent at any time,
   and every tool call once :data:`RESEARCH_SECONDS` of the turn have passed,
   so the tutor answers with what it has. Bash calls are capped at 30 s by
-  env; both keep a turn well under ``session._TURN_TIMEOUT``.
+  env; both keep a turn well under ``session.TURN_TIMEOUT``.
 """
 
 from __future__ import annotations

@@ -63,6 +63,11 @@ void main() {
       ]),
     );
     expect(planProblems(const [_a]).single, contains('3-12 new modules'));
+    final many = [for (var i = 0; i < 13; i++) Module(id: 'm$i', title: 'M')];
+    expect(planProblems(many).single, contains('3-12 new modules'));
+    // A module that holds cards is not counted toward the upper bound.
+    many[0] = const Module(id: 'm0', title: 'M', cards: 5);
+    expect(planProblems(many), isEmpty);
     // Only the newest depth counts: three depth-2 modules after one.
     expect(
       planProblems(const [

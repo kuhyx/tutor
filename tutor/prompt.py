@@ -7,9 +7,10 @@ The rules themselves (and the pedagogy they come from) are in
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Final, NamedTuple
+import logging
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, TypedDict, Unpack
 
-from tutor import picked, struggle_rules
+from tutor import path_prompt, picked, struggle_rules
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
 from tutor.delivery import note_lines
@@ -23,9 +24,12 @@ if TYPE_CHECKING:
     from tutor.cards import Card
     from tutor.conversation import Conversation
     from tutor.curriculum.profiles import Profile
+    from tutor.curriculum.source import CardSource
     from tutor.struggle import Brief
 
 CHECK_EVERY_SECONDS: Final = 600.0
+
+_logger = logging.getLogger(__name__)
 
 
 class Asked(NamedTuple):
@@ -36,19 +40,28 @@ class Asked(NamedTuple):
     tap: bool
 
 
+class Extras(TypedDict, total=False):
+    """Optional parts of the system prompt."""
+
+    struggle: Brief | None  # help on a struggling card (rule 16)
+    path: dict[str, Any] | None  # the card's interrogation path
+
+
 def system_prompt(
     card: Card,
     mastered: list[str],
     profile: Profile | None = None,
     deck: Sequence[tuple[str, str]] = (),
-    struggle: Brief | None = None,
+    **extras: Unpack[Extras],
 ) -> str:
     """The full system prompt for a session aimed at one card.
 
     ``profile`` is the subject's (default: automation, the PLC wording);
     ``deck``: the topic's live cards as (id, front), the ids ``card_edits``
-    may name (rule 15); ``struggle``: help on a struggling card (rule 16).
+    may name (rule 15); ``struggle``: help on a struggling card (rule 16);
+    ``path``: the card's interrogation path, as suggestions (``path_prompt``).
     """
+    struggle, path = extras.get("struggle"), extras.get("path")
     done = ", ".join(mastered) if mastered else "(none yet)"
     listed = "".join(
         f"- {cid}: {front}{' (the target card)' if cid == card.id else ''}\n"
@@ -64,7 +77,24 @@ def system_prompt(
         f"topic: {card.topic.title}\nid: {card.id}\n"
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
         f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n{aid}\n"
+        f"{path_prompt.section(path)}"
         f"{help_}{cards}# Already mastered concepts\n{done}\n"
+    )
+
+
+def for_source(src: CardSource, card: Card, struggle: Brief | None = None) -> str:
+    """``src``'s system prompt for ``card``: its topic's deck and its path."""
+    deck = [(c.id, c.front) for c in src.cards() if c.topic == card.topic]
+    path = src.path(card.id)
+    # The log line is the evidence a session ran with its path (E2E F20).
+    _logger.warning(
+        "tutor prompt for %s/%s: interrogation path %s",
+        src.subject,
+        card.id,
+        "given" if path else "absent",
+    )
+    return system_prompt(
+        card, src.mastered(), src.profile, deck, struggle=struggle, path=path
     )
 
 

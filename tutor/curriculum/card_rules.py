@@ -10,7 +10,7 @@ work on generated cards unchanged.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from tutor import cards
 from tutor.curriculum import wiki
@@ -27,9 +27,9 @@ def topic(module: Module) -> cards.Topic:
     return cards.Topic(module.id, module.title, tuple(module.prefixes) or ("",))
 
 
-def as_card(cid: str, rec: CardRec, module: Module) -> cards.Card:
-    """``rec`` as a deck card; ``cards.CardError`` names what is wrong."""
-    raw = {
+def raw(cid: str, rec: CardRec) -> dict[str, Any]:
+    """``rec`` in the deck file's card shape (``mnemonic`` only when set)."""
+    return {
         "id": cid,
         "front": rec.front,
         "back": rec.back,
@@ -38,7 +38,11 @@ def as_card(cid: str, rec: CardRec, module: Module) -> cards.Card:
         "requires": list(rec.requires),
         **({"mnemonic": rec.mnemonic} if rec.mnemonic else {}),
     }
-    return cards.validate_card(raw, topic(module), f"{module.id}/{cid}")
+
+
+def as_card(cid: str, rec: CardRec, module: Module) -> cards.Card:
+    """``rec`` as a deck card; ``cards.CardError`` names what is wrong."""
+    return cards.validate_card(raw(cid, rec), topic(module), f"{module.id}/{cid}")
 
 
 def check_set(found: dict[str, CardRec], modules: dict[str, Module]) -> None:

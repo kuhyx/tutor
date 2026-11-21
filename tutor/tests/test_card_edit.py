@@ -111,3 +111,37 @@ def test_no_plan(tmp_path: Path) -> None:
 
     ctx.subjects.commit("car", Meta("C", "g", "drafting", 1))
     assert _refused({**GOOD, "card": None}, ctx).code == "edit_refused"
+
+
+def test_an_edit_that_breaks_a_card_rule_is_refused(
+    edit: tuple[Context, Fakes],
+) -> None:
+    ctx, fakes = edit
+    two = {**GOOD, "card": "eng-x", "front": "What is a piston, and what moves it?"}
+    assert "one_question" in _refused(two, ctx).message
+    assert fakes.prompts == []  # code saw it: no judge call
+    fakes.auto_judge = False
+    fakes.replies = [
+        {"verdicts": [{"id": "card", "broken": ["unguessable"], "why": "a number"}]}
+    ]
+    err = _refused({**GOOD, "card": "eng-x"}, ctx)
+    assert (err.code, "unguessable: a number" in err.message) == ("edit_refused", True)
+    assert ctx.subjects.cards("car")["eng-x"].rev == 1
+
+
+def test_the_rule_check_reads_the_stored_and_the_sent_mnemonic(
+    edit: tuple[Context, Fakes],
+) -> None:
+    ctx, _ = edit
+    short = {**GOOD, "front": "What does TDC stand for?", "back": "Top dead centre."}
+    assert "abbreviation" in _refused({**short, "card": "eng-x"}, ctx).message
+    aid = "Top of the stroke, Dead still, Centre of the turn"
+    assert card_edit({**short, "card": "eng-x", "mnemonic": aid}, ctx)["rev"] == 2
+    assert card_edit({**short, "card": "eng-x"}, ctx)["rev"] == 3  # the stored aid
+
+
+def test_a_mnemonic_that_is_not_text_is_refused(edit: tuple[Context, Fakes]) -> None:
+    ctx, _ = edit
+    err = _refused({**GOOD, "card": "eng-x", "mnemonic": 5}, ctx)
+    assert (err.code, err.message) == ("bad_request", "mnemonic must be a string")
+    assert ctx.subjects.cards("car")["eng-x"].rev == 1

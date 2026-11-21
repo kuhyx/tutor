@@ -21,7 +21,7 @@ from tutor.curriculum.source import CardSource, source_for
 from tutor.delivery import DESKTOP, Delivery, learner_message
 from tutor.edit_flow import EditFlow, Notice
 from tutor.follow_up import FollowUpFlow
-from tutor.prompt import system_prompt, turn_prompt
+from tutor.prompt import for_source, turn_prompt
 from tutor.session import TutorSession
 from tutor.store import Store
 from tutor.trace import traced
@@ -194,9 +194,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
 
     def _prompt(self, card: cards_mod.Card, brief: struggle.Brief | None = None) -> str:
         """The subject's system prompt for ``card`` (``brief``: struggle help)."""
-        src = self.source
-        deck = [(c.id, c.front) for c in src.cards() if c.topic == card.topic]
-        return system_prompt(card, src.mastered(), src.profile, deck, brief)
+        return for_source(self.source, card, brief)
 
     def _live(self) -> tuple[TutorSession, Conversation, cards_mod.Card]:
         """The running session, or RuntimeError before any start."""

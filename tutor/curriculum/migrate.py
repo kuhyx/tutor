@@ -35,7 +35,7 @@ from tutor.curriculum.subject_store import Change, SubjectStore
 from tutor.store import Store, data_dir
 
 _logger = logging.getLogger(__name__)
-DECK_DIR: Final = Path(__file__).resolve().parents[2] / "subjects/automation/deck"
+DECK_DIR: Final = cards.DECK_DIR
 SUBJECT: Final = "automation"
 TITLE: Final = "Industrial automation"
 GOAL: Final = (

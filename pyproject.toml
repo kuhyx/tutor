@@ -65,6 +65,8 @@ ignore = [
 "tutor/curriculum/migrate.py" = ["T201"]
 # ``regenerate`` prints what it suspended and generated (the repair's record).
 "tutor/curriculum/regen.py" = ["T201"]
+# ``redraft`` prints the queue, each unit's state and the report's path.
+"tutor/curriculum/redraft/cli.py" = ["T201"]
 # Dev tool: the printed JSON is the smoke run's evidence.
 "scripts/curriculum_smoke.py" = ["T201"]
 "scripts/lc_live_e2e.py" = ["T201"]
@@ -74,6 +76,7 @@ ignore = [
 # child before exec (preexec_fn).
 "scripts/e2e_drive.py" = ["T201", "S310"]
 "scripts/e2e_flow.py" = ["T201", "S310"]
+"scripts/e2e_start.py" = ["T201"]
 "scripts/e2e_key.py" = ["S310", "S105"]  # the sandbox-only passphrase
 "scripts/e2e_follow_up.py" = ["T201"]
 "scripts/e2e_blocked.py" = ["T201"]

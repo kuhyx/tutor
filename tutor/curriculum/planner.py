@@ -18,13 +18,13 @@ from tutor.curriculum import webpages
 from tutor.curriculum.errors import MODEL_ERROR, RequestError
 from tutor.curriculum.ids import slug
 from tutor.curriculum.modelcall import STRING, array_of, strict_object
+from tutor.curriculum.plan_checks import check_modules
 from tutor.curriculum.profiles import PROFILE_SCHEMA
 from tutor.curriculum.records import (
     MAX_NOTES,
     MAX_SUMMARY,
     MAX_TITLE,
     Module,
-    check_modules,
 )
 
 if TYPE_CHECKING:

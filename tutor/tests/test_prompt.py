@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 from tutor.cards import Card, Topic
-from tutor.conversation import MAX_CHECK_ATTEMPTS
+from tutor.clock import EngagementClock
+from tutor.conversation import MAX_CHECK_ATTEMPTS, Conversation
 from tutor.prompt import (
     CHECK_EVERY_SECONDS,
     engine_note,
     image_check,
     system_prompt,
+    turn_prompt,
     wrap_learner,
 )
 
@@ -128,3 +130,19 @@ def test_visuals_rule_demands_images_and_names_working_terms() -> None:
     for good in ("relay internal", "photoelectric switch", "remote io module"):
         assert f'"{good}"' in text
     assert '"relay cutaway"' not in text
+
+
+def test_a_resumed_session_primes_its_first_turn_with_the_transcript() -> None:
+    conv = Conversation("s", CARD.id, EngagementClock(0.0))
+    conv.resumed.note = "[earlier] the learner said piston"
+    asked = turn_prompt(conv, "a piston", "a piston", "pc")
+    assert asked.text.index("[earlier] the learner said piston") > asked.text.index(
+        "[/engine note]"
+    )
+    assert asked.text.endswith(
+        "[earlier] the learner said piston\n<learner>\na piston\n</learner>"
+    )
+    plain = turn_prompt(
+        Conversation("s", CARD.id, EngagementClock(0.0)), "Next?", None, "pc"
+    )
+    assert plain.text.endswith("[/engine note]\nNext?")

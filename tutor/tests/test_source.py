@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tutor.curriculum import migrate
+from tutor.curriculum import archive, migrate
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import ulid
 from tutor.curriculum.records import Meta
@@ -154,3 +154,37 @@ def test_deck_source_skip_and_none_left(tmp_path: Path) -> None:
         src.pick(None, skip=first.id)
     assert src.master(["x"], "c", "s") == ["x"]
     assert src.mastered() == ["x"]
+
+
+def test_an_archived_subject_has_nothing_to_teach(tmp_path: Path) -> None:
+    ctx, _ = make_ctx(tmp_path)
+    subject(ctx, found={"a1": card("a", 1)})
+    archive.subject_archive({"subject": "car"}, ctx)
+    src = SubjectSource(Store(tmp_path), ctx, "car")
+    with pytest.raises(RequestError) as err:
+        src.pick(None)
+    assert err.value.code == "no_card_left"
+    assert err.value.extra["subject_id"] == "car"
+    assert err.value.extra["due_in_subject"] == 0
+
+
+def test_a_card_of_a_locked_module_cannot_be_marked_taught(tmp_path: Path) -> None:
+    ctx, _ = make_ctx(tmp_path)
+    mods = [module("a", status="ready"), module("b", "a", status="locked")]
+    subject(ctx, modules=mods, found={"a1": card("a", 1), "b1": card("b", 1)})
+    src = SubjectSource(Store(tmp_path), ctx, "car")
+    with pytest.raises(RequestError, match="b1 is locked: module b") as err:
+        src.mark("b1", "s1", done=True)
+    assert err.value.code == "locked"
+    assert not ctx.fold().card("car", "b1").taught
+    src.mark("a1", "s1", done=True)
+    assert ctx.fold().card("car", "a1").taught
+
+
+def test_deck_source_marks_cards_done_and_undone(tmp_path: Path) -> None:
+    src = DeckSource(Store(tmp_path))
+    first = src.pick(None).id
+    src.mark(first, "s1", done=True)
+    assert src.done()[first]["session"] == "s1"
+    src.mark(first, "s1", done=False)
+    assert first not in src.done()

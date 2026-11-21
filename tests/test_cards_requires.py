@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from tests.test_cards import LADDER, card, full_deck, write
-from tutor.cards import TOPICS, CardError, load_deck, load_topic
-from tutor.curriculum.source import DECK_DIR
+from tutor.cards import DECK_DIR, TOPICS, CardError, load_deck, load_topic
 
 if TYPE_CHECKING:
     from pathlib import Path

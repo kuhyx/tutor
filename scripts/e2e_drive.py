@@ -7,8 +7,9 @@ against a sandbox that is ``up``. Every step is printed before it runs, so on
 failure the last line names it; a failure also saves ``<out>_fail.png``.
 Exit 0 = PASS.
 
-* F1 Continue learning: Home -> "Continue learning" -> the subject's next
-  card (``--card``) is live and its first tutor message is on screen.
+* F1 Continue learning (``e2e_start.py``, with F2): Home -> "Continue
+  learning" -> the subject's next card (``--card``) is live and its first
+  tutor message is on screen.
 * F2 daily cap (sandbox ``up --new-cap N``, N <= today's new cards): the
   same tap ends on the blocked panel with "Learn more anyway"; tapping it
   starts ``--card`` with a tutor message.
@@ -19,7 +20,8 @@ Exit 0 = PASS.
 * F7-F19, one module each: ``e2e_focus`` (F7, F8), ``e2e_checkin`` (F9,
   F10), ``e2e_unbacked`` (F11), ``e2e_blocked`` (F12), ``e2e_codes`` (F13),
   ``e2e_failures`` (F14), ``e2e_interview`` (F15), ``e2e_glyphs`` (F16),
-  ``e2e_keyless`` (F17), ``e2e_split`` (F18), ``e2e_archive`` (F19).
+  ``e2e_keyless`` (F17), ``e2e_split`` (F18), ``e2e_archive`` (F19),
+  ``e2e_path`` (F20).
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -54,7 +56,9 @@ from e2e_glyphs import PHASES as F16_PHASES
 from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_keyless import f17
+from e2e_path import f20_check, f20_send
 from e2e_split import f18_check, f18_send
+from e2e_start import f1_check, f1_send, f2
 from e2e_struggle import f5_check, f5_send
 from e2e_unbacked import f11
 
@@ -65,63 +69,18 @@ _logger = logging.getLogger(__name__)
 PENDING = 75  # wait: the worker has not answered yet; call wait again
 
 
-def f1_send(flow: Flow) -> State:
-    """Home -> Continue learning: the session_start request is sent."""
-    flow.precheck(capped=False)
-    flow.home()
-    before = flow.rids()
-    flow.tap("Continue learning", timeout=30)
-    return {"rid": flow.request("session_start", before)}
-
-
-def f1_check(flow: Flow, state: State) -> None:
-    """The next card started with a tutor message."""
-    flow.step("the session_start result is ok")
-    result = flow.result_of(str(state["rid"]))
-    print(f"  result={json.dumps(result)[:300]}")
-    if not result.get("ok"):
-        flow.home()
-        flow.shot("blocked")
-        msg = f"session_start refused: {result.get('code')}: {result.get('error')}"
-        raise FlowError(msg)
-    flow.screen("/session")
-    flow.expect_card()
-    flow.shot("started")
-
-
-def f2(flow: Flow) -> None:
-    """At the cap: the call to action is shown and lifts the cap."""
-    flow.precheck(capped=True)
-    flow.home()
-    before = flow.rids()
-    flow.tap("Continue learning", timeout=30)
-    result = flow.start_result(before)
-    if result.get("code") != "daily_new_cap":
-        msg = f"want daily_new_cap, got {json.dumps(result)[:300]}"
-        raise FlowError(msg)
-    flow.step('"Learn more anyway" is shown')
-    if flow.browser.wait_for("Learn more anyway", 15) is None:
-        msg = f"no call to action; saw: {flow.browser.page_text()[:400]!r}"
-        raise FlowError(msg)
-    flow.shot("blocked")
-    before = flow.rids()
-    flow.tap("Learn more anyway")
-    result = flow.start_result(before)
-    if not result.get("ok"):
-        msg = f"lift_cap start refused: {json.dumps(result)[:300]}"
-        raise FlowError(msg)
-    flow.expect_card()
-    flow.shot("started")
-
-
 PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]] = {
     "F1": (f1_send, f1_check),
     "F3": (f3_send, f3_check),
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
     "F18": (f18_send, f18_check),
+    "F20": (
+        lambda flow: f20_send(flow, f1_send),
+        lambda flow, state: f20_check(flow, state, f1_check),
+    ),
 }
-FLOWS = [f"F{n}" for n in range(1, 20)]  # F1..F19
+FLOWS = [f"F{n}" for n in range(1, 21)]  # F1..F20
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,

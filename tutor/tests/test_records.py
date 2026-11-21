@@ -8,12 +8,12 @@ from dataclasses import asdict
 import pytest
 
 from tutor.curriculum.errors import RequestError
+from tutor.curriculum.plan_checks import check_modules
 from tutor.curriculum.records import (
     CardRec,
     Meta,
     Module,
     Plan,
-    check_modules,
     id_list,
     text,
 )
@@ -98,6 +98,11 @@ def test_check_modules() -> None:
         check_modules([module("a"), module("b")])
     with pytest.raises(RequestError, match="duplicate"):
         check_modules([module("a"), module("a"), module("c")])
+    many = [module(f"m{i}") for i in range(13)]
+    with pytest.raises(RequestError, match="3-12 modules, not 13"):
+        check_modules(many)
+    many[0].cards = 5  # a module with cards (a redraft's piece) is not counted
+    check_modules(many)
     with pytest.raises(RequestError, match="not earlier"):
         check_modules([module("a", "b"), module("b"), module("c")])
     # A go-deeper round counts only its own (deepest) modules.

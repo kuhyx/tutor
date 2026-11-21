@@ -11,7 +11,7 @@ import pytest
 
 from tutor import edit_flow, resume
 from tutor.card_requests import CardEdit
-from tutor.curriculum import card_rules
+from tutor.curriculum import card_rules, quality_judge
 from tutor.curriculum.errors import RequestError
 from tutor.engine import Engine
 from tutor.relay.errors import classify, result_of
@@ -98,6 +98,10 @@ def test_rewrite_of_the_live_card_waits_for_the_next_session(
 ) -> None:
     # The excerpt check would fetch the source: no network in tests.
     monkeypatch.setattr(card_rules, "source_problem", lambda *_a: None)
+    # The rule judge is a model call: no model in tests, every card passes.
+    monkeypatch.setattr(
+        quality_judge, "judge", lambda _c, _a, cards, *_r: {c: [] for c in cards}
+    )
     _car(tmp_path)
     edit = CardEdit("edit", back="It is a better thing.")
     fake = FakeSession(turn(), turn("Fixed the answer.", card_edits=(edit,)))

@@ -170,6 +170,9 @@ class Draft:
     back: str
     source: str
     quote: str = ""  # words the supporting sentence holds (``quote``)
+    # Built by code from a fixed bank (the LeetCode toolbox), in a format of
+    # its own: the seven card rules judge written cards, not these.
+    code_built: bool = False
 
 
 def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
@@ -187,7 +190,7 @@ def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
         "excerpt": excerpt,
         "requires": [],
     }
-    cid = str(card_edit(body, ctx)["card"])
+    cid = str(card_edit(body, ctx, judged=not draft.code_built)["card"])
     with LOCK:  # the mark the Editor's Remove keys on
         meta, cards = ctx.subjects.need_meta(subject), ctx.subjects.cards(subject)
         cards[cid].tutor = {"added": ctx.clock()}

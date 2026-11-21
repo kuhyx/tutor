@@ -35,7 +35,7 @@ def test_request_queues_generation_and_the_cards_stay_locked(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     eng, _ = engine(tmp_path)
-    monkeypatch.setattr(cardgen, "_sources", lambda *_: list(SOURCES))
+    monkeypatch.setattr(cardgen, "sources", lambda *_: list(SOURCES))
     monkeypatch.setattr(judge, "gate", lambda _c, _s, cards, _t, _k: (cards, []))
     subject(
         eng.ctx,

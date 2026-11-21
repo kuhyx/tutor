@@ -172,6 +172,39 @@ the cards quote one of them (`tutor/curriculum/webpages.py`). If a page cannot
 be fetched or has under 1500 characters of text, the draft fails and names
 that URL.
 
+### Who writes and who asks
+
+Two model tiers (`tutor/tiers.py`). Fable 5.2 at `xhigh` effort writes the
+cards of a new module, once, and with them an interrogation path per card:
+an opening question, probes, the likely misconception, a hint ladder, the
+pass criterion, and whether a typed follow-up after a correct pick adds
+anything. Sonnet at `high` effort leads the session, rewrites a card you ask
+to change and drafts plans. The tutor reads a card's path before its first
+question as suggestions and leaves it whenever you do. Paths stay on the PC
+(`subjects/<id>/paths.json`) and are never shown. If Fable is unavailable a
+new module fails and **Approve** retries it; Sonnet never writes it instead.
+
+Every drafted or edited card must pass seven rules
+(`tutor/curriculum/quality.py`): one question per card; no unguessable name
+or number; an abbreviation card asks only for the expansion and carries a
+mnemonic; one term per card; a maths card answers with the formula; nothing
+subjective or hedged; a card you found hard carries a mnemonic.
+
+### Redraft
+
+`python -m tutor redraft start` drafts every module's cards again with
+Fable, archived subjects too. It backs up `subjects/` to
+`~/.local/share/tutor/backups/subjects-<time>/` first. The running server
+then works through the modules and waits whenever a reply to you is in
+flight. A new card that Fable matches to an old one keeps the old id, your
+taught state and its due date; an old card with no match is suspended, never
+deleted; a module with more than 12 cards is cut into several. `status`
+lists the modules (exit 75 while any is pending). `report` writes
+`~/.local/state/tutor/redraft/<time>/report.md`: your flagged cards before
+and after, rule violations per subject, the suspended cards and any module
+that could not be redrafted. To rehearse on a copy: `start --data DIR`, then
+`drain --data DIR`.
+
 ## Evening gate
 
 `python3 -m tutor.gate --production --evening` is the tutor rung of the evening

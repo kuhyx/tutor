@@ -42,7 +42,7 @@ Prompt = str | list[dict[str, Any]]
 Effort = Literal["low", "medium", "high", "xhigh", "max"]
 
 MODEL: Final = "claude-sonnet-5-5"
-_TURN_TIMEOUT: Final = 240.0
+TURN_TIMEOUT: Final = 240.0
 _logger = logging.getLogger(__name__)
 
 
@@ -131,9 +131,10 @@ async def _blocks(content: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]
 class TutorSession:
     """A multi-turn conversation owned by one background task."""
 
-    def __init__(self, options: ClaudeAgentOptions) -> None:
+    def __init__(self, options: ClaudeAgentOptions, timeout: float = 0.0) -> None:
         """Remember the options (stderr watched); nothing spawns until :meth:`ask`."""
         self._options = replace(options, stderr=model_fault.watch(options.stderr))
+        self._timeout = timeout  # one turn's limit; 0: ``TURN_TIMEOUT``
         self._queue: asyncio.Queue[_Item | None] = asyncio.Queue()
         self._task: asyncio.Task[None] | None = None
         self._inflight: asyncio.Future[Reply] | None = None
@@ -148,7 +149,7 @@ class TutorSession:
             self._task.add_done_callback(self._on_exit)
         fut: asyncio.Future[Reply] = asyncio.get_running_loop().create_future()
         await self._queue.put((prompt, fut, on_trace))
-        return await asyncio.wait_for(fut, _TURN_TIMEOUT)
+        return await asyncio.wait_for(fut, self._timeout or TURN_TIMEOUT)
 
     async def ask(
         self, prompt: Prompt, on_trace: Observer | None = None

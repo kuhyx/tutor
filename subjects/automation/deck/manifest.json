@@ -1,0 +1,52 @@
+[
+ {
+  "stem": "fundamentals",
+  "title": "Fundamentals",
+  "prefixes": [
+   "fund-"
+  ]
+ },
+ {
+  "stem": "languages",
+  "title": "IEC 61131-3 languages",
+  "prefixes": [
+   "lang-"
+  ]
+ },
+ {
+  "stem": "ladder",
+  "title": "Ladder logic",
+  "prefixes": [
+   "ld-"
+  ]
+ },
+ {
+  "stem": "structured_text",
+  "title": "Structured Text and SFC",
+  "prefixes": [
+   "st-",
+   "sfc-"
+  ]
+ },
+ {
+  "stem": "field_devices",
+  "title": "Field devices",
+  "prefixes": [
+   "io-"
+  ]
+ },
+ {
+  "stem": "protocols",
+  "title": "Protocols",
+  "prefixes": [
+   "net-"
+  ]
+ },
+ {
+  "stem": "ot_security",
+  "title": "OT security",
+  "prefixes": [
+   "sec-"
+  ]
+ }
+]

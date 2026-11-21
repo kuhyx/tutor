@@ -53,6 +53,7 @@ def _suspend(ctx: Context, subject: str, module_id: str, gone: list[str]) -> Non
         for cid in gone:
             cards[cid].suspended = True
         current.status, current.error, current.error_kind = "generating", None, None
+        current.repeat = True  # asked for: the repeat tier drafts (``tiers``)
         current.cards = sum(
             c.module == module_id and not c.suspended for c in cards.values()
         )

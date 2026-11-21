@@ -138,7 +138,10 @@ List<String> planProblems(List<Module> modules) {
   // A go-deeper draft appends: only the newest depth is counted.
   final depth = modules.fold(1, (d, m) => m.depth > d ? m.depth : d);
   final count = modules.where((m) => m.depth == depth).length;
-  if (count < kMinModules || count > kMaxModules) {
+  // A module with cards never counts toward the upper bound (the server
+  // cuts a big module into several when it redrafts it).
+  final empty = modules.where((m) => m.depth == depth && m.cards == 0).length;
+  if (count < kMinModules || empty > kMaxModules) {
     problems.add(
       'A plan has $kMinModules-$kMaxModules new modules '
       '(this one has $count).',

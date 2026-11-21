@@ -19,6 +19,7 @@ from tutor import codes
 from tutor.curriculum import planner, profiles, rules, webpages
 from tutor.curriculum.errors import BAD_REQUEST, PLAN_CONFLICT, RequestError
 from tutor.curriculum.ids import slug, valid_id
+from tutor.curriculum.plan_checks import check_modules
 from tutor.curriculum.records import (
     MAX_GOAL,
     MAX_NOTES,
@@ -26,7 +27,6 @@ from tutor.curriculum.records import (
     Module,
     Plan,
     bad,
-    check_modules,
     text,
 )
 from tutor.curriculum.subject_store import Change

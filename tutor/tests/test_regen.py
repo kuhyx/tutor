@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from tutor import __main__ as tutor_main
-from tutor.curriculum import cardgen, judge, regen
+from tutor.curriculum import archive, cardgen, judge, regen
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.subject_store import Change
@@ -150,3 +150,13 @@ def test_main_dispatches_regenerate(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(regen, "main", fake_main)
     assert tutor_main.main(["regenerate", "car", "a"]) == 0
     assert seen == [["car", "a"]]
+
+
+def test_an_archived_subject_is_not_regenerated(car: tuple[Context, Fakes]) -> None:
+    ctx, _ = car
+    archive.subject_archive({"subject": "car"}, ctx)
+    with pytest.raises(RequestError, match="car is archived; unarchive it first"):
+        regen.regenerate(ctx, "car", "a")
+    plan = ctx.subjects.plan("car")
+    assert plan is not None
+    assert plan.modules[0].status == "ready"

@@ -48,11 +48,12 @@ def meta_json(meta: Meta) -> dict[str, Any]:
 
 
 def plan_json(plan: Plan) -> dict[str, Any]:
-    """The plan's contract shape (``pregenerated`` only when set); <= 16 KB."""
+    """The plan's contract shape (flags only when set); <= 16 KB."""
     out = asdict(plan)
     for module in out["modules"]:  # an unset flag keeps the old shape
-        if not module["pregenerated"]:
-            del module["pregenerated"]
+        for flag in ("pregenerated", "repeat"):
+            if not module[flag]:
+                del module[flag]
         if module["error_kind"] is None:
             del module["error_kind"]
     if len(json.dumps(out, ensure_ascii=False).encode()) > MAX_PLAN_BYTES:

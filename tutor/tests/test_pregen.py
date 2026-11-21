@@ -48,7 +48,7 @@ def drafted(n: int) -> dict[str, Any]:
 def pre(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Context, Fakes]:
     """``a`` ready (3 untaught cards), ``b`` needs a, ``c`` needs b."""
     ctx, fakes = make_ctx(tmp_path)
-    monkeypatch.setattr(cardgen, "_sources", lambda *_: list(SOURCES))
+    monkeypatch.setattr(cardgen, "sources", lambda *_: list(SOURCES))
     monkeypatch.setattr(judge, "gate", lambda _c, _s, cards, _t, _k: (cards, []))
     found = {cid: card("a", n) for n, cid in enumerate(A_CARDS, 1)}
     subject(
@@ -163,7 +163,7 @@ def test_failed_pregeneration_retries_locked_and_falls_back_on_unlock(
 ) -> None:
     ctx, fakes = pre
     pregen(ctx, ["b"])
-    fakes.replies.append(drafted(1))  # too few cards
+    fakes.replies.append(drafted(0))  # no card at all
     assert handlers.generate(ctx, "car", "b")["status"] == "failed"
     assert mod(ctx, "b").pregenerated is True
     handlers.fold_and_advance(ctx)
@@ -171,7 +171,7 @@ def test_failed_pregeneration_retries_locked_and_falls_back_on_unlock(
     # plan_approve retries it; still locked for study afterwards.
     handlers.BUILD_HANDLERS["plan_approve"]({"subject": "car", "plan_rev": 1}, ctx)
     assert mod(ctx, "b").status == "generating"
-    fakes.replies.append(drafted(1))
+    fakes.replies.append(drafted(0))
     handlers.generate(ctx, "car", "b")
     # Unlocking a failed pre-generation drafts just in time, as without it.
     master_a(ctx)

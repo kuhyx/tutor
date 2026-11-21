@@ -8,12 +8,16 @@ and searches for more (``wiki.candidates``), drops loosely matching hits and
 ranks the rest (``relevance``), and the model keeps only the on-topic pages
 (``judge.pick_sources``) BEFORE drafting. The model (no tools) drafts cards
 from those texts; a card is kept only if it passes the deck's rules
-(``card_rules``), the verbatim excerpt check and the per-card relevance gate
-(``judge.gate``). Fewer than 3 kept, fewer than 2 on-topic sources, or a
-model failure: the module is ``failed`` with the reason (``plan_approve`` on
-the same rev retries it) -- unless it already has cards (a regeneration,
-``regen``), then it stays ``ready``. Else ``ready``; a module drafted ahead
-(``pregenerated``, ``pregen``) goes back to ``locked`` until it unlocks.
+(``card_rules``), the verbatim excerpt check, the seven card rules (``vet``:
+code checks, a judge, up to three repairs) and the per-card relevance gate
+(``judge.gate``). A new module is written by the draft tier (``tiers``), a
+requested regeneration (``Module.repeat``) by the repeat tier. No card
+kept, fewer than 2 on-topic sources, or a model failure: the module is
+``failed`` with the reason (``plan_approve`` on the same rev retries it) --
+unless it already has cards (a regeneration, ``regen``), then it stays
+``ready``. There is no minimum: one good card makes a module. Else
+``ready``; a module drafted ahead (``pregenerated``, ``pregen``) goes back
+to ``locked`` until it unlocks.
 """
 
 from __future__ import annotations
@@ -22,87 +26,28 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import codes
-from tutor.cards import CardError
 from tutor.curriculum import (
-    card_rules,
     judge,
     plan_context,
     relevance,
     rules,
+    vet,
     webpages,
     wiki,
 )
 from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt
 from tutor.curriculum.errors import RequestError
-from tutor.curriculum.ids import slug
 from tutor.curriculum.plan_context import Scope
-from tutor.curriculum.records import CardRec, Module
 from tutor.curriculum.subject_store import LOCK, Change
 
 _logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from tutor.curriculum.context import Context
+    from tutor.curriculum.records import CardRec, Module
 
-MIN_CARDS: Final = 3
 MAX_CARDS: Final = 12
 MIN_SOURCES: Final = 2
-
-
-def _one(
-    ctx: Context,
-    module: Module,
-    taken: set[str],
-    found: list[wiki.Source],
-    item: object,
-) -> tuple[str, CardRec] | str:
-    """One drafted card checked: ``(id, card)``, or why it was refused."""
-    if not isinstance(item, dict):
-        return "not an object"
-    index = item.get("source")
-    if not isinstance(index, int) or not 1 <= index <= len(found):
-        return f"{item.get('id')}: no such source"
-    prefix = module.prefixes[0] if module.prefixes else ""
-    base = slug(str(item.get("id") or item.get("front") or ""), fallback="card")
-    cid = slug(base if base.startswith(prefix) else prefix + base, taken)
-    needs = item.get("requires")
-    rec = CardRec(
-        module=module.id,
-        order=0,
-        front=str(item.get("front", "")).strip(),
-        back=str(item.get("back", "")).strip(),
-        source=found[index - 1].url,
-        excerpt=" ".join(str(item.get("excerpt", "")).split()),
-        requires=[str(r) for r in needs] if isinstance(needs, list) else [],
-        created=ctx.clock(),
-    )
-    try:
-        card_rules.as_card(cid, rec, module)
-    except CardError as err:
-        _logger.warning("drafted card refused: %s", err)
-        return str(err)
-    reason = card_rules.source_problem(ctx, cid, rec)
-    return f"{cid}: {reason}" if reason else (cid, rec)
-
-
-def _drafts(
-    ctx: Context,
-    module: Module,
-    existing: dict[str, CardRec],
-    found: list[wiki.Source],
-    raw: dict[str, Any],
-) -> tuple[dict[str, CardRec], list[str]]:
-    """Check the model's cards in order; returns (kept, why others were not)."""
-    kept: dict[str, CardRec] = {}
-    problems: list[str] = []
-    items = raw.get("cards")
-    for item in (items if isinstance(items, list) else [])[:MAX_CARDS]:
-        checked = _one(ctx, module, {*existing, *kept}, found, item)
-        if isinstance(checked, str):
-            problems.append(checked)
-            continue
-        kept[checked[0]] = checked[1]
-    return kept, problems
 
 
 def _settle(
@@ -134,7 +79,7 @@ def _pinned(ctx: Context, scope: Scope, urls: list[str]) -> list[wiki.Source] | 
     return [webpages.source(p) for p in chosen]
 
 
-def _sources(ctx: Context, scope: Scope) -> list[wiki.Source] | str:
+def sources(ctx: Context, scope: Scope) -> list[wiki.Source] | str:
     """The on-topic sources (seeded for the excerpt check), or why none."""
     meta, module = scope.meta, scope.module
     urls = webpages.pinned(meta.goal)
@@ -164,27 +109,30 @@ def _outcome(
     scope = Scope(ctx.subjects.need_meta(subject), module, ctx.subjects.plan(subject))
     existing = ctx.subjects.cards(subject)
     try:
-        found = _sources(ctx, scope)
+        found = sources(ctx, scope)
         if isinstance(found, str):  # the search failed or found too few
             return {}, found, codes.SOURCES_MISSING
         raw = ctx.model(SYSTEM, prompt(scope, existing, found), CARDS_SCHEMA)
-        checked, problems = _drafts(ctx, module, existing, found, raw)
-        named = {s.url: s.title for s in found}
+        items = raw.get("cards")
+        batch = vet.Batch(scope, found, frozenset(existing), limit=MAX_CARDS)
+        vetted = vet.vet(ctx, batch, items if isinstance(items, list) else [])
         known = plan_context.in_deck(scope.plan, module, existing, set())
-        kept, refused = judge.gate(ctx, scope, checked, named, known)
-        problems += refused
+        kept, refused = judge.gate(
+            ctx, scope, vetted.kept, {s.url: s.title for s in found}, known
+        )
+        problems = vetted.dropped + refused
     except RequestError as err:
         _logger.warning("card drafting failed: %s", err.message)
         return {}, err.message, codes.error_kind(err)
-    if len(kept) < MIN_CARDS:
-        return {}, _too_few(len(kept), problems), codes.TOO_FEW_CARDS
+    if not kept:
+        return {}, _no_card(problems), codes.TOO_FEW_CARDS
     return _settle(module, existing, kept), None, None
 
 
-def _too_few(count: int, problems: list[str]) -> str:
-    """Why a module failed with ``count`` cards passing (the first problems)."""
+def _no_card(problems: list[str]) -> str:
+    """Why a module failed with no card passing (the first problems)."""
     shown = f" ({'; '.join(problems[:3])})" if problems else ""
-    return f"only {count} card(s) passed the checks{shown}"
+    return f"no card passed the checks{shown}"
 
 
 def _live(cards: dict[str, CardRec], module_id: str) -> int:
@@ -197,7 +145,10 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
     module = plan.module(module_id) if plan else None
     if module is None or module.status != "generating":
         return {"module": module_id, "status": module.status if module else None}
-    kept, error, kind = _outcome(ctx, subject, module)
+    # A new module is written by the draft tier; a requested regeneration
+    # (``regen``) is a repeatable action and stays on the repeat tier.
+    drafter = ctx if module.repeat else ctx.drafting()
+    kept, error, kind = _outcome(drafter, subject, module)
     with LOCK:  # re-read: the fold may have changed other modules meanwhile
         meta = ctx.subjects.need_meta(subject)
         plan = ctx.subjects.plan(subject)
@@ -206,7 +157,7 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
             return {"module": module_id, "status": None}
         cards = {**ctx.subjects.cards(subject), **kept}
         count = _live(cards, module_id)
-        current.status = "failed" if error and count < MIN_CARDS else "ready"
+        current.status = "failed" if error and not count else "ready"
         if current.status == "ready" and current.pregenerated:
             view = rules.View(subject, plan, cards)
             if rules.unlocked(view, current, ctx.fold()):
@@ -219,6 +170,7 @@ def generate(ctx: Context, subject: str, module_id: str) -> dict[str, Any]:
         current.error = error if failed else None
         current.error_kind = kind if failed else None
         current.cards = count
+        current.repeat = current.repeat and failed  # a retry stays on its tier
         ctx.subjects.commit(subject, meta, Change(plan=plan, cards=cards))
     return {
         "module": module_id,
