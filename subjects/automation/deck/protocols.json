@@ -1,177 +1,94 @@
 [
   {
-    "id": "net-modbus-client-server",
-    "front": "In current Modbus terminology, what are the requesting and responding devices called, and what were they called before?",
-    "back": "The device that starts a transaction is the client (old name: master); the device that answers is the server (old name: slave).",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "In former terminology, the client was named master and the server named slave."
-  },
-  {
-    "id": "net-modbus-tcp-port",
-    "front": "On which TCP port does a Modbus TCP server listen by default?",
-    "back": "Port 502.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Modbus TCP or Modbus TCP/IP is a Modbus variant used for communications over TCP/IP networks, connecting over port 502."
-  },
-  {
-    "id": "net-modbus-rtu-framing",
-    "front": "How does Modbus RTU encode messages on a serial line, and how does it detect transmission errors?",
-    "back": "It sends compact binary data and appends a CRC checksum to each frame.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "makes use of a compact, binary representation of the data for protocol communication. The RTU format follows the commands/data with a cyclic redundancy check checksum"
-  },
-  {
-    "id": "net-modbus-coils",
-    "front": "In the Modbus data model, what size is a coil and what access does a client have to it?",
-    "back": "A coil is one bit, and it can be both read and written.",
-    "source": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
-    "excerpt": "Coils Single bit Read-Write Input Registers"
-  },
-  {
-    "id": "net-modbus-discrete-inputs",
-    "front": "In the Modbus data model, what size is a discrete input and what access does a client have to it?",
-    "back": "One bit (on/off), read-only.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Discrete input R 1 bit (0–1) Read on/off value"
-  },
-  {
-    "id": "net-modbus-input-registers",
-    "front": "In the Modbus data model, what size is an input register, what access does a client have, and what does it typically hold?",
-    "back": "A 16-bit word, read-only, usually a measurement or status value.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Input register R 16 bit words (0–65,535) Read measurements and statuses"
-  },
-  {
-    "id": "net-modbus-holding-registers",
-    "front": "In the Modbus data model, what size is a holding register, what access does a client have, and what does it typically hold?",
-    "back": "A 16-bit word that is readable and writable, typically used for configuration values.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Holding register R/W 16 bit words (0–65,535) Read/Write configuration values"
-  },
-  {
-    "id": "net-modbus-fc-holding-registers",
-    "front": "Which Modbus function codes read holding registers, write one holding register, and write several?",
-    "back": "FC 3 reads them, FC 6 writes a single one, FC 16 writes multiple.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Read Multiple Holding Registers 3 Write Single Holding Register 6 Write Multiple Holding Registers 16"
-  },
-  {
-    "id": "net-modbus-fc-coils",
-    "front": "Which Modbus function codes read coils, write one coil, and write several coils?",
-    "back": "FC 1 reads coils, FC 5 writes a single coil, FC 15 writes multiple coils.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Read Coils 1 Write Single Coil 5 Write Multiple Coils 15"
-  },
-  {
-    "id": "net-modbus-unit-id",
-    "front": "What does the unit identifier in a Modbus TCP header select when talking to a TCP-to-RTU gateway?",
-    "back": "It holds the server address of the specific device sitting behind the gateway.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "In such a case, the unit identifier is the Server Address of the device behind the gateway."
-  },
-  {
-    "id": "net-modbus-no-security",
-    "front": "What protection does the Modbus protocol itself offer against forged commands or eavesdropping?",
-    "back": "None: it has no built-in authentication of commands and no confidentiality for the data on the wire.",
-    "source": "https://en.wikipedia.org/wiki/Modbus",
-    "excerpt": "Modbus protocol itself provides no security against unauthorized commands or interception of data."
-  },
-  {
-    "id": "net-ot-designed-isolated",
-    "front": "Why do classic industrial protocols generally lack authentication and encryption?",
-    "back": "They were built for safe, reliable control on networks that were never meant to connect to outside networks.",
-    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
-    "excerpt": "Traditional OT systems were designed to operate industrial processes safely and reliably without connections to external networks."
-  },
-  {
-    "id": "net-profinet-organization",
-    "front": "Which organization maintains and supports the PROFINET standard?",
-    "back": "PROFIBUS & PROFINET International (PI), the same body behind PROFIBUS.",
-    "source": "https://en.wikipedia.org/wiki/PROFINET",
-    "excerpt": "The standard is maintained and supported by Profibus & Profinet International"
-  },
-  {
-    "id": "net-profinet-rt-vs-irt",
-    "front": "What cycle times do PROFINET RT and PROFINET IRT target?",
-    "back": "RT targets roughly 1-10 ms cycles; IRT (isochronous) goes below 1 ms for drive and motion applications.",
-    "source": "https://en.wikipedia.org/wiki/PROFINET",
-    "excerpt": "The RT (Real-Time) protocol for class A & B applications with cycle times in the range of 1 - 10 ms. The IRT (Isochronous Real-Time) protocol for application class C allows cycle times below 1 ms"
-  },
-  {
-    "id": "net-profinet-rt-layer2",
-    "front": "How are PROFINET real-time cyclic frames carried, compared with its acyclic traffic?",
-    "back": "Real-time cyclic data and alarms go straight in Ethernet frames, with no IP; acyclic data uses UDP/IP.",
-    "source": "https://en.wikipedia.org/wiki/PROFINET",
-    "excerpt": "the Profinet Real-Time (RT) telegrams are transmitted directly via Ethernet. UDP/IP is used for the transmission of acyclic data."
-  },
-  {
-    "id": "net-enip-carries-cip",
-    "front": "What application-layer protocol does EtherNet/IP put on top of standard Ethernet?",
-    "back": "The Common Industrial Protocol (CIP); EtherNet/IP is CIP adapted to standard Ethernet.",
-    "source": "https://en.wikipedia.org/wiki/EtherNet/IP",
-    "excerpt": "is an industrial network protocol that adapts the Common Industrial Protocol (CIP) to standard Ethernet"
-  },
-  {
-    "id": "net-enip-ports",
-    "front": "Which ports does EtherNet/IP use for explicit messaging and for implicit (I/O) messaging?",
-    "back": "Explicit messages use TCP 44818; implicit I/O messages use UDP 2222.",
-    "source": "https://en.wikipedia.org/wiki/EtherNet/IP",
-    "excerpt": "EtherNet/IP makes use of TCP port number 44818 for explicit messaging and UDP port number 2222 for implicit messaging"
-  },
-  {
-    "id": "net-profibus-rs485",
-    "front": "What physical transmission does PROFIBUS DP use, and how many devices can one segment hold?",
-    "back": "Balanced RS-485 serial signalling, with at most 31 devices connected on a segment.",
-    "source": "https://en.wikipedia.org/wiki/Profibus",
-    "excerpt": "The RS485 balanced transmission used in PROFIBUS DP only allows 31 devices to be connected at once"
-  },
-  {
-    "id": "net-opcua-purpose",
-    "front": "What is OPC UA and which body develops it?",
-    "back": "A platform-independent IEC 62541 standard for exchanging data from field sensors up to cloud applications, developed by the OPC Foundation.",
-    "source": "https://en.wikipedia.org/wiki/OPC_Unified_Architecture",
-    "excerpt": "is a cross-platform, open-source, IEC62541 standard for data exchange from sensors to cloud applications developed by the OPC Foundation"
-  },
-  {
-    "id": "net-opcua-port",
-    "front": "Which TCP port is registered with IANA for the OPC UA binary connection protocol?",
-    "back": "TCP 4840 (service name opcua-tcp).",
-    "source": "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.txt",
-    "excerpt": "opcua-tcp 4840 tcp OPC UA Connection Protocol"
-  },
-  {
-    "id": "net-opcua-security-modes",
-    "front": "What message security modes can an OPC UA session use?",
-    "back": "None (no protection), Sign (integrity only, readable), and SignAndEncrypt (integrity plus confidentiality).",
-    "source": "https://reference.opcfoundation.org/Core/Part4/v105/docs/7.20",
-    "excerpt": "NONE 1 No security is applied. SIGN 2 All messages are signed but not encrypted. SIGNANDENCRYPT 3 All messages are signed and encrypted."
-  },
-  {
-    "id": "net-s7comm-port",
-    "front": "Which TCP port does a client connect to for Siemens S7comm, and which layer is negotiated next?",
-    "back": "TCP 102, then an ISO transport (COTP) connection carried via ISO-on-TCP, before the S7 session itself.",
-    "source": "https://wiki.wireshark.org/S7comm",
-    "excerpt": "Connect to PLC on TCP port 102 Connect on ISO layer (COTP Connect Request)"
-  },
-  {
     "id": "net-fieldbus-definition",
     "front": "What is a fieldbus?",
-    "back": "An industrial network for real-time distributed control that connects the instruments of a plant.",
+    "back": "An industrial network system for real-time distributed control that connects the instruments in a manufacturing plant.",
     "source": "https://en.wikipedia.org/wiki/Fieldbus",
-    "excerpt": "A fieldbus is an industrial network system for real-time distributed control. It is a way to connect instruments in a manufacturing plant."
+    "excerpt": "A fieldbus is an industrial network system for real-time distributed control. It is a way to connect instruments in a manufacturing plant.",
+    "requires": [
+      "fund-plc-definition"
+    ],
+    "mnemonic": "One bus line running through the 'field' (the plant floor), picking up every instrument on the way."
+  },
+  {
+    "id": "net-proto-fieldbus-fewer-cables",
+    "front": "Why does a fieldbus need far less cabling than 4-20 mA wiring to each device?",
+    "back": "4-20 mA needs a separate connection point at the controller for every device; a fieldbus carries many analog and digital points through one.",
+    "source": "https://en.wikipedia.org/wiki/Fieldbus",
+    "excerpt": "which require only one communication point at the controller level and allow multiple of analog and digital points to be connected at the same time"
   },
   {
     "id": "net-industrial-ethernet-definition",
-    "front": "What makes Ethernet \"industrial Ethernet\" rather than ordinary office Ethernet?",
-    "back": "It runs protocols that add deterministic, real-time behaviour for control, on top of Ethernet in a factory setting.",
+    "front": "What turns ordinary Ethernet into 'industrial Ethernet'?",
+    "back": "Its use in an industrial environment together with protocols that provide determinism and real-time control.",
     "source": "https://en.wikipedia.org/wiki/Industrial_Ethernet",
-    "excerpt": "is the use of Ethernet in an industrial environment with protocols that provide determinism and real-time control."
+    "excerpt": "Industrial Ethernet (IE) is the use of Ethernet in an industrial environment with protocols that provide determinism and real-time control."
   },
   {
-    "id": "net-dnp3-usage",
-    "front": "In which sector is DNP3 mainly used?",
-    "back": "Utilities, chiefly electric power and water companies; it is rarely used in other industries.",
-    "source": "https://en.wikipedia.org/wiki/DNP3",
-    "excerpt": "Its main use is in utilities such as electric and water companies. Usage in other industries is not common."
+    "id": "net-modbus-client-server",
+    "front": "In a Modbus transaction, which device is the client?",
+    "back": "The device that initiates the transaction by sending a request to a server.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "Modbus defines a client which is an entity that initiates a transaction to request any specific task from its request receiver."
+  },
+  {
+    "id": "net-proto-modbus-master-is-client",
+    "front": "Older Modbus documents speak of a master and slaves. Which of them is today's client?",
+    "back": "The master is the client; each slave is a server.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "In former terminology, the client was named master and the server named slave.",
+    "mnemonic": "The master gives the orders, so the master is the one who asks: the client."
+  },
+  {
+    "id": "net-proto-modbus-polling-why",
+    "front": "Why must a Modbus client keep polling its field devices to notice changes?",
+    "back": "A server never transmits on its own initiative; it only answers requests, so the client has to ask again and again.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "A slave will never transmit any data or perform any action without a request from the master, and slaves cannot communicate with each other."
+  },
+  {
+    "id": "net-modbus-coils",
+    "front": "In the Modbus data model, what is a coil?",
+    "back": "A single-bit data item that a client can both read and write.",
+    "source": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+    "excerpt": "Coils Single bit Read-Write Input Registers 16-bit word Read-Only",
+    "mnemonic": "Named after the relay coil of ladder logic: one bit you can switch on or off."
+  },
+  {
+    "id": "net-modbus-discrete-inputs",
+    "front": "How does a Modbus discrete input differ from a coil?",
+    "back": "Both are single bits, but a discrete input is read-only, while a coil can also be written.",
+    "source": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+    "excerpt": "Discretes Input Single bit Type of access Read-Only Coils Single bit Read-Write"
+  },
+  {
+    "id": "net-modbus-holding-registers",
+    "front": "How does a Modbus holding register differ from an input register?",
+    "back": "Both are 16-bit words, but a holding register is read-write, while an input register is read-only.",
+    "source": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+    "excerpt": "Input Registers 16-bit word Read-Only Holding Registers 16-bit word Read-Write",
+    "mnemonic": "Holding registers hold values you may change; input registers only bring readings in."
+  },
+  {
+    "id": "net-proto-modbus-pdu-parts",
+    "front": "What two parts make up a Modbus protocol data unit (PDU)?",
+    "back": "A one-byte function code, which names the action to perform, followed by the data for that action.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "mb_req_pdu = Function code (1 byte) + request data (n bytes)"
+  },
+  {
+    "id": "net-modbus-fc-holding-registers",
+    "front": "What does Modbus function code 03 ask a server to do?",
+    "back": "Read the contents of a contiguous block of holding registers and return them.",
+    "source": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+    "excerpt": "This function code is used to read the contents of a contiguous block of holding registers in a remote device."
+  },
+  {
+    "id": "net-proto-modbus-address-minus-one",
+    "front": "How do you calculate the protocol data unit (PDU) address of a Modbus data item numbered X?",
+    "back": "PDU address = X − 1 (items are numbered from 1, addresses start at 0).",
+    "source": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+    "excerpt": "The previous figure shows that a MODBUS data numbered X is addressed in the MODBUS PDU X-1.",
+    "mnemonic": "Item number 1 lives at address 0: subtract one before sending."
   }
 ]

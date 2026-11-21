@@ -1,0 +1,130 @@
+[
+  {
+    "id": "ld-edge-previous-scan",
+    "front": "How does the PLC runtime detect that a variable has just had a rising edge?",
+    "back": "It compares the variable's current value with the value it had on the previous scan.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/contact-elements",
+    "excerpt": "Rising edge detection compares the current variable value with its value from the previous scan.",
+    "requires": [
+      "ld-p-contact-rising-edge"
+    ]
+  },
+  {
+    "id": "ld-r-trig-output",
+    "front": "For how long is the Q output of an R_TRIG rising-edge detector TRUE after its CLK input goes TRUE?",
+    "back": "For exactly one PLC cycle; after that Q is FALSE again, even if CLK stays TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tcplclib_tc2_standard/74391563.html",
+    "excerpt": "As soon as CLK = TRUE, Q is set to TRUE for one cycle. This means that each time the function is called, Q returns FALSE until CLK has a falling edge and then a rising edge.",
+    "requires": [
+      "ld-p-contact-rising-edge"
+    ]
+  },
+  {
+    "id": "ld-ton-et-and-q",
+    "front": "How do you calculate the Q output of a TON on-delay timer from IN, ET and PT?",
+    "back": "Q = IN AND (ET = PT), with IN the input, ET the elapsed time, PT the preset time.",
+    "source": "https://infosys.beckhoff.com/content/1033/tcplclib_tc2_standard/74406539.html",
+    "excerpt": "Q is TRUE, if IN = TRUE and ET = PT. Otherwise Q = FALSE.",
+    "requires": [
+      "ld-series-is-and"
+    ],
+    "mnemonic": "TON turns ON late: the output comes on only after the input has been on for the whole preset time."
+  },
+  {
+    "id": "ld-ton-early-drop",
+    "front": "On a TON on-delay timer, what happens if IN goes FALSE before the preset time PT has elapsed?",
+    "back": "The timer resets and Q never turns on; IN must stay TRUE for the whole preset time.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/timer-blocks",
+    "excerpt": "If IN goes LOW before PT is reached, the timer resets and Q never activates.",
+    "requires": [
+      "ld-ton-et-and-q"
+    ]
+  },
+  {
+    "id": "ld-tof-purpose",
+    "front": "What does a TOF off-delay timer do with its output Q after IN goes FALSE?",
+    "back": "It keeps Q TRUE for the preset time PT after IN drops, and only then turns Q FALSE.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/timer-blocks",
+    "excerpt": "The TOF block keeps an output active for a set duration after its input goes LOW.",
+    "requires": [
+      "ld-ton-et-and-q"
+    ],
+    "mnemonic": "TOF turns OFF late: like a cooling fan that keeps running for a while after the motor stops."
+  },
+  {
+    "id": "ld-tp-ignores-in",
+    "front": "How does a TP pulse timer's output Q react if IN goes FALSE in the middle of a pulse?",
+    "back": "It does not react: Q stays TRUE until the pulse duration PT has elapsed, whatever IN does.",
+    "source": "https://infosys.beckhoff.com/content/1033/tcplclib_tc2_standard/74408075.html",
+    "excerpt": "The Q output remains TRUE until the pulse duration has elapsed, irrespective of the state of the IN input.",
+    "requires": [
+      "ld-ton-et-and-q"
+    ],
+    "mnemonic": "TP is a camera flash: once triggered it lasts its fixed time, whatever your finger does."
+  },
+  {
+    "id": "ld-counter-built-in-edge",
+    "front": "A CTU up-counter's CU (count up) input stays TRUE for many scans. By how much does its count rise?",
+    "back": "By one only, on the first scan of the FALSE-to-TRUE transition: counters count rising edges, not continuous states.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "If an input stays HIGH for multiple scan cycles, the counter increments only once.",
+    "requires": [
+      "ld-p-contact-rising-edge"
+    ]
+  },
+  {
+    "id": "ld-ctu-q-condition",
+    "front": "How do you calculate the Q output of a CTU up-counter?",
+    "back": "Q = (CV >= PV), where CV is the current value (the running count) and PV is the preset value (the target).",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "The output Q becomes TRUE when CV reaches or exceeds the preset value PV",
+    "requires": [
+      "ld-counter-built-in-edge"
+    ],
+    "mnemonic": "The Current Value has caught up with the Preset Value: Q says 'target reached'."
+  },
+  {
+    "id": "ld-ctu-reset-priority",
+    "front": "On a CTU counter, R is TRUE in the same scan as a rising edge on CU. What happens to CV?",
+    "back": "CV, the current value, is reset to 0: the reset input R takes priority over counting.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "If R is TRUE, CV is reset to 0 (reset takes priority over counting).",
+    "requires": [
+      "ld-ctu-q-condition"
+    ]
+  },
+  {
+    "id": "ld-ctd-load",
+    "front": "What does the LD (load) input of a CTD down-counter do while it is TRUE?",
+    "back": "It loads the preset value PV into the current value CV, the count the counter then decrements from.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "When the load input LD is TRUE, CV is loaded with the preset value PV",
+    "requires": [
+      "ld-ctu-q-condition"
+    ],
+    "mnemonic": "LD = LoaD the hopper: fill the count up to the preset before counting down."
+  },
+  {
+    "id": "ld-ctud-qu-qd",
+    "front": "How do you calculate the QU output of a CTUD up/down counter?",
+    "back": "QU = (CV >= PV): TRUE when the current value CV has reached or exceeded the preset value PV.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "It has two output flags: QU indicates the count has reached or exceeded the preset",
+    "requires": [
+      "ld-ctu-q-condition"
+    ],
+    "mnemonic": "QU = Q for Up: the count has climbed up to the preset."
+  },
+  {
+    "id": "ld-ctud-qd-formula",
+    "front": "How do you calculate the QD output of a CTUD up/down counter?",
+    "back": "QD = (CV <= 0): TRUE when the current value CV has dropped to zero or below.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "and QD indicates the count has reached zero or below",
+    "requires": [
+      "ld-ctud-qu-qd",
+      "ld-ctd-load"
+    ],
+    "mnemonic": "QD = Q for Down: the count has run down to zero."
+  }
+]

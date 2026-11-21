@@ -1,52 +1,138 @@
 [
- {
-  "stem": "fundamentals",
-  "title": "Fundamentals",
-  "prefixes": [
-   "fund-"
-  ]
- },
- {
-  "stem": "languages",
-  "title": "IEC 61131-3 languages",
-  "prefixes": [
-   "lang-"
-  ]
- },
- {
-  "stem": "ladder",
-  "title": "Ladder logic",
-  "prefixes": [
-   "ld-"
-  ]
- },
- {
-  "stem": "structured_text",
-  "title": "Structured Text and SFC",
-  "prefixes": [
-   "st-",
-   "sfc-"
-  ]
- },
- {
-  "stem": "field_devices",
-  "title": "Field devices",
-  "prefixes": [
-   "io-"
-  ]
- },
- {
-  "stem": "protocols",
-  "title": "Protocols",
-  "prefixes": [
-   "net-"
-  ]
- },
- {
-  "stem": "ot_security",
-  "title": "OT security",
-  "prefixes": [
-   "sec-"
-  ]
- }
+  {
+    "stem": "fundamentals",
+    "title": "PLCs, relays and controller hardware",
+    "prefixes": [
+      "fund-"
+    ]
+  },
+  {
+    "stem": "signals_data_types_scan_cycle_and_control",
+    "title": "Signals, data types, scan cycle and control loop",
+    "prefixes": [
+      "fund-"
+    ]
+  },
+  {
+    "stem": "iec_61131_3_program_structure_and_variables",
+    "title": "IEC 61131-3 program structure and variables",
+    "prefixes": [
+      "fund-"
+    ]
+  },
+  {
+    "stem": "languages",
+    "title": "IEC 61131-3 languages",
+    "prefixes": [
+      "lang-"
+    ]
+  },
+  {
+    "stem": "ladder",
+    "title": "Ladder basics: rails, rungs, contacts and coils",
+    "prefixes": [
+      "ld-"
+    ]
+  },
+  {
+    "stem": "latching_safe_start_stop_interlocks_and_edge",
+    "title": "Latching, safe start/stop, interlocks and edge contacts",
+    "prefixes": [
+      "ld-"
+    ]
+  },
+  {
+    "stem": "function_blocks_edge_triggers_timers_and",
+    "title": "Function blocks: edge triggers, timers and counters",
+    "prefixes": [
+      "ld-"
+    ]
+  },
+  {
+    "stem": "structured_text",
+    "title": "ST basics: operators, constants, types and FB calls",
+    "prefixes": [
+      "st-",
+      "sfc-"
+    ]
+  },
+  {
+    "stem": "control_flow_if_case_in_st_sfc_steps_and",
+    "title": "Control flow: IF/CASE in ST, SFC steps and branches",
+    "prefixes": [
+      "st-",
+      "sfc-"
+    ]
+  },
+  {
+    "stem": "sfc_actions_qualifiers_entry_exit_and_step",
+    "title": "SFC actions: qualifiers, entry/exit and step times",
+    "prefixes": [
+      "st-",
+      "sfc-"
+    ]
+  },
+  {
+    "stem": "field_devices",
+    "title": "Discrete sensors: limit, proximity and photoelectric",
+    "prefixes": [
+      "io-"
+    ]
+  },
+  {
+    "stem": "4_20_ma_transmitters_and_relays",
+    "title": "4–20 mA transmitters and relays",
+    "prefixes": [
+      "io-"
+    ]
+  },
+  {
+    "stem": "motor_control_and_actuators",
+    "title": "Motor control and actuators",
+    "prefixes": [
+      "io-"
+    ]
+  },
+  {
+    "stem": "protocols",
+    "title": "Fieldbus basics and the Modbus data model",
+    "prefixes": [
+      "net-"
+    ]
+  },
+  {
+    "stem": "modbus_rtu_and_tcp_profibus_and_s7comm",
+    "title": "Modbus RTU and TCP, PROFIBUS and S7comm",
+    "prefixes": [
+      "net-"
+    ]
+  },
+  {
+    "stem": "profinet_ethernet_ip_and_opc_ua",
+    "title": "PROFINET, EtherNet/IP and OPC UA",
+    "prefixes": [
+      "net-"
+    ]
+  },
+  {
+    "stem": "ot_security",
+    "title": "OT foundations and the Purdue network model",
+    "prefixes": [
+      "sec-"
+    ]
+  },
+  {
+    "stem": "stuxnet_and_iec_62443_basics_zones_and",
+    "title": "Stuxnet and IEC 62443 basics: zones and security levels",
+    "prefixes": [
+      "sec-"
+    ]
+  },
+  {
+    "stem": "iec_62443_level_types_requirements_and",
+    "title": "IEC 62443: level types, requirements and standard parts",
+    "prefixes": [
+      "sec-"
+    ]
+  }
 ]

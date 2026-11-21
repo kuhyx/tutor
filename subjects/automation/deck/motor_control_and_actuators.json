@@ -1,0 +1,92 @@
+[
+  {
+    "id": "io-contactor-vs-relay",
+    "front": "What distinguishes a contactor from an ordinary control relay?",
+    "back": "A contactor is a relay with a high power rating, designed to be connected directly to high-current loads such as electric motors.",
+    "source": "https://en.wikipedia.org/wiki/Contactor",
+    "excerpt": "Unlike other relays, contactors are designed to be directly connected to high-current load devices."
+  },
+  {
+    "id": "io-fd-dol-starter",
+    "front": "What does a direct on line (DOL) motor starter do when it is energised?",
+    "back": "It immediately connects the motor terminals directly to the power supply, applying the full line voltage at once.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "When energized, a direct on line (DOL) starter immediately connects the motor terminals directly to the power supply.",
+    "mnemonic": "DOL = Direct On Line: the motor goes straight onto the supply line, nothing in between."
+  },
+  {
+    "id": "io-fd-no-volt-release",
+    "front": "Why does a motor on a magnetic-contactor starter stay off when power returns after a failure?",
+    "back": "Losing voltage drops the contactor out, opening the auxiliary contact that held its coil energised; it closes again only on a new start command.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "If a momentary loss of supply voltage occurs, the contactor will open and not close again until a new start command is given.",
+    "requires": [
+      "ld-seal-in-contact"
+    ]
+  },
+  {
+    "id": "io-thermal-overload-trip",
+    "front": "How does a thermal overload relay stop an overloaded motor?",
+    "back": "Motor current heats a bimetallic strip; in an overload it bends until it pushes a trip bar that cuts power to the contactor coil.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "The hotter the strip, the more it deflects to the point it pushes a trip bar which disconnects power to the contactor solenoid, turning everything off.",
+    "mnemonic": "Overcurrent → heat → bimetal bends → trip bar → contactor coil off."
+  },
+  {
+    "id": "io-fd-overload-start-delay",
+    "front": "Why does a thermal overload relay not trip on a motor's brief, high starting current?",
+    "back": "Its heater and bimetallic strip need time to warm up, and that delay lets the motor start and settle to normal running current.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "The heater coil and the action of the bi-metallic strip introduce a time delay that affords the motor time to start and settle into normal running current without the thermal overload tripping."
+  },
+  {
+    "id": "io-fd-reduced-voltage-starter",
+    "front": "Why are larger motors started with reduced-voltage starters instead of direct on line?",
+    "back": "To reduce the high inrush current of starting, which would otherwise cause voltage dips on the power supply.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "To reduce the inrush current, larger motors will have reduced-voltage starters or adjustable-speed drives in order to minimise voltage dips to the power supply."
+  },
+  {
+    "id": "io-fd-reversing-starter",
+    "front": "How does a reversing starter make a three-phase motor turn the other way?",
+    "back": "It swaps the wires connecting any two of the three phases.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "For three phase motors, this is achieved by swapping the wires connecting any two phases."
+  },
+  {
+    "id": "io-vfd-purpose",
+    "front": "Which property of the supply to an alternating-current (AC) motor does a speed controller vary to change its speed?",
+    "back": "The frequency of the alternating current applied to the motor, which power electronic devices adjust.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "change the frequency of the AC applied to the motor for speed control using power electronic devices"
+  },
+  {
+    "id": "io-fd-final-control-element",
+    "front": "In a control loop, what is the final control element?",
+    "back": "The device that acts on the process itself, such as a control valve, damper, motor or solenoid valve, closing the loop with the measuring instrument and controller.",
+    "source": "https://en.wikipedia.org/wiki/Instrumentation",
+    "excerpt": "The control of parameters of a system is achieved in the final control element which forms a closed loop along with measuring instrument and control system."
+  },
+  {
+    "id": "io-fd-actuator-definition",
+    "front": "What is an actuator?",
+    "back": "A machine component that produces force, torque or displacement when it is supplied with an electrical, pneumatic or hydraulic input.",
+    "source": "https://en.wikipedia.org/wiki/Actuator",
+    "excerpt": "An actuator is a component of a machine that produces force, torque, or displacement, when an electrical, pneumatic or hydraulic input is supplied to it",
+    "mnemonic": "Sensors feel, actuators move: an actuator is a 'mover'."
+  },
+  {
+    "id": "io-cylinder-double-acting",
+    "front": "How does a double-acting cylinder differ from a single-acting one?",
+    "back": "Fluid pressure drives its piston in both directions; a single-acting cylinder is pressure-driven one way only and returns by a spring, gravity or another force.",
+    "source": "https://en.wikipedia.org/wiki/Actuator",
+    "excerpt": "In a double acting actuator, the return stroke is driven by fluid pressure applied to the opposite side of the piston."
+  },
+  {
+    "id": "io-fd-hydraulic-large-force",
+    "front": "Why can a hydraulic actuator exert a large force?",
+    "back": "It is driven by a pressurised liquid, and liquids are nearly impossible to compress.",
+    "source": "https://en.wikipedia.org/wiki/Actuator",
+    "excerpt": "Since liquids are nearly impossible to compress, a hydraulic actuator can exert a large force."
+  }
+]

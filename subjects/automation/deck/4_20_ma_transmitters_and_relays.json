@@ -1,0 +1,92 @@
+[
+  {
+    "id": "io-fd-transmitter-definition",
+    "front": "In process instrumentation, what is a transmitter?",
+    "back": "A device that produces an output signal for its measurement, for example a 4–20 mA electrical current.",
+    "source": "https://en.wikipedia.org/wiki/Instrumentation",
+    "excerpt": "A transmitter is a device that produces an output signal"
+  },
+  {
+    "id": "io-fd-4-20-percent-formula",
+    "front": "How do you calculate the percentage of range that a 4–20 mA loop current I represents?",
+    "back": "Percent of range = (I − 4 mA) / 16 mA × 100 %. So 4 mA gives 0 % and 20 mA gives 100 %.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "with the two values of 4 and 20 mA representing 0–100% of the range of measurement or control",
+    "mnemonic": "Take off the live zero (4), divide by the span (16): 12 mA is halfway, 50 %."
+  },
+  {
+    "id": "io-4-20-live-zero",
+    "front": "Why does the 4–20 mA signal range start at 4 mA rather than 0 mA?",
+    "back": "The 'live zero' keeps current flowing so the loop can still power the field device when the measured value is at its minimum.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "allows powering of the device even with no process signal output from the field transmitter",
+    "mnemonic": "Live zero: zero signal, but the wire is still alive with 4 mA to feed the device."
+  },
+  {
+    "id": "io-4-20-fault-detection",
+    "front": "Why does a 4–20 mA receiver treat a current below 3.8 mA as a fault, not a low reading?",
+    "back": "A genuine minimum reading (0%) still gives 4 mA, so a current below the signal range is taken to indicate a fault.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "It is self-monitoring; currents less than 3.8 mA or more than 20.5 mA are taken to indicate a fault."
+  },
+  {
+    "id": "io-current-beats-voltage",
+    "front": "Why does voltage drop along a long cable not falsify a current-loop signal?",
+    "back": "The current is the same at every point of the loop, so the receiver measures exactly the current the transmitter set.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "Basic DC circuit theory shows that the current is the same all along the line."
+  },
+  {
+    "id": "io-fd-relay-definition",
+    "front": "What is a relay?",
+    "back": "An electrically operated switch: a control signal on its input terminals opens or closes contacts that switch a separate circuit.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "A relay is an electrically operated switch. It has a set of input terminals for one or more control signals, and a set of operating contact terminals."
+  },
+  {
+    "id": "io-fd-relay-coil-mechanism",
+    "front": "How does energising the coil of an electromechanical relay move its contacts?",
+    "back": "Current in the coil generates a magnetic field that pulls the iron armature, and the armature moves the contacts to make or break a connection.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "When an electric current is passed through the coil it generates a magnetic field that activates the armature"
+  },
+  {
+    "id": "io-nc-contact-behaviour",
+    "front": "What does a normally closed (NC) relay contact do when the relay coil is energised?",
+    "back": "It opens and disconnects its circuit; with the coil unpowered it is closed and the circuit is connected.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "Normally closed (NC) contacts disconnect the circuit when the relay is activated; the circuit is connected when the relay is inactive.",
+    "requires": [
+      "ld-normal-state-definition"
+    ]
+  },
+  {
+    "id": "io-fd-flyback-diode",
+    "front": "Why is a flyback diode placed across a relay coil that is driven with direct current?",
+    "back": "Switching the coil off collapses its magnetic field, producing a voltage spike; the diode dissipates that energy and protects semiconductor components.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "to dissipate the energy from the collapsing magnetic field (back EMF) at deactivation, which would otherwise generate a voltage spike dangerous to semiconductor circuit components"
+  },
+  {
+    "id": "io-fd-solid-state-relay",
+    "front": "How is a solid-state relay built differently from an electromechanical relay?",
+    "back": "It has no moving parts: a semiconductor switching device, such as a thyristor, switches the load in place of coil-driven contacts.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "A solid-state relay uses a thyristor, TRIAC or other solid-state switching device, activated by the control signal, to switch the controlled load, instead of a solenoid."
+  },
+  {
+    "id": "io-optocoupler-isolation",
+    "front": "How does an optocoupler pass a signal between two circuits without connecting them electrically?",
+    "back": "A light-emitting diode on one side shines on a phototransistor on the other, so the signal crosses as light and the circuits stay isolated.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "An optocoupler (a light-emitting diode (LED) coupled with a photo transistor) can be used to isolate control and controlled circuits."
+  },
+  {
+    "id": "io-fd-force-guided-contacts",
+    "front": "Why can a safety circuit trust a monitoring contact on a relay with force-guided contacts?",
+    "back": "All contacts are mechanically linked, so a normally closed monitoring contact can close only if every normally open contact is open, exposing a stuck contact.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "it then becomes possible to guarantee that if any NC contact is closed, all NO contacts are open",
+    "mnemonic": "Force-guided contacts move as one rigid block: one stuck contact freezes them all, so the monitoring contact cannot lie."
+  }
+]

@@ -1,72 +1,90 @@
 [
   {
-    "id": "lang-ld-describe",
-    "front": "Describe Ladder Diagram (LD), the IEC 61131-3 PLC programming language.",
-    "back": "A graphical language that draws the program like the circuit diagram of relay logic hardware.",
-    "source": "https://en.wikipedia.org/wiki/Ladder_logic",
-    "excerpt": "Ladder logic has evolved into a programming language that represents a program by a graphical diagram based on the circuit diagrams of relay logic hardware."
-  },
-  {
     "id": "lang-ld-name",
-    "front": "Which IEC 61131-3 language draws the program as a diagram modelled on the circuit diagrams of relay logic hardware?",
+    "front": "Which IEC 61131-3 language represents a program as a graphical diagram based on the circuit diagrams of relay logic hardware?",
     "back": "Ladder Diagram (LD), also called ladder logic.",
     "source": "https://en.wikipedia.org/wiki/Ladder_logic",
     "excerpt": "Ladder logic has evolved into a programming language that represents a program by a graphical diagram based on the circuit diagrams of relay logic hardware."
   },
   {
     "id": "lang-fbd-describe",
-    "front": "Describe Function Block Diagram (FBD), the IEC 61131-3 PLC programming language.",
-    "back": "A graphical language that builds a function from elementary blocks, with input and output variables wired to the blocks by connection lines.",
+    "front": "How does a Function Block Diagram (FBD) describe the function between input and output variables?",
+    "back": "As a set of elementary blocks, with the input and output variables joined to the blocks by connection lines.",
     "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
     "excerpt": "A function is described as a set of elementary blocks. Input and output variables are connected to blocks by connection lines."
   },
   {
-    "id": "lang-fbd-name",
-    "front": "Which IEC 61131-3 language describes a function as elementary blocks, joined to its input and output variables by connection lines?",
-    "back": "Function Block Diagram (FBD).",
-    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
-    "excerpt": "The function block diagram ( FBD ) is a graphical language for programmable logic controller design, that can describe the function between input variables and output variables."
-  },
-  {
     "id": "lang-st-describe",
-    "front": "Describe Structured Text (ST), the IEC 61131-3 PLC programming language.",
-    "back": "A high-level, block-structured textual language whose syntax resembles Pascal, the language it is based on.",
+    "front": "What kind of language is Structured Text (ST) in IEC 61131-3?",
+    "back": "A high-level, block-structured text language whose syntax resembles Pascal, on which it is based.",
     "source": "https://en.wikipedia.org/wiki/Structured_text",
-    "excerpt": "It is a high-level language that is block structured and syntactically resembles Pascal , on which it is based."
-  },
-  {
-    "id": "lang-st-name",
-    "front": "Which IEC 61131-3 language is a high-level, block-structured text language with Pascal-like syntax?",
-    "back": "Structured Text (ST).",
-    "source": "https://en.wikipedia.org/wiki/Structured_text",
-    "excerpt": "Structured text , abbreviated as ST or STX , is one of the five languages supported by the IEC 61131-3 standard, designed for programmable logic controllers (PLCs). It is a high-level language that is block structured"
-  },
-  {
-    "id": "lang-sfc-describe",
-    "front": "Describe Sequential Function Chart (SFC), the IEC 61131-3 PLC programming language.",
-    "back": "A chart language that splits a process into steps with actions, linked to each other by transitions that carry logic conditions.",
-    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
-    "excerpt": "Main components of SFC are: Steps with associated actions; Transitions with associated logic conditions; Directed links between steps and transitions."
-  },
-  {
-    "id": "lang-sfc-name",
-    "front": "Which IEC 61131-3 language programs a process as steps with actions, linked by transitions that carry logic conditions?",
-    "back": "Sequential Function Chart (SFC).",
-    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
-    "excerpt": "Main components of SFC are: Steps with associated actions; Transitions with associated logic conditions; Directed links between steps and transitions."
-  },
-  {
-    "id": "lang-il-describe",
-    "front": "Describe Instruction List (IL), the IEC 61131-3 PLC programming language.",
-    "back": "A low-level textual PLC language that resembles assembly.",
-    "source": "https://en.wikipedia.org/wiki/Instruction_list",
-    "excerpt": "It is designed for programmable logic controllers (PLCs). It is a low level language and resembles assembly"
+    "excerpt": "It is a high-level language that is block structured and syntactically resembles Pascal, on which it is based.",
+    "mnemonic": "The name spells it out: TEXT you type, STRUCTURED into blocks such as IF-THEN-ELSE. Think of Pascal, the tidy classroom language."
   },
   {
     "id": "lang-il-name",
-    "front": "Which IEC 61131-3 language is low-level text that resembles assembly?",
+    "front": "Which IEC 61131-3 language is a low-level language that resembles assembly?",
     "back": "Instruction List (IL).",
     "source": "https://en.wikipedia.org/wiki/Instruction_list",
-    "excerpt": "is one of the 5 languages supported by the initial versions of IEC 61131-3 standard, and subsequently deprecated in the third edition. It is designed for programmable logic controllers (PLCs). It is a low level language and resembles assembly"
+    "excerpt": "It is a low level language and resembles assembly.",
+    "mnemonic": "Assembly code is literally a list of single instructions, one per line: an Instruction List."
+  },
+  {
+    "id": "lang-common-elements",
+    "front": "Why can different IEC 61131-3 languages be used together in the same program?",
+    "back": "All the languages share the standard's common elements, which define variables and function calls the same way for every language.",
+    "source": "https://en.wikipedia.org/wiki/Structured_text",
+    "excerpt": "The variables and function calls are defined by the common elements so different languages within the IEC 61131-3 standard can be used in the same program."
+  },
+  {
+    "id": "lang-fbd-block-chaining",
+    "front": "In a Function Block Diagram, how is one block's result passed on to another block?",
+    "back": "A connection line joins the output of the first block to an input of the other block.",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "Inputs and outputs of the blocks are wired together with connection lines or links.",
+    "requires": [
+      "lang-fbd-describe"
+    ]
+  },
+  {
+    "id": "lang-fbd-line-direction",
+    "front": "In a Function Block Diagram, in which direction does a connection line carry its data?",
+    "back": "From its left end to its right end; the connection is oriented.",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "The connection is oriented, meaning that the line carries associated data from the left end to the right end.",
+    "requires": [
+      "lang-fbd-describe"
+    ]
+  },
+  {
+    "id": "lang-fbd-same-type",
+    "front": "In a Function Block Diagram, what must the left and right ends of a connection line have in common?",
+    "back": "Both ends must be of the same type.",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "The left and right ends of the connection line must be of the same type.",
+    "requires": [
+      "lang-fbd-line-direction"
+    ]
+  },
+  {
+    "id": "lang-fbd-divergence",
+    "front": "In a Function Block Diagram, what does a divergence (multiple right connection) do?",
+    "back": "It broadcasts the information at its single left end to each of its several right ends.",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "Multiple right connection, also called divergence, can be used to broadcast information from its left end to each of its right ends.",
+    "requires": [
+      "lang-fbd-line-direction"
+    ],
+    "mnemonic": "A river diverging: one stream in on the left, the same water out of every branch on the right."
+  },
+  {
+    "id": "lang-il-control-flow",
+    "front": "How is program control flow achieved in Instruction List (IL)?",
+    "back": "By jump instructions and function calls, which are subroutines with optional parameters.",
+    "source": "https://en.wikipedia.org/wiki/Instruction_list",
+    "excerpt": "Program control (control flow) is achieved by jump instructions and function calls (subroutines with optional parameters).",
+    "requires": [
+      "lang-il-name"
+    ]
   }
 ]

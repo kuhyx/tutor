@@ -1,0 +1,104 @@
+[
+  {
+    "id": "st-sfc-qualifier-meaning",
+    "front": "In SFC, what does the qualifier of an action describe?",
+    "back": "How the action associated with a step is executed.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "Qualifiers describe how an action associated with the step is executed."
+  },
+  {
+    "id": "sfc-qualifier-n",
+    "front": "How long is an SFC action with qualifier N (Non-stored) active?",
+    "back": "Exactly as long as its step is active.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "N Non-stored The action is active as long as the step is active.",
+    "mnemonic": "N = Non-stored: Nothing is remembered, so the action lives and dies with its step."
+  },
+  {
+    "id": "sfc-qualifier-s",
+    "front": "How long does an SFC action with qualifier S (Set, Stored) keep being executed?",
+    "back": "From the moment its step becomes active until it is reset, even after the step has been deactivated.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "The action continues to be executed, even if the step has already been deactivated, until it is reset.",
+    "requires": [
+      "sfc-qualifier-n"
+    ],
+    "mnemonic": "S = Stored: like a latched Set coil in ladder, it Stays on until something Resets it."
+  },
+  {
+    "id": "st-sfc-qualifier-r",
+    "front": "What does the SFC action qualifier R (overriding Reset) do to an action?",
+    "back": "It deactivates the action, which is what ends an action stored with qualifier S.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "R overriding Reset The action is deactivated.",
+    "requires": [
+      "sfc-qualifier-s"
+    ],
+    "mnemonic": "R = Reset: the off-switch that Releases what S Stored."
+  },
+  {
+    "id": "st-sfc-qualifier-l",
+    "front": "When does an SFC action with qualifier L (time Limited) stop being executed?",
+    "back": "When its step becomes inactive or the specified timespan has elapsed.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "The action is executed until the step becomes inactive or the specified timespan has elapsed.",
+    "requires": [
+      "sfc-qualifier-n"
+    ],
+    "mnemonic": "L = Limited: the action is on a time Leash, cut off by the clock or by the step ending."
+  },
+  {
+    "id": "st-sfc-qualifier-d",
+    "front": "When does an SFC action with qualifier D (time Delayed) start being executed?",
+    "back": "Once the given delay time has elapsed after the step became active, provided the step is still active.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "TwinCAT does not start execution of the action until the given delay time has elapsed after the step has become active and the step is still active.",
+    "requires": [
+      "sfc-qualifier-n"
+    ],
+    "mnemonic": "D = Delayed: the action waits at the Door; if the step leaves before the wait ends, it never gets in."
+  },
+  {
+    "id": "st-sfc-action-runs-twice",
+    "front": "What does TwinCAT do with a qualifier-controlled (IEC) action at the moment it is deactivated?",
+    "back": "It executes the action one more time, so such an action is executed at least twice.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "When an IEC action is deactivated, it is executed one more time. This means that TwinCAT executes such an action at least twice."
+  },
+  {
+    "id": "st-sfc-qualifier-p",
+    "front": "When does TwinCAT execute an SFC action with qualifier P (Pulse)?",
+    "back": "Precisely twice: once when the step becomes active and again in the subsequent cycle.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "P Pulse TwinCAT executes the action precisely twice: once when the step becomes active and again in the subsequent cycle.",
+    "mnemonic": "P = Pulse: a heartbeat has two beats, one on activation and one in the next cycle."
+  },
+  {
+    "id": "st-sfc-entry-action",
+    "front": "In TwinCAT SFC, when is a step's entry action executed?",
+    "back": "As soon as the step is activated, that is, when the transition preceding it returns TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT executes an entry action as soon as processing has reached the transition preceding the step and this transition returns TRUE, i.e. the step is activated."
+  },
+  {
+    "id": "st-sfc-exit-action",
+    "front": "In TwinCAT SFC, when is a step's exit action executed?",
+    "back": "When the step is deactivated: its actions ran in the previous cycle and the condition for the subsequent step returns TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT executes an exit action when the step is deactivated, i.e. when its input and step actions (if available) have been executed in the previous cycle and the condition for the subsequent step returns TRUE."
+  },
+  {
+    "id": "st-sfc-step-time-variable",
+    "front": "In TwinCAT SFC, what does the implicit variable `<step name>.t` hold?",
+    "back": "The elapsed time of the active step, which TwinCAT copies into it.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT copies the elapsed time of the active step into the corresponding implicit step variable"
+  },
+  {
+    "id": "st-sfc-min-step-time",
+    "front": "In TwinCAT SFC, what does a defined minimum step time do to the transition after a step?",
+    "back": "The following step is activated only after the minimum step time has elapsed, even if the transition already returns TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "the following transition returns TRUE (and a minimum step time that may have been defined has elapsed), the following step is activated."
+  }
+]

@@ -1,0 +1,132 @@
+[
+  {
+    "id": "sec-sl-t-c-a",
+    "front": "In IEC 62443, what is a target security level (SL-T)?",
+    "back": "The level of security wanted for a zone or automation solution, set as the result of a risk assessment.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Target Security Levels (SL-T) are the desired level of security for a particular automation solution. They are determined as the result of the risk assessment process (Part 3-2)",
+    "requires": [
+      "sec-security-level-meaning"
+    ],
+    "mnemonic": "T for Target: the level you aim at."
+  },
+  {
+    "id": "sec-sl-capability",
+    "front": "In IEC 62443, what is a capability security level (SL-C)?",
+    "back": "The security level a system or component can provide when it is properly integrated and configured.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Capability Security Levels (SL-C) are the security levels that systems (Part 3-3) or components (Part 4-2) can provide when properly integrated and configured.",
+    "requires": [
+      "sec-sl-t-c-a"
+    ],
+    "mnemonic": "C for Capability: what the product can do."
+  },
+  {
+    "id": "sec-sl-achieved",
+    "front": "In IEC 62443, what is an achieved security level (SL-A)?",
+    "back": "The actual security a system is found to have when it is evaluated.",
+    "source": "https://www.controleng.com/dont-overshoot-your-security-target/",
+    "excerpt": "Achieved security level (SL-A): The evaluated and actual security a system has at the time of evaluation.",
+    "requires": [
+      "sec-sl-t-c-a"
+    ],
+    "mnemonic": "A for Achieved: what you Actually have."
+  },
+  {
+    "id": "sec-62443-3-2-purpose",
+    "front": "What does IEC 62443 Part 3-2 derive for each zone and conduit from a risk assessment?",
+    "back": "A target security level for that zone or conduit.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "IEC 62443-3-2 describes how the target security levels of zones and conduits are derived from a risk assessment.",
+    "requires": [
+      "sec-conduit-definition",
+      "sec-sl-t-c-a"
+    ]
+  },
+  {
+    "id": "sec-maturity-vs-security-level",
+    "front": "In IEC 62443, what do maturity levels measure, as opposed to security levels?",
+    "back": "Processes, meaning people, policies and procedures, rather than the strength of technical requirements.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "While security levels are a measure of the strength of technical requirements, maturity levels are a measure of processes (people, policies and procedures).",
+    "requires": [
+      "sec-security-level-meaning"
+    ],
+    "mnemonic": "Security level = how strong the tech; maturity level = how well the people and procedures work."
+  },
+  {
+    "id": "sec-foundational-requirements",
+    "front": "Which seven foundational requirements organize the technical security requirements of IEC 62443?",
+    "back": "Identification and authentication control, use control, system integrity, data confidentiality, restricted data flow, timely response to events, resource availability.",
+    "source": "https://exida.com/Blog/iec-62443-levels-levels-and-more-levels",
+    "excerpt": "FR1 – Identification and Authentication Control FR2 – Use Control FR3 - System Integrity FR4 – Data Confidentiality FR5 – Restricted Data Flow FR6 – Timely Response to Events FR7 – Resource Availability",
+    "requires": [
+      "sec-iec-62443-what"
+    ],
+    "mnemonic": "I Use Systems; Data Flows; Timely Resources: Identification, Use, System integrity, Data confidentiality, restricted data Flow, Timely response, Resource availability."
+  },
+  {
+    "id": "sec-62443-3-3-scope",
+    "front": "What does IEC 62443 Part 3-3 specify?",
+    "back": "Security requirements for a whole industrial automation and control system, graded by security level.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Part 3-3: System security requirements and security levels describes the requirements for an IACS system based on security level.",
+    "requires": [
+      "sec-security-level-meaning",
+      "sec-iacs-expansion"
+    ],
+    "mnemonic": "Parts 3-x are about systems; parts 4-x are about components."
+  },
+  {
+    "id": "sec-62443-4-2-scope",
+    "front": "Which four kinds of component do the technical security requirements of IEC 62443 Part 4-2 cover?",
+    "back": "Embedded devices, host devices, network devices and software applications.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Components include embedded devices, host devices, network devices and software applications.",
+    "requires": [
+      "sec-62443-3-3-scope"
+    ],
+    "mnemonic": "Every Host Needs Software: Embedded, Host, Network, Software."
+  },
+  {
+    "id": "sec-62443-4-1-sdl",
+    "front": "What does IEC 62443 Part 4-1 set requirements for?",
+    "back": "The security development lifecycle a product supplier uses to create control system and component products.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Part 4-1 describes the requirements for the security development lifecycle (SDL) of control system and component products.",
+    "requires": [
+      "sec-iec-62443-what"
+    ]
+  },
+  {
+    "id": "sec-threat-modeling",
+    "front": "In the IEC 62443 Part 4-1 product development lifecycle, what does threat modeling identify?",
+    "back": "Data flows, trust boundaries, attack vectors and potential threats to the control system.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "threat modeling which is a systematic process to identify data flows, trust boundaries, attack vectors and potential threats to the control system",
+    "requires": [
+      "sec-62443-4-1-sdl"
+    ]
+  },
+  {
+    "id": "sec-62443-2-1-audience",
+    "front": "Whose security program requirements does IEC 62443 Part 2-1 specify?",
+    "back": "The asset owner's: the organization that operates, and is accountable for, the industrial automation and control system.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Part 2-1 specifies asset owner security program requirements for the IACS.",
+    "requires": [
+      "sec-iacs-expansion"
+    ],
+    "mnemonic": "2-1 = number one in line: the owner who runs the plant."
+  },
+  {
+    "id": "sec-62443-2-4-audience",
+    "front": "Whose security program requirements does IEC 62443 Part 2-4 specify?",
+    "back": "Service providers for industrial automation and control systems, such as system integrators and maintenance providers.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Part 2-4: Security program requirements for IACS service providers specifies requirements for IACS service providers such as system integrators or maintenance providers.",
+    "requires": [
+      "sec-62443-2-1-audience"
+    ]
+  }
+]

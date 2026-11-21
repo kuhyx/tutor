@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 from typing import Final
 from urllib.parse import urlsplit
@@ -25,7 +26,10 @@ class Topic:
     prefixes: tuple[str, ...]
 
 
-DECK_DIR: Final = Path(__file__).resolve().parents[1] / "subjects/automation/deck"
+REPO_DECK: Final = Path(__file__).resolve().parents[1] / "subjects/automation/deck"
+# The tests pin card ids, so they read a frozen deck (``tests/fixtures/deck``,
+# set by the repo ``conftest.py``); everything else reads the repo deck.
+DECK_DIR: Final = Path(os.environ.get("TUTOR_DECK_DIR") or REPO_DECK)
 MANIFEST: Final = "manifest.json"
 
 
@@ -190,7 +194,10 @@ def load_topic(path: Path, topic: Topic) -> list[Card]:
 def load_deck(deck_dir: Path) -> list[Card]:
     """Every card of every topic, with ids unique across the whole deck."""
     cards: list[Card] = []
-    for topic in TOPICS:
+    # A deck dir with its own manifest names its topics (the repo deck after
+    # a redraft); one without (a test's partial copy) has the default ones.
+    own = (deck_dir / MANIFEST).is_file()
+    for topic in topics(deck_dir) if own else TOPICS:
         path = deck_dir / f"{topic.stem}.json"
         if not path.is_file():
             msg = f"missing topic file {path}"

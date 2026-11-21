@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from tests.test_cards import LADDER, card, full_deck, write
-from tutor.cards import DECK_DIR, TOPICS, CardError, load_deck, load_topic
+from tutor.cards import (
+    DECK_DIR,
+    REPO_DECK,
+    TOPICS,
+    CardError,
+    load_deck,
+    load_topic,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -87,12 +94,16 @@ def test_a_shared_prerequisite_is_not_a_cycle(tmp_path: Path) -> None:
     assert len(load_deck(root)) == len(TOPICS) + 3
 
 
-def test_the_real_deck_gates_five_languages_on_the_ten_language_cards() -> None:
+def test_the_fixture_deck_gates_five_languages_on_the_ten_language_cards() -> None:
     cards = {c.id: c for c in load_deck(DECK_DIR)}
     needs = cards["fund-five-languages"].requires
     assert len(needs) == 10
     assert all(cards[n].topic.stem == "languages" for n in needs)
-    assert cards["fund-five-languages"].front == (
-        "Name the five PLC programming languages defined by IEC 61131-3 up to its "
-        "third edition."
-    )
+
+
+def test_the_real_deck_holds_every_requirement_and_no_topic_over_twelve() -> None:
+    cards = {c.id: c for c in load_deck(REPO_DECK)}
+    assert cards
+    assert all(need in cards for c in cards.values() for need in c.requires)
+    stems = [c.topic.stem for c in cards.values()]
+    assert max(stems.count(stem) for stem in set(stems)) <= 12  # redraft's cap

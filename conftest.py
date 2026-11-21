@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import fcntl
 import getpass
+import os
 from pathlib import Path
 import tempfile
 from typing import TYPE_CHECKING
@@ -21,6 +22,9 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+# Before any ``tutor`` import: the tests pin card ids of a frozen deck, so a
+# redraft of the real one (``redraft deck``) never breaks them.
+os.environ["TUTOR_DECK_DIR"] = str(Path(__file__).parent / "tests/fixtures/deck")
 _LOCK = Path(tempfile.gettempdir()) / f"tutor-tests-{getpass.getuser()}.lock"
 
 

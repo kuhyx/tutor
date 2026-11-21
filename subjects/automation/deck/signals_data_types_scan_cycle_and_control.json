@@ -1,0 +1,113 @@
+[
+  {
+    "id": "fund-digital-signal",
+    "front": "Which values can a discrete (digital) signal take?",
+    "back": "Only two: on or off (1 or 0, true or false).",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "Discrete (digital) signals can only take on or off value (1 or 0, true or false).",
+    "mnemonic": "Discrete = a light switch: it is either on or off, never in between."
+  },
+  {
+    "id": "fund-analog-signal",
+    "front": "How does an analog signal differ from a discrete signal in the values it can take?",
+    "back": "It can take any value within its scale, not just on or off.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "Analog signals can use voltage or current that is analogous to the monitored variable and can take any value within their scale.",
+    "requires": [
+      "fund-digital-signal"
+    ],
+    "mnemonic": "Discrete is a light switch, analog is a dimmer knob: any position along its range."
+  },
+  {
+    "id": "fund-analog-scaling",
+    "front": "An analog input is converted to an integer such as 0 to 32,767. What does the PLC then do with that integer?",
+    "back": "It translates the integer into the units of the process, so that the operator or the program can read it.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "The PLC will take this value and translate it into the desired units of the process so the operator or program can read it.",
+    "requires": [
+      "fund-analog-signal"
+    ],
+    "mnemonic": "Counts in, units out: the controller translates its raw integer into the pressure, temperature or flow that people actually read."
+  },
+  {
+    "id": "fund-bool-type",
+    "front": "Which values can a variable of the IEC 61131-3 data type BOOL hold?",
+    "back": "A single bit: 0 or 1.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "groups of on/off values BOOL - 1 bit (0,1)"
+  },
+  {
+    "id": "fund-int-vs-dint",
+    "front": "INT is a 2-byte signed integer. What does the leading D in DINT change?",
+    "back": "D stands for double: DINT is a signed double integer of 4 bytes.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "INT – signed integer (2 byte) DINT – signed double integer (4 byte)",
+    "mnemonic": "DINT = Double INT: double the bytes, 2 becomes 4."
+  },
+  {
+    "id": "fund-real-type",
+    "front": "What kind of number does the IEC 61131-3 data type REAL hold?",
+    "back": "A floating-point number.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "floating point IEC 60559 (same as IEEE 754-2008) REAL",
+    "mnemonic": "REAL = real-world measurements with a decimal point, like 21.5 degrees: the point floats."
+  },
+  {
+    "id": "fund-scan-cycle-definition",
+    "front": "What is the scan cycle of a PLC?",
+    "back": "The repeating cycle in which the controller executes its program again and again.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "A PLC works in a program scan cycle, where it executes its program repeatedly.",
+    "requires": [
+      "fund-plc-definition"
+    ]
+  },
+  {
+    "id": "fund-scan-cycle-order",
+    "front": "In what order does the simplest PLC scan cycle carry out its three steps?",
+    "back": "Read inputs, execute the program, write outputs.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "The simplest scan cycle consists of 3 steps: Read inputs Execute the program Write outputs",
+    "requires": [
+      "fund-scan-cycle-definition"
+    ],
+    "mnemonic": "Look, think, act: read the inputs, run the program, write the outputs, then look again."
+  },
+  {
+    "id": "fund-counter-module-why",
+    "front": "Why are shaft-encoder pulses counted by a dedicated counter module instead of by the PLC program?",
+    "back": "The scan time is too long to count the pulses reliably; the dedicated module accumulates them unaffected by program execution speed.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "counter modules for use with shaft encoders, are used where the scan time would be too long to reliably count pulses or detect the sense of rotation of an encoder",
+    "requires": [
+      "fund-scan-cycle-definition"
+    ]
+  },
+  {
+    "id": "fund-process-variable",
+    "front": "In a control system, what is a process variable (PV)?",
+    "back": "A quantity of the process that sensors measure and send to the control system.",
+    "source": "https://en.wikipedia.org/wiki/Industrial_control_system",
+    "excerpt": "Control systems receive data from remote sensors measuring process variables (PVs), compare the collected data with desired setpoints (SPs)"
+  },
+  {
+    "id": "fund-setpoint",
+    "front": "In a control system, what is a setpoint (SP)?",
+    "back": "The desired value with which the control system compares the measured data.",
+    "source": "https://en.wikipedia.org/wiki/Industrial_control_system",
+    "excerpt": "compare the collected data with desired setpoints (SPs), and derive command functions that are used to control a process",
+    "requires": [
+      "fund-process-variable"
+    ]
+  },
+  {
+    "id": "fund-final-control-element",
+    "front": "In a control system, what is a final control element (FCE)?",
+    "back": "The device through which the control system's commands act on the process, for example a control valve.",
+    "source": "https://en.wikipedia.org/wiki/Industrial_control_system",
+    "excerpt": "derive command functions that are used to control a process through the final control elements (FCEs), such as control valves.",
+    "requires": [
+      "fund-setpoint"
+    ]
+  }
+]

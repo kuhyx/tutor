@@ -1,0 +1,99 @@
+[
+  {
+    "id": "st-if-then-condition",
+    "front": "In an ST IF statement, what makes the statements after THEN execute?",
+    "back": "The condition, an expression that returns a boolean value, returns TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528275595.html",
+    "excerpt": "If the expression returns TRUE, the condition is met and the associated statements after THEN are executed."
+  },
+  {
+    "id": "st-elsif-evaluated",
+    "front": "In an ST IF statement, when is an ELSIF condition evaluated?",
+    "back": "Only when the conditions before it have returned FALSE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528275595.html",
+    "excerpt": "If the expression returns FALSE, the following conditions marked ELSIF are evaluated.",
+    "requires": [
+      "st-if-then-condition"
+    ]
+  },
+  {
+    "id": "st-if-else-runs",
+    "front": "In an ST IF statement, when do the statements after ELSE run?",
+    "back": "Only when every condition, the IF one and all ELSIF ones, is FALSE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528275595.html",
+    "excerpt": "If all conditions are FALSE, the statements after ELSE are executed.",
+    "requires": [
+      "st-elsif-evaluated"
+    ]
+  },
+  {
+    "id": "st-if-one-branch",
+    "front": "In an ST IF ... ELSIF ... ELSE ... END_IF statement, how many branches are executed in one pass?",
+    "back": "At most one: the first condition that returns TRUE wins, and ELSE runs only if none does.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528275595.html",
+    "excerpt": "So at most one branch of the IF statement is executed.",
+    "requires": [
+      "st-elsif-evaluated",
+      "st-if-else-runs"
+    ]
+  },
+  {
+    "id": "st-case-no-fallthrough",
+    "front": "In an ST CASE statement, the first matching condition is entered. What happens once its statements have run?",
+    "back": "The CASE block is left without checking the other conditions; there is no fall-through into the next branch.",
+    "source": "https://en.wikipedia.org/wiki/Structured_text",
+    "excerpt": "the first matching condition is entered, and after running its statements, the CASE block is left without checking other conditions",
+    "requires": [
+      "st-if-one-branch"
+    ]
+  },
+  {
+    "id": "st-sfc-active-step",
+    "front": "In an SFC, what does it mean for a step to be active?",
+    "back": "Its actions are currently being executed.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "Active step: An active step is a step whose actions are currently being executed."
+  },
+  {
+    "id": "sfc-initial-step",
+    "front": "In TwinCAT, what happens to an SFC's initial step in the first cycle after the SFC POU is called?",
+    "back": "It is activated automatically and its step action is executed.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "In the first cycle after calling an SFC POU, the initial step is automatically activated and the step action is executed."
+  },
+  {
+    "id": "st-sfc-step-activation-rule",
+    "front": "An SFC transition's condition is true. What else must hold before the step below it is activated?",
+    "back": "All the steps above it must be active.",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "Steps are activated when all steps above it are active and the connecting transition is superable (i.e. its associated condition is true)."
+  },
+  {
+    "id": "sfc-transition-fires",
+    "front": "When an SFC transition is passed, in what order are the steps around it switched?",
+    "back": "First all steps above it are deactivated at once, then all steps below it are activated at once.",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "When a transition is passed, all steps above are deactivated at once and after all steps below are activated at once."
+  },
+  {
+    "id": "sfc-alternative-branch",
+    "front": "In TwinCAT, how is the path through an SFC alternative branch chosen?",
+    "back": "Each branch's first transition is evaluated from left to right; the first branch whose transition returns TRUE has its next step activated.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT evaluates the first transition of each alternative branch from left to right. In the first branch, in which TwinCAT finds a transition that returns TRUE, the next step is activated."
+  },
+  {
+    "id": "sfc-parallel-branch",
+    "front": "In an SFC parallel branch (drawn between horizontal double lines), what happens when the transition before the branch returns TRUE?",
+    "back": "The first steps in all the branches are activated, and the branches are then processed simultaneously.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT activates the first steps in all branches. The branches are then processed simultaneously."
+  },
+  {
+    "id": "st-sfc-parallel-join",
+    "front": "When is the step after the end of an SFC parallel branch activated?",
+    "back": "When the last steps of all the branches are active and the transition after the double line returns TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "is activated when all last steps in the branches are active and the transition after the double line returns TRUE."
+  }
+]

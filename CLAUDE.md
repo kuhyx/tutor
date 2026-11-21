@@ -36,7 +36,9 @@ Read README.md first. These are the invariants that are easy to break.
 - `tutor/curriculum/` -- generic subjects: plans, just-in-time cards, the
   event-log fold + FSRS, unlock rules, `migrate`; contract in
   `DOCS-contract-curriculum.md`, golden vectors in `contract/`.
-- `tests/` -- cards/sources tests; `tutor/tests/` -- everything else.
+- `tests/` -- cards/sources tests; `tutor/tests/` -- everything else. Tests
+  read the frozen deck `tests/fixtures/deck` (`TUTOR_DECK_DIR`, set by the
+  root `conftest.py`), never the repo deck: `redraft deck` rewrites that one.
 - `scripts/tutor_deploy.sh`, `tutor_launch.sh`, `tutor_scripted_run.sh`.
 
 ## Commands

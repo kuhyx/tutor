@@ -1,0 +1,114 @@
+[
+  {
+    "id": "fund-iec-61131-3-scope",
+    "front": "What does part 3 of the PLC standard IEC 61131, written IEC 61131-3, deal with?",
+    "back": "The basic software architecture and the programming languages of a controller's control program.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "Part 3 of IEC 61131 deals with basic software architecture and programming languages of the control program within PLC.",
+    "requires": [
+      "fund-plc-definition"
+    ],
+    "mnemonic": "Part 3 is the software part: how a control program is built and which languages it is written in."
+  },
+  {
+    "id": "fund-pou-abbreviation",
+    "front": "What does the abbreviation POU stand for in IEC 61131-3?",
+    "back": "Program organization unit.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "variables of system-defined Program Organization Units (POUs, see below)",
+    "mnemonic": "A Program is Organized into Units: Program Organization Unit."
+  },
+  {
+    "id": "fund-pou-kinds",
+    "front": "Which three kinds of program organization unit (POU) does IEC 61131-3 list?",
+    "back": "Functions, function blocks and programs.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "Functions Standard: ADD, SQRT, SIN, COS, GT, MIN, MAX, AND, OR, etc. Custom Function Blocks Standard: Custom – Libraries of functions can be supplied by a vendor or third party. Programs",
+    "requires": [
+      "fund-pou-abbreviation"
+    ],
+    "mnemonic": "Three units, growing in memory: a function forgets, a function block remembers per instance, a program remembers once for everyone."
+  },
+  {
+    "id": "fund-function-no-memory",
+    "front": "Why does a function (FUNCTION) keep no values from one call to the next?",
+    "back": "All its data are temporary stack variables: valid only while it executes and re-initialized each time it is called.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530284939.html",
+    "excerpt": "All data of a function are temporary and are only valid while the function is executed (stack variables). This means that TwinCAT re-initializes all variables that you have declared in a function each time the function is called.",
+    "requires": [
+      "fund-pou-kinds"
+    ],
+    "mnemonic": "A function is a goldfish: every call it starts again with a blank memory."
+  },
+  {
+    "id": "fund-fb-instance-memory",
+    "front": "What does a function block retain between executions that a function does not?",
+    "back": "The values of its output variables and its internal variables, until the next execution.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530279563.html",
+    "excerpt": "The values of the output variables and the internal variables are retained until the next execution.",
+    "requires": [
+      "fund-function-no-memory"
+    ],
+    "mnemonic": "Function = goldfish, function block = elephant: the block still remembers its outputs and internal variables at the next call."
+  },
+  {
+    "id": "fund-fb-instance",
+    "front": "What is an instance of a function block?",
+    "back": "A copy of the function block; the function block is always called through such an instance.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530279563.html",
+    "excerpt": "A function block is always called via an instance, which is a copy of the function block.",
+    "requires": [
+      "fund-fb-instance-memory"
+    ],
+    "mnemonic": "The function block is the cookie cutter, each instance is a cookie: you only ever use the cookies, never the cutter itself."
+  },
+  {
+    "id": "fund-fb-external-access",
+    "front": "From outside a function block instance, which of its variables can you access?",
+    "back": "Only its input and output variables, not its internal variables.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530279563.html",
+    "excerpt": "From outside the function block instance, you can only access input and output variables of a function block, not the internal variables.",
+    "requires": [
+      "fund-fb-instance"
+    ],
+    "mnemonic": "A function block is a vending machine: you reach the coin slot (inputs) and the tray (outputs), never the mechanism inside."
+  },
+  {
+    "id": "fund-program-no-instances",
+    "front": "How does a program differ from a function block with respect to instances?",
+    "back": "A program has no instances: it has one set of values, retained between calls whichever unit calls it.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530274187.html",
+    "excerpt": "Programs do not have instances. If a POU calls a program and the call results in changes to the values of the program, the changes are retained until the next program call.",
+    "requires": [
+      "fund-fb-instance"
+    ],
+    "mnemonic": "A program is one shared whiteboard: every caller sees what the last caller left. Function blocks hand each instance its own notebook."
+  },
+  {
+    "id": "fund-program-execution-ways",
+    "front": "In the IEC 61131-3 configuration model, in which three ways can a program be executed?",
+    "back": "Once, on a timer, or on an event.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "Can be executed once, on a timer, on an event.",
+    "requires": [
+      "fund-pou-kinds"
+    ],
+    "mnemonic": "Think of an alarm clock: one shot (once), repeating alarm (timer), or the doorbell ringing (event)."
+  },
+  {
+    "id": "fund-var-global",
+    "front": "How far does the visibility of a global variable (VAR_GLOBAL) reach in a PLC project?",
+    "back": "Throughout the whole project: every part of it knows the global variable.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528776587.html",
+    "excerpt": "variables, constants, or retentive variables that are known throughout the project. Global variables are declared in global variable lists between the keywords VAR_GLOBAL and END_VAR.",
+    "mnemonic": "GLOBAL = the whole globe of your project can see it."
+  },
+  {
+    "id": "fund-retain-variables",
+    "front": "What happens to the value of a RETAIN variable after a power failure?",
+    "back": "It is kept: when the program restarts, the system continues to operate with the stored value.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528803467.html",
+    "excerpt": "RETAIN variables retain their value after an uncontrolled termination (power failure). When the program restarts, the system continues to operate with the stored values.",
+    "mnemonic": "RETAIN = the part counter that still knows its count after the lights went out."
+  }
+]

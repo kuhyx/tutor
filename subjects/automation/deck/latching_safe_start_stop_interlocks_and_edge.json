@@ -1,0 +1,134 @@
+[
+  {
+    "id": "ld-set-coil-retains",
+    "front": "What does a Set (latch) coil --(S)-- do to its variable when its rung goes de-energized?",
+    "back": "Nothing: the variable keeps its current value, so once set it stays TRUE until something resets it.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "When the rung is de-energized, the coil does nothing. The variable retains its current value.",
+    "requires": [
+      "ld-regular-coil-every-scan"
+    ],
+    "mnemonic": "A Set coil is a one-way switch: it can only turn the bit on, never off."
+  },
+  {
+    "id": "ld-reset-coil-forces-false",
+    "front": "What does a Reset (unlatch) coil --(R)-- do to its variable when its rung is energized?",
+    "back": "It forces the variable to FALSE, undoing the latch of a Set coil.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "When the rung is energized, it forces the variable to FALSE. When de-energized, it does nothing.",
+    "requires": [
+      "ld-set-coil-retains"
+    ]
+  },
+  {
+    "id": "ld-set-reset-same-scan",
+    "front": "A Set coil and a Reset coil for the same variable are both energized in one scan. Which wins?",
+    "back": "The one evaluated last, because rungs execute from top to bottom.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "When a Set and a Reset for the same variable are both energized in the same scan, the last one evaluated wins",
+    "requires": [
+      "ld-reset-coil-forces-false",
+      "ld-rung-evaluation-order"
+    ],
+    "mnemonic": "Last word wins: the lower rung speaks last in every scan."
+  },
+  {
+    "id": "ld-stop-priority-order",
+    "front": "Where do you place the Reset rung relative to the Set rung so that stop has priority?",
+    "back": "Below the Set rung: the Reset then executes after the Set, so the variable ends up FALSE.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "the Reset in Rung 2 executes after the Set in Rung 1, so running ends up FALSE",
+    "requires": [
+      "ld-set-reset-same-scan"
+    ]
+  },
+  {
+    "id": "ld-seal-in-contact",
+    "front": "How does a seal-in contact keep a motor contactor energized after the Start button is released?",
+    "back": "A normally open contact of the contactor itself sits in parallel with Start; once energized it closes and keeps feeding the coil.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "contact from the contactor is connected in parallel with the start switch, so that once the contactor is energized it maintains power to itself and keeps itself",
+    "requires": [
+      "ld-parallel-is-or"
+    ],
+    "mnemonic": "The contactor holds its own door open: its own contact bypasses the Start button."
+  },
+  {
+    "id": "ld-start-stop-formula",
+    "front": "How do you calculate the Run bit of the latching start/stop rung, as a Boolean formula?",
+    "back": "Run = (Start OR Run) AND (NOT Stop)",
+    "source": "https://en.wikipedia.org/wiki/Ladder_logic",
+    "excerpt": "The above realizes the function: Run = (Start OR Run) AND (NOT Stop)",
+    "requires": [
+      "ld-seal-in-contact",
+      "ld-series-is-and",
+      "ld-nc-contact-passes"
+    ],
+    "mnemonic": "Runs if Start is pressed or it was already running, and nobody is pressing Stop."
+  },
+  {
+    "id": "ld-stop-wired-nc-why",
+    "front": "In fail-safe design, how should a control circuit behave when a wire breaks (an open circuit)?",
+    "back": "It should default to its safest mode of operation, like a fire alarm that sounds when its wiring breaks.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "Therefore, a fail-safe system should be designed to default to its safest mode of operation in the case of an open circuit."
+  },
+  {
+    "id": "ld-stop-nc-uses-no-contact",
+    "front": "A Stop button is wired so the PLC input is TRUE while it is not pressed. Which ladder contact tests it?",
+    "back": "A normally open contact: the logic is reversed, so the contact passes power until pressing Stop turns the input FALSE.",
+    "source": "https://en.wikipedia.org/wiki/Ladder_logic",
+    "excerpt": "the physical contacts for stop and emergency stop are wired such that the PLC is given HIGH (true) inputs, when the buttons are NOT pressed, hence the PLC logic should be reversed for those",
+    "requires": [
+      "ld-no-contact-passes",
+      "ld-stop-wired-nc-why",
+      "ld-start-stop-formula"
+    ],
+    "mnemonic": "Healthy wire = TRUE input = normally open contact conducts. Press Stop or cut the wire: input FALSE, rung drops."
+  },
+  {
+    "id": "ld-permissives-in-series",
+    "front": "Permissives are conditions that must all be met before equipment may start. Why are their contacts wired in series?",
+    "back": "So that any single permissive detecting an unsafe condition opens the circuit and blocks the start.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "each permissive switch contact is wired in series, so that if any one of them detects an unsafe condition, the circuit will be opened",
+    "requires": [
+      "ld-series-is-and"
+    ]
+  },
+  {
+    "id": "ld-forward-reverse-interlock",
+    "front": "How does an electrical interlock stop a motor's forward and reverse contactors from energizing together?",
+    "back": "Each contactor's rung contains a normally closed auxiliary contact of the other contactor, which opens when that other contactor is energized.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "is energized, the normally-closed auxiliary contact on the second rung will be open, thus preventing",
+    "requires": [
+      "ld-nc-contact-passes",
+      "ld-series-is-and"
+    ],
+    "mnemonic": "Each direction holds the other's door shut while it is running."
+  },
+  {
+    "id": "ld-p-contact-rising-edge",
+    "front": "When does a rising-edge contact --[P]-- pass power?",
+    "back": "Only for one scan cycle, at the moment its variable changes from FALSE to TRUE; it blocks even if the variable stays TRUE.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/contact-elements",
+    "excerpt": "It passes power for exactly one scan cycle at the moment of transition, then blocks power on subsequent scans.",
+    "requires": [
+      "ld-no-contact-passes",
+      "fund-scan-cycle-order"
+    ],
+    "mnemonic": "P fires once on the Press, not for as long as you hold the button."
+  },
+  {
+    "id": "ld-n-contact-falling-edge",
+    "front": "When does a falling-edge contact --[N]-- pass power?",
+    "back": "For exactly one scan cycle, at the moment its variable changes from TRUE to FALSE.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/contact-elements",
+    "excerpt": "It passes power for exactly one scan cycle at the moment the variable goes from TRUE to FALSE.",
+    "requires": [
+      "ld-p-contact-rising-edge"
+    ],
+    "mnemonic": "N fires when the signal is 'No longer on': one pulse at the release."
+  }
+]

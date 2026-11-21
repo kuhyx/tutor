@@ -1,0 +1,89 @@
+[
+  {
+    "id": "net-proto-profinet-io-controller",
+    "front": "In a PROFINET system, what does the IO-Controller do?",
+    "back": "It controls the automation task and one or more field devices.",
+    "source": "https://en.wikipedia.org/wiki/PROFINET",
+    "excerpt": "A minimal Profinet IO-System consists of at least one IO-Controller that controls one or more IO-Devices."
+  },
+  {
+    "id": "net-proto-profinet-io-device",
+    "front": "In a PROFINET system, what is an IO-Device?",
+    "back": "A field device, such as an I/O block, drive, sensor or actuator, that an IO-Controller monitors and controls.",
+    "source": "https://en.wikipedia.org/wiki/PROFINET",
+    "excerpt": "which is a field device, monitored and controlled by an IO-Controller. An IO-Device may consist of several modules and sub-modules."
+  },
+  {
+    "id": "net-proto-profinet-gsd-file",
+    "front": "What does a GSD (General Station Description) file do in PROFINET engineering?",
+    "back": "It holds the manufacturer's description of an IO-Device's properties, which the engineering tool uses to plan the system configuration.",
+    "source": "https://en.wikipedia.org/wiki/PROFINET",
+    "excerpt": "The GSD file serves an engineering environment as a basis for planning the configuration of a Profinet IO system."
+  },
+  {
+    "id": "net-profinet-rt-layer2",
+    "front": "How are PROFINET Real-Time (RT) telegrams with cyclic data and alarms carried on the network?",
+    "back": "Directly via Ethernet; the User Datagram Protocol over Internet Protocol is used for acyclic data instead.",
+    "source": "https://en.wikipedia.org/wiki/PROFINET",
+    "excerpt": "For real-time data (cyclic data and alarms), the Profinet Real-Time (RT) telegrams are transmitted directly via Ethernet. UDP/IP is used for the transmission of acyclic data."
+  },
+  {
+    "id": "net-profinet-rt-vs-irt",
+    "front": "PROFINET RT reaches cycle times of 1-10 ms. What does Isochronous Real-Time (IRT) add?",
+    "back": "Cycle times below 1 ms, as needed by drive technology applications.",
+    "source": "https://en.wikipedia.org/wiki/PROFINET",
+    "excerpt": "The IRT (Isochronous Real-Time) protocol for application class C allows cycle times below 1 ms for drive technology applications."
+  },
+  {
+    "id": "net-proto-profinet-irt-reserved-phase",
+    "front": "How does PROFINET Isochronous Real-Time (IRT) keep ordinary Ethernet traffic from delaying its real-time data?",
+    "back": "Bandwidth reservation: each fixed cycle is split into phases, and one phase is reserved exclusively for IRT real-time data.",
+    "source": "https://en.wikipedia.org/wiki/PROFINET",
+    "excerpt": "The bandwidth is divided into fixed cycle times, which in turn are divided into phases. The red phase is reserved exclusively for class C real-time data",
+    "mnemonic": "A traffic light for frames: the red phase is for IRT data only, the green phase lets ordinary Ethernet through."
+  },
+  {
+    "id": "net-enip-carries-cip",
+    "front": "Which application protocol does EtherNet/IP adapt to run on standard Ethernet?",
+    "back": "The Common Industrial Protocol (CIP).",
+    "source": "https://en.wikipedia.org/wiki/EtherNet/IP",
+    "excerpt": "EtherNet/IP (IP = Industrial Protocol) is an industrial network protocol that adapts the Common Industrial Protocol (CIP) to standard Ethernet.",
+    "mnemonic": "The IP in EtherNet/IP means Industrial Protocol: the Common Industrial Protocol riding on Ethernet."
+  },
+  {
+    "id": "net-proto-enip-explicit-messaging",
+    "front": "In EtherNet/IP, what is explicit messaging used for?",
+    "back": "Uploading and downloading parameters, setpoints, programs and recipes.",
+    "source": "https://en.wikipedia.org/wiki/EtherNet/IP",
+    "excerpt": "Uploading and downloading of parameters, setpoints, programs and recipes via TCP (i.e., explicit messaging.)"
+  },
+  {
+    "id": "net-enip-ports",
+    "front": "EtherNet/IP uses Transmission Control Protocol (TCP) port 44818 and User Datagram Protocol (UDP) port 2222. Which one carries implicit messaging, the basic input/output data?",
+    "back": "User Datagram Protocol (UDP) port 2222.",
+    "source": "https://en.wikipedia.org/wiki/EtherNet/IP",
+    "excerpt": "EtherNet/IP makes use of TCP port number 44818 for explicit messaging and UDP port number 2222 for implicit messaging"
+  },
+  {
+    "id": "net-opcua-purpose",
+    "front": "What is OPC Unified Architecture (OPC UA) for?",
+    "back": "Standardized, cross-platform data exchange all the way from sensors up to cloud applications.",
+    "source": "https://en.wikipedia.org/wiki/OPC_Unified_Architecture",
+    "excerpt": "OPC Unified Architecture (OPC UA) is a cross-platform, open-source, IEC62541 standard for data exchange from sensors to cloud applications developed by the OPC Foundation."
+  },
+  {
+    "id": "net-proto-opcua-nodes",
+    "front": "How does an OPC UA server organize the information it offers to clients?",
+    "back": "As a mesh of nodes, similar to objects in object-oriented programming, that hold process data together with metadata.",
+    "source": "https://en.wikipedia.org/wiki/OPC_Unified_Architecture",
+    "excerpt": "These nodes can include any kind of meta information, and are similar to the objects of object-oriented programming (OOP)."
+  },
+  {
+    "id": "net-opcua-security-modes",
+    "front": "In OPC UA, how does message security mode Sign differ from SignAndEncrypt?",
+    "back": "Sign only signs every message; SignAndEncrypt signs and also encrypts every message.",
+    "source": "https://reference.opcfoundation.org/Core/Part4/v105/docs/7.20",
+    "excerpt": "SIGN 2 All messages are signed but not encrypted. SIGNANDENCRYPT 3 All messages are signed and encrypted.",
+    "mnemonic": "Sign is a sealed but transparent envelope; SignAndEncrypt is sealed and opaque."
+  }
+]

@@ -1,0 +1,132 @@
+[
+  {
+    "id": "sec-stuxnet-target",
+    "front": "How did the Stuxnet worm physically destroy Iranian uranium centrifuges?",
+    "back": "It changed the code on the programmable logic controllers running them, driving the rotors too fast, then too slow, until the stresses destroyed the machines.",
+    "source": "https://en.wikipedia.org/wiki/Stuxnet",
+    "excerpt": "The stresses from the excessive, then slower, speeds caused the aluminium centrifugal tubes to expand, often forcing parts of the centrifuges into sufficient contact with each other to destroy the machine.",
+    "requires": [
+      "fund-plc-definition"
+    ],
+    "mnemonic": "Rev it up, drag it down: speed swings shook the centrifuges to pieces."
+  },
+  {
+    "id": "sec-stuxnet-hidden",
+    "front": "How did Stuxnet keep plant operators from noticing that it was sabotaging the process?",
+    "back": "While sending the controller unexpected commands, it played back a loop of normal operating values to the people monitoring the system.",
+    "source": "https://en.wikipedia.org/wiki/Stuxnet",
+    "excerpt": "modifying the code and giving unexpected commands to the PLC while returning a loop of normal operation system values back to the users",
+    "requires": [
+      "sec-stuxnet-target"
+    ],
+    "mnemonic": "Like a looped security-camera tape in a heist film: the screen shows calm while the damage happens."
+  },
+  {
+    "id": "sec-stuxnet-removable-drives",
+    "front": "How did Stuxnet first get onto computers in networks that were not connected to the Internet?",
+    "back": "It was carried in on infected removable drives, such as flash drives.",
+    "source": "https://en.wikipedia.org/wiki/Stuxnet",
+    "excerpt": "It is initially spread using infected removable drives such as USB flash drives, which contain Windows shortcut files to initiate executable code.",
+    "requires": [
+      "sec-air-gap"
+    ],
+    "mnemonic": "An air gap stops cables, not pockets: the worm walked in on a flash drive."
+  },
+  {
+    "id": "sec-iec-62443-what",
+    "front": "What is IEC 62443?",
+    "back": "A series of standards on security for operational technology in automation and control systems, covering technical and process-related aspects.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "IEC 62443 is a series of standards that address security for operational technology in automation and control systems.",
+    "requires": [
+      "sec-ot-definition"
+    ]
+  },
+  {
+    "id": "sec-iacs-expansion",
+    "front": "What does the abbreviation IACS stand for in IEC 62443?",
+    "back": "Industrial automation and control systems.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "The ISA/IEC 62443 series addresses the security of industrial automation and control systems (IACS) throughout their lifecycle.",
+    "requires": [
+      "sec-iec-62443-what"
+    ],
+    "mnemonic": "I-A-C-S in order: Industrial Automation (and) Control Systems, the thing IEC 62443 secures."
+  },
+  {
+    "id": "sec-essential-functions",
+    "front": "Which three functions does IEC 62443 name as essential functions of a control system?",
+    "back": "The safety instrumented function, the control function, and the operator's ability to view and manipulate the equipment under control.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "the safety instrumented function (SIF) • the control function • the ability of the operator to view and manipulate the EUC",
+    "requires": [
+      "sec-iec-62443-what"
+    ],
+    "mnemonic": "Protect, control, view: lose them and you get loss of protection, loss of control, loss of view."
+  },
+  {
+    "id": "sec-zone-definition",
+    "front": "In IEC 62443, what is a zone?",
+    "back": "A grouping of logical or physical assets that share common security requirements.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Zones divide a system into homogeneous zones by grouping the (logical or physical) assets with common security requirements.",
+    "requires": [
+      "sec-iec-62443-what"
+    ],
+    "mnemonic": "A zone is like a room: everything inside needs the same lock."
+  },
+  {
+    "id": "sec-conduit-definition",
+    "front": "In IEC 62443, what is a conduit?",
+    "back": "The group of elements that carry communication between two zones, providing security functions that keep that communication secure.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Conduits group the elements that allow communication between two zones. They provide security functions that enable secure communication and allow the coexistence of zones with different security levels.",
+    "requires": [
+      "sec-zone-definition"
+    ],
+    "mnemonic": "Zones are rooms; a conduit is the guarded corridor between two of them."
+  },
+  {
+    "id": "sec-security-level-meaning",
+    "front": "What do the security levels of IEC 62443 indicate about a system?",
+    "back": "Its resistance against different classes of attackers: a higher level withstands a more capable attacker.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "The different levels indicate the resistance against different classes of attackers.",
+    "requires": [
+      "sec-iec-62443-what"
+    ]
+  },
+  {
+    "id": "sec-sl-1-2",
+    "front": "What kind of misuse does IEC 62443 Security Level 1 protect against?",
+    "back": "Unintentional or accidental misuse, not a deliberate attack.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Security Level 1: Protection against unintentional or accidental misuse.",
+    "requires": [
+      "sec-security-level-meaning"
+    ],
+    "mnemonic": "Level 1 = oops: mistakes, not malice."
+  },
+  {
+    "id": "sec-sl-2",
+    "front": "What kind of attacker does IEC 62443 Security Level 2 protect against?",
+    "back": "Someone misusing the system on purpose, but with simple means, few resources, general skills and low motivation.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Security Level 2: Protection against intentional misuse by simple means with few resources, general skills and low motivation.",
+    "requires": [
+      "sec-sl-1-2"
+    ],
+    "mnemonic": "Level 2 = a casual intruder: deliberate, but simple tools and little effort."
+  },
+  {
+    "id": "sec-sl-3-4",
+    "front": "How does the attacker resisted at IEC 62443 Security Level 4 differ from the one at Security Level 3?",
+    "back": "Level 4 assumes extensive resources and high motivation instead of moderate ones; both attackers use sophisticated means and automation-specific knowledge.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Security Level 3: Protection against intentional misuse by sophisticated means with moderate resources, automation-specific knowledge and moderate motivation. Security Level 4: Protection against intentional misuse using sophisticated means with extensive resources, automation-specific knowledge and high motivation.",
+    "requires": [
+      "sec-sl-2"
+    ],
+    "mnemonic": "Same skill, bigger wallet and stronger will: Level 3 moderate, Level 4 extensive and high."
+  }
+]

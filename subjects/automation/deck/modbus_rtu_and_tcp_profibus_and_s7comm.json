@@ -1,0 +1,91 @@
+[
+  {
+    "id": "net-proto-modbus-exception-function-code",
+    "front": "How do you calculate the function code of a Modbus exception response?",
+    "back": "exception function code = request function code + 0x80 (the most significant bit set to 1).",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "Exception Function code = Function code (1 byte) + 0x80. Exception Function code is equal to the Function code, except that its MSB is set to 1.",
+    "mnemonic": "Error? The top bit goes on: a failed request 0x03 comes back as 0x83."
+  },
+  {
+    "id": "net-modbus-rtu-framing",
+    "front": "How does Modbus RTU (Remote Terminal Unit), the binary serial variant, let a receiver detect a corrupted frame?",
+    "back": "Each frame ends with a cyclic redundancy check (CRC) checksum that follows the commands and data.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "The RTU format follows the commands/data with a cyclic redundancy check checksum as an error check mechanism to ensure the reliability of data."
+  },
+  {
+    "id": "net-proto-modbus-rtu-silent-framing",
+    "front": "How does a Modbus RTU receiver tell where one frame ends and the next begins?",
+    "back": "By silence: idle periods on the line separate the frames, and each frame is sent continuously without pauses.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "A Modbus RTU message must be transmitted continuously without inter-character hesitations. Modbus messages are framed (separated) by idle (silent) periods."
+  },
+  {
+    "id": "net-modbus-tcp-port",
+    "front": "A device on a plant network listens on Transmission Control Protocol (TCP) port 502. Which industrial protocol connects over that port?",
+    "back": "Modbus TCP, the Modbus variant for communication over Transmission Control Protocol/Internet Protocol networks.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "Modbus TCP or Modbus TCP/IP is a Modbus variant used for communications over TCP/IP networks, connecting over port 502."
+  },
+  {
+    "id": "net-proto-modbus-tcp-no-checksum",
+    "front": "Why does a Modbus TCP frame carry no checksum of its own, unlike Modbus RTU?",
+    "back": "The lower network layers beneath Modbus TCP already provide checksum protection.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "It does not require a checksum calculation, as lower layers already provide checksum protection."
+  },
+  {
+    "id": "net-modbus-unit-id",
+    "front": "What does the unit identifier in a Modbus TCP header select when the request goes through a TCP-to-serial gateway?",
+    "back": "The server address of the serial device behind the gateway that should receive the request.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "In such a case, the unit identifier is the Server Address of the device behind the gateway."
+  },
+  {
+    "id": "net-modbus-no-security",
+    "front": "What protection does the Modbus protocol itself give against unauthorized commands or eavesdropping?",
+    "back": "None: it has no built-in security against unauthorized commands or interception of data.",
+    "source": "https://en.wikipedia.org/wiki/Modbus",
+    "excerpt": "Modbus protocol itself provides no security against unauthorized commands or interception of data."
+  },
+  {
+    "id": "net-proto-profibus-dp-purpose",
+    "front": "What is PROFIBUS DP (Decentralised Peripherals) used for?",
+    "back": "Letting a centralised controller operate sensors and actuators in factory automation.",
+    "source": "https://en.wikipedia.org/wiki/Profibus",
+    "excerpt": "PROFIBUS DP (Decentralised Peripherals) is used to operate sensors and actuators via a centralised controller in production (factory) automation applications."
+  },
+  {
+    "id": "net-proto-profibus-bus-access",
+    "front": "How does PROFIBUS control which station may use the bus?",
+    "back": "With a hybrid access method: token passing combined with master/slave; controllers are the masters, sensors and actuators the slaves.",
+    "source": "https://en.wikipedia.org/wiki/Profibus",
+    "excerpt": "work with a hybrid access method that combines token passing with a master/slave method"
+  },
+  {
+    "id": "net-proto-profibus-dp-repeaters",
+    "front": "The RS-485 transmission of PROFIBUS DP allows only 31 devices at once. What lets a network reach up to 126 devices?",
+    "back": "Adding hubs or repeaters to the network.",
+    "source": "https://en.wikipedia.org/wiki/Profibus",
+    "excerpt": "The RS485 balanced transmission used in PROFIBUS DP only allows 31 devices to be connected at once; however, more devices (up to 126) can be connected or the network expanded with the use of hubs or repeaters"
+  },
+  {
+    "id": "net-proto-profibus-pa-hazardous-areas",
+    "front": "What lets PROFIBUS PA (Process Automation) be used in explosion-hazardous areas?",
+    "back": "Its bus cable powers the field instruments but limits the current, so no explosive condition arises even if something malfunctions.",
+    "source": "https://en.wikipedia.org/wiki/Profibus",
+    "excerpt": "which allows power to be delivered over the bus to field instruments, while limiting current flows so that explosive conditions are not created, even if a malfunction occurs"
+  },
+  {
+    "id": "net-s7comm-port",
+    "front": "In an S7comm connection to a Siemens controller on port 102, when is the Connection-Oriented Transport Protocol (COTP) connect request sent?",
+    "back": "As the second of three steps: after connecting on port 102 and before connecting on the S7comm layer.",
+    "source": "https://wiki.wireshark.org/S7comm",
+    "excerpt": "Connect to PLC on TCP port 102 Connect on ISO layer (COTP Connect Request) Connect on S7comm layer",
+    "requires": [
+      "fund-plc-definition"
+    ],
+    "mnemonic": "Three doors in a row: port 102, then the COTP connect request, then S7comm."
+  }
+]
