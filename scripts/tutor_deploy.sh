@@ -6,8 +6,9 @@
 # tree, so half-finished edits in ~/src/tutor are never served. A deploy:
 #   1. copies a new release,
 #   2. smoke-tests it on a scratch port against a copy of today's sessions
-#      and the guard's C3 row (it must start, resume the live session,
-#      redirect / to /app/ and serve the Flutter web build there),
+#      and the guard's C3 row (it must start, resume the session the live
+#      release resumes on the same copy, redirect / to /app/ and serve the
+#      Flutter web build there),
 #   3. waits until no reply is in flight (the newest log ends on no learner),
 #   4. points `current` at it and restarts tutor.service (install.sh), whose
 #      graceful stop drains the old server; the release resumes the session.
@@ -32,6 +33,7 @@ WAIT_LIMIT=300
 KEEP_RELEASES=5
 TEMP_DIR=""
 SMOKE_PID=""
+SMOKE_PORT=""
 
 cleanup() {
     if [[ -n "$SMOKE_PID" ]]; then
@@ -125,53 +127,8 @@ copy_release() {
     rsync -a "$web/" "$1/app/build/web/"
 }
 
-# The release must start, resume the same session and serve the web app.
-smoke_test() {
-    local release="$1" expected="$2" port got dir
-    port="$(free_port)"
-    TEMP_DIR="$(mktemp -d)"
-    mkdir -p "$TEMP_DIR/data"
-    # Sessions, and the subjects a curriculum session's cards resolve from.
-    for dir in sessions subjects; do
-        if [[ -d "$DATA/$dir" ]]; then cp -r "$DATA/$dir" "$TEMP_DIR/data/"; fi
-    done
-    head -c 32 /dev/urandom >"$TEMP_DIR/key"
-    # The guard's C3 row, signed with the scratch key. No relay: a temp-data
-    # server must never claim real phone requests.
-    "$REPO/scripts/scratch_phase.sh" "$TEMP_DIR/theory_phase.json" "$TEMP_DIR/key"
-    TUTOR_DATA="$TEMP_DIR/data" TUTOR_KEY="$TEMP_DIR/key" TUTOR_RELAY=0 \
-        TUTOR_THEORY_PHASE="$TEMP_DIR/theory_phase.json" \
-        launch "$release" "$port" "$TEMP_DIR/smoke.log"
-    if ! wait_listening "$port"; then
-        echo "Smoke test: release did not start:" >&2
-        tail -n 20 "$TEMP_DIR/smoke.log" >&2
-        exit 1
-    fi
-    SMOKE_PID="$(port_pid "$port")"
-    got="$(session_of "$port")"
-    if [[ -n "$expected" && "$got" != "$expected" ]]; then
-        echo "Smoke test: expected session '$expected', release resumed '$got'" >&2
-        exit 1
-    fi
-    # `/` is only a redirect now; /app/ must serve the build it points at.
-    local root
-    root="$(curl -s -m 5 -o /dev/null -w '%{http_code} %{redirect_url}' \
-        "http://127.0.0.1:$port/")"
-    if [[ "$root" != "307 http://127.0.0.1:$port/app/" ]]; then
-        echo "Smoke test: / answered '$root', not a redirect to /app/" >&2
-        exit 1
-    fi
-    # Read into a variable: `curl | grep -q` can fail on SIGPIPE under pipefail.
-    local page
-    page="$(curl -sf -m 5 "http://127.0.0.1:$port/app/" || true)"
-    [[ "$page" == *flutter_bootstrap.js* ]] ||
-        { echo "Smoke test: /app/ does not serve the web build" >&2; exit 1; }
-    curl -sf -m 5 -o /dev/null "http://127.0.0.1:$port/app/main.dart.js" ||
-        { echo "Smoke test: /app/main.dart.js is missing" >&2; exit 1; }
-    kill "$SMOKE_PID"
-    SMOKE_PID=""
-    echo "Smoke test passed (session '${got:-none}')."
-}
+# shellcheck source-path=SCRIPTDIR source=_tutor_deploy_smoke.sh
+source "$(dirname "${BASH_SOURCE[0]}")/_tutor_deploy_smoke.sh"
 
 newest_log() {
     local files=("$DATA/sessions/$(date +%Y%m%d)"-*.jsonl)
@@ -219,7 +176,9 @@ main() {
     copy_release "$release"
     echo "Release copied: $release"
 
-    before="$(resumable "$(session_of "$PORT")")"
+    TEMP_DIR="$(mktemp -d)"
+    baseline_session >"$TEMP_DIR/before"
+    before="$(<"$TEMP_DIR/before")"
     smoke_test "$release" "$before"
 
     wait_idle
