@@ -94,6 +94,10 @@ main() {
     systemd-run --user --quiet --collect --unit="$WM_UNIT" -p RuntimeMaxSec=120 \
         -E DISPLAY=":$n" -E I3SOCK="$sock" i3 -c "$WORK/i3.config"
     wait_for 40 i3-msg -s "$sock" -t get_version || die "the nested i3 did not start"
+    # On kuhy's PC run.sh's i3-msg finds i3 through the display's root window
+    # (the lock's unit has no I3SOCK): here that must lead to this socket too.
+    [[ "$(env -u I3SOCK DISPLAY=":$n" i3 --get-socketpath)" == "$sock" ]] ||
+        die "display :$n does not name the nested i3's socket"
     # The driver is a unit too: its Chrome dies with it, whatever kills this call.
     systemd-run --user --quiet --collect --wait --pipe --unit="$DRIVE_UNIT" \
         -p RuntimeMaxSec=55 -p WorkingDirectory="$ROOT" \
