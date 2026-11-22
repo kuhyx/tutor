@@ -189,7 +189,8 @@ class _SessionChatState extends State<SessionChat> {
     return LayoutBuilder(
       builder: (context, box) => Column(
         children: [
-          if (meta != null && !widget.desk)
+          // A theory lesson's stats sit in the bar (a line under it, phone).
+          if (meta != null && !widget.desk && meta.leetcode == null)
             SessionHeader(
               meta: meta,
               today: widget.today,

@@ -159,7 +159,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
 "meta": {"subject":"automation","card":{"id":"ld-x","front":"..."},"started":ms,
   "stopped":false,"card_done":false,"check_open":true,"n":14,"rev":31,
   "clock":{"active_seconds":412.5,"paused_reason":null,"awaiting_since":ms,"reply_timeout_s":600},
-  "credited_minutes":6,
+  "credited_minutes":6,"leetcode":{optional: DOCS-contract-leetcode-bar.md},
   "busy":{"rid":"...","phase":"thinking","since":ms,"text":"pending learner text"}}
 "msgs/m0007": {"role":"tutor","text":"markdown","questions":["...","..."],"choices":[[],["a","b","c"]],"low_effort":false,
   "check":{"question":"...","concept":"...","choices":["a","b","c"]},"check_result":{"passed":true,"feedback":"..."},

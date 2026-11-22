@@ -10,7 +10,7 @@ no state of its own and tells a stale RTDB copy from a current one.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 import json
 import logging
@@ -56,6 +56,8 @@ class Sources:
     dev_of: Callable[[str], str | None]  # rid -> device
     resolve_url: Callable[[str], str | None]  # Commons page -> thumbnail
     diagram_cache: Path | None = None
+    # (subject, card id) -> the LeetCode bar's map, ``None``: no bar (display only).
+    leetcode: Callable[[str, str], dict[str, Any] | None] | None = None
 
 
 @dataclass(frozen=True)
@@ -153,7 +155,7 @@ def _meta(
     snap = conv.clock.snapshot(src.now)
     last = msgs[-1] if msgs else {}
     waiting = not conv.stopped and last.get("role") == "tutor"
-    return {
+    meta = {
         "subject": subject,
         "card": {
             "id": conv.card_id,
@@ -174,6 +176,9 @@ def _meta(
         "credited_minutes": unit_credit.paid_minutes(conv.receipts),
         "busy": None,
     }
+    if src.leetcode is not None and (lc_map := src.leetcode(subject, conv.card_id)):
+        meta["leetcode"] = lc_map  # only a LeetCode theory session has one
+    return meta
 
 
 def _index(listed: dict[str, Any], rev: int, subject: str) -> dict[str, Any]:
@@ -206,6 +211,10 @@ def build(sessions_dir: Path, sid: str, src: Sources) -> SessionDoc | None:
     start = next((e for e in events if e.get("type") == "start"), {})
     subject = str(start.get("subject") or DEFAULT_SUBJECT)
     conv = replayed.conversation
+    if src.view.live != sid or conv.stopped:
+        # Only the live, running session has a LeetCode map: history shows the
+        # ordinary bar, and a frozen map would outlive the phase it was for.
+        src = replace(src, leetcode=None)
     msgs = messages(conv, events, src)
     rev = len(events)
     return SessionDoc(

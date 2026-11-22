@@ -64,6 +64,24 @@ model_env() {
     MODEL_ENV=(-E "ANTHROPIC_BASE_URL=http://127.0.0.1:$port" -E CLAUDE_CODE_MAX_RETRIES=0)
 }
 
+# The LeetCode bar's guard route (DOCS-contract-leetcode-bar.md): the sandbox
+# server never reads the live guard (:8771). $1 = the canned "theory" JSON ($2 =
+# the CLOCK): a stub serves it on a sandbox port; none: a closed port, so the
+# bar's numbers are unknown. Sets GUARD_ENV.
+readonly GUARD_UNIT="tutor-e2e-guard-${TAG:-x}"
+GUARD_ENV=(-E TUTOR_GUARD_THEORY_URL=http://127.0.0.1:9/api/theory)
+guard_env() {
+    local body="$1" clock="$2" port
+    systemctl --user stop "$GUARD_UNIT" 2>/dev/null || true
+    [[ -n "$body" ]] || return 0
+    port="$(free_port)"
+    systemd-run --user --quiet --collect --unit="$GUARD_UNIT" -p RuntimeMaxSec=3600 \
+        "$PY" "$ROOT/scripts/e2e_guard_stub.py" --port "$port" --body "$body" \
+        --day "$(date -d "${clock:-now}" +%F)"
+    wait_http "http://127.0.0.1:$port/api/theory" 40 || die "guard stub did not start"
+    GUARD_ENV=(-E "TUTOR_GUARD_THEORY_URL=http://127.0.0.1:$port/api/theory")
+}
+
 # The guard's C3 row in the sandbox ($1), signed with the sandbox key:
 # theory S/M..., solve, bad S/M (a wrong hmac) or missing (no file).
 write_phase() {
@@ -88,6 +106,7 @@ start_server() {
     local -a fake=()
     [[ -n "$clock" ]] && fake=(faketime "$clock")
     model_env "$(sed -n 's/^MODEL=//p' "$STATE")"
+    guard_env "$(sed -n 's/^GUARD=//p' "$STATE")" "$clock"
     systemd-run --user --quiet --collect --unit="$SERVER_UNIT" -p RuntimeMaxSec=3600 \
         -p WorkingDirectory="$ROOT" \
         -p StandardOutput="append:$sandbox/server.log" -p StandardError="append:$sandbox/server.log" \
@@ -97,7 +116,7 @@ start_server() {
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
         -E FOCUS_PROJECT_DATA="$sandbox/focus" -E XDG_STATE_HOME="$sandbox/state" \
         -E TUTOR_THEORY_PHASE="$sandbox/theory_phase.json" \
-        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" \
+        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {
         tail -20 "$sandbox/server.log" >&2

@@ -11,6 +11,7 @@
 // `&display=1366x768` sets the display the UI scale is computed for.
 // `&trace=1` gives the last tutor turn a Thinking trace, `&busy=1` puts a
 // researching turn in flight, `&open=1` opens the Thinking panels.
+// `&lc=normal|unknown|full` makes the live session a LeetCode theory lesson.
 //
 // Build: fvm flutter build web -t tool/fixture/main.dart \
 //   -o build/web_fixture --base-href /app/
@@ -46,6 +47,7 @@ import 'package:tutor/util/ulid.dart';
 import '../../test/support/fake_rtdb.dart';
 import 'fixture_compose.dart';
 import 'fixture_data.dart';
+import 'fixture_leetcode.dart';
 import 'fixture_live.dart';
 import 'fixture_sessions.dart' show fixtureLiveSid;
 import 'fixture_stream.dart';
@@ -83,6 +85,8 @@ Future<TutorServices> _open() async {
   final q = _query;
   if (q['trace'] == '1') db.root = fixtureWithTrace(db.root);
   if (q['busy'] == '1') db.root = fixtureInFlight(db.root, now);
+  final lc = q['lc'];
+  if (lc != null) db.root = fixtureWithLeetcode(db.root, fixtureLeetcode(lc));
   if (q['compose'] == '1') {
     db.root = setAt(
       db.root,

@@ -21,6 +21,9 @@ const kCardPaneWidth = 300.0;
 /// The bar's height with the stats on a second line.
 const double kBarTwoLineHeight = kToolbarHeight + 32;
 
+/// The height of the line under the bar that holds a phone's LeetCode stats.
+const double kBarRowHeight = AppSpacing.xl + AppSpacing.sm;
+
 /// What the card action glyphs do; a null callback greys its glyph.
 class CardActions {
   /// Creates the set.
@@ -95,11 +98,19 @@ class BarTitle extends StatelessWidget {
     required this.title,
     required this.stats,
     required this.twoLines,
+    this.lead,
+    this.spoken,
     super.key,
   });
 
-  /// The subject's name (content); null before it loads.
+  /// The subject's name (content), or a lesson's unit; null before it loads.
   final String? title;
+
+  /// A glyph before the [title] (the pencil of a LeetCode unit).
+  final IconData? lead;
+
+  /// What a screen reader says for the [lead] and [title] together.
+  final String? spoken;
 
   /// The stats and marks; null before the session loads.
   final Widget? stats;
@@ -109,9 +120,24 @@ class BarTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = title == null
+    final text = title == null
         ? const SizedBox.shrink()
         : ContentText(title!, maxLines: 1, overflow: TextOverflow.ellipsis);
+    final glyph = lead;
+    final say = spoken;
+    final name = glyph == null
+        ? text
+        : SpokenLabel(
+            semanticLabel: say ?? title ?? '',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(glyph),
+                const SizedBox(width: AppSpacing.sm),
+                Flexible(child: text),
+              ],
+            ),
+          );
     final s = stats;
     if (s == null) return name;
     return twoLines

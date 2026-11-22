@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
-from tutor import carry, history
+from tutor import carry, history, leetcode_bar
 from tutor.curriculum import handlers as cur
 from tutor.relay import commons_url, views
 from tutor.relay.claims import ms
@@ -39,6 +40,7 @@ class Publisher:
         engine: Engine,
         done: DoneMap,
         resolve_url: Callable[[str], str | None] = commons_url.resolve,
+        mono: Callable[[], float] = time.monotonic,
     ) -> None:
         """Bind the database, the engine whose data dir is published, the done-map."""
         self._rtdb, self._engine, self._done = rtdb, engine, done
@@ -50,6 +52,8 @@ class Publisher:
         self._live_known = False
         self._stats: dict[str, Any] | None = None
         self._stats_rev = 0
+        # The LeetCode bar (display only): its maps and when the guard was asked.
+        self._lc = leetcode_bar.Published(mono)
 
     @property
     def sessions_dir(self) -> Path:
@@ -64,7 +68,16 @@ class Publisher:
             done_now=set(eng.store.progress()["cards_done"]),
             archived=set(eng.store.archived()),
         )
-        return views.Sources(view, eng.time(), self._done.dev_of, self._resolve)
+        at = eng.time()
+        return views.Sources(
+            view,
+            at,
+            self._done.dev_of,
+            self._resolve,
+            leetcode=lambda subject, cid: leetcode_bar.session_map(
+                eng.ctx, subject, cid, at
+            ),
+        )
 
     async def session(self, sid: str, *, full: bool = False) -> None:
         """Publish session ``sid`` (``full``: rewrite every message)."""
@@ -78,7 +91,11 @@ class Publisher:
         if doc is None:
             return
         base = f"sessions/{sid}"
-        await self._rtdb.patch(f"{base}/meta", doc.meta)
+        lc_map = doc.meta.get("leetcode")
+        # A null deletes a map an earlier phase published (RTDB keeps no null).
+        await self._rtdb.patch(f"{base}/meta", {"leetcode": None, **doc.meta})
+        self._lc.note(sid, lc_map)
+        self._lc.running_is(sid, running=not doc.meta["stopped"])
         had = self._msgs.get(sid)
         if full or had is None or had > len(doc.msgs):
             await self._rtdb.put(f"{base}/msgs", doc.msgs)
@@ -87,6 +104,34 @@ class Publisher:
         await self._rtdb.put(f"{base}/receipts", doc.receipts or None)
         await self._rtdb.put(f"session_index/{sid}", doc.index)
         self._msgs[sid], self._revs[sid] = len(doc.msgs), doc.rev
+
+    async def _drop_stale_maps(self, live: str) -> None:
+        """Remove the map of every session that is no longer the live, running one."""
+        async with self._lock:
+            for old in self._lc.stale(live if live in self._lc.running else ""):
+                await self._rtdb.put(f"sessions/{old}/meta/leetcode", None)
+                self._lc.note(old, None)
+
+    async def _bar_tick(self, sid: str) -> None:
+        """Ask the guard again for the live session, at most once a minute.
+
+        A credit the guard mints up to a minute after a turn then shows without
+        a new learner turn. Only the map is written, and only when it changed.
+        """
+        eng = self._engine
+        if eng.card is None or sid not in self._lc.running or not self._lc.due():
+            return
+        lc_map = await asyncio.to_thread(
+            leetcode_bar.session_map,
+            eng.ctx,
+            eng.source.subject,
+            eng.card.id,
+            eng.time(),
+        )
+        async with self._lock:
+            if self._lc.changed(sid, lc_map):
+                await self._rtdb.put(f"sessions/{sid}/meta/leetcode", lc_map)
+            self._lc.note(sid, lc_map)
 
     def _live_node(self) -> dict[str, Any] | None:
         eng = self._engine
@@ -134,8 +179,13 @@ class Publisher:
     async def refresh(self) -> None:
         """Catch changes made outside the relay (HTTP turns) to the live session."""
         sid = self._engine.session_id
-        if sid and views.transcript_rev(self.sessions_dir, sid) != self._revs.get(sid):
+        await self._drop_stale_maps(sid)
+        if not sid:
+            pass
+        elif views.transcript_rev(self.sessions_dir, sid) != self._revs.get(sid):
             await self.session(sid)
+        else:
+            await self._bar_tick(sid)
         await self.live()
 
     async def startup(self, *, force: bool = False) -> int:

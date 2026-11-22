@@ -21,7 +21,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 import earned_time
 
@@ -46,6 +46,13 @@ _last_failure = [""]
 type Pairs = frozenset[tuple[str, str]]
 
 
+class Grant(NamedTuple):
+    """A trusted row: the unit the guard teaches and the pairs it lists."""
+
+    unit: str  # "" when the row names none
+    pairs: Pairs
+
+
 def phase_path() -> Path:
     """Where the guard writes the row (``TUTOR_THEORY_PHASE`` overrides)."""
     found = os.environ.get("TUTOR_THEORY_PHASE")
@@ -54,7 +61,7 @@ def phase_path() -> Path:
     return Path.home() / ".local/share/leetcode_guard/theory_phase.json"
 
 
-def _pairs(row: object, key: bytes) -> Pairs | None:
+def _grant(row: object, key: bytes) -> Grant | None:
     """The row's grant; ``None`` when it is not a signed, well-formed C3 row."""
     if not isinstance(row, dict) or row.get("kind") != KIND:
         return None
@@ -72,27 +79,36 @@ def _pairs(row: object, key: bytes) -> Pairs | None:
     pairs = frozenset((p[0], p[1]) for p in raw)
     # Only THEORY grants anything: a SOLVE / none row listing modules is a
     # contradiction, read as malformed ("teach nothing", warned).
-    return pairs if detail["phase"] == "theory" or not pairs else None
+    if detail["phase"] != "theory" and pairs:
+        return None
+    unit = detail.get("unit")
+    return Grant(unit if isinstance(unit, str) else "", pairs)
 
 
 def teachable() -> Pairs:
     """The guard's signed ``teachable`` pairs; empty on any failure (one warning)."""
+    found = current()
+    return found.pairs if found else frozenset()
+
+
+def current() -> Grant | None:
+    """The guard's signed grant; ``None`` on any failure (one warning)."""
     path = phase_path()
     try:
         row = json.loads(path.read_text(encoding="utf-8"))
         key = default_paths().key_file.read_bytes().strip()
         # TypeError: compare_digest refuses a non-ASCII ``hmac`` string.
-        found = _pairs(row, key)
+        found = _grant(row, key)
     except (OSError, ValueError, TypeError) as exc:
         failure = f"theory phase {path} unreadable, nothing teachable: {exc}"
         if _is_new(failure):
             _logger.warning("%s", failure)
-        return frozenset()
+        return None
     if found is None:
         failure = f"theory phase {path} not a signed C3 row, nothing teachable"
         if _is_new(failure):
             _logger.warning("%s", failure)
-        return frozenset()
+        return None
     _last_failure[0] = ""
     return found
 

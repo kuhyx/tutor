@@ -12,6 +12,7 @@ import 'package:tutor/model/session.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/code_glyphs.dart';
+import 'package:tutor/ui/session/leetcode_stats.dart';
 import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
@@ -56,6 +57,7 @@ class SessionHeader extends StatelessWidget {
       sessionCredited: meta.creditedMinutes,
     );
     final t = today;
+    final lc = meta.leetcode;
     final marks = [
       if (clock.pauseKind case final why?
           when !(why == PauseReason.stalled && live && clock.stalledAt(nowMs)))
@@ -90,50 +92,55 @@ class SessionHeader extends StatelessWidget {
         runSpacing: AppSpacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          // The day's totals lead; this card's minutes are secondary.
-          SpokenLabel(
-            semanticLabel: lines.$1,
-            child: Wrap(
-              spacing: AppSpacing.md,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (t?.activeMinutes != null)
+          // A theory lesson shows LeetCode's numbers instead of the tutor's.
+          if (lc != null)
+            LeetcodeStats(meta: lc)
+          else ...[
+            // The day's totals lead; this card's minutes are secondary.
+            SpokenLabel(
+              semanticLabel: lines.$1,
+              child: Wrap(
+                spacing: AppSpacing.md,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (t?.activeMinutes != null)
+                    GlyphStat(
+                      Icons.timer_outlined,
+                      '${t!.activeMinutes}',
+                      size: AppTextSize.subtitle,
+                    ),
+                  if (t != null)
+                    GlyphStat(
+                      Icons.bolt,
+                      '${t.creditedMinutes}/${t.target}',
+                      size: AppTextSize.subtitle,
+                    ),
+                  if (t != null && bankNote(t) != null) ...[
+                    GlyphStat(Icons.savings_outlined, '${t.banked ?? 0}'),
+                    GlyphStat(Icons.event_available, '${t.prepaid ?? 0}'),
+                  ],
+                ],
+              ),
+            ),
+            SpokenLabel(
+              semanticLabel: lines.$2,
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                children: [
                   GlyphStat(
-                    Icons.timer_outlined,
-                    '${t!.activeMinutes}',
-                    size: AppTextSize.subtitle,
+                    Icons.style_outlined,
+                    '${(clock.activeSeconds / 60).floor()}',
+                    color: scheme.onSurfaceVariant,
                   ),
-                if (t != null)
                   GlyphStat(
                     Icons.bolt,
-                    '${t.creditedMinutes}/${t.target}',
-                    size: AppTextSize.subtitle,
+                    '${meta.creditedMinutes}',
+                    color: scheme.onSurfaceVariant,
                   ),
-                if (t != null && bankNote(t) != null) ...[
-                  GlyphStat(Icons.savings_outlined, '${t.banked ?? 0}'),
-                  GlyphStat(Icons.event_available, '${t.prepaid ?? 0}'),
                 ],
-              ],
+              ),
             ),
-          ),
-          SpokenLabel(
-            semanticLabel: lines.$2,
-            child: Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                GlyphStat(
-                  Icons.style_outlined,
-                  '${(clock.activeSeconds / 60).floor()}',
-                  color: scheme.onSurfaceVariant,
-                ),
-                GlyphStat(
-                  Icons.bolt,
-                  '${meta.creditedMinutes}',
-                  color: scheme.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
+          ],
           ...marks,
         ],
       ),

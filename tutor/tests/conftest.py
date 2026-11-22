@@ -16,12 +16,15 @@ import httpx
 import pytest
 
 from tutor import images, model_fault
+from tutor.tests import _guard_theory
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
     from pathlib import Path
 
     from code_runner import CaseResult, Example
+
+    from tutor.tests._guard_theory import GuardFake
 
 KEY = b"tutor-test-key-not-the-real-one"
 
@@ -130,6 +133,20 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[P
     yield tmp_path
     monkeypatch.undo()
     time.tzset()
+
+
+@pytest.fixture(autouse=True)
+def guard_theory(tutor_sandbox: Path, monkeypatch: pytest.MonkeyPatch) -> GuardFake:
+    """The guard's ``/api/theory`` is a fake: no test reaches ``127.0.0.1:8771``.
+
+    ``TUTOR_GUARD_THEORY_URL`` names the fake and ``urlopen`` answers only it
+    (the live URL is an ``AssertionError``); each test starts with a fresh
+    fake and a reader that has not warned yet.
+    """
+    from tutor import guard_route
+
+    guard_route.forget_state()
+    return _guard_theory.install(monkeypatch)
 
 
 @pytest.fixture

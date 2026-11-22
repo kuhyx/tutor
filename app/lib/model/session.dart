@@ -3,6 +3,7 @@ library;
 
 import 'package:tutor/model/codes.dart';
 import 'package:tutor/model/json.dart';
+import 'package:tutor/model/leetcode.dart';
 import 'package:tutor/model/request.dart';
 
 /// The card a session teaches.
@@ -125,6 +126,7 @@ class SessionMeta {
     this.checkOpen = false,
     this.creditedMinutes = 0,
     this.busy,
+    this.leetcode,
   });
 
   /// Parses `meta`.
@@ -140,6 +142,10 @@ class SessionMeta {
     clock: EngagementClock.fromJson(asJson(j['clock'], 'clock')),
     creditedMinutes: intOr(j, 'credited_minutes') ?? 0,
     busy: objOr(j, 'busy') == null ? null : Busy.fromJson(objOr(j, 'busy')!),
+    // Only a running session carries the bar: a stopped one is history.
+    leetcode: j['leetcode'] == null || flag(j, 'stopped')
+        ? null
+        : LeetcodeMeta.fromJson(j['leetcode']),
   );
 
   /// Subject id.
@@ -175,6 +181,9 @@ class SessionMeta {
   /// Request in flight.
   final Busy? busy;
 
+  /// The LeetCode accounting of a theory lesson; null = an ordinary one.
+  final LeetcodeMeta? leetcode;
+
   /// Wire form.
   Json toJson() => compact({
     'subject': subject,
@@ -188,6 +197,7 @@ class SessionMeta {
     'clock': clock.toJson(),
     'credited_minutes': creditedMinutes,
     'busy': busy?.toJson(),
+    'leetcode': leetcode?.toJson(),
   });
 }
 

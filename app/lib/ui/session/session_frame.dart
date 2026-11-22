@@ -5,6 +5,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/stats.dart';
+import 'package:tutor/session/leetcode_label.dart';
+import 'package:tutor/ui/session/leetcode_stats.dart';
 import 'package:tutor/ui/session/session_actions.dart';
 import 'package:tutor/ui/session/session_bar.dart';
 import 'package:tutor/ui/session/session_chrome.dart';
@@ -84,7 +86,16 @@ class SessionFrame extends StatelessWidget {
     appBar: keyboard
         ? null
         : sessionAppBar(
-            title: title,
+            // A theory lesson is titled by its unit, under a pencil.
+            title: meta?.leetcode?.unit ?? title,
+            lead: meta?.leetcode == null ? null : kUnitIcon,
+            spoken: meta?.leetcode == null
+                ? null
+                : leetcodeLines(meta!.leetcode!).unit,
+            // Off the desktop its stats get a line of their own.
+            row: !desk && meta?.leetcode != null
+                ? barStats(meta, today, now)
+                : null,
             twoLines: desk && width < kBarOneLine,
             stats: desk ? barStats(meta, today, now) : null,
             actions: sessionActions(

@@ -3,6 +3,7 @@
 /// copy and the side panel drawer. Glyphs only (the old wording is spoken).
 library;
 
+import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tutor/ui/session/session_bar.dart';
@@ -48,15 +49,38 @@ Future<void> _copy(BuildContext context, String sid) async {
   );
 }
 
-/// The Session AppBar: [title] (the subject, content) with [stats] beside
-/// it, or under it when [twoLines] (a taller bar), then [actions].
+/// The Session AppBar: [title] (the subject, content; a LeetCode unit with
+/// its [lead] pencil) with [stats] beside it, or under it when [twoLines]
+/// (a taller bar), then [actions]. [row] (the phone's LeetCode stats) is a
+/// line under the whole bar: the bar there is too narrow for them beside
+/// the title.
 PreferredSizeWidget sessionAppBar({
   required String? title,
   required bool twoLines,
   required Widget? stats,
   required List<Widget> actions,
+  IconData? lead,
+  String? spoken,
+  Widget? row,
 }) => AppBar(
   toolbarHeight: twoLines && stats != null ? kBarTwoLineHeight : null,
-  title: BarTitle(title: title, twoLines: twoLines, stats: stats),
+  title: BarTitle(
+    title: title,
+    lead: lead,
+    spoken: spoken,
+    twoLines: twoLines,
+    stats: stats,
+  ),
   actions: actions,
+  bottom: row == null
+      ? null
+      : PreferredSize(
+          preferredSize: const Size.fromHeight(kBarRowHeight),
+          child: Container(
+            height: kBarRowHeight,
+            alignment: AlignmentDirectional.centerStart,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: row,
+          ),
+        ),
 );

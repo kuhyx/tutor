@@ -16,6 +16,7 @@
 #        [--learn S/M]              # F22: one untaught card left in module M of S
 #        [--unit-gate fresh|taught] # F28: LC on day one, or prefix-sums taught
 #        [--phase "MODE [S/M ...]"] # the guard's C3 row (default missing)
+#        [--guard-theory JSON]      # canned /api/theory "theory" map (default: down)
 #        [--unarchive S]            # F24: kuhy archived SQL; teach it here
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
@@ -107,7 +108,7 @@ cmd_build() {
 }
 
 cmd_down() {
-    stop_units "$HOLD_UNIT" "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"
+    stop_units "$HOLD_UNIT" "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT" "$GUARD_UNIT"
     if [[ -f "$STATE" ]]; then
         local sandbox
         sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
@@ -125,7 +126,7 @@ cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
     local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
-    local learn="" unarchive="" unit_gate=""
+    local learn="" unarchive="" unit_gate="" guard=""
     local -a pass=() c3=(missing)
     while (($#)); do
         case "$1" in
@@ -137,6 +138,7 @@ cmd_up() {
             --learn) learn="${2:?--learn S/M}"; shift ;;
             --unit-gate) unit_gate="${2:?--unit-gate fresh|taught}"; shift ;;
             --unarchive) unarchive="${2:?--unarchive S}"; shift ;;
+            --guard-theory) guard="${2:?--guard-theory JSON}"; shift ;;
             --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
@@ -172,8 +174,8 @@ cmd_up() {
     db_port="$(free_port)"
     port="$(free_port)"
     db="http://127.0.0.1:$db_port"
-    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\n' \
-        "$sandbox" "$db" "$port" "$dev" "$clock" "$model" > "$STATE"
+    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\nGUARD=%s\n' \
+        "$sandbox" "$db" "$port" "$dev" "$clock" "$model" "$guard" > "$STATE"
     systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
         java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
     wait_http "$db/.json" 40 || die "emulator did not start"
@@ -236,7 +238,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28 [PHASE] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28 [PHASE] | down" ;;
     esac
 }
 

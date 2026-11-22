@@ -28,7 +28,7 @@ def _exe(path: Path, body: str) -> None:
     path.chmod(0o755)
 
 
-def _server_argv(tmp_path: Path) -> list[str]:
+def _server_argv(tmp_path: Path, guard: str = "") -> list[str]:
     """Run ``start_server`` against fakes; return the systemd-run argv lines."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -38,7 +38,7 @@ def _server_argv(tmp_path: Path) -> list[str]:
     sandbox = tmp_path / "sandbox"
     state = tmp_path / "state.env"
     state.write_text(
-        f"SANDBOX={sandbox}\nDB=http://127.0.0.1:1\nPORT=2\nDEV=d\nCLOCK=\nMODEL=\n",
+        f"SANDBOX={sandbox}\nDB=http://127.0.0.1:1\nPORT=2\nDEV=d\nCLOCK=\nMODEL=\nGUARD={guard}\n",
         encoding="utf-8",
     )
     log = tmp_path / "argv.log"
@@ -60,3 +60,26 @@ def test_server_state_dir_is_inside_the_sandbox(tmp_path: Path) -> None:
     argv = _server_argv(tmp_path)
     states = [a for a in argv if a.startswith("XDG_STATE_HOME=")]
     assert states == [f"XDG_STATE_HOME={tmp_path / 'sandbox' / 'state'}"]
+
+
+GUARD_ENV = "TUTOR_GUARD_THEORY_URL="
+
+
+def test_the_server_never_reads_the_live_guard_by_default(tmp_path: Path) -> None:
+    """No ``--guard-theory``: the bar's route is a closed port, not :8771."""
+    argv = _server_argv(tmp_path)
+    assert [a for a in argv if a.startswith(GUARD_ENV)] == [
+        f"{GUARD_ENV}http://127.0.0.1:9/api/theory"
+    ]
+    assert not any("e2e_guard_stub" in a for a in argv)
+
+
+def test_a_canned_guard_answer_is_served_on_a_sandbox_port(tmp_path: Path) -> None:
+    """``GUARD=<json>`` starts the stub and points the server's env at its port."""
+    body = '{"checked": true, "unit": "a"}'
+    argv = _server_argv(tmp_path, body)
+    assert "--body" in argv
+    assert argv[argv.index("--body") + 1] == body
+    port = argv[argv.index("--port") + 1]
+    assert port != "8771"
+    assert f"{GUARD_ENV}http://127.0.0.1:{port}/api/theory" in argv

@@ -57,6 +57,10 @@ $S down
   grants none, `bad S/M` carries a wrong `hmac`, and `missing` (the default)
   writes no file. `$S phase MODE [S/M ...]` rewrites the row of a running
   sandbox.
+- `up --guard-theory '<json>'` serves a canned `GET /api/theory` `theory` map
+  (`DOCS-contract-leetcode-bar.md`) on a sandbox port for the LeetCode bar; a
+  missing `day` is today's. Without it the sandbox server's route is a closed
+  port (numbers `?`); it never reads the live guard.
 - `up --learn S/M` teaches every card of module M but one, so the flow's one
   card finishes the module.
 - `up --unarchive S` unarchives subject S in the copy. kuhy keeps SQL
