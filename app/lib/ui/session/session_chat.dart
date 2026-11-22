@@ -42,8 +42,9 @@ class SessionChat extends StatefulWidget {
     super.key,
   });
 
-  /// Wide desktop window: the stats are in the top bar (no row here), and
-  /// the answer panel follows the latest turn in the chat's own scroll.
+  /// Wide desktop window: the stats are in the top bar (no row here), the
+  /// latest turn starts under the bar, and the answer panel is pinned at
+  /// the bottom, whole (kuhy, 2026-11-22: the input never moves).
   final bool desk;
 
   /// Reopens the module gate's review (its glyph).
@@ -184,8 +185,6 @@ class _SessionChatState extends State<SessionChat> {
           StartButton(onStart: widget.onStart),
       ],
     );
-    // Wide desktop: the panel scrolls with the turns, nothing is pinned.
-    final inline = widget.desk && !empty && !typing;
     return LayoutBuilder(
       builder: (context, box) => Column(
         children: [
@@ -217,29 +216,28 @@ class _SessionChatState extends State<SessionChat> {
                       keyboard: widget.keyboard,
                       pages: _pages,
                       scroll: widget.scroll,
-                      // Its own selection (boxes, chips) stays its own.
-                      panel: inline
-                          ? SelectionContainer.disabled(child: panel)
-                          : null,
+                      desk: widget.desk,
                     ),
                   ),
           ),
-          if (!inline) ...[
-            const Divider(height: 1),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
-              child: sessionPanel(
-                phone: widget.phone,
-                dense: widget.keyboard,
-                panel,
-              ),
+          const Divider(height: 1),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
+            child: sessionPanel(
+              phone: widget.phone,
+              dense: widget.keyboard,
+              panel,
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
   // The height share the composer may take (the chat stays the scroller).
-  double get _share => widget.keyboard ? 0.7 : (widget.phone ? 0.5 : 0.4);
+  // The wide desktop's panel holds Q1-Q3 whole (no scroll inside it); the
+  // reply above it scrolls instead.
+  double get _share => widget.keyboard
+      ? 0.7
+      : (widget.phone ? 0.5 : (widget.desk ? 0.8 : 0.4));
 }

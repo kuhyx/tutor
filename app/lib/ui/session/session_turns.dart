@@ -1,9 +1,9 @@
 /// The session's turns: on a phone ([isCompact]) a page at a time, the
 /// newest shown from its top (build-mobile-app R7); on the desktop a
 /// reversed list (offset 0 = newest: late pictures above never push the
-/// bottom away); on a wide desktop window ([ChatTurns.panel]) one scroll
-/// whose offset 0 is the latest turn's top, right under the bar, with the
-/// answer panel after it and older turns growing upward above it.
+/// bottom away); on a wide desktop window ([ChatTurns.desk]) one scroll
+/// whose offset 0 is the latest turn's top, right under the bar, with
+/// older turns growing upward above it (the answer panel is pinned below).
 library;
 
 import 'package:design_system/design_system.dart';
@@ -31,13 +31,12 @@ class ChatTurns extends StatelessWidget {
     required this.keyboard,
     required this.pages,
     required this.scroll,
-    this.panel,
+    this.desk = false,
     super.key,
   });
 
-  /// Wide desktop: the status, Card done and composer, right after the
-  /// latest turn in the same scroll (null: the panel is pinned below).
-  final Widget? panel;
+  /// Wide desktop: offset 0 is the latest turn's top (not the bottom).
+  final bool desk;
 
   /// The turns so far.
   final List<KeyedMessage> messages;
@@ -83,7 +82,7 @@ class ChatTurns extends StatelessWidget {
         children: turns,
       );
     }
-    if (panel case final p?) return _desk(turns, p);
+    if (desk) return _desk(turns);
     return ListView(
       controller: scroll,
       reverse: true,
@@ -95,11 +94,9 @@ class ChatTurns extends StatelessWidget {
   // The latest message and what follows it (pending text, live trace) form
   // the center: offset 0 is its top. Older turns, newest first, sit in the
   // sliver before it, which grows upward, so a late picture there never
-  // moves the reply. The center is one box (not a lazy list): the composer
-  // keeps its text and focus while scrolled away. A three-screen cache
-  // keeps it in the semantics tree too: Flutter web's accessibility mode
-  // types into that node, and a culled node came back empty.
-  Widget _desk(List<Widget> turns, Widget panel) {
+  // moves the reply. A three-screen cache keeps long turns' pictures laid
+  // out while scrolled away.
+  Widget _desk(List<Widget> turns) {
     final older = messages.isEmpty ? 0 : messages.length - 1;
     const pad = EdgeInsets.symmetric(horizontal: AppSpacing.md);
     return CustomScrollView(
@@ -122,7 +119,7 @@ class ChatTurns extends StatelessWidget {
           sliver: SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [...turns.skip(older), panel],
+              children: [...turns.skip(older)],
             ),
           ),
         ),

@@ -61,6 +61,9 @@ void main() {
     expect(bySpoken('Researching...'), findsOneWidget);
     expect(find.text('four stroke'), findsOneWidget);
     expect(find.text('Plan the next ask.'), findsNothing);
+    // The chat above the pinned answer panel is short: scroll to the trace.
+    await t.ensureVisible(bySpoken('Thinking · 1 research step'));
+    await t.pump();
     await t.tap(bySpoken('Thinking · 1 research step'));
     await t.pump();
     expect(find.text('Plan the next ask.'), findsOneWidget);

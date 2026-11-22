@@ -1,7 +1,8 @@
 // The wide desktop chat (kuhy, 2026-11-22): the latest tutor reply starts
-// right under the top bar, its questions and Send follow in the same
-// scroll (nothing pinned), older turns sit one wheel-scroll up, and a new
-// turn lands with its top under the bar again.
+// right under the top bar, older turns sit one wheel-scroll up, and a new
+// turn lands with its top under the bar again. The answer panel (Q1-Q3,
+// their boxes, Send) is pinned at the bottom in one constant place and
+// fits whole: it never scrolls (b3140572-1).
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +28,7 @@ Future<void> _wheel(WidgetTester t, Offset at, double dy) async {
 void main() {
   tearDown(() => debugPhone = false);
 
-  testWidgets('the reply under the bar, Q1-Q3 and Send below, one scroll', (
+  testWidgets('the reply under the bar, Q1-Q3 and Send pinned below', (
     t,
   ) async {
     await openComposer(t, phone: false, size: _screen);
@@ -35,13 +36,39 @@ void main() {
     final reply = rich('Good. Now three quick ones');
     expect(t.getRect(reply).top - bar.bottom, lessThan(48), reason: 'no gap');
     final send = controlByLabel('Send');
+    expect(t.getRect(send).bottom, greaterThan(_screen.height - 48));
     expect(t.getRect(send).bottom, lessThanOrEqualTo(_screen.height));
     expect(
-      t.getRect(find.byType(TextField).at(2)).bottom,
-      lessThanOrEqualTo(_screen.height),
+      t.getRect(find.byType(TextField).at(0)).top,
+      greaterThan(bar.bottom),
     );
-    // Nothing pinned: the boxes scroll with the reply.
-    expect(t.widget(_scrollOf(send)), same(t.widget(_scrollOf(reply))));
+    // Pinned: the boxes are not in the chat's scroll ...
+    expect(t.widget(_scrollOf(send)), isNot(same(t.widget(_scrollOf(reply)))));
+    // ... and the panel fits whole: nothing in it scrolls.
+    final panel = t.state<ScrollableState>(_scrollOf(send)).position;
+    expect(panel.maxScrollExtent, 0);
+  });
+
+  testWidgets('Send stays put while the chat scrolls and turns arrive', (
+    t,
+  ) async {
+    final (db, stream) = await openComposer(t, phone: false, size: _screen);
+    final send = controlByLabel('Send');
+    final at = t.getRect(send);
+    await _wheel(t, const Offset(100, 300), -600);
+    expect(t.getRect(send), at);
+    db.root = setAt(db.root, '$composeBase/msgs/m0099', {
+      'role': 'tutor',
+      'text': 'A brand new reply.',
+      'questions': ['One more?'],
+      'at': 1,
+    });
+    stream.emit(
+      '$composeBase/msgs',
+      RtdbPut('/', getAt(db.root, '$composeBase/msgs')),
+    );
+    await t.pumpAndSettle();
+    expect(t.getRect(send), at);
   });
 
   testWidgets('wheel up over the margin shows older turns', (t) async {
@@ -50,10 +77,15 @@ void main() {
     final reply = rich('Good. Now three quick ones');
     final before = t.getRect(reply).top;
     // The margin left of the 960 px column.
-    await _wheel(t, const Offset(100, 500), -600);
-    expect(t.getRect(reply).top, greaterThan(before + 300));
-    expect(older.hitTestable(), findsWidgets);
-    await _wheel(t, const Offset(100, 500), 2000);
+    // The chat above the pinned panel is about 490 px tall.
+    await _wheel(t, const Offset(100, 300), -300);
+    expect(t.getRect(reply).top, greaterThan(before + 250));
+    // At the top of the scroll the older turn shows under the bar.
+    await _wheel(t, const Offset(100, 300), -5000);
+    final bar = t.getRect(find.byType(AppBar)).bottom;
+    expect(t.getRect(older.last).top, greaterThanOrEqualTo(bar));
+    expect(t.getRect(older.last).top, lessThan(bar + 480));
+    await _wheel(t, const Offset(100, 300), 9000);
     expect(t.getRect(reply).top, closeTo(before, 1));
   });
 
@@ -63,8 +95,8 @@ void main() {
     await t.tap(q2);
     await t.enterText(q2, 'two per turn');
     await t.pump();
-    await _wheel(t, const Offset(100, 500), -5000);
-    await _wheel(t, const Offset(100, 500), 5000);
+    await _wheel(t, const Offset(100, 300), -5000);
+    await _wheel(t, const Offset(100, 300), 5000);
     final box = t.widget<TextField>(find.byType(TextField).at(1));
     expect(box.controller!.text, 'two per turn');
     expect(box.focusNode?.hasFocus ?? true, isTrue);
@@ -89,15 +121,15 @@ void main() {
     await t.enterText(q2, 'two per turn');
     await t.pump();
     expect(find.semantics.byValue('two per turn'), findsOne);
-    await _wheel(t, const Offset(100, 500), -1500);
-    expect(t.getRect(q2).top, greaterThan(_screen.height), reason: 'gone');
+    await _wheel(t, const Offset(100, 300), -1500);
+    expect(t.getRect(q2).bottom, lessThan(_screen.height), reason: 'pinned');
     expect(find.semantics.byValue('two per turn'), findsOne);
     handle.dispose();
   });
 
   testWidgets('a new turn lands with its top under the bar', (t) async {
     final (db, stream) = await openComposer(t, phone: false, size: _screen);
-    await _wheel(t, const Offset(100, 500), -600);
+    await _wheel(t, const Offset(100, 300), -600);
     db.root = setAt(db.root, '$composeBase/msgs/m0099', {
       'role': 'tutor',
       'text': 'A brand new reply.',

@@ -28,9 +28,14 @@ void main() {
     final area = t.widget(_area(message));
     // An older message's question, further up the chat: the same area.
     final question = find.text('What moves inside the cylinder?');
+    // The chat's scroll, found once: the reply leaves the short chat
+    // viewport (the panel is pinned below) while it scrolls.
+    final chat = t.widget(
+      find.ancestor(of: message, matching: find.byType(Scrollable)).first,
+    );
     await t.dragUntilVisible(
       question,
-      find.ancestor(of: message, matching: find.byType(Scrollable)).first,
+      find.byWidget(chat),
       const Offset(0, 300),
     );
     expect(t.widget(_area(question)), same(area));
