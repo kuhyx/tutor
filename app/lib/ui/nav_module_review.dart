@@ -8,9 +8,10 @@ import 'package:tutor/review/review_items.dart';
 import 'package:tutor/ui/nav.dart';
 
 /// Opens the review of [module] of [subject] (the lock's `/review/...`): the
-/// module's taught cards not yet passed ([moduleItems]). With none (nothing
-/// taught, all passed, no cards) or a module the plan lacks, [subject]'s
-/// plan instead. An unknown subject stays where it is, as [openLearn].
+/// module's cards in the due queue now ([moduleDueItems]), the set
+/// `review_due.json` counts. With none (nothing due, no cards) or a module
+/// the plan lacks, [subject]'s plan instead. An unknown subject stays where
+/// it is, as [openLearn].
 Future<void> openModuleReview(
   BuildContext context,
   TutorServices s,
@@ -23,11 +24,16 @@ Future<void> openModuleReview(
   final ref = plan == null ? null : ModuleRef.of(subject, plan);
   final items = ref == null
       ? const <ReviewItem>[]
-      : await moduleItems(catalog: s.catalog, events: s.events, module: ref);
+      : await moduleDueItems(
+          catalog: s.catalog,
+          events: s.events,
+          module: ref,
+          now: DateTime.now().toUtc(),
+        );
   if (!context.mounted) return;
   if (ref == null || items.isEmpty) {
     await openPlan(context, s, subject);
   } else {
-    await openReview(context, s, module: ref);
+    await openReview(context, s, module: ref, dueOnly: true);
   }
 }

@@ -127,3 +127,72 @@ def test_a_route_must_be_a_rooted_path(tmp_path: Path, bad: str) -> None:
         check=False,
     )
     assert done.returncode != 0
+
+
+def _heal(tmp_path: Path, *args: str, body: str = "exit 0", **extra: str) -> list[str]:
+    """Run run.sh with a ``TUTOR_PYTHON`` stub; its calls as ``cwd: argv`` lines."""
+    release = tmp_path / ".local" / "lib" / "tutor-live" / "current"
+    release.mkdir(parents=True)
+    calls = tmp_path / "python.log"
+    py = tmp_path / "python"
+    _stub(py, f'echo "$(pwd): $@" >> "{calls}"\n{body}')
+    _run(tmp_path, *args, TUTOR_PYTHON=str(py), **extra)
+    deadline = time.monotonic() + 5  # setsid -f detaches the republish
+    while not calls.exists() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    return _text(calls).splitlines()
+
+
+def test_a_review_route_republishes_that_subjects_due_rows(tmp_path: Path) -> None:
+    """The live release's interpreter runs ``review-due`` for the route's subject."""
+    release = tmp_path / ".local" / "lib" / "tutor-live" / "current"
+    assert _heal(tmp_path, "--route", "/review/s/m") == [
+        f"{release}: -m tutor review-due s"
+    ]
+
+
+@pytest.mark.parametrize("route", ["/learn/s/m", "/review", "/review/s", "/focus"])
+def test_other_routes_republish_nothing(tmp_path: Path, route: str) -> None:
+    assert _heal(tmp_path, "--route", route) == []
+
+
+def test_a_sandbox_port_republishes_nothing(tmp_path: Path) -> None:
+    """A sandbox server never touches the live data dir."""
+    got = _heal(tmp_path, "--route", "/review/s/m", TUTOR_DESKTOP_PORT="20123")
+    assert got == []
+
+
+def test_a_slow_republish_never_delays_the_window(tmp_path: Path) -> None:
+    started = time.monotonic()
+    _heal(tmp_path, "--route", "/review/s/m", body="sleep 3")
+    assert time.monotonic() - started < 2.5
+
+
+def test_a_failed_republish_is_logged_and_the_window_still_opens(
+    tmp_path: Path,
+) -> None:
+    got = _heal(
+        tmp_path,
+        "--route",
+        "/review/s/m",
+        body='echo "not recorded: disk full" >&2\nexit 1',
+    )
+    assert got
+    log = tmp_path / ".local" / "state" / "tutor" / "server.log"
+    deadline = time.monotonic() + 5
+    while "disk full" not in _text(log) and time.monotonic() < deadline:
+        time.sleep(0.02)
+    assert "disk full" in _text(log)
+    assert "--app=" in _text(tmp_path / "browser.log")
+
+
+def test_the_default_interpreter_is_the_one_the_service_runs() -> None:
+    """The frozen release has no .venv: run.sh must name tutor.service's python."""
+    unit = (RUN.parent / "systemd" / "tutor.service").read_text(encoding="utf-8")
+    exec_start = next(
+        line.split("=", 1)[1]
+        for line in unit.splitlines()
+        if line.startswith("ExecStart=")
+    )
+    service_python = exec_start.split()[0].replace("%h", "$HOME")
+    assert f"${{TUTOR_PYTHON:-{service_python}}}" in RUN.read_text(encoding="utf-8")

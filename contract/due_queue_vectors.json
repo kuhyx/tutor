@@ -1,0 +1,327 @@
+[
+ {
+  "name": "due is inclusive: due == now counts, one ms earlier does not",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000001",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800172799999,
+    "due": []
+   },
+   {
+    "now": 1800172800000,
+    "due": [
+     "x"
+    ]
+   },
+   {
+    "now": 1800777600000,
+    "due": [
+     "x"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "a card passed with Good earlier is due again at its new due",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000002",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   },
+   {
+    "dev": "p",
+    "eid": "00000000000000000000000003",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1800086400000,
+    "r": 3,
+    "rev": 1
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800172800000,
+    "due": []
+   },
+   {
+    "now": 1800691199999,
+    "due": []
+   },
+   {
+    "now": 1800691200000,
+    "due": [
+     "x"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "a flag counts only at the card's current rev",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": false
+   },
+   "y": {
+    "rev": 2,
+    "suspended": false
+   },
+   "z": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000004",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   },
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000005",
+    "k": "taught",
+    "s": "car",
+    "c": "y",
+    "at": 1800000000000
+   },
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000006",
+    "k": "taught",
+    "s": "car",
+    "c": "z",
+    "at": 1800000000000
+   },
+   {
+    "dev": "p",
+    "eid": "00000000000000000000000007",
+    "k": "flag",
+    "s": "car",
+    "c": "x",
+    "at": 1800086400000,
+    "rev": 1,
+    "reason": "r"
+   },
+   {
+    "dev": "p",
+    "eid": "00000000000000000000000008",
+    "k": "flag",
+    "s": "car",
+    "c": "y",
+    "at": 1800086400000,
+    "rev": 1,
+    "reason": "r"
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800259200000,
+    "due": [
+     "y",
+     "z"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "a suspended card is never due",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": true
+   },
+   "y": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000009",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   },
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000010",
+    "k": "taught",
+    "s": "car",
+    "c": "y",
+    "at": 1800000000000
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800259200000,
+    "due": [
+     "y"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "untaught and never taught cards are not due",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": false
+   },
+   "y": {
+    "rev": 1,
+    "suspended": false
+   },
+   "z": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000011",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   },
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000012",
+    "k": "untaught",
+    "s": "car",
+    "c": "x",
+    "at": 1800086400000
+   },
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000013",
+    "k": "taught",
+    "s": "car",
+    "c": "z",
+    "at": 1800000000000
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800259200000,
+    "due": [
+     "z"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "an undone review changes nothing: the card keeps its earlier due",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000014",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   },
+   {
+    "dev": "p",
+    "eid": "00000000000000000000000015",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1800086400000,
+    "r": 3,
+    "rev": 1
+   },
+   {
+    "dev": "p",
+    "eid": "00000000000000000000000016",
+    "k": "review_undo",
+    "s": "car",
+    "c": "x",
+    "at": 1800086401000,
+    "of": "00000000000000000000000015"
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800172800000,
+    "due": [
+     "x"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "a card the catalog lacks is not due",
+  "cards": {
+   "x": {
+    "rev": 1,
+    "suspended": false
+   }
+  },
+  "events": [
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000017",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1800000000000
+   },
+   {
+    "dev": "a",
+    "eid": "00000000000000000000000018",
+    "k": "taught",
+    "s": "car",
+    "c": "gone",
+    "at": 1800000000000
+   }
+  ],
+  "checks": [
+   {
+    "now": 1800259200000,
+    "due": [
+     "x"
+    ]
+   }
+  ]
+ }
+]

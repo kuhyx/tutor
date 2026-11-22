@@ -131,24 +131,6 @@ void main() {
     });
   }
 
-  testWidgets('a module already passed: the plan as well', (t) async {
-    final s = await _taught(['fuel-spark']);
-    await s.events.record(
-      ReviewEvent(
-        subject: 'car',
-        card: 'fuel-spark',
-        grade: Grade.good,
-        rev: 1,
-        at: fixtureNow,
-      ),
-    );
-    final ctx = await _root(t);
-    unawaited(openRoute(ctx, s, '/review/car/fuel'));
-    await t.pumpAndSettle();
-    expect(find.byType(PlanScreen), findsOneWidget);
-    expect(find.byType(ReviewScreen), findsNothing);
-  });
-
   testWidgets('an unknown subject stays on the page', (t) async {
     final s = await _taught(['fuel-spark']);
     final ctx = await _root(t);

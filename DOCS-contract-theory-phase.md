@@ -132,16 +132,25 @@ another port never hears the live window.
 The guard runs `~/.local/bin/tutor --route /review/<subject>/<module>`. It is
 handed to an open window like `/learn/...` (above), and on a cold start it
 opens from Home like any deep link. The app (`nav.openModuleReview`) opens
-Review on that module, the same screen as "Review this module" on the plan:
-the module's taught cards not yet passed (no Good/Easy since taught), due or
-not, flagged and suspended ones left out, Again/Hard requeued
-(`review_items.moduleItems`). No request goes to the worker and no text is new.
+Review on that module (`review_items.moduleDueItems`): the module's due cards,
+in module order, exactly the cards `review_due.json` counts as due now
+(`DOCS-contract-review-due.md`): taught, not flagged at the current rev, not
+suspended, FSRS `due <= now`. A card passed earlier and due again is in; a
+taught card not yet due is out, passed or not. Again/Hard are requeued, so the
+run ends when each card shown got Good/Easy. (The plan screen's "Review this
+module" is another list, `moduleItems`: taught cards not yet passed, due or
+not.) No request goes to the worker and no text is new.
 
 Fallbacks, none of them a blank or error page:
-- The module has nothing to review (nothing taught, all passed, no cards) or
-  the plan lacks the module: that subject's plan screen.
+- The module has no due card (nothing taught, none due yet, all flagged or
+  suspended, no cards) or the plan lacks the module: that subject's plan
+  screen.
 - An unknown subject stays on Home (as `/learn/...`).
 - `/review` alone, or with one segment, is the old due queue of every subject.
+
+`run.sh` also re-publishes that subject's `review_due.json` rows from the
+current log (detached; `DOCS-contract-review-due.md`), so a stale file cannot
+disagree with what the window shows.
 
 `TUTOR_DESKTOP_PORT` points `run.sh` at a sandbox server instead of
 `tutor.service`'s 8778 (`scripts/e2e_i3_handover.sh`). `run.sh` never starts

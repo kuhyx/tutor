@@ -24,6 +24,9 @@ readonly UNIT="tutor.service"
 readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="$HOME/.local/lib/tutor-live"  # current/ = tutor.service cwd
 readonly LOG="$HOME/.local/state/tutor/server.log"
+# The interpreter tutor.service runs (its ExecStart: the frozen release has no
+# .venv of its own); TUTOR_PYTHON replaces it in tests.
+readonly PYTHON="${TUTOR_PYTHON:-$HOME/src/tutor/.venv/bin/python}"
 # Deep link opened in the app (`--route /focus?start=1`), set by option parsing.
 APP_ROUTE=""
 # Fixed port (above) and fixed profile: the desktop app's sign-in and its
@@ -63,6 +66,19 @@ show_open_window() {
     [[ "$APP_ROUTE" == /learn/* || "$APP_ROUTE" == /review/* \
         || "$APP_ROUTE" == /rework/* ]] || return 0
     timeout 2 i3-msg '[class="^tutor$"] focus' >/dev/null 2>&1 || true
+}
+
+# The lock's /review/<subject>/<module> asks for a review the window shows from
+# the log. A failed write leaves review_due.json reading more due than is true,
+# so re-publish that subject's rows now, from the live release like the service
+# (`python -m tutor review-due`). Detached, so the window never waits; its
+# stderr (and a failing exit's message) go to the server log. Live port only.
+heal_review_due() {
+    [[ "$PORT" == "$LIVE_PORT" \
+        && "$APP_ROUTE" =~ ^/review/([A-Za-z0-9_.-]+)/[A-Za-z0-9_.-]+$ ]] || return 0
+    mkdir -p "$(dirname "$LOG")"
+    setsid -f env -C "$LIVE_ROOT/current" "$PYTHON" -m tutor review-due \
+        "${BASH_REMATCH[1]}" >>"$LOG" 2>&1
 }
 
 open_ui() {
@@ -123,6 +139,7 @@ main() {
     fi
     echo "Tutor: $(app_url)"
     if [[ $OPEN -eq 1 ]]; then
+        heal_review_due
         open_ui
     fi
 }

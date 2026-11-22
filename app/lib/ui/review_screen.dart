@@ -46,6 +46,7 @@ class ReviewScreen extends StatefulWidget {
     this.unavailable,
     this.anki,
     this.module,
+    this.dueOnly = false,
     this.gate,
     this.subject,
     this.subjectTitle,
@@ -69,6 +70,10 @@ class ReviewScreen extends StatefulWidget {
   /// Reviews this module (every taught card, Again/Hard requeued) instead
   /// of the due queue.
   final ModuleRef? module;
+
+  /// With [module]: only its cards in the due queue now ([moduleDueItems]),
+  /// not every card not yet passed.
+  final bool dueOnly;
 
   /// Opens in Drill mode.
   final bool drill;
@@ -111,6 +116,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
             events: s.events,
             now: now().toUtc(),
             subject: widget.subject,
+          )
+        : widget.dueOnly
+        ? await moduleDueItems(
+            catalog: s.catalog,
+            events: s.events,
+            module: module,
+            now: now().toUtc(),
           )
         : await moduleItems(
             catalog: s.catalog,

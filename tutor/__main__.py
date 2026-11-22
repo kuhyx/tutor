@@ -5,6 +5,7 @@
 ``python -m tutor sql-cards``: seed the SQL lesson cards (``sql_cards_cli``).
 ``python -m tutor sql-pack`` / ``mock-prebuild``: drill pack, pre-built mocks.
 ``python -m tutor subject archive|unarchive ID``: hide a subject, or undo it.
+``python -m tutor review-due SUBJECT``: re-publish its ``review_due.json`` rows.
 ``python -m tutor redraft start|status|drain|report``: the Fable backfill.
 ``python -m tutor worker`` runs the RTDB relay alone, ``publish-all`` publishes
 every transcript once (``tutor.relay.cli``).
@@ -20,7 +21,7 @@ from typing import TYPE_CHECKING, Final
 
 import uvicorn
 
-from tutor.curriculum import archive, migrate, regen, sql_cards_cli
+from tutor.curriculum import archive, migrate, regen, review_due_cli, sql_cards_cli
 from tutor.curriculum.redraft import cli as redraft_cli
 from tutor.engine import Engine
 from tutor.relay import cli, mock_prebuild
@@ -40,6 +41,7 @@ TOOLS: Final[dict[str, ModuleType]] = {
     "sql-pack": sql_pack_cli,
     "mock-prebuild": mock_prebuild,
     "subject": archive,
+    "review-due": review_due_cli,
 }
 
 

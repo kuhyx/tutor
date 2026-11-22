@@ -44,6 +44,9 @@ An empty module: `"due_ms": []`.
   (`fsrs_state()["due"]`), exact in ms.
 - **Due at T** is `due <= T` (T in ms). The count of cards due at T is the
   number of `due_ms` entries `<= T`. No clock, fold or FSRS is needed.
+- The app route `/review/<subject>/<module>` (`DOCS-contract-theory-phase.md`
+  C5) shows exactly the cards of the module that count as due at now. Both
+  languages run `contract/due_queue_vectors.json` to keep the rule the same.
 - A module of the plan with no queue card (nothing taught, all flagged or
   suspended, no cards at all) has an explicit row with `[]`. Only a module
   with NO row is "never written".
@@ -86,6 +89,9 @@ All of it for the three subjects only; nothing polls.
   (`review due of <subject> not recorded: ...`) and nothing written. It never
   reaches teaching or reviewing: the event or commit it follows has already
   landed. The file then stays as it was (stale) or missing.
+- **Healing**: `run.sh --route /review/<subject>/<module>` (the lock's button)
+  also runs `python -m tutor review-due <subject>` detached, which rewrites that
+  subject's rows that differ from the log now. Errors go to the server log.
 - **Stale file**: written only on the events above, so a failed write leaves
   old rows. Due times are absolute, so a stale row still counts every card it
   lists correctly; it can only miss what changed after it: a card taught after

@@ -1,8 +1,8 @@
 /// What a review run shows: the due queue (all subjects, or one), a
-/// module's cards not yet passed, and the module gate's cards
-/// (`gate_cards`, curriculum §6), from the folded event log. The module and
-/// gate lists pull the log first, so a card taught on another device a
-/// minute ago is in, and one rated Good since never comes back.
+/// module's cards not yet passed, a module's due cards, and the module
+/// gate's cards (`gate_cards`, curriculum §6), from the folded event log.
+/// The module and gate lists pull the log first, so a card taught on another
+/// device a minute ago is in, and one rated Good since never comes back.
 library;
 
 import 'dart:developer';
@@ -98,6 +98,29 @@ Future<List<ReviewItem>> moduleItems({
           !folded.reviewed.contains('${s.id}/$id') &&
           !folded.flagged.contains('${s.id}/$id'))
         ?_item(subjects, '${s.id}/$id'),
+  ];
+}
+
+/// The cards of [module] that are in the due queue at [now] ([dueItems]'s
+/// rule: taught, `due <= now`, not flagged, not suspended), in module order,
+/// whether or not they were passed before: exactly the cards the signed
+/// `review_due.json` counts as due (`DOCS-contract-review-due.md`).
+Future<List<ReviewItem>> moduleDueItems({
+  required Catalog catalog,
+  required EventLog events,
+  required ModuleRef module,
+  required DateTime now,
+}) async {
+  await _pull(events);
+  final subjects = await catalog.cached();
+  final s = subjects[module.subject];
+  if (s == null) return const [];
+  final infos = cardInfos(subjects.values);
+  final queue = reviewQueue(fold(await events.all(), infos), infos, now);
+  final due = {for (final d in queue) d.key};
+  return [
+    for (final id in s.cardsOf(module.module).map((e) => e.key))
+      if (due.contains('${s.id}/$id')) ?_item(subjects, '${s.id}/$id'),
   ];
 }
 

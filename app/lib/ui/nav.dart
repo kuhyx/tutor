@@ -153,7 +153,8 @@ Future<bool> openGateReview(
 
 /// Opens Review; [drill] starts in Drill mode (pick-an-answer, no model),
 /// with [unavailable] as the "Claude limit" banner; [module] reviews that
-/// module's taught cards instead of the due queue; [subject] (titled
+/// module's taught cards instead of the due queue (with [dueOnly]: only the
+/// module's cards in the due queue); [subject] (titled
 /// [subjectTitle]) keeps the due queue to that subject.
 Future<void> openReview(
   BuildContext context,
@@ -161,6 +162,7 @@ Future<void> openReview(
   bool drill = false,
   Unavailable? unavailable,
   ModuleRef? module,
+  bool dueOnly = false,
   String? subject,
   String? subjectTitle,
   bool replace = false,
@@ -171,6 +173,7 @@ Future<void> openReview(
     drill: drill,
     unavailable: unavailable,
     module: module,
+    dueOnly: dueOnly,
     subject: subject,
     subjectTitle: subjectTitle,
   ),
