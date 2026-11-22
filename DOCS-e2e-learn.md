@@ -1,4 +1,4 @@
-# Agent E2E: the `/learn` flows F22-F27
+# Agent E2E: the `/learn` flows F22-F28
 
 These flows drive the LeetCode lock's learn button from the route to the
 signed rows. The sandbox is described in README "Agent E2E"; the contracts
@@ -32,6 +32,13 @@ $S flow F25 bad
 # F26: a second --app window hands its route to the open one and closes
 $S up --phase "theory $LC/prefix-sums"
 $S flow F26
+# F28: the second unit goes through the module gate first (one `up` each)
+$S up --unit-gate fresh --phase "theory $LC/prefix-sums"
+$S flow F28 send               # then: wait, lesson, idle, reply, wait, paid
+$S up --unit-gate taught --phase "theory $LC/stack-queue"
+$S flow F28 review             # then: wait, check
+$S up --unit-gate taught --phase solve
+$S flow F28 solve
 # F27: under i3 the open window comes to the focused workspace
 $S up --phase "theory $LC/prefix-sums"
 scripts/e2e_i3_handover.sh     # optional argument: where to save the shot

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flows: tap the real web build, assert on the emulator, screenshot.
 
-Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F26> [send|wait|check]``
+Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F26|F28> [PHASE]``
 against a sandbox that is ``up``. Every step is printed before it runs, so on
 failure the last line names it; a failure also saves ``<out>_fail.png``.
 Exit 0 = PASS.
@@ -23,7 +23,8 @@ Exit 0 = PASS.
   (``e2e_learn.py``, seven phases); F23-F25 the phase's refusals
   (``e2e_learn_gate.py``); F26 the window takeover
   (``e2e_takeover.py``). F27, the takeover under i3, has its own runner
-  (``e2e_i3_handover.sh``: a private Xvfb with its own i3).
+  (``e2e_i3_handover.sh``: a private Xvfb with its own i3). F28 the second
+  unit's module gate (``e2e_unit_gate.py``; ``up --unit-gate``).
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -68,6 +69,7 @@ from e2e_start import f1_check, f1_send
 from e2e_struggle import f5_check, f5_send
 from e2e_takeover import LC, AppBrowser, f26
 from e2e_unbacked import f11
+from e2e_unit_gate import F28_PHASES, f28
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -89,7 +91,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     ),
     "F24": (f24_send, f24_check),
 }
-FLOWS = ["F1", *(f"F{n}" for n in range(3, 27))]  # F2 (the cap) is gone
+FLOWS = ["F1", *(f"F{n}" for n in range(3, 27)), "F28"]  # F2, the cap, is gone
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -160,7 +162,10 @@ STATEFUL: dict[str, Callable[[Flow, argparse.Namespace], int]] = {
     "F6": carry,
     "F21": gate,
     "F22": lambda flow, args: f22(flow, args.phase, Path(args.state)),
+    "F28": lambda flow, args: f28(flow, args.phase, Path(args.state)),
 }
+# The phases that end a stateful flow with PASS (the others print OK).
+TERMINAL = {"F22": {"check"}, "F28": {"paid", "check", "solve"}}
 
 
 def drive(args: argparse.Namespace, browser: Browser | None) -> int:
@@ -182,8 +187,8 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
                 print(f"  page {problem[:500]}", flush=True)
             flow.shot("fail")
         return 1
-    terminal = {"check"} if args.flow == "F22" else {"check", "all", "again"}
-    if args.phase in terminal or args.flow not in {*PHASED, "F22"}:
+    terminal = TERMINAL.get(args.flow, {"check", "all", "again"})
+    if args.phase in terminal or args.flow not in {*PHASED, *TERMINAL}:
         print(f"PASS {args.flow}", flush=True)
     else:
         print(f"OK {args.flow} {args.phase}", flush=True)
@@ -210,6 +215,7 @@ def main() -> int:
             *F16_PHASES,
             *F22_PHASES,
             *F25_PHASES,
+            *F28_PHASES,
         ],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")

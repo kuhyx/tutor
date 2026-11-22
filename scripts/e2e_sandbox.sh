@@ -14,13 +14,14 @@
 #        [--nocard due|review]      # F12: no card left (reviews due / module review)
 #        [--gate]                   # F21: the next module waits on 2 unpassed cards
 #        [--learn S/M]              # F22: one untaught card left in module M of S
+#        [--unit-gate fresh|taught] # F28: LC on day one, or prefix-sums taught
 #        [--phase "MODE [S/M ...]"] # the guard's C3 row (default missing)
 #        [--unarchive S]            # F24: kuhy archived SQL; teach it here
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1|F3..F26 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28 [PHASE]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -105,15 +106,6 @@ cmd_build() {
     printf '%s\n' "$want" > "$stamp"
 }
 
-# Stop units one by one: a single `systemctl stop a b` enqueues nothing when
-# one of them is not loaded, so `restart` used to leave the old server up.
-stop_units() {
-    local unit
-    for unit in "$@"; do
-        systemctl --user stop "$unit" 2>/dev/null || true
-    done
-}
-
 cmd_down() {
     stop_units "$HOLD_UNIT" "$SERVER_UNIT" "$DB_UNIT" "$MODEL_UNIT"
     if [[ -f "$STATE" ]]; then
@@ -125,7 +117,7 @@ cmd_down() {
         }
         rm -f "$STATE"
     fi
-    rm -f "$(dirname "$STATE")"/f[1-7].json  # a phased flow's send state
+    rm -f "$(dirname "$STATE")"/f[0-9]*.json  # a phased flow's send state
     echo "e2e sandbox down"
 }
 
@@ -133,7 +125,7 @@ cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
     local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
-    local learn="" unarchive=""
+    local learn="" unarchive="" unit_gate=""
     local -a pass=() c3=(missing)
     while (($#)); do
         case "$1" in
@@ -143,6 +135,7 @@ cmd_up() {
             --nocard) nocard="${2:?--nocard due|review}"; shift ;;
             --model-down) model="${2:?--model-down network|refuse}"; shift ;;
             --learn) learn="${2:?--learn S/M}"; shift ;;
+            --unit-gate) unit_gate="${2:?--unit-gate fresh|taught}"; shift ;;
             --unarchive) unarchive="${2:?--unarchive S}"; shift ;;
             --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
@@ -168,6 +161,7 @@ cmd_up() {
         TUTOR_KEY="$sandbox/test.key" "$PY" "$ROOT/scripts/e2e_phase.py" seed "$sandbox/data" \
             --subject "${learn%%/*}" --module "${learn#*/}"
     fi
+    [[ -z "$unit_gate" ]] || "$PY" "$ROOT/scripts/e2e_unit_gate.py" seed "$sandbox/data" "$unit_gate"
     [[ -z "$unarchive" ]] || "$PY" -m tutor subject unarchive "$unarchive" --data "$sandbox/data"
     write_phase "$sandbox" "${c3[@]}"
     if [[ -n "$carry" ]]; then  # the day before the worker's today
@@ -242,7 +236,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28 [PHASE] | down" ;;
     esac
 }
 

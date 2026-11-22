@@ -109,3 +109,12 @@ start_server() {
         sleep 0.5
     done
 }
+
+# Stop units one by one: a single `systemctl stop a b` enqueues nothing when
+# one of them is not loaded, so `restart` used to leave the old server up.
+stop_units() {
+    local unit
+    for unit in "$@"; do
+        systemctl --user stop "$unit" 2>/dev/null || true
+    done
+}

@@ -172,10 +172,15 @@ def f21_send(flow: Flow) -> State:
     if sorted(result.get("gate_cards") or []) != sorted(seed_["unpassed"]):
         msg = f"want gate_cards {seed_['unpassed']}, got {json.dumps(result)[:300]}"
         raise FlowError(msg)
-    text = _shown(flow, f"Review: {seed_['module_title']}", f"{UNPASSED} left")
-    if hits := [
-        b for b in (*BLOCKED_CTAS, f"Review {seed_['module_title']}") if b in text
-    ]:
+    pass_review(flow, seed_["module_title"])
+    rid = flow.request("session_start", after, timeout=30)
+    return {"rid": rid, **seed_}
+
+
+def pass_review(flow: Flow, title: str) -> None:
+    """The gate's review of ``title`` is shown (no old panel): Good x UNPASSED."""
+    text = _shown(flow, f"Review: {title}", f"{UNPASSED} left")
+    if hits := [b for b in (*BLOCKED_CTAS, f"Review {title}") if b in text]:
         msg = f"the old panel shows: {hits}"
         raise FlowError(msg)
     flow.shot("review")
@@ -184,8 +189,6 @@ def f21_send(flow: Flow) -> State:
         time.sleep(1.5)
         flow.tap(REVEAL)
         flow.tap("3 Good")
-    rid = flow.request("session_start", after, timeout=30)
-    return {"rid": rid, **seed_}
 
 
 def f21_check(flow: Flow, state: State) -> None:
