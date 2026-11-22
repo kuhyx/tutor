@@ -119,11 +119,14 @@ scripts/e2e_sandbox.sh flow F12  # with E2E_SUBJECT=how-a-car-works): result `ki
 scripts/e2e_sandbox.sh flow F9   # fresh `up` each: check-in card at 421 s, rated -> tutor/heartbeat
 scripts/e2e_sandbox.sh flow F10  # card rated at 650 s (lapsed) -> start, start; still graded
 scripts/e2e_sandbox.sh flow F19  # fresh `up`: archive a subject on Home, then undo it
-scripts/e2e_sandbox.sh up --gate   # F21 (no --as-of: a model turn): 2 unpassed cards hold N
+scripts/e2e_sandbox.sh up --gate   # F21 (no --as-of: a model turn): 2 unpassed cards hold N;
+                                     # today's data: E2E_SUBJECT=product-and-design-taste
 scripts/e2e_sandbox.sh flow F21 send  # Continue -> review opens, "2 left" -> Good x2 -> Next
                                         # goes out by itself (then wait, check): N's card live
 scripts/e2e_sandbox.sh down
 ```
+
+F22-F27 (the lock's `/learn` route and the window hand-over): `DOCS-e2e-learn.md`.
 
 `--as-of` (`HH:MM` or `HH:MM:SS`) rewinds the copy to a reported moment:
 later log events, transcripts and drill logs are dropped, and so are the
