@@ -24,7 +24,7 @@ readonly PY="$REPO/.venv/bin/python"
 main() {
     local dir="$1" port="$2" log="$3" var
     local -a env_args=(--setenv=PATH="$PATH")
-    for var in TUTOR_DATA TUTOR_KEY TUTOR_IMAGE_CACHE TUTOR_RELAY; do
+    for var in TUTOR_DATA TUTOR_KEY TUTOR_IMAGE_CACHE TUTOR_RELAY TUTOR_THEORY_PHASE; do
         if [[ -n "${!var:-}" ]]; then
             env_args+=(--setenv="$var=${!var}")
         fi

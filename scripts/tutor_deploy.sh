@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # ============================================================================
 # Put a verified tutor change live at once, without disturbing the session.
 #
@@ -7,15 +6,13 @@
 # tree, so half-finished edits in ~/src/tutor are never served. A deploy:
 #   1. copies a new release,
 #   2. smoke-tests it on a scratch port against a copy of today's sessions
-#      (it must start, resume the live session, redirect / to /app/ and
-#      serve the Flutter web build there),
-#   3. waits until no reply is in flight (the newest session log does not
-#      end on a learner message),
+#      and the guard's C3 row (it must start, resume the live session,
+#      redirect / to /app/ and serve the Flutter web build there),
+#   3. waits until no reply is in flight (the newest log ends on no learner),
 #   4. points `current` at it and restarts tutor.service (install.sh), whose
-#      graceful stop drains the old server; the release resumes the session
-#      from its transcript (tutor/resume.py).
-# The phone and desktop app talk through the RTDB relay, which queues
-# requests while the server is down; the next one lands on the new code.
+#      graceful stop drains the old server; the release resumes the session.
+# The apps talk through the RTDB relay, which queues requests while the
+# server is down; the next one lands on the new code.
 # ============================================================================
 
 set -euo pipefail
@@ -139,8 +136,11 @@ smoke_test() {
         if [[ -d "$DATA/$dir" ]]; then cp -r "$DATA/$dir" "$TEMP_DIR/data/"; fi
     done
     head -c 32 /dev/urandom >"$TEMP_DIR/key"
-    # No relay: a temp-data server must never claim real phone requests.
+    # The guard's C3 row, signed with the scratch key. No relay: a temp-data
+    # server must never claim real phone requests.
+    "$REPO/scripts/scratch_phase.sh" "$TEMP_DIR/theory_phase.json" "$TEMP_DIR/key"
     TUTOR_DATA="$TEMP_DIR/data" TUTOR_KEY="$TEMP_DIR/key" TUTOR_RELAY=0 \
+        TUTOR_THEORY_PHASE="$TEMP_DIR/theory_phase.json" \
         launch "$release" "$port" "$TEMP_DIR/smoke.log"
     if ! wait_listening "$port"; then
         echo "Smoke test: release did not start:" >&2
