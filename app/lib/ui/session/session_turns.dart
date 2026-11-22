@@ -96,13 +96,19 @@ class ChatTurns extends StatelessWidget {
   // the center: offset 0 is its top. Older turns, newest first, sit in the
   // sliver before it, which grows upward, so a late picture there never
   // moves the reply. The center is one box (not a lazy list): the composer
-  // keeps its text and focus while scrolled away.
+  // keeps its text and focus while scrolled away. A three-screen cache
+  // keeps it in the semantics tree too: Flutter web's accessibility mode
+  // types into that node, and a culled node came back empty.
   Widget _desk(List<Widget> turns, Widget panel) {
     final older = messages.isEmpty ? 0 : messages.length - 1;
     const pad = EdgeInsets.symmetric(horizontal: AppSpacing.md);
     return CustomScrollView(
       controller: scroll,
       center: _center,
+      // scrollCacheExtent (its successor) does not compile on 3.47.9's
+      // frontend: "Couldn't find constructor ScrollCacheExtent.viewport".
+      // ignore: deprecated_member_use
+      cacheExtent: 3200, // about three full-HD screens
       slivers: [
         SliverPadding(
           padding: pad.copyWith(top: AppSpacing.md),

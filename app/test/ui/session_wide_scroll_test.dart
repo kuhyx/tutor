@@ -77,6 +77,24 @@ void main() {
     expect(editable.focusNode.hasFocus, isTrue);
   });
 
+  // Flutter web's accessibility mode types into the field's semantics node:
+  // a node culled while scrolled away came back empty (live check C17).
+  testWidgets('a typed answer keeps its semantics node while scrolled away', (
+    t,
+  ) async {
+    final handle = t.ensureSemantics();
+    await openComposer(t, phone: false, size: _screen);
+    final q2 = find.byType(TextField).at(1);
+    await t.tap(q2);
+    await t.enterText(q2, 'two per turn');
+    await t.pump();
+    expect(find.semantics.byValue('two per turn'), findsOne);
+    await _wheel(t, const Offset(100, 500), -1500);
+    expect(t.getRect(q2).top, greaterThan(_screen.height), reason: 'gone');
+    expect(find.semantics.byValue('two per turn'), findsOne);
+    handle.dispose();
+  });
+
   testWidgets('a new turn lands with its top under the bar', (t) async {
     final (db, stream) = await openComposer(t, phone: false, size: _screen);
     await _wheel(t, const Offset(100, 500), -600);
