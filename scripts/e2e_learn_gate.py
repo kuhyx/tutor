@@ -6,10 +6,12 @@
   a module outside ``teachable``, is refused (``no_card_left``) and the
   subject's plan shows; live session, transcripts, RTDB sessions and ledger
   are unchanged.
-* F23 (``up --phase solve``, empty ``teachable``): every module of the plan
-  carries ``teachable: false`` and every tile shows the lock glyph (spoken
-  "Not teachable now"); then a learn route into the ungated SQL subject still
-  starts a teaching session. A model turn: ``send``, ``wait``, ``check``.
+* F23 (``up --phase solve --unarchive SQL``: empty ``teachable``; kuhy has
+  SQL archived, and a route into an archived subject stays on Home): every
+  module of the plan carries ``teachable: false`` and every tile shows the
+  lock glyph (spoken "Not teachable now"); then a learn route into the
+  ungated SQL subject still starts a teaching session. A model turn:
+  ``send``, ``wait``, ``check``.
 * F24 (``up``, no phase file): ``flow F24 missing``, then ``flow F24 bad``
   (it writes a ``theory`` row with a wrong ``hmac``). Each refuses a gated
   route twice (two reads of the file), and the server log has exactly one
@@ -94,12 +96,13 @@ def f22(flow: Flow) -> None:
 def _tiles_locked(flow: Flow, titles: list[str]) -> None:
     """Every module tile, scrolled through, carries the lock glyph."""
     flow.step(f"each of {len(titles)} tiles shows {LOCK!r}")
-    seen: dict[str, str] = {}  # title -> the tile's label lines after it
+    seen: dict[str, str] = {}  # title -> the tile's status label after it
+    flow.browser.scroll(-20000)  # from the top: tiles off screen drop out
     for _ in range(40):
         lines = flow.browser.page_text().splitlines()
         for i, line in enumerate(lines):
             if line in titles:  # the tile's status label follows its title
-                seen[line] = " | ".join(lines[i + 1 : i + 3])
+                seen[line] = lines[i + 1] if i + 1 < len(lines) else ""
         if len(seen) == len(titles):
             break
         flow.browser.scroll(500)
@@ -110,6 +113,18 @@ def _tiles_locked(flow: Flow, titles: list[str]) -> None:
     if bad:
         msg = f"tiles unseen or without the lock: {bad}"
         raise FlowError(msg)
+
+
+def _into_view(flow: Flow, label: str) -> None:
+    """Scroll until ``label`` is on screen (labels exist off screen too)."""
+    for _ in range(10):
+        hit = flow.browser.find(label)
+        if hit is not None and hit["visible"]:
+            break
+        # Not built yet (None) means further down, like a hit below.
+        flow.browser.scroll(-300 if hit is not None and not hit["below"] else 300)
+        time.sleep(0.5)
+    time.sleep(2)  # the tiles paint after the scroll settles
 
 
 def f23_send(flow: Flow) -> State:
@@ -123,12 +138,14 @@ def f23_send(flow: Flow) -> State:
         raise FlowError(msg)
     flow.step(f"open #/plan/{LC}")
     flow.browser.open(f"{flow.args.app}?db={flow.args.db}#/plan/{LC}")
-    if flow.browser.wait_for(LOCK, 30) is None:
+    if not text_below(flow.browser, LOCK, 30):  # the goal text sits above
         msg = f"no lock glyph; saw: {flow.browser.page_text()[:300]!r}"
         raise FlowError(msg)
-    time.sleep(2)
+    titles = [str(m["title"]) for m in modules]
+    _tiles_locked(flow, titles)
+    flow.browser.scroll(-20000)  # back to the top for the screenshot
+    _into_view(flow, titles[0])
     flow.shot("plan_locked")
-    _tiles_locked(flow, [str(m["title"]) for m in modules])
     ctx = Context(flow.args.data, device=str(uuid.uuid4()))
     cards = untaught(ctx, SQL)
     module = ctx.subjects.cards(SQL)[cards[0]].module

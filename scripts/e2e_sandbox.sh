@@ -15,6 +15,7 @@
 #        [--gate]                   # F21: the next module waits on 2 unpassed cards
 #        [--learn S/M]              # F22: one untaught card left in module M of S
 #        [--phase "MODE [S/M ...]"] # the guard's C3 row (default missing)
+#        [--unarchive S]            # F24: kuhy archived SQL; teach it here
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
@@ -132,7 +133,7 @@ cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
     local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
-    local learn=""
+    local learn="" unarchive=""
     local -a pass=() c3=(missing)
     while (($#)); do
         case "$1" in
@@ -142,6 +143,7 @@ cmd_up() {
             --nocard) nocard="${2:?--nocard due|review}"; shift ;;
             --model-down) model="${2:?--model-down network|refuse}"; shift ;;
             --learn) learn="${2:?--learn S/M}"; shift ;;
+            --unarchive) unarchive="${2:?--unarchive S}"; shift ;;
             --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
@@ -166,6 +168,7 @@ cmd_up() {
         TUTOR_KEY="$sandbox/test.key" "$PY" "$ROOT/scripts/e2e_phase.py" seed "$sandbox/data" \
             --subject "${learn%%/*}" --module "${learn#*/}"
     fi
+    [[ -z "$unarchive" ]] || "$PY" -m tutor subject unarchive "$unarchive" --data "$sandbox/data"
     write_phase "$sandbox" "${c3[@]}"
     if [[ -n "$carry" ]]; then  # the day before the worker's today
         "$PY" "$ROOT/scripts/e2e_seed.py" carry "$sandbox/data" --key "$sandbox/test.key" \
