@@ -3,14 +3,16 @@
 
 The session opens on the module's next untaught card, a live or open
 session on that module is reused, and everything else is the pick's own
-refusal (``no_card_left``): C3 stays the one place that refuses.
+refusal (``no_card_left``): C3 stays the one place that refuses. A module
+opens ahead of an earlier plan module only when C3 refuses that one
+(``test_unit_order_gate.py``) or when it is already started.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from tutor.tests._cur import card, make_ctx, module, subject, taught
+from tutor.tests._cur import T0, card, make_ctx, module, subject, taught
 from tutor.tests._fakes import turn
 from tutor.tests._phase import LC, grant
 from tutor.tests._relay_support import engine
@@ -19,21 +21,29 @@ from tutor.tests.test_relay_lanes import Rig, run
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tutor.curriculum.records import CardRec
     from tutor.engine import Engine
 
 
-def _lc(root: Path) -> None:
+def _lc(root: Path, **more: CardRec) -> None:
     """LC with ready modules a (a0, a1) and b (b0), and c still generating."""
     ctx, _ = make_ctx(root)
     mods = [module(m, status="ready") for m in ("a", "b")]
     mods.append(module("c", status="generating"))
     found = {"a0": card("a", 0), "a1": card("a", 1), "b0": card("b", 0)}
-    subject(ctx, LC, modules=mods, found=found)
+    subject(ctx, LC, modules=mods, found=found | more)
 
 
-def _rig(tmp_path: Path, replies: int = 3) -> Engine:
+def _rig(tmp_path: Path, replies: int = 3, **more: CardRec) -> Engine:
     eng, _ = engine(tmp_path, *(turn(f"Q{i}?") for i in range(replies)))
-    _lc(tmp_path / "data")
+    _lc(tmp_path / "data", **more)
+    return eng
+
+
+def _rig_b_started(tmp_path: Path) -> Engine:
+    """b has a taught card (b0) and b1 to teach: the module gate never holds it."""
+    eng = _rig(tmp_path, b1=card("b", 1))
+    taught(eng.ctx, LC, "b0", T0)
     return eng
 
 
@@ -44,7 +54,7 @@ def _learn(mod: str, **extra: Any) -> dict[str, Any]:
 def test_a_module_start_teaches_that_modules_next_untaught_card(
     tmp_path: Path,
 ) -> None:
-    grant((LC, "a"), (LC, "b"))
+    grant((LC, "b"))  # the guard's unit is b; a, first in the plan, is refused
     eng = _rig(tmp_path)
 
     async def script(rig: Rig) -> None:
@@ -52,6 +62,19 @@ def test_a_module_start_teaches_that_modules_next_untaught_card(
         assert got["ok"], got
         assert eng.card is not None
         assert (eng.source.subject, eng.card.id) == (LC, "b0")  # not a0
+
+    run(eng, script)
+
+
+def test_a_module_start_stays_in_its_module(tmp_path: Path) -> None:
+    grant((LC, "a"), (LC, "b"))  # a is teachable too, and first in the plan
+    eng = _rig_b_started(tmp_path)
+
+    async def script(rig: Rig) -> None:
+        got = await rig.send("session_start", _learn("b"))
+        assert got["ok"], got
+        assert eng.card is not None
+        assert (eng.source.subject, eng.card.id) == (LC, "b1")  # not a0
 
     run(eng, script)
 
@@ -103,11 +126,12 @@ def test_a_live_session_on_the_module_is_reused(tmp_path: Path) -> None:
 
 
 def test_a_live_session_on_another_module_is_not_reused(tmp_path: Path) -> None:
-    grant((LC, "a"), (LC, "b"))
+    grant((LC, "a"))
     eng = _rig(tmp_path)
 
     async def script(rig: Rig) -> None:
         first = await rig.send("session_start", _learn("a"))
+        grant((LC, "b"))  # the guard's unit moved on; the session on a0 is live
         other = await rig.send("session_start", _learn("b"))
         assert other["ok"], other
         assert other["data"] != first["data"]
@@ -135,10 +159,10 @@ def test_an_open_session_on_the_module_is_resumed(tmp_path: Path) -> None:
 
 def test_an_open_session_on_another_module_is_left(tmp_path: Path) -> None:
     grant((LC, "a"), (LC, "b"))
-    eng = _rig(tmp_path)
+    eng = _rig_b_started(tmp_path)
 
     async def script(rig: Rig) -> None:
-        first = await rig.send("session_start", _learn("b"))
+        first = await rig.send("session_start", _learn("b"))  # opens on b1
         await rig.send("session_start", {"subject": "automation"})
         other = await rig.send("session_start", _learn("a"))
         assert other["ok"], other

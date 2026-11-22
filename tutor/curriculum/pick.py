@@ -5,7 +5,8 @@ The module gate (kuhy, 2026-11-22; no daily cap, no waiting): the first card
 of a module with no taught card opens only once every earlier module is
 fully taught with each card reviewed, and no card of the subject is due.
 Due cards never block a module already started. The refusal lists the
-exact cards that block (``gate_cards``), which the app reviews.
+exact cards that block (``gate_cards``), which the app reviews. Under C3 the
+guard's unit order beats the plan order (:func:`unit_order_wins`).
 """
 
 from __future__ import annotations
@@ -43,7 +44,7 @@ class Gate:
     reviewed; ``cards``: every such card plus the subject's cards due now
     (plan order, no repeats); ``writing``: an earlier module's cards are
     being generated; ``untaught``: an earlier open module still has an
-    untaught card.
+    untaught card (never one C3 refuses, :func:`unit_order_wins`).
     """
 
     blocker: Module | None
@@ -63,6 +64,19 @@ def started(view: View, fold: Fold, module_id: str) -> bool:
     return any(cid in taught for cid, _ in view.module_cards(module_id))
 
 
+def unit_order_wins(view: View, module: Module) -> bool:
+    """Whether the gate overlooks the untaught cards of the earlier ``module``.
+
+    True for a module C3 refuses now (``View.refused``): the tutor may not
+    teach it, so it cannot be what keeps a later, teachable module shut. The
+    guard's unit order starts at a module that is not the plan's first;
+    without this the two gates shut that module for good. Its taught cards
+    gate as before (unreviewed and due ones stay in ``Gate.cards``), and an
+    ungated subject refuses nothing, so it keeps the plan order.
+    """
+    return module.id in view.refused
+
+
 def gate(view: View, fold: Fold, now_ms: int, before: str | None = None) -> Gate:
     """The gate before module ``before`` (None: after the last module)."""
     blocker, cards, writing, untaught = None, [], False, False
@@ -75,7 +89,8 @@ def gate(view: View, fold: Fold, now_ms: int, before: str | None = None) -> Gate
         if module.status not in OPEN or not unlocked(view, module, fold):
             continue
         mine = counted(view, module.id, fold)
-        untaught = untaught or any(not s.taught for _, s in mine)
+        owed = not unit_order_wins(view, module) and any(not s.taught for _, s in mine)
+        untaught = untaught or owed
         unpassed = [cid for cid, s in mine if s.taught and not reviewed(s)]
         if unpassed and blocker is None:
             blocker = module

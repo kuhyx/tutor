@@ -202,11 +202,11 @@ pass the same vectors.
   `status`/`recall`, starts generation for newly unlocked modules, sets subject
   `completed` when every module is mastered ("Go deeper" / "Review only").
 - **Module gate** (kuhy 2026-11-22; no daily cap): a module's first card opens
-  only once every earlier open module has each counted card taught and
-  `reviewed`, no counted card of the subject is due (§5) and no earlier module
-  is `generating`. Started modules and other subjects are never held.
-  `gate_cards` (earlier unreviewed, then due) is what the app reviews before
-  it sends Next again; a re-taught card must pass again.
+  only once every earlier open module has each counted card taught (unless C3
+  refuses that module now: `DOCS-contract-theory-phase.md`) and `reviewed`, no
+  counted card of the subject is due (§5) and no earlier module is `generating`.
+  Started modules and other subjects are never held. `gate_cards` (earlier unreviewed,
+  then due) is what the app reviews before it sends Next again; a re-taught card must pass again.
 - Next-card pick (worker): subject = `body.subject` or
   `prefs.current_subject`; first card in (module order, card order) that is
   untaught, not flagged/suspended, card `requires` taught, in an unlocked +

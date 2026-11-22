@@ -56,6 +56,20 @@ Not gated: app reviews, the PC drill and un-teaching. They act on cards that are
 already taught. Taught events mirrored from RTDB are not gated either; they
 have already happened on another device.
 
+## Unit order beats plan order (`pick.unit_order_wins`, 2026-11-22)
+The module gate (`DOCS-contract-curriculum.md` §6) opens a module's first card
+only once every earlier plan module is fully taught. The guard's unit order
+starts at `prefix-sums`, which is not the plan's first module, and C3 refuses
+every earlier one, so the two gates together would never open it. The rule:
+an earlier module C3 refuses now is not counted as "still to teach".
+
+Nothing else of the module gate changes. Taught cards of earlier modules,
+refused or not, must have passed a review, and no card of the subject may be
+due: the refusal lists them in `gate_cards`, the app reviews them and sends
+the start again. A teachable earlier module (a unit of several modules) still
+holds the next one until it is fully taught. Ungated subjects refuse nothing
+and keep the plan order.
+
 ## Plan payload (for the plan screen's lock glyph)
 `subjects/<subject>/plan` in RTDB gives each module of a gated subject a boolean
 `teachable` (`theory_phase.overlay` at publish time; `plan.json` never stores
