@@ -91,32 +91,37 @@ def write(path: Path, key: Path, mode: str, specs: list[str]) -> str:
     return f"{mode} {row['detail']['teachable']}"
 
 
+def untaught(ctx: Context, subject: str, module: str | None = None) -> list[str]:
+    """The live untaught cards of ``subject`` (of ``module`` if given), in order."""
+    cards = ctx.subjects.cards(subject)
+    folded = fold(ctx.log.read())
+    return [
+        cid
+        for cid, card in cards.items()
+        if module in {None, card.module}
+        and not card.suspended
+        and not folded.card(subject, cid).taught
+    ]
+
+
 def seed(data: Path, subject: str, module: str) -> str:
     """Teach all of ``module`` but its first untaught live card; that card."""
     _sandboxed(data)
     ctx = Context(data, device=str(uuid.uuid4()))
-    cards = ctx.subjects.cards(subject)
-    folded = fold(ctx.log.read())
-    untaught = [
-        cid
-        for cid, card in cards.items()
-        if card.module == module
-        and not card.suspended
-        and not folded.card(subject, cid).taught
-    ]
-    if not untaught:
+    cards_left = untaught(ctx, subject, module)
+    if not cards_left:
         msg = f"{subject}/{module} has no untaught live card"
         raise PhaseError(msg)
     at = int((time.time() - 2 * DAY_S) * 1000)
     ctx.log.append(
         [
             worker_event("taught", (subject, c), dev=ctx.device, at=at)
-            for c in untaught[1:]
+            for c in cards_left[1:]
         ]
     )
-    left = {"subject": subject, "module": module, "card": untaught[0]}
+    left = {"subject": subject, "module": module, "card": cards_left[0]}
     (data.parent / "c4_seed.json").write_text(json.dumps(left), encoding="utf-8")
-    return untaught[0]
+    return cards_left[0]
 
 
 def main() -> int:
