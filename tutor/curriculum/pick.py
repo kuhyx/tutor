@@ -87,7 +87,8 @@ def gate(view: View, fold: Fold, now_ms: int, before: str | None = None) -> Gate
 def _first(view: View, fold: Fold, skip: str, now_ms: int) -> tuple[str, Module] | None:
     taught = fold.taught_ids(view.subject)
     for module in view.plan.modules:
-        if module.status not in OPEN or not unlocked(view, module, fold):
+        held = module.status not in OPEN or module.id in view.refused
+        if held or not unlocked(view, module, fold):
             continue
         for cid, card in view.module_cards(module.id):
             flagged = fold.card(view.subject, cid).flagged(card.rev)
@@ -170,6 +171,8 @@ def _explicit(view: View, fold: Fold, card_id: str, now_ms: int) -> tuple[str, M
         raise locked(
             view.title, card_id, subject=view.subject, module=module, held=Held(need)
         )
+    if module.id in view.refused:  # C3, before the gate: a review opens nothing
+        raise _no_card(view, fold, now_ms)
     if not started(view, fold, module.id):
         ahead = gate(view, fold, now_ms, before=module.id)
         if ahead.cards or ahead.writing or ahead.untaught:
@@ -191,7 +194,8 @@ def pick(
     ``skip`` (no ``card_id``): never that card (Next card leaves it).
 
     Raises ``unknown_card``, ``locked`` or ``no_card_left`` (the module
-    gate among them). Re-teaching a taught card is free.
+    gate among them; also for a card of a ``view.refused`` module, C3).
+    Re-teaching a taught card is free.
     """
     if card_id:
         return _explicit(view, fold, card_id, now_ms)[0]

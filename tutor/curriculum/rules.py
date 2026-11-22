@@ -35,6 +35,7 @@ class View:
     plan: Plan
     cards: dict[str, CardRec]
     title: str = ""  # shown instead of the slug (``no_card_left``)
+    refused: frozenset[str] = frozenset()  # C3: modules never taught now
 
     def module_cards(self, module_id: str) -> list[tuple[str, CardRec]]:
         """The module's cards in ``order``."""

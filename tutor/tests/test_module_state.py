@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 import earned_time
 from gatelock import log_integrity
+import pytest
 
 from tutor.curriculum import cardgen, judge, module_state, regen, wiki
 from tutor.curriculum.eventlog import worker_event
@@ -23,12 +24,11 @@ from tutor.engine import Engine
 from tutor.ledger_io import default_paths
 from tutor.store import Store
 from tutor.tests._cur import T0, card, make_ctx, module, subject
+from tutor.tests._phase import grant
 from tutor.tests.conftest import KEY
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
     from tutor.curriculum.context import Context
     from tutor.tests._cur import Fakes
@@ -36,6 +36,12 @@ if TYPE_CHECKING:
 LC = "leetcode-easy-algorithms-in-typescript"
 JS = "javascript-and-pandas-for-leetcode-easy"
 SQL = "mysql-8-for-timed-sql-coding-tests-joins-and"
+
+
+@pytest.fixture(autouse=True)
+def _theory_of_lc() -> None:
+    """C3: the guard lets the tutor teach (and mark taught) LC's a and b."""
+    grant((LC, "a"), (LC, "b"))
 
 
 def _rows(root: Path) -> list[dict[str, Any]]:
@@ -196,11 +202,14 @@ def test_a_write_failure_logs_and_never_breaks_teaching(
 def test_an_unreadable_key_logs_and_writes_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    ctx, _, src = _lc(tmp_path, a0=card("a", 0))
+    # SQL, not LC: without a key C3 (rightly) refuses to teach a gated module.
+    ctx, _ = make_ctx(tmp_path)
+    subject(ctx, SQL, modules=[module("a", status="ready")], found={"a0": card("a", 0)})
+    src = SubjectSource(Store(tmp_path), ctx, SQL)
     monkeypatch.setenv("TUTOR_KEY", str(tmp_path / "missing.key"))
     with caplog.at_level(logging.WARNING):
         src.mark("a0", "s1", done=True)
-    assert ctx.fold().card(LC, "a0").taught
+    assert ctx.fold().card(SQL, "a0").taught
     assert not (tmp_path / "module_state.json").exists()
     assert "module state" in caplog.text
 

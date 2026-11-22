@@ -200,7 +200,7 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   Anki, leftover and carry rows carry neither key, and neither do rows that
   `backfill_today` writes for another session (untagged, never the wrong
   module). earned_time ignores both keys and pays the same minutes
-  (`tutor/tests/test_credit_taught.py`). C2, a module's signed done state: `DOCS-contract-module-state.md`.
+  (`tutor/tests/test_credit_taught.py`). C2, a module's signed done state: `DOCS-contract-module-state.md`. C3, the guard's teaching gate: `DOCS-contract-theory-phase.md`.
 - An answer delayed by an offline phone earns only what `REPLY_TIMEOUT`
   (600 s) allows from server receipt. A device cannot claim minutes. A restart reopens the window (<= 1 h) only for an on-time reply still in flight; idle time across it earns nothing.
 - FSRS reviews earn no credit in v1; the drill credits active minutes only.

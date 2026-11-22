@@ -15,7 +15,8 @@ from dataclasses import asdict
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import continuing, credit, follow_up, gating, picked, unit_credit
+from tutor import credit, follow_up, gating, picked, unit_credit
+from tutor.curriculum import phase_gate
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.source import source_for, transcript_subject
@@ -147,9 +148,7 @@ class CardFlow:
             return False
         if self._conv is not None and src.subject == self.source.subject:
             return True
-        found = continuing.open_session(
-            self.store.root / "sessions", src.subject, src.done()
-        )
+        found = phase_gate.open_session(self.store.root / "sessions", src)
         if found is not None:
             await self.resume_session(found)
         return found is not None
@@ -228,7 +227,7 @@ class CardFlow:
             )
         # Only a card_done reads progress.json: most turns end nothing.
         done = bool(logged["card_done"]) and not conv.follow_up
-        need = gating.missing(card, self.source.done()) if done else []
+        need = phase_gate.blockers(self.source, card) if done else []
         if need:  # locked: logged as refused, so replay and repair skip it
             logged["card_done"], logged["card_done_refused"] = False, need
             conv.notes.append(gating.refused_note(card, need))

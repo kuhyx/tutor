@@ -114,6 +114,7 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[P
     monkeypatch.setenv("TUTOR_DATA", str(tmp_path / "data"))
     monkeypatch.setenv("TUTOR_KEY", str(key))
     monkeypatch.setenv("TUTOR_IMAGE_CACHE", str(tmp_path / "images"))
+    monkeypatch.setenv("TUTOR_THEORY_PHASE", str(tmp_path / "guard/theory_phase.json"))
     monkeypatch.setenv("FOCUS_PROJECT_DATA", str(tmp_path / "focus"))  # optional dep
     monkeypatch.delenv("TUTOR_RELAY", raising=False)
     monkeypatch.delenv("TUTOR_ANKI_COLLECTION", raising=False)  # default: under HOME

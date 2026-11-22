@@ -17,7 +17,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from tutor.cards import CardError
-from tutor.curriculum import card_rules
+from tutor.curriculum import card_rules, theory_phase
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.records import CardRec, Module
 from tutor.curriculum.sql_bank import BANK
@@ -153,10 +153,15 @@ def _add_cards(
 
 
 def _teach(ctx: Context, subject: str, ids: list[str], at: int) -> list[str]:
-    """``taught`` events (by the worker) for the live cards not taught yet."""
+    """``taught`` events (by the worker) for the live cards not taught yet.
+
+    Never in a module C3 refuses now (``--subject`` may name a gated one).
+    """
     cards = ctx.subjects.cards(subject)
     taught = ctx.fold().taught_ids(subject)
     todo = [i for i in ids if i in cards and not cards[i].suspended and i not in taught]
+    held = theory_phase.refused(subject, {cards[i].module for i in todo})
+    todo = [i for i in todo if cards[i].module not in held]
     ctx.log.append(
         worker_event("taught", (subject, i), dev=ctx.device, at=at) for i in todo
     )

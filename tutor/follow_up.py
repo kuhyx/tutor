@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import resume
+from tutor.curriculum import phase_gate
 
 if TYPE_CHECKING:
     import asyncio
@@ -72,7 +73,8 @@ class FollowUpFlow:
         Already live: nothing changes. Raises ``ValueError`` while another
         session is live (the learner stops it first, so a reopen never
         silently leaves one), when the card was not finished in that session
-        (Repeat starts it again) or is gone from the deck.
+        (Repeat starts it again), is gone from the deck, or is of a module C3
+        refuses now (``theory_phase``).
         """
         async with self._lock:
             live = self._conv
@@ -89,9 +91,12 @@ class FollowUpFlow:
             if conv is None or not conv.card_done:
                 msg = "its card was not finished in that session; use Repeat"
                 raise ValueError(msg)
-            cards = self._resume_source(path).cards()
-            if not any(c.id == conv.card_id for c in cards):
+            src = self._resume_source(path)
+            if not any(c.id == conv.card_id for c in src.cards()):
                 msg = f"its card {conv.card_id} is gone from the deck"
+                raise ValueError(msg)
+            if phase_gate.refuses(src, conv.card_id):  # C3: never taught now
+                msg = "this session cannot be continued (stopped, or its card is gone)"
                 raise ValueError(msg)
             await self.close()
             self.store.log(path.stem, {"type": "follow_up_open", "t": self.time()})

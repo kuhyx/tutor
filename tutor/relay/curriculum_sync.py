@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any, Final
 from tutor import carry, leftover, review_credit
 from tutor.credit import local_day
 from tutor.curriculum import handlers as cur
-from tutor.curriculum import log_order
+from tutor.curriculum import log_order, theory_phase
 from tutor.curriculum.subject_store import read_json
 from tutor.relay import hooks
 from tutor.relay.protocol import DEV
@@ -114,19 +114,35 @@ class CurriculumSync:
             self._pushed |= set(new)
 
     async def publish(self, subject: str) -> bool:
-        """Publish ``subject``'s changed parts; False when its rev did not move."""
+        """Publish ``subject``'s changed parts; False when nothing moved.
+
+        The plan carries C3's ``teachable`` per gated module (``overlay``): at
+        an unchanged rev only that can move, and only the plan is re-PUT.
+        """
         where = self.ctx.subjects.dir(subject)
         parts = {p: read_json(where / f"{p}.json", _DEFAULTS[p]) for p in _PARTS}
         meta = parts["meta"]
         rev = meta.get("rev") if isinstance(meta, dict) else None
-        if not isinstance(rev, int) or rev <= self._revs.get(subject, -1):
+        last = self._revs.get(subject, -1)
+        if not isinstance(rev, int) or rev < last:
             return False
+        parts["plan"] = theory_phase.overlay(subject, parts["plan"])
+        if rev == last:
+            return subject in theory_phase.GATED and await self._put(subject, parts)
         for part in ("plan", "cards", "concepts", "meta"):  # meta (rev) last
-            text = json.dumps(parts[part], sort_keys=True)
-            if self._sent.get((subject, part)) != text:
-                await self.w.rtdb.put(f"subjects/{subject}/{part}", parts[part])
-                self._sent[(subject, part)] = text
+            await self._put(subject, parts, part)
         self._revs[subject] = rev
+        return True
+
+    async def _put(
+        self, subject: str, parts: dict[str, object], part: str = "plan"
+    ) -> bool:
+        """PUT one part unless RTDB already holds it; whether it was sent."""
+        text = json.dumps(parts[part], sort_keys=True)
+        if self._sent.get((subject, part)) == text:
+            return False
+        await self.w.rtdb.put(f"subjects/{subject}/{part}", parts[part])
+        self._sent[(subject, part)] = text
         return True
 
     async def _remove(self, subject: str) -> bool:

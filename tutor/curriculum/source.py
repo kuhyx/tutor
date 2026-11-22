@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Final, Protocol
 
 from tutor import gating
 from tutor.cards import DECK_DIR, Card, load_deck
-from tutor.curriculum import card_rules, paths, profiles, rules
+from tutor.curriculum import card_rules, paths, profiles, rules, theory_phase
 from tutor.curriculum import pick as picking
 from tutor.curriculum.errors import BAD_REQUEST, LOCKED, NO_CARD_LEFT, RequestError
 from tutor.curriculum.eventlog import worker_event
@@ -124,14 +124,17 @@ class SubjectSource:
             profiles.Profile.from_json(raw) if raw else profiles.generated(subject, {})
         )
 
-    def _view(self) -> rules.View:
+    def _view(self, *, gated: bool = False) -> rules.View:
+        """``gated``: with the modules C3 refuses now (``theory_phase``)."""
         plan = self.ctx.subjects.plan(self.subject)
         if plan is None:
             msg = f"{self.subject} has no plan yet"
             raise RequestError(BAD_REQUEST, msg)
         meta = self.ctx.subjects.meta(self.subject)
         cards = self.ctx.subjects.cards(self.subject)
-        return rules.View(self.subject, plan, cards, meta.title if meta else "")
+        ids = [m.id for m in plan.modules] if gated else []
+        held = theory_phase.refused(self.subject, ids)
+        return rules.View(self.subject, plan, cards, meta.title if meta else "", held)
 
     def cards(self) -> list[Card]:
         """Every non-suspended card of a module that has cards, in order."""
@@ -156,7 +159,7 @@ class SubjectSource:
 
         An archived subject (``archive.py``) has nothing to teach.
         """
-        view, fold, now = self._view(), self.ctx.fold(), self.ctx.clock()
+        view, fold, now = self._view(gated=True), self.ctx.fold(), self.ctx.clock()
         if self.subject in self.ctx.archived():
             err = no_card_left(
                 view.title, module=None, due_at=None, writing=False, now_ms=now
@@ -170,7 +173,8 @@ class SubjectSource:
         """A ``taught`` / ``untaught`` event, mirrored into ``progress.json``.
 
         Never ``taught`` in a ``locked`` module (pre-generated cards): one
-        taught card would open the module before its requires are mastered.
+        taught card would open the module before its requires are mastered;
+        nor in one C3 refuses now (``theory_phase``).
         """
         if done:
             self._refuse_locked_module(card_id)
@@ -189,7 +193,8 @@ class SubjectSource:
         view = self._view()
         card = view.cards.get(card_id)
         module = view.plan.module(card.module) if card else None
-        if module is not None and module.status == "locked":
+        held = theory_phase.refused(self.subject, [module.id] if module else [])
+        if module is not None and (module.status == "locked" or module.id in held):
             msg = f"{card_id} is locked: module {module.id} is not unlocked yet"
             raise RequestError(LOCKED, msg)
 

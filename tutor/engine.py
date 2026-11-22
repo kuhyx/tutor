@@ -17,6 +17,7 @@ import uuid
 from tutor import cards as cards_mod
 from tutor import follow_up, gating, media, research, resume, struggle, unit_credit
 from tutor.cardflow import CardFlow
+from tutor.curriculum import phase_gate
 from tutor.curriculum.source import CardSource, source_for
 from tutor.delivery import DESKTOP, Delivery, learner_message
 from tutor.edit_flow import EditFlow, Notice
@@ -142,6 +143,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         card = next((c for c in src.cards() if conv and c.id == conv.card_id), None)
         if state is None or conv is None or card is None or conv.stopped:
             return False
+        if phase_gate.refuses(src, card.id):  # C3: never taught now
+            return False
         self.source, self.card, self._conv = src, card, conv
         # max: backfill_today may already have paid more than these receipts saw.
         paid = unit_credit.minutes_today(conv.receipts)
@@ -174,6 +177,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             _, conv, _ = self._live()
             if msg_id and msg_id == conv.resumed.answered_id:
                 return self.state()
+            phase_gate.refuse_live(self.source, conv.card_id)
             if self.simulated:
                 self._offset += max(0.0, advance_s)
             follow_up.enter(conv)
