@@ -20,7 +20,8 @@ Exit 0 = PASS.
   ``e2e_keyless`` (F17), ``e2e_split`` (F18), ``e2e_archive`` (F19),
   ``e2e_path`` (F20), ``e2e_gate`` (F21, phased; ``up --gate``).
 * F22 a ``#/learn/S/M`` route teaches the module, pays C1 and flips C2
-  (``e2e_learn.py``, seven phases); F26 the window takeover
+  (``e2e_learn.py``, seven phases); F23-F25 the phase's refusals
+  (``e2e_learn_gate.py``); F26 the window takeover
   (``e2e_takeover.py``).
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
@@ -59,6 +60,7 @@ from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_keyless import f17
 from e2e_learn import F21_PHASES, f21
+from e2e_learn_gate import F24_PHASES, f22, f23_check, f23_send, f24
 from e2e_path import f20_check, f20_send
 from e2e_split import f18_check, f18_send
 from e2e_start import f1_check, f1_send
@@ -84,6 +86,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
         lambda flow: f20_send(flow, f1_send),
         lambda flow, state: f20_check(flow, state, f1_check),
     ),
+    "F24": (f23_send, f23_check),
 }
 FLOWS = ["F1", *(f"F{n}" for n in range(3, 27))]  # F2 (the cap) is gone
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
@@ -99,6 +102,8 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F16": f16,
     "F17": f17,
     "F19": f19,
+    "F23": f22,
+    "F25": f24,
     "F26": f25,
 }
 
@@ -199,6 +204,7 @@ def main() -> int:
             *F14_PHASES,
             *F16_PHASES,
             *F21_PHASES,
+            *F24_PHASES,
         ],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")
