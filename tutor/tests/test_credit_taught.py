@@ -22,7 +22,7 @@ from tutor.engine import Engine
 from tutor.ledger_io import default_paths
 from tutor.store import Store
 from tutor.tests._credit_support import NOON, put, unit
-from tutor.tests._cur import T0, card, make_ctx, module, subject
+from tutor.tests._cur import T0, card, make_ctx, module, subject, taught
 from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 from tutor.tests.conftest import KEY
 
@@ -135,6 +135,7 @@ def test_backfill_never_tags_another_session_with_the_live_card(
         now=ManualClock(T0 / 1000 + 600),
         session_factory=lambda _p: FakeSession(turn()),
     )
+    taught(make_ctx(tmp_path)[0], "car", "c1", T0)  # b started: no module gate
     asyncio.run(live.start("c1", subject="car"))  # module ``b`` on screen
     live.backfill_today()
     rows = _ledger()
