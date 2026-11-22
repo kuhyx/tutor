@@ -47,6 +47,14 @@ void main() {
     // ... and the panel fits whole: nothing in it scrolls.
     final panel = t.state<ScrollableState>(_scrollOf(send)).position;
     expect(panel.maxScrollExtent, 0);
+    // The whole latest turn shows above the panel: nothing of it is
+    // hidden below (its scroll has no room past offset 0).
+    final chat = t.state<ScrollableState>(_scrollOf(reply)).position;
+    expect(chat.maxScrollExtent, 0);
+    expect(
+      t.getRect(reply).bottom,
+      lessThanOrEqualTo(t.getRect(find.byType(TextField).at(0)).top),
+    );
   });
 
   testWidgets('Send stays put while the chat scrolls and turns arrive', (
