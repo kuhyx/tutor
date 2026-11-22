@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 import earned_time
 
+from tutor.curriculum import review_due
 from tutor.curriculum.eventlog import EventLog
 from tutor.curriculum.fold import fold
 from tutor.curriculum.subject_store import SubjectStore
@@ -160,8 +161,11 @@ class WatchedStore(SubjectStore):
     def commit(self, subject: str, meta: Meta, change: Change | None = None) -> Meta:
         """Commit, then record any flip the cards caused."""
         out = super().commit(subject, meta, change)
-        if change is not None and change.cards is not None and subject in SUBJECTS:
-            record(self.root, subject, self.clock() / 1000)
+        if change is not None and subject in SUBJECTS:
+            if change.cards is not None:
+                record(self.root, subject, self.clock() / 1000)
+            if change.cards is not None or change.plan is not None:
+                review_due.record(self.root, subject, self.clock() / 1000)
         return out
 
 
@@ -177,7 +181,8 @@ class WatchedLog(EventLog):
     def append(self, events: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         """Store the new events, then record any flip they caused."""
         fresh = super().append(events)
-        touched = {str(e["s"]) for e in fresh if e["k"] in _TEACHING}
-        for subject in sorted(touched & SUBJECTS):
-            record(self.root, subject, self.clock() / 1000)
+        for subject in sorted({str(e["s"]) for e in fresh if "s" in e} & SUBJECTS):
+            if any(e["k"] in _TEACHING and e["s"] == subject for e in fresh):
+                record(self.root, subject, self.clock() / 1000)
+            review_due.record(self.root, subject, self.clock() / 1000)  # C4
         return fresh

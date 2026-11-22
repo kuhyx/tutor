@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from tutor import backfill, leftover, repair, resume, unit_credit
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
-from tutor.curriculum import module_state
+from tutor.curriculum import module_state, review_due
 from tutor.curriculum.source import transcript_subject
 
 if TYPE_CHECKING:
@@ -83,8 +83,9 @@ class Upkeep:
         self._set_today(max(self.minutes_today, paid))
 
     def record_module_states(self) -> None:
-        """Sign the done state of every LeetCode / SQL module not on file (C2)."""
+        """Sign the done state (C2) and the due reviews (C4) of every module."""
         module_state.backfill(self.store.root, self.time())
+        review_due.backfill(self.store.root, self.time(), module_state.SUBJECTS)
 
     def resume_latest(self) -> bool:
         """Pick today's newest session back up after a restart (see ``resume_path``)."""

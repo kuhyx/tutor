@@ -66,3 +66,6 @@ Rows are written only for the three subjects of the LeetCode course:
 - The writer never appends an unsigned row (no key: it writes nothing), so a
   bad row comes only from outside the tutor. To recover, delete that row by
   hand: what is left is signed, so deleting it gains nothing.
+
+The due reviews of a module are the sibling file `review_due.json` (C4,
+`DOCS-contract-review-due.md`): same envelope and signer, one replaced row per module.
