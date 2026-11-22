@@ -9,3 +9,8 @@ String? routeFromUri(Uri uri) {
   final fragment = uri.fragment;
   return fragment.startsWith('/') && fragment.length > 1 ? fragment : null;
 }
+
+/// Whether a new window's `learn <route>` offer is one an open window takes:
+/// the lock's `/learn/...` and `/rework/...` (`web/index.html` offers them).
+bool handedOffer(String offer) =>
+    offer.startsWith('learn /learn/') || offer.startsWith('learn /rework/');

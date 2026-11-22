@@ -5,7 +5,8 @@
 /// `/focus?start=1` also starts the focus timer if it is not running;
 /// `/session/continue` opens the Session and asks for the open session;
 /// `/learn/<subject>/<module>`, the LeetCode lock's learn button, teaches
-/// that module, else shows the subject's plan: [openLearn]).
+/// that module, else shows the subject's plan: [openLearn];
+/// `/rework/<subject>/<module>/<slug>`, the lock's `?`: [openRework]).
 library;
 
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/review/review_items.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/coach/coach_picker.dart';
+import 'package:tutor/ui/coach/rework_screen.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
@@ -199,6 +201,13 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
   return switch (parts.firstOrNull) {
     'plan' when arg != null => openPlan(context, s, arg),
     'learn' when parts.length == 3 => openLearn(context, s, parts[1], parts[2]),
+    'rework' when parts.length == 4 => openRework(
+      context,
+      s,
+      parts[1],
+      parts[2],
+      parts[3],
+    ),
     'session' when arg == 'continue' => openSession(
       context,
       s,

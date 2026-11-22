@@ -145,7 +145,13 @@ enum RequestKind {
   planToday('plan_today', Lane.chat),
 
   /// Marks one step of today's plan done.
-  planStepDone('plan_step_done', Lane.chat);
+  planStepDone('plan_step_done', Lane.chat),
+
+  /// The lock's `?` on a LeetCode problem: open (or resume) its rework chat.
+  reworkOpen('rework_open', Lane.chat),
+
+  /// What was unclear: the tutor replies and adds cards to the module.
+  reworkTurn('rework_turn', Lane.chat);
 
   new(this.wire, this.lane);
 

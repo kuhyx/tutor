@@ -4,6 +4,8 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 
+import 'package:tutor/ui/deep_link.dart' show handedOffer;
+
 @JS('history')
 external _History get _history;
 
@@ -49,7 +51,8 @@ final _handed = StreamController<String>.broadcast();
 /// Routes a later window handed to this one ([joinWindows]).
 Stream<String> get handedRoutes => _handed.stream;
 
-/// Every window joins at start, to take a later `/learn/...` launch.
+/// Every window joins at start, to take a later `/learn/...` or
+/// `/rework/...` launch.
 ///
 /// Chrome hands each `tutor --route` launch to the browser already running
 /// the profile, which opens a NEW `--app` window. A page may close itself
@@ -63,7 +66,7 @@ void joinWindows() {
   _windows ??= _Channel('tutor-window')
     ..onmessage = ((_Message message) {
       final offer = message.data.dartify();
-      if (offer is! String || !offer.startsWith('learn /learn/')) return;
+      if (offer is! String || !handedOffer(offer)) return;
       if (!_handed.hasListener) return;
       final route = offer.substring('learn '.length);
       _windows?.postMessage('took $route'.toJS);
