@@ -79,6 +79,13 @@ def test_a_dripping_guard_costs_under_a_second_and_reads_as_unchecked() -> None:
     assert time.monotonic() - started < 0.1
 
 
+@pytest.mark.usefixtures("drip")
+def test_a_body_past_its_deadline_is_given_up_in_the_worker() -> None:
+    """The worker's own deadline, checked here, not after the test has returned."""
+    with pytest.raises(TimeoutError, match="too slow"):
+        guard_route._get(time.monotonic())
+
+
 def test_a_success_is_served_for_5_s_from_one_call(
     guard_theory: GuardFake, clock: _Clock
 ) -> None:

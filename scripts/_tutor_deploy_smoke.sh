@@ -3,7 +3,7 @@
 # _tutor_deploy_smoke.sh -- tutor_deploy.sh's scratch servers: the baseline
 # session (what the live release resumes) and the new release's smoke test.
 # Sourced by tutor_deploy.sh; uses its globals (REPO, DATA, LIVE_ROOT, PORT,
-# TEMP_DIR, SMOKE_PID, SMOKE_PORT) and helpers (free_port, launch,
+# TEMP_DIR, SMOKE_PID; SMOKE_PORT is set here) and helpers (free_port, launch,
 # wait_listening, port_pid, session_of, resumable).
 # ============================================================================
 # shellcheck disable=SC2153,SC2154  # every global here is set by tutor_deploy.sh

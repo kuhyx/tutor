@@ -33,7 +33,6 @@ WAIT_LIMIT=300
 KEEP_RELEASES=5
 TEMP_DIR=""
 SMOKE_PID=""
-SMOKE_PORT=""
 
 cleanup() {
     if [[ -n "$SMOKE_PID" ]]; then
