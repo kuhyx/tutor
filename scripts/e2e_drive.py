@@ -2,17 +2,14 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flows: tap the real web build, assert on the emulator, screenshot.
 
-Run by ``scripts/e2e_sandbox.sh flow <F1|F2|F3|F4> [send|wait|check]``
+Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F21> [send|wait|check]``
 against a sandbox that is ``up``. Every step is printed before it runs, so on
 failure the last line names it; a failure also saves ``<out>_fail.png``.
 Exit 0 = PASS.
 
-* F1 Continue learning (``e2e_start.py``, with F2): Home -> "Continue
+* F1 Continue learning (``e2e_start.py``): Home -> "Continue
   learning" -> the subject's next card (``--card``) is live and its first
-  tutor message is on screen.
-* F2 daily cap (sandbox ``up --new-cap N``, N <= today's new cards): the
-  same tap ends on the blocked panel with "Learn more anyway"; tapping it
-  starts ``--card`` with a tutor message.
+  tutor message is on screen. (F2, the daily cap, went with the cap.)
 * F3, F4 follow-up questions (``e2e_follow_up.py``).
 * F5 help on a struggling card (``e2e_struggle.py``; phased like F1).
 * F6 the carry-over bank (``e2e_carry.py``): ``check``, then ``again`` after
@@ -21,7 +18,7 @@ Exit 0 = PASS.
   F10), ``e2e_unbacked`` (F11), ``e2e_blocked`` (F12), ``e2e_codes`` (F13),
   ``e2e_failures`` (F14), ``e2e_interview`` (F15), ``e2e_glyphs`` (F16),
   ``e2e_keyless`` (F17), ``e2e_split`` (F18), ``e2e_archive`` (F19),
-  ``e2e_path`` (F20).
+  ``e2e_path`` (F20), ``e2e_gate`` (F21, phased; ``up --gate``).
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -52,13 +49,14 @@ from e2e_failures import f14
 from e2e_flow import Emulator, Flow, FlowError, State
 from e2e_focus import f7, f8
 from e2e_follow_up import f3_check, f3_send, f4_check, f4_send
+from e2e_gate import f21_check, f21_send
 from e2e_glyphs import PHASES as F16_PHASES
 from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_keyless import f17
 from e2e_path import f20_check, f20_send
 from e2e_split import f18_check, f18_send
-from e2e_start import f1_check, f1_send, f2
+from e2e_start import f1_check, f1_send
 from e2e_struggle import f5_check, f5_send
 from e2e_unbacked import f11
 
@@ -75,12 +73,13 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     "F4": (f4_send, f4_check),
     "F5": (f5_send, f5_check),
     "F18": (f18_send, f18_check),
+    "F21": (f21_send, f21_check),
     "F20": (
         lambda flow: f20_send(flow, f1_send),
         lambda flow, state: f20_check(flow, state, f1_check),
     ),
 }
-FLOWS = [f"F{n}" for n in range(1, 21)]  # F1..F20
+FLOWS = ["F1", *(f"F{n}" for n in range(3, 22))]  # F2 (the cap) is gone
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -143,8 +142,6 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
             carry(flow, args)
         elif args.flow in ONE_CALL:
             ONE_CALL[args.flow](flow)
-        elif args.flow not in PHASED:
-            f2(flow)
         elif (code := phases(flow, args)) != 0:
             return code
     except (FlowError, CdpError, OSError, KeyError, TypeError, ValueError) as err:

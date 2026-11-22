@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Shared agent-E2E steps: the emulator view and the step logger (``Flow``).
 
-Used by ``scripts/e2e_drive.py`` (F1, F2), ``scripts/e2e_follow_up.py``
+Used by ``scripts/e2e_drive.py`` (F1), ``scripts/e2e_follow_up.py``
 (F3, F4), ``scripts/e2e_struggle.py`` (F5) and ``scripts/e2e_carry.py`` (F6).
 """
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 # Call-to-action labels of the session screen's blocked panel.
-BLOCKED_CTAS = ("Learn more anyway", "Review this subject")
+BLOCKED_CTAS = ("Learn more anyway", "Review this subject")  # the old panel
 # What a phased flow's send step hands its check step (JSON on disk).
 State = dict[str, Any]
 
@@ -116,21 +116,18 @@ class Flow:
             raise FlowError(msg)
         self.browser.click(hit)
 
-    def precheck(self, *, capped: bool) -> None:
-        """Today's new count vs the effective cap, as the worker published it."""
+    def precheck(self) -> None:
+        """Today's stats, prefs and live card, as the worker published them.
+
+        No daily cap any more (2026-11-22): a worker that published no
+        ``stats.today`` is not up.
+        """
         self.step("precondition: stats.today and prefs from the emulator")
         today = self.db.node("stats").get("today") or {}
         prefs = self.db.node("prefs")
-        new, cap = today.get("new"), today.get("new_cap")
-        print(
-            f"  today.new={new} new_cap={cap} prefs={prefs} live={self.db.get('live')}"
-        )
-        if not isinstance(new, int) or not isinstance(cap, int):
-            msg = "stats.today has no new / new_cap (worker not up?)"
-            raise FlowError(msg)
-        if capped != (new >= cap):
-            want = "new >= cap" if capped else "new < cap"
-            msg = f"PRECONDITION: want {want}, have new={new} cap={cap}"
+        print(f"  today={today} prefs={prefs} live={self.db.get('live')}")
+        if not isinstance(today.get("new"), int):
+            msg = "stats.today has no new (worker not up?)"
             raise FlowError(msg)
 
     def start_result(self, since: set[str], timeout: float = 45) -> dict[str, Any]:

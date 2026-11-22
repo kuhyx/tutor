@@ -7,16 +7,17 @@
 #
 # Usage:
 #   scripts/e2e_sandbox.sh build              # e2e web build (once per app change)
-#   scripts/e2e_sandbox.sh up [--new-cap N] [--as-of "YYYY-MM-DD HH:MM[:SS]"]
-#                                    # fresh sandbox; N forces the daily limit,
-#                                    # --as-of rewinds the copy (e2e_prepare.py)
+#   scripts/e2e_sandbox.sh up [--as-of "YYYY-MM-DD HH:MM[:SS]"]
+#                                    # fresh sandbox; --as-of rewinds the copy
+#                                    # (e2e_prepare.py)
 #        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
 #        [--nocard due|review]      # F12: no card left (reviews due / module review)
+#        [--gate]                   # F21: the next module waits on 2 unpassed cards
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1..F16 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1|F3..F21 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -102,11 +103,12 @@ cmd_down() {
 cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
-    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model=""
+    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
     local -a pass=()
     while (($#)); do
         case "$1" in
             --struggle) struggle=1 ;;
+            --gate) gate=1 ;;
             --carry) carry="${2:?--carry N}"; shift ;;
             --nocard) nocard="${2:?--nocard due|review}"; shift ;;
             --model-down) model="${2:?--model-down network|refuse}"; shift ;;
@@ -125,6 +127,7 @@ cmd_up() {
     head -c 32 /dev/urandom | base64 > "$sandbox/test.key"
     dev="$("$PY" "$ROOT/scripts/e2e_prepare.py" "$SRC_DATA" "$sandbox/data" "${pass[@]}")"
     ((struggle)) && "$PY" "$ROOT/scripts/e2e_seed.py" struggle "$sandbox/data" --subject "$SUBJECT"
+    ((gate)) && "$PY" "$ROOT/scripts/e2e_gate.py" seed "$sandbox/data" --subject "$SUBJECT"
     if [[ -n "$nocard" ]]; then  # F12: no card left to teach
         "$PY" "$ROOT/scripts/e2e_seed.py" nocard "$sandbox/data" --subject "$SUBJECT" --next "$nocard"
     fi
@@ -198,7 +201,7 @@ main() {
         hold) cmd_hold ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--new-cap N] [--as-of T] [--struggle] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | flow F1..F16 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | flow F1|F3..F21 [send|wait|check|again] | down" ;;
     esac
 }
 

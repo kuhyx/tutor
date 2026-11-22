@@ -97,8 +97,6 @@ scripts/e2e_sandbox.sh build                                    # after app chan
 scripts/e2e_sandbox.sh up --as-of "2026-10-17 22:00"            # F1 sandbox
 scripts/e2e_sandbox.sh flow F1 send   # Continue learning; then `flow F1 wait`, `flow F1 check`:
                                         # E2E_CARD (vhost-what) + tutor message
-scripts/e2e_sandbox.sh up --new-cap 10 --as-of "2026-10-17 22:00"
-scripts/e2e_sandbox.sh flow F2   # daily cap -> "Learn more anyway" -> E2E_CARD
 scripts/e2e_sandbox.sh up --as-of "2026-10-20 17:24:30"         # E2E_SESSION at card end
 scripts/e2e_sandbox.sh flow F3 send   # card end: a follow-up (then wait, check): answered,
                                         # with a trace and Thinking panel; credit goes on
@@ -121,6 +119,9 @@ scripts/e2e_sandbox.sh flow F12  # with E2E_SUBJECT=how-a-car-works): result `ki
 scripts/e2e_sandbox.sh flow F9   # fresh `up` each: check-in card at 421 s, rated -> tutor/heartbeat
 scripts/e2e_sandbox.sh flow F10  # card rated at 650 s (lapsed) -> start, start; still graded
 scripts/e2e_sandbox.sh flow F19  # fresh `up`: archive a subject on Home, then undo it
+scripts/e2e_sandbox.sh up --gate   # F21 (no --as-of: a model turn): 2 unpassed cards hold N
+scripts/e2e_sandbox.sh flow F21 send  # Continue -> review opens, "2 left" -> Good x2 -> Next
+                                        # goes out by itself (then wait, check): N's card live
 scripts/e2e_sandbox.sh down
 ```
 
@@ -128,7 +129,9 @@ scripts/e2e_sandbox.sh down
 later log events, transcripts and drill logs are dropped, and so are the
 later events of an earlier transcript. The sandbox worker runs under
 libfaketime from that moment (its "today"), past or future; the app and
-the emulator keep the real clock. `--new-cap N` adds a Settings `new_cap` event.
+the emulator keep the real clock. `--gate` (`scripts/e2e_gate.py`) teaches every card
+before the subject's first unstarted module N, reviews them Good, and leaves the
+last two of the module before N unpassed; it checks the worker's own pick agrees.
 `--struggle` (`scripts/e2e_seed.py`) gives the subject's first due card two
 Again ratings from a fresh device, so F5's Again in the app is the third and
 Review offers help; `<sandbox>/f5_seed.json` names the card and a known

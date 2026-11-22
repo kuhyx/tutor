@@ -67,7 +67,6 @@ Map<String, Object?> fixtureTree(int now) {
         'active_minutes': 31,
         'target': 60,
         'new': 4,
-        'new_cap': 10,
       },
       'days': {
         for (var i = 13; i >= 0; i--)

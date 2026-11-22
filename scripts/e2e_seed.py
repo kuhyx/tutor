@@ -153,6 +153,9 @@ def nocard(data: Path, subject: str, next_step: str, now: int) -> str:
         first = _first_ready_module(ctx, subject)
         cards = {cid: c for cid, c in cards.items() if c.module == first}
     folded = fold(ctx.log.read())
+    # Taught by the sandbox worker, reviewed by a fresh "app": a review by a
+    # device that also wrote a ``taught`` is a drill pick (fold rule 6).
+    worker = (data / "device_id").read_text(encoding="utf-8").strip()
     seeds: list[dict[str, Any]] = []
     for cid, card in cards.items():
         ref = (subject, cid)
@@ -160,7 +163,7 @@ def nocard(data: Path, subject: str, next_step: str, now: int) -> str:
             continue
         if not folded.card(subject, cid).taught:
             taught = now - 2 * DAY_MS
-            seeds.append(worker_event("taught", ref, dev=ctx.device, at=taught))
+            seeds.append(worker_event("taught", ref, dev=worker, at=taught))
         if next_step == "due":
             span = (now - GAP_MS - 5000, now - GAP_MS)
             seeds.append(

@@ -64,6 +64,7 @@ class BlockedPanel extends StatelessWidget {
     if (b.gated) {
       glyph = Tooltip(
         message: 'Review',
+        excludeFromSemantics: true, // the spoken line says it
         child: GlyphButton(
           icon: Icons.style,
           semanticLabel: text,
@@ -74,6 +75,7 @@ class BlockedPanel extends StatelessWidget {
     } else if (b.writing) {
       glyph = Tooltip(
         message: 'Writing',
+        excludeFromSemantics: true, // the spoken line says it
         child: SpokenLabel(semanticLabel: text, child: const WritingPencil()),
       );
     } else {
@@ -81,6 +83,7 @@ class BlockedPanel extends StatelessWidget {
       final at = (now ?? DateTime.now)().millisecondsSinceEpoch;
       glyph = Tooltip(
         message: 'Done',
+        excludeFromSemantics: true, // the spoken line says it
         child: SpokenLabel(
           semanticLabel: text,
           onTap: () => unawaited(_home(context)),

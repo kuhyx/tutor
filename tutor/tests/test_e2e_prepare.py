@@ -79,11 +79,9 @@ def test_copy_drops_the_ledger_and_replaces_the_device_id(
 def test_as_of_rewinds_the_log_and_the_transcripts(src: Path, tmp_path: Path) -> None:
     dst = tmp_path / "box"
     as_of = datetime.strptime("2026-10-17 22:00", "%Y-%m-%d %H:%M").astimezone()
-    _module().prepare(src, dst, new_cap=10, as_of=as_of)
+    _module().prepare(src, dst, as_of=as_of)
     events = [json.loads(line) for line in (dst / "log.jsonl").read_text().splitlines()]
-    assert [e.get("c") for e in events] == ["a", None]
-    assert events[-1]["k"] == "new_cap"
-    assert events[-1]["n"] == 10
+    assert [e.get("c") for e in events] == ["a"]
     assert sorted(p.name for p in (dst / "sessions").iterdir()) == [
         "20261017-180000-aaaa.jsonl"
     ]
