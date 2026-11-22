@@ -1,5 +1,5 @@
 /// The tutor's thinking and research (DOCS-contract §6 `trace` / `progress`):
-/// a folded "Thinking" panel under each tutor bubble, and, while a turn is
+/// a thinking-head toggle on each tutor bubble, and, while a turn is
 /// in flight, the busy line with the research steps appearing as they
 /// happen (the reasoning itself stays folded until opened).
 library;
@@ -11,40 +11,13 @@ import 'package:tutor/model/session.dart';
 import 'package:tutor/model/trace.dart';
 import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/ui/relay_cue.dart';
-import 'package:tutor/widgets/content_text.dart';
-import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/ui/session/thinking_glyph.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
-/// One tool call as a line: `Search: <query>`, `Fetch: <url>`, `Run: <cmd>`.
-String toolLine(TraceStep step) {
-  final verb = switch (step.name) {
-    'WebSearch' => 'Search',
-    'WebFetch' => 'Fetch',
-    'Bash' => 'Run',
-    _ => step.name,
-  };
-  return step.input.isEmpty ? verb : '$verb: ${step.input}';
-}
+export 'package:tutor/ui/session/thinking_glyph.dart';
 
-/// The panel's header: `Thinking`, plus how many research steps it holds.
-String traceHeader(List<TraceStep> steps) {
-  final n = steps.where((s) => s.isTool).length;
-  return n == 0
-      ? 'Thinking'
-      : 'Thinking · $n research step${n == 1 ? '' : 's'}';
-}
-
-/// Panels start open (the fixture's `&open=1`, for screenshots).
-bool debugThinkingOpen = false;
-
-IconData _icon(String name) => switch (name) {
-  'WebSearch' => Icons.search,
-  'WebFetch' => Icons.public,
-  'Bash' => Icons.terminal,
-  _ => Icons.build_outlined,
-};
-
-/// A collapsible trace; folded by default.
+/// A collapsible trace; folded by default. The live turn's panel (the
+/// finished tutor bubble uses [ThinkingGlyph] and [ThinkingBody]).
 class ThinkingPanel extends StatefulWidget {
   /// Creates the panel. [live]: a turn in flight, whose research steps show
   /// even while folded.
@@ -84,72 +57,19 @@ class _ThinkingPanelState extends State<ThinkingPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SpokenLabel(
-            button: true,
-            expanded: _open,
-            semanticLabel: traceHeader(steps),
-            onTap: () => setState(() => _open = !_open),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              onTap: () => setState(() => _open = !_open),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _open ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
-                      color: muted,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Icon(Icons.psychology_outlined, size: 18, color: muted),
-                    if (steps.any((s) => s.isTool)) ...[
-                      const SizedBox(width: AppSpacing.xs),
-                      CountBadge(
-                        steps.where((s) => s.isTool).length,
-                        icon: Icons.search,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+          ThinkingGlyph(
+            steps: steps,
+            open: _open,
+            onToggle: () => setState(() => _open = !_open),
+            leading: Icon(
+              _open ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+              color: muted,
             ),
           ),
-          for (final s in shown) _StepView(s),
+          ThinkingBody(shown),
         ],
       ),
-    );
-  }
-}
-
-class _StepView extends StatelessWidget {
-  const new(this.step);
-
-  final TraceStep step;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: muted);
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xs),
-      child: step.isTool
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(_icon(step.name), size: 16, color: muted),
-                const SizedBox(width: AppSpacing.xs),
-                // The verb is the glyph; the query, url or command is content.
-                Expanded(
-                  child: ContentText(
-                    step.input.isEmpty ? '' : step.input,
-                    style: style,
-                  ),
-                ),
-              ],
-            )
-          : ContentText(step.text.trim(), style: style),
     );
   }
 }
