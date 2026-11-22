@@ -14,7 +14,7 @@ from tutor.curriculum.sql_bank import BANK
 from tutor.curriculum.sql_card_spec import Outcome
 from tutor.curriculum.sql_engine import run_query
 from tutor.curriculum.subject_store import LOCK
-from tutor.tests._cur import T0, D, make_ctx, module, subject
+from tutor.tests._cur import make_ctx, module, subject
 from tutor.tests._sql_cards_support import NULLS, SUBJ, runner, sql_subject
 
 if TYPE_CHECKING:
@@ -207,18 +207,25 @@ def test_the_engine_adapter_returns_rows_or_the_mysql_error_code(
     assert seen == ["up", "CREATE TABLE t (x INT);", "up", "SELECT 1;"]
 
 
-def test_the_cli_backfills_every_concept(
+def test_the_cli_backfills_cards_and_teaches_none(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """2026-10-30: the backfill marked 25 never-studied cards taught."""
     ctx, _ = sql_subject(tmp_path)
     monkeypatch.setattr(sql_cards_cli, "run_query", runner)
     monkeypatch.setattr(sql_cards_cli, "Context", lambda _root: ctx)
-    assert sql_cards_cli.main(["--data", str(tmp_path), "--taught-days-ago", "3"]) == 0
+    assert sql_cards_cli.main(["--data", str(tmp_path)]) == 0
     out = json.loads(capsys.readouterr().out)
     assert len(out["added"]) == 25
     assert out["skipped"] == {}
-    taught = [e["at"] for e in ctx.log.read() if e["k"] == "taught"]
-    assert set(taught) == {T0 - 3 * D}
+    assert out["taught"] == []
+    assert ctx.fold().taught_ids(SUBJ) == set()
+
+
+def test_seed_all_adds_cards_and_teaches_none(tmp_path: Path) -> None:
+    ctx, _ = sql_subject(tmp_path)
+    sql_cards.seed_all(ctx, runner)
+    assert ctx.fold().taught_ids(SUBJ) == set()
 
 
 def test_the_cli_exits_1_when_a_card_is_skipped(

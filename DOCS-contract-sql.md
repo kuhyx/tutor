@@ -167,8 +167,9 @@ example query (run by `sql_drills`), each excerpt is checked against its
 source as for any card. Ids are `sql-<key>`; an existing id is never changed,
 a taught card is never taught twice, a suspended one stays suspended. A
 failure is logged and never fails the turn; the next mastery retries.
-Backfill / repair:
-`python -m tutor sql-cards [--data DIR] [--taught-days-ago N]`.
+Backfill / repair: `python -m tutor sql-cards [--data DIR]` adds the missing
+cards and never marks one taught (only a lesson that really happened does; the
+2026-10-30 backfill taught 25 cards that were never studied).
 
 ### Drill pack (2026-11-02)
 `python -m tutor sql-pack [--data DIR]` saves the hand-written drills in

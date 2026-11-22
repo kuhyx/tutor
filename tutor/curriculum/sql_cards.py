@@ -4,10 +4,11 @@
 ``seed_concept`` turns a concept's cards from :mod:`sql_bank` into reviewable
 cards of the MySQL subject: the real result in each back comes from the
 engine (``Runner``), the excerpt is checked against its source like any other
-card, and every new card is ``taught`` by the worker (so it is in the review
-queue). Idempotent: a card id that exists is kept, a card already taught is
-never taught again (that would reset its FSRS state), a suspended one stays
-suspended. A failing card is skipped (and reported), never fatal.
+card. ``seed_concept`` (a lesson really happened) also ``taught``s them
+by the worker, so they join the review queue; ``add_concept`` / ``seed_all``
+(the CLI backfill) never do. Idempotent: a card id that exists is kept, a
+card already taught is never taught again (that would reset its FSRS state),
+a suspended one stays suspended. A failing card is skipped (and reported), never fatal.
 """
 
 from __future__ import annotations
@@ -34,7 +35,15 @@ MODULE: Final = "sql-lessons"
 TITLE: Final = "SQL lessons"
 SUMMARY: Final = "Rules and traps from the guided SQL lessons, as prediction cards."
 _logger = logging.getLogger(__name__)
-__all__ = ["MODULE", "SUBJECT", "Change", "Seeded", "seed_all", "seed_concept"]
+__all__ = [
+    "MODULE",
+    "SUBJECT",
+    "Change",
+    "Seeded",
+    "add_concept",
+    "seed_all",
+    "seed_concept",
+]
 
 
 @dataclass
@@ -168,6 +177,22 @@ def _teach(ctx: Context, subject: str, ids: list[str], at: int) -> list[str]:
     return todo
 
 
+def add_concept(
+    ctx: Context,
+    concept: str,
+    run: Callable[[str, str], Outcome],
+    *,
+    subject: str = SUBJECT,
+) -> Seeded:
+    """Cards of ``concept`` into ``subject``, none taught (nobody studied them).
+
+    A concept the bank does not know, or a missing / unapproved subject, is a
+    quiet no-op.
+    """
+    specs = BANK.get(concept, ())
+    return _add_cards(ctx, subject, specs, run) if specs else Seeded()
+
+
 def seed_concept(
     ctx: Context,
     concept: str,
@@ -176,13 +201,13 @@ def seed_concept(
     subject: str = SUBJECT,
     taught_at: int | None = None,
 ) -> Seeded:
-    """Cards of ``concept`` into ``subject``; taught at ``taught_at`` (default now).
+    """The lesson path: ``concept`` was just mastered, so add AND teach its cards.
 
-    A concept the bank does not know, or a missing / unapproved subject, is a
-    quiet no-op. Backdating ``taught_at`` makes the first review due earlier.
+    Taught at ``taught_at`` (default now); backdating makes the first review
+    due earlier. Only a lesson that really happened may call this.
     """
+    out = add_concept(ctx, concept, run, subject=subject)
     specs = BANK.get(concept, ())
-    out = _add_cards(ctx, subject, specs, run) if specs else Seeded()
     if specs and ctx.subjects.plan(subject) is not None:
         at = ctx.clock() if taught_at is None else taught_at
         out.taught = _teach(ctx, subject, [s.card_id for s in specs], at)
@@ -194,10 +219,9 @@ def seed_all(
     run: Callable[[str, str], Outcome],
     *,
     subject: str = SUBJECT,
-    taught_at: int | None = None,
 ) -> Seeded:
-    """Every concept of the bank (the backfill of lessons learned before this)."""
+    """Every concept's cards (the backfill); none is taught, no lesson happened."""
     out = Seeded()
     for concept in BANK:
-        out.merge(seed_concept(ctx, concept, run, subject=subject, taught_at=taught_at))
+        out.merge(add_concept(ctx, concept, run, subject=subject))
     return out
