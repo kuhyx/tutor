@@ -23,7 +23,7 @@ from tutor.ledger_io import default_paths
 from tutor.store import Store
 from tutor.tests._credit_support import NOON, put, unit
 from tutor.tests._cur import T0, card, make_ctx, module, subject
-from tutor.tests._fakes import FakeSession, ManualClock, turn
+from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 from tutor.tests.conftest import KEY
 
 if TYPE_CHECKING:
@@ -39,14 +39,15 @@ def _ledger() -> list[dict[str, Any]]:
     return rows
 
 
-def _teach(root: Path) -> Engine:
-    """Subject ``car``, module ``a``: three 170 s answers on the untaught ``c0``."""
+def _teach(root: Path, **kw: Any) -> Engine:
+    """Subject ``car`` (``c0`` in module ``a``, ``c1`` in ``b``): 3 answers on c0."""
     ctx, _ = make_ctx(root)
-    found = {f"c{i}": card("a", i) for i in range(2)}
-    subject(ctx, modules=[module("a", status="ready", cards=2)], found=found)
+    found = {"c0": card("a", 0), "c1": card("b", 1)}
+    mods = [module(m, status="ready", cards=1) for m in ("a", "b")]
+    subject(ctx, modules=mods, found=found)
     clock = ManualClock(T0 / 1000)
     fake = FakeSession(*[turn() for _ in range(4)])
-    engine = Engine(store=Store(root), now=clock, session_factory=lambda _p: fake)
+    engine = Engine(store=Store(root), now=clock, session_factory=lambda _p: fake, **kw)
     asyncio.run(engine.start("c0", subject="car"))
     for i in range(3):
         clock.advance(170)
@@ -122,3 +123,20 @@ def test_a_trimmed_teaching_row_stays_signed_with_its_module() -> None:
     assert (row["detail"]["subject"], row["detail"]["module"]) == ("automation", "io")
     assert row["detail"]["minutes"] == 10
     assert earned_time.verified(row, KEY)
+
+
+def test_backfill_never_tags_another_session_with_the_live_card(
+    tmp_path: Path,
+) -> None:
+    """A backfilled session is not the one on screen: its rows stay untagged."""
+    first = _teach(tmp_path, credit_fn=FakeCredit(error="down"))
+    live = Engine(
+        store=Store(tmp_path),
+        now=ManualClock(T0 / 1000 + 600),
+        session_factory=lambda _p: FakeSession(turn()),
+    )
+    asyncio.run(live.start("c1", subject="car"))  # module ``b`` on screen
+    live.backfill_today()
+    rows = _ledger()
+    assert {r["detail"]["session_id"] for r in rows} == {first.session_id}
+    assert not any({"subject", "module"} & set(r["detail"]) for r in rows)

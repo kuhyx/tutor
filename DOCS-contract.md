@@ -193,11 +193,13 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   `confirmed_on` unset). RTDB `receipts`/`stats` are display only; earned_time
   never reads RTDB.
 - C1 (leetcode-guard theory credit, 2026-11-22): a row written for a teaching
-  turn (the engine, `unit_credit.teaching_units`) also signs `detail.subject`
-  (the subject slug) and `detail.module` (the module id of the card on screen
-  when the span ended). A struggle session and a follow-up after `card_done`
-  are teaching turns too. Drill, app review, Anki, leftover and carry rows
-  carry neither key. earned_time ignores both keys and pays the same minutes
+  turn of the live session (`Upkeep._pay`, `unit_credit.teaching_units`)
+  also signs `detail.subject` (the subject slug) and `detail.module` (the
+  module id of the card on screen when the span ended). A struggle session and
+  a follow-up after `card_done` are teaching turns too. Drill, app review,
+  Anki, leftover and carry rows carry neither key, and neither do rows that
+  `backfill_today` writes for another session (untagged, never the wrong
+  module). earned_time ignores both keys and pays the same minutes
   (`tutor/tests/test_credit_taught.py`).
 - An answer delayed by an offline phone earns only what `REPLY_TIMEOUT`
   (600 s) allows from server receipt. A device cannot claim minutes. A restart reopens the window (<= 1 h) only for an on-time reply still in flight; idle time across it earns nothing.

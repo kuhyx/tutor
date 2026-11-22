@@ -51,11 +51,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         """Wire the collaborators; ``simulated_time`` lets a driver skip ahead."""
         self.store = store or Store()
         self._now = now
-        self._credit = credit_fn or (
-            lambda units, sid: unit_credit.teaching_units(
-                units, sid, now=self.time(), subject=self.source.subject, card=self.card
-            )
-        )
+        self._credit = credit_fn or self._pay
         self._factory = session_factory or (
             lambda prompt: TutorSession(traced(research.research_options(prompt)))
         )

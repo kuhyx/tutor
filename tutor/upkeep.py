@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from tutor import backfill, leftover, repair, resume
+from tutor import backfill, leftover, repair, resume, unit_credit
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
 from tutor.curriculum.source import transcript_subject
@@ -19,8 +19,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
+    from tutor.cards import Card
     from tutor.clock import BlockReady
     from tutor.curriculum.context import Context
+    from tutor.curriculum.source import CardSource
     from tutor.store import Store
 
 
@@ -29,6 +31,8 @@ class Upkeep:
 
     if TYPE_CHECKING:
         store: Store
+        source: CardSource
+        card: Card | None
         _credit: Callable[[list[BlockReady], str], list[dict[str, Any]]]
         _set_today: Callable[[int], None]
         resume_path: Callable[[Path], bool]
@@ -39,12 +43,28 @@ class Upkeep:
             """Today's ledger total (``CardFlow``)."""
 
         @property
+        def session_id(self) -> str:
+            """The live session's id (``Engine``)."""
+
+        @property
         def ctx(self) -> Context:
             """The curriculum context (``CardFlow``)."""
 
     def repair_done_cards(self) -> list[tuple[str, str]]:
         """Run the one-off card_done repair (see ``repair``)."""
         return repair.repair_done_cards(self.store)
+
+    def _pay(self, units: list[BlockReady], sid: str) -> list[dict[str, Any]]:
+        """The default writer: the live session's rows name its card's module (C1).
+
+        Backfill pays other sessions through it too; the card on screen is not
+        theirs, so their rows stay untagged (never the wrong module).
+        """
+        card = self.card if sid == self.session_id else None
+        subject = self.source.subject
+        return unit_credit.teaching_units(
+            units, sid, now=self.time(), subject=subject, card=card
+        )
 
     def backfill_today(self) -> None:
         """Credit minutes today's transcripts earned but never got paid (idempotent)."""
