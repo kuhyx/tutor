@@ -68,12 +68,36 @@ die() { echo "e2e_sandbox: $*" >&2; exit 1; }
 # shellcheck source-path=SCRIPTDIR source=_e2e_sandbox_units.sh
 source "$(dirname "${BASH_SOURCE[0]}")/_e2e_sandbox_units.sh"
 
+# The e2e build must fit one 60 s call. A full release build (wasm dry run,
+# -O4, source maps, icon tree shaking) took 50-70 s under the cap; these
+# flags cut it to ~36 s and change nothing a flow asserts. The stamp skips
+# the compile entirely when no input of the build changed.
+readonly BUILD_FLAGS=(--release --no-pub -O1 --no-wasm-dry-run --no-source-maps
+    --no-tree-shake-icons -t tool/e2e/main.dart -o build/web_e2e --base-href /app/)
+
+# One hash over every file the web build reads, plus the flags and Flutter.
+build_inputs_hash() {
+    {
+        printf '%s\n' "${BUILD_FLAGS[*]}"
+        cat .fvmrc
+        find lib tool/e2e web assets pubspec.yaml pubspec.lock l10n.yaml -type f \
+            -not -path 'lib/l10n/gen/*' -print0 | sort -z | xargs -0 sha256sum
+    } | sha256sum | cut -d' ' -f1
+}
+
 cmd_build() {
     cd "$ROOT/app"
     [[ -f lib/config/firebase_local.dart ]] ||
         fvm dart run tool/write_firebase_config.dart --placeholder
+    local want stamp="$WEB/.inputs.sha256"
+    want="$(build_inputs_hash)"
+    if [[ -f "$WEB/index.html" && "$(cat "$stamp" 2>/dev/null)" == "$want" ]]; then
+        echo "e2e web build is current"
+        return 0
+    fi
     CAP_CPU_PCT=20 CAP_MEM=4G "$HOME/.claude/scripts/capped.sh" fvm flutter build web \
-        --release -t tool/e2e/main.dart -o build/web_e2e --base-href /app/
+        "${BUILD_FLAGS[@]}"
+    printf '%s\n' "$want" > "$stamp"
 }
 
 # Stop units one by one: a single `systemctl stop a b` enqueues nothing when
