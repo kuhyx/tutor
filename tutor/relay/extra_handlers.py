@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Final
 from tutor.relay.focus_interview import focus_evidence, focus_trip, focus_weekend
 from tutor.relay.mock import mock_request
 from tutor.relay.plan import plan_step_done, plan_today
+from tutor.relay.rework import rework_open, rework_turn
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -21,4 +22,6 @@ HANDLERS: Final[dict[str, Callable[[RequestContext], Awaitable[dict[str, Any]]]]
     "mock": mock_request,
     "plan_today": plan_today,
     "plan_step_done": plan_step_done,
+    "rework_open": rework_open,
+    "rework_turn": rework_turn,
 }

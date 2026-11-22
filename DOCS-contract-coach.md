@@ -182,3 +182,36 @@ gets `session_start`, `req`, `req_check`, `code`, `rung`, `reveal`,
 `postmortem`, `session_end`, so `leetcode report` sees app sessions.
 Not in v1: `lc_predict` (predict-before-show), `lc_grade` (step grading),
 the Postgres/MySQL answer-key problems, a retest start.
+
+## Rework (`rework_open`, `rework_turn`, 2026-11-22)
+The guard lock's `?` on a problem row runs `tutor --route
+/rework/<subject>/<module>/<slug>` (the unit's first mapped module; `slug` is
+the titleSlug, `[a-z0-9-]+`). kuhy says what was unclear; the tutor answers
+and adds 0-5 cards to that module (`tutor/relay/rework.py`). The id field is
+`rework_id` (12 hex, one chat per subject/module/slug: opening again resumes).
+
+| kind | body | result `data` |
+|---|---|---|
+| `rework_open` | `{"subject","module","slug"<=120}` | `{"rework_id","subject","module","module_title","slug","thread":[{"mine","md"}],"cards":[Card],"history":{"submissions","days","sessions"}}` |
+| `rework_turn` | `{"rework_id","text"<=8000}` | `{"reply_md","cards":[Card],"refused":[{"front","reason"}],"added":int}` |
+
+`Card` = `{"id","front","back"}`; `added` counts the chat's cards so far.
+`bad_request`: a subject outside module_state's three LeetCode `SUBJECTS`, a
+module its data-dir plan lacks, an unknown `rework_id`. `rework_open` is
+model-free; `rework_turn` is one model call (`claude_unavailable` first).
+
+Cards are untaught, so module_state's reconcile writes the signed `done:false`
+row itself and the lock goes back to THEORY; the handler never writes it. Each
+card's source is `https://rework.leetcode-coach.invalid/<slug>/<8 hex of the
+front>` (one page per card: `sources.seed_text` never overwrites), seeded
+with one line built from the card, `code_built` as the toolbox cards; its
+`tutor` mark is `{"added":ms,"source":"rework:<slug>"}`. A front the subject
+already holds is skipped.
+
+The prompt's history is display-only, never a gate input
+(`tutor/relay/rework_context.py`, tolerant of missing or corrupt files):
+`$TUTOR_GUARD_DATA` (default `~/.local/share/leetcode_guard`)
+`history/<slug>.json` (newest 8 submissions, code capped at 1500 chars) and
+`attempts.json` (newest 10 days), plus the newest 3 `lc_sessions` of the slug
+(the newest statement, belief, last code, chat tail). State:
+`<data>/rework_sessions/<rework_id>.json`.

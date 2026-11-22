@@ -16,8 +16,9 @@
 Every refusal is ``edit_refused`` with the reason, and nothing is written.
 
 The card's ``tutor`` mark ({} = none, left out of its JSON) records
-``{"added": ms}`` and ``{"removed" | "editor_removed": ms, "requires_of":
-{card: index}}`` (the Editor's Remove writes the latter).
+``{"added": ms}`` (plus ``"source": "rework:<slug>"`` for a rework card,
+``tutor.relay.rework``) and ``{"removed" | "editor_removed": ms,
+"requires_of": {card: index}}`` (the Editor's Remove writes the latter).
 """
 
 from __future__ import annotations
@@ -173,6 +174,8 @@ class Draft:
     # Built by code from a fixed bank (the LeetCode toolbox), in a format of
     # its own: the seven card rules judge written cards, not these.
     code_built: bool = False
+    # What made it, beyond its URL (``rework:<slug>``): the mark's ``source``.
+    origin: str = ""
 
 
 def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
@@ -193,7 +196,8 @@ def add(ctx: Context, subject: str, draft: Draft) -> tuple[str, CardRec]:
     cid = str(card_edit(body, ctx, judged=not draft.code_built)["card"])
     with LOCK:  # the mark the Editor's Remove keys on
         meta, cards = ctx.subjects.need_meta(subject), ctx.subjects.cards(subject)
-        cards[cid].tutor = {"added": ctx.clock()}
+        origin = {"source": draft.origin} if draft.origin else {}
+        cards[cid].tutor = {"added": ctx.clock(), **origin}
         ctx.subjects.commit(subject, meta, Change(cards=cards))
     return cid, cards[cid]
 

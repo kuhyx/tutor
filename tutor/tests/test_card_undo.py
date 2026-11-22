@@ -198,3 +198,15 @@ def test_restore_refused_when_it_would_make_a_cycle(car: tuple[Context, Fakes]) 
     ctx.subjects.commit("car", ctx.subjects.need_meta("car"), _cards(found))
     assert "cycle" in _refused("card_restore", ctx, "a1")
     assert ctx.subjects.cards("car")["a1"].suspended
+
+
+def test_a_rework_card_keeps_its_origin_through_remove_and_restore(
+    car: tuple[Context, Fakes],
+) -> None:
+    ctx, _ = car
+    draft = card_ops.Draft(NEW.topic, NEW.front, NEW.back, PISTON, origin="rework:x")
+    cid, rec = card_ops.add(ctx, "car", draft)
+    assert rec.tutor == {"added": T0, "source": "rework:x"}
+    BUILD_HANDLERS["card_remove"]({"subject": "car", "card": cid}, ctx)
+    card_undo.restore(ctx, "car", cid)
+    assert ctx.subjects.cards("car")[cid].tutor == {"added": T0, "source": "rework:x"}

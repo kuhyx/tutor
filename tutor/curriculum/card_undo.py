@@ -83,7 +83,7 @@ def restore(ctx: Context, subject: str, cid: str) -> CardRec:
             if dep is not None and cid not in dep.requires:
                 dep.requires.insert(min(int(at), len(dep.requires)), cid)
         rec.suspended = False
-        rec.tutor = {k: v for k, v in rec.tutor.items() if k == "added"}
+        rec.tutor = {k: v for k, v in rec.tutor.items() if k in {"added", "source"}}
         try:
             card_rules.check_set(cards, {m.id: m for m in plan.modules})
         except CardError as err:  # e.g. an Editor edit since made a cycle
