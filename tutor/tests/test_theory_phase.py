@@ -38,6 +38,12 @@ def _warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
     ]
 
 
+@pytest.fixture(autouse=True)
+def _fresh_warnings() -> None:
+    """Each test sees its first failure warned (the reader keeps the last one)."""
+    theory_phase.forget_failure()
+
+
 def _src(tmp_path: Path, name: str = LC) -> tuple[Context, SubjectSource]:
     ctx, _ = make_ctx(tmp_path)
     mods = [module("a", status="ready"), module("b", status="ready")]
@@ -109,6 +115,25 @@ def test_an_unreadable_key_is_nothing_and_one_warning(
     with caplog.at_level(logging.WARNING):
         assert theory_phase.teachable() == frozenset()
     assert len(caplog.records) == 1  # not a second line from the key reader
+
+
+def test_a_repeated_failure_is_warned_once_until_it_changes(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The server reads on every publish: one line per failure, not per read."""
+    with caplog.at_level(logging.WARNING):
+        for _ in range(3):  # missing file, three reads
+            assert theory_phase.teachable() == frozenset()
+        assert len(_warnings(caplog)) == 1
+        write_phase(sign(phase_row([(LC, "a")])) | {"hmac": "0" * 64})
+        theory_phase.teachable()
+        theory_phase.teachable()
+        assert len(_warnings(caplog)) == 2  # a different failure: one more
+        grant((LC, "a"))
+        assert theory_phase.teachable() == {(LC, "a")}
+        write_phase({}).unlink()
+        theory_phase.teachable()
+    assert len(_warnings(caplog)) == 3  # after a good read it is news again
 
 
 def test_a_valid_solve_row_is_nothing_without_a_warning(

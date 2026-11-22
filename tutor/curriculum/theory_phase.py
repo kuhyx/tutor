@@ -6,8 +6,10 @@ leetcode-guard writes one signed row to ``theory_phase.json``
 ``(subject, module)`` pairs of the current unit while the guard is in
 THEORY. A module of a :data:`GATED` subject not in that list is never
 taught and never marked taught. Fail closed: a missing, unreadable, unsigned,
-foreign or malformed file means nothing is teachable, logged as ONE warning
-per read and never raised. Ungated subjects never read the file.
+foreign or malformed file means nothing is teachable, never raised, and
+logged as ONE warning per failure: the server reads the file on every plan
+publish, so the same failure is not logged again until a read succeeds or
+the failure changes. Ungated subjects never read the file.
 
 The path resolves at call time: ``TUTOR_THEORY_PHASE`` moves it (the tests
 point it into ``tmp_path``), else it is the guard's data dir under ``HOME``.
@@ -38,6 +40,8 @@ KIND: Final = "theory_phase"
 PHASES: Final = frozenset({"theory", "solve", "none"})
 _PAIR: Final = 2
 _logger = logging.getLogger(__name__)
+# The failure last warned about ("" after a good read): one line per failure.
+_last_failure = [""]
 
 type Pairs = frozenset[tuple[str, str]]
 
@@ -80,12 +84,29 @@ def teachable() -> Pairs:
         # TypeError: compare_digest refuses a non-ASCII ``hmac`` string.
         found = _pairs(row, key)
     except (OSError, ValueError, TypeError) as exc:
-        _logger.warning("theory phase %s unreadable, nothing teachable: %s", path, exc)
+        failure = f"theory phase {path} unreadable, nothing teachable: {exc}"
+        if _is_new(failure):
+            _logger.warning("%s", failure)
         return frozenset()
     if found is None:
-        _logger.warning("theory phase %s not a signed C3 row, nothing teachable", path)
+        failure = f"theory phase {path} not a signed C3 row, nothing teachable"
+        if _is_new(failure):
+            _logger.warning("%s", failure)
         return frozenset()
+    _last_failure[0] = ""
     return found
+
+
+def _is_new(failure: str) -> bool:
+    """Whether ``failure`` is not the one last warned about (it is, from now)."""
+    new = failure != _last_failure[0]
+    _last_failure[0] = failure
+    return new
+
+
+def forget_failure() -> None:
+    """Warn about the next failure even if it repeats the last (tests)."""
+    _last_failure[0] = ""
 
 
 def refused(subject: str, modules: Iterable[str]) -> frozenset[str]:

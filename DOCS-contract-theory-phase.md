@@ -31,8 +31,10 @@ one bare signed row, rewritten by the guard when the phase changes:
   `mysql-8-for-timed-sql-coding-tests-joins-and` included, is never gated and
   never reads the file.
 - Fail closed: a missing or unreadable file, an unreadable key, a bad signature,
-  a wrong `kind`, or a malformed `detail` means nothing is teachable. Each such
-  read logs ONE warning and raises nothing.
+  a wrong `kind`, or a malformed `detail` means nothing is teachable and raises
+  nothing. It logs ONE warning per failure: the server reads the file on every
+  plan publish, so the same failure is logged again only after a good read or
+  a different failure (tutor-internal; the file format is unchanged).
 
 ## The gate
 A card of a gated module that is not in `teachable` is never taught and never
