@@ -95,7 +95,8 @@ write_phase() {
 # CLOCK runs it under libfaketime from that moment on: the worker's "today".
 # XDG_STATE_HOME stays in the sandbox: its staged model faults (F14, a
 # --model-down restart) must never reach kuhy's app-errors board. The C3
-# phase file is the sandbox's too (`phase`), never the guard's live one.
+# phase file is the sandbox's too (`phase`), never the guard's live one; so
+# is the guard dir the rework chat reads (TUTOR_GUARD_DATA, F29).
 start_server() {
     local sandbox db port dev clock
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
@@ -115,7 +116,7 @@ start_server() {
         -E TUTOR_SOURCE_CACHE="$sandbox/cache/sources" -E TUTOR_WIKI_CACHE="$sandbox/cache/wiki" \
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
         -E FOCUS_PROJECT_DATA="$sandbox/focus" -E XDG_STATE_HOME="$sandbox/state" \
-        -E TUTOR_THEORY_PHASE="$sandbox/theory_phase.json" \
+        -E TUTOR_THEORY_PHASE="$sandbox/theory_phase.json" -E TUTOR_GUARD_DATA="$sandbox/guard" \
         -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {

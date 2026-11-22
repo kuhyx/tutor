@@ -2,14 +2,13 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flows: tap the real web build, assert on the emulator, screenshot.
 
-Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F26|F28> [PHASE]``
+Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F26|F28|F29> [PHASE]``
 against a sandbox that is ``up``. Every step is printed before it runs, so on
 failure the last line names it; a failure also saves ``<out>_fail.png``.
 Exit 0 = PASS.
 
-* F1 Continue learning (``e2e_start.py``): Home -> "Continue
-  learning" -> the subject's next card (``--card``) is live and its first
-  tutor message is on screen. (F2, the daily cap, went with the cap.)
+* F1 Continue learning (``e2e_start.py``): Home -> "Continue learning" ->
+  the next card (``--card``) is live with its first tutor message. (No F2.)
 * F3, F4 follow-up questions (``e2e_follow_up.py``).
 * F5 help on a struggling card (``e2e_struggle.py``; phased like F1).
 * F6 the carry-over bank (``e2e_carry.py``): ``check``, then ``again`` after
@@ -24,14 +23,13 @@ Exit 0 = PASS.
   (``e2e_learn_gate.py``); F26 the window takeover
   (``e2e_takeover.py``). F27, the takeover under i3, has its own runner
   (``e2e_i3_handover.sh``: a private Xvfb with its own i3). F28 the second
-  unit's module gate (``e2e_unit_gate.py``; ``up --unit-gate``).
+  unit's module gate (``e2e_unit_gate.py``; ``up --unit-gate``). F29 the
+  rework chat (``e2e_rework.py``; ``up --rework``).
 
-A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
-60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
-to the request and saves ``--state``; ``wait`` polls the emulator (no
-browser) for up to ``--wait`` s and exits 75 (``PENDING``) while the worker
-is still on it: call it again; ``check`` reopens the app and asserts. No
-phase runs all three in one call.
+A tutor turn can outlast one 60 s call, so F1, F3 and F4 run in phases, one
+call each: ``send`` taps up to the request and saves ``--state``; ``wait``
+polls the emulator (no browser) for up to ``--wait`` s and exits 75
+(``PENDING``) while the worker is on it: call it again; ``check`` asserts.
 """
 
 from __future__ import annotations
@@ -64,6 +62,7 @@ from e2e_keyless import f17
 from e2e_learn import F22_PHASES, f22
 from e2e_learn_gate import F25_PHASES, f23, f24_check, f24_send, f25
 from e2e_path import f20_check, f20_send
+from e2e_rework import F29_PHASES, f29
 from e2e_split import f18_check, f18_send
 from e2e_start import f1_check, f1_send
 from e2e_struggle import f5_check, f5_send
@@ -91,7 +90,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
     ),
     "F24": (f24_send, f24_check),
 }
-FLOWS = ["F1", *(f"F{n}" for n in range(3, 27)), "F28"]  # F2, the cap, is gone
+FLOWS = ["F1", *(f"F{n}" for n in (*range(3, 27), 28, 29))]  # no F2 (the cap)
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -163,9 +162,10 @@ STATEFUL: dict[str, Callable[[Flow, argparse.Namespace], int]] = {
     "F21": gate,
     "F22": lambda flow, args: f22(flow, args.phase, Path(args.state)),
     "F28": lambda flow, args: f28(flow, args.phase, Path(args.state)),
+    "F29": lambda flow, args: f29(flow, args.phase, Path(args.state)),
 }
 # The phases that end a stateful flow with PASS (the others print OK).
-TERMINAL = {"F22": {"check"}, "F28": {"paid", "check", "solve"}}
+TERMINAL = {"F22": {"check"}, "F28": {"paid", "check", "solve"}, "F29": {"check"}}
 
 
 def drive(args: argparse.Namespace, browser: Browser | None) -> int:
@@ -216,6 +216,7 @@ def main() -> int:
             *F22_PHASES,
             *F25_PHASES,
             *F28_PHASES,
+            *F29_PHASES,
         ],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")

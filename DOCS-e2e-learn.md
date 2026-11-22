@@ -1,4 +1,4 @@
-# Agent E2E: the `/learn` flows F22-F28
+# Agent E2E: the `/learn` flows F22-F28 and the rework chat F29
 
 These flows drive the LeetCode lock's learn button from the route to the
 signed rows. The sandbox is described in README "Agent E2E"; the contracts
@@ -42,6 +42,9 @@ $S flow F28 solve
 # F27: under i3 the open window comes to the focused workspace
 $S up --phase "theory $LC/prefix-sums"
 scripts/e2e_i3_handover.sh     # optional argument: where to save the shot
+# F29: the lock's ? rework chat adds cards; C2 flips back to done: false
+$S up --phase solve --rework $LC/scans/matrix-diagonal-sum
+$S flow F29 open               # then, one call each: send, wait, check
 $S down
 ```
 
@@ -76,3 +79,15 @@ $S down
 - F21 (README "Agent E2E") needs `E2E_SUBJECT=product-and-design-taste` on
   every call on today's data: the default subject has no unstarted module
   after a taught one, so `up --gate` refuses to seed it.
+- F29 (`e2e_rework.py`): `up --rework S/M/SLUG` writes a synthetic guard
+  history of SLUG (two submissions with code) to `<sandbox>/guard`, which the
+  sandbox server reads as `TUTOR_GUARD_DATA`, and teaches the rest of M, so
+  a row verified with the sandbox key reads `done: true` (the copied rows
+  are signed with the real key; with no verified row, the rework's new card
+  writes no `done: false` row at all). `scans` is the guard's unit for
+  matrix-diagonal-sum's tags (array, matrix). `open` asserts the
+  `rework_open` result counts the seeded submissions and saves the baseline;
+  `check` run right after `open` is the red run (no rework card). `check`
+  wants a new card of M with `tutor.source == "rework:SLUG"` and a new
+  verified C2 row of M reading `done: false`, then saves the reopened chat
+  as `app/build/screens/e2e_f29_rework.png`.

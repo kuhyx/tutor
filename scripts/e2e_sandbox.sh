@@ -18,11 +18,12 @@
 #        [--phase "MODE [S/M ...]"] # the guard's C3 row (default missing)
 #        [--guard-theory JSON]      # canned /api/theory "theory" map (default: down)
 #        [--unarchive S]            # F24: kuhy archived SQL; teach it here
+#        [--rework S/M/SLUG]        # F29: guard history of SLUG; module M done
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28 [PHASE]
+#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28|F29 [PHASE]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -126,7 +127,7 @@ cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
     local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
-    local learn="" unarchive="" unit_gate="" guard=""
+    local learn="" unarchive="" unit_gate="" guard="" rework=""
     local -a pass=() c3=(missing)
     while (($#)); do
         case "$1" in
@@ -138,6 +139,7 @@ cmd_up() {
             --learn) learn="${2:?--learn S/M}"; shift ;;
             --unit-gate) unit_gate="${2:?--unit-gate fresh|taught}"; shift ;;
             --unarchive) unarchive="${2:?--unarchive S}"; shift ;;
+            --rework) rework="${2:?--rework S/M/SLUG}"; shift ;;
             --guard-theory) guard="${2:?--guard-theory JSON}"; shift ;;
             --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
@@ -165,6 +167,7 @@ cmd_up() {
     fi
     [[ -z "$unit_gate" ]] || "$PY" "$ROOT/scripts/e2e_unit_gate.py" seed "$sandbox/data" "$unit_gate"
     [[ -z "$unarchive" ]] || "$PY" -m tutor subject unarchive "$unarchive" --data "$sandbox/data"
+    [[ -z "$rework" ]] || TUTOR_KEY="$sandbox/test.key" "$PY" "$ROOT/scripts/e2e_rework_seed.py" "$sandbox" "$rework"
     write_phase "$sandbox" "${c3[@]}"
     if [[ -n "$carry" ]]; then  # the day before the worker's today
         "$PY" "$ROOT/scripts/e2e_seed.py" carry "$sandbox/data" --key "$sandbox/test.key" \
@@ -238,7 +241,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28 [PHASE] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28|F29 [PHASE] | down" ;;
     esac
 }
 
