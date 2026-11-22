@@ -41,10 +41,10 @@ $S down
 - `wait` exits 75 while the tutor's turn is pending, and F22's `idle` exits 75
   until a minute has passed since the tutor's message (a C1 row needs one
   active minute). Call the same command again.
-- F22's `check` fails with "module already done before Mark card done" when
-  the tutor ends the card itself on the flow's reply (the model's choice,
-  seen 2026-11-22). The C1 row and the C2 flip are then already written and
-  the flow has no tap left to test: run F22 again on a fresh `up`.
+- F22's `check` passes on either path: the tutor may end the card itself on
+  the flow's reply (the model's choice). Then the C2 row is already written
+  and the flow skips "Mark card done"; `send` refuses a module that was done
+  before the flow started, so that row is always the flow's own.
 - `up --phase "MODE [S/M ...]"` writes the guard's C3 row into the sandbox,
   signed with the sandbox key. `theory S/M ...` grants those modules, `solve`
   grants none, `bad S/M` carries a wrong `hmac`, and `missing` (the default)

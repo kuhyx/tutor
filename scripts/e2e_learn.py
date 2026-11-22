@@ -80,6 +80,10 @@ def _live_on(flow: Flow, sid: str) -> int:
 def f22_send(flow: Flow) -> State:
     """The route sends a session_start for the module."""
     flow.note(f"c4 seed {seed(flow)}")
+    # check accepts a done row as the tutor's own card end: it must be new.
+    if module_done(flow):
+        msg = f"{LC}/{MODULE} was done before the flow started: a fresh up"
+        raise FlowError(msg)
     before, files = flow.rids(), transcripts(flow)
     learn(flow, LC, MODULE)
     return {"rid": flow.request("session_start", before), "files": sorted(files)}
@@ -158,16 +162,19 @@ def f22_reply(flow: Flow, state: State) -> State:
 
 
 def f22_check(flow: Flow, state: State) -> None:
-    """The reply paid C1; Mark card done flips C2 to done."""
+    """The reply paid C1; C2 reads done, by the tutor's card end or the tap.
+
+    The tutor may end the card itself on the reply (its choice): the module's
+    done row is then already there, and f22_send proved it was not before.
+    """
     flow.step("the reply's message result is ok")
     if not (result := flow.result_of(str(state["rid"]))).get("ok"):
         msg = f"reply refused: {json.dumps(result)[:300]}"
         raise FlowError(msg)
     credit_paid(flow, state)
-    flow.step("C2 before the tap: the module is not done")
     if module_done(flow):
-        msg = "module already done before Mark card done"
-        raise FlowError(msg)
+        flow.step("C2: the tutor ended the card; a verified row reads done: true")
+        return
     flow.screen("/session")
     flow.expect(COMPOSER, timeout=30)
     time.sleep(2)  # the button stays disabled until the live feed has loaded
