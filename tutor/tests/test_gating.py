@@ -128,7 +128,8 @@ def test_resuming_a_now_locked_card_keeps_the_conversation(tmp_path: Path) -> No
 
 
 def test_the_tutors_card_done_on_a_locked_card_is_refused(tmp_path: Path) -> None:
-    fake = FakeSession(turn("Done!", card_done=True), turn("Go on"))
+    # The second turn is the rewrite of the refused draft (done_refusal).
+    fake = FakeSession(turn("Done!", card_done=True), turn("Not yet"), turn("Go on"))
     engine = session_on_a_card_that_became_locked(tmp_path, fake)
     sid = engine.session_id
     state = asyncio.run(engine.reply("LD FBD ST SFC IL", msg_id="m1"))

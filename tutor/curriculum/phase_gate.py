@@ -6,7 +6,9 @@ list; these helpers carry the same rule to the paths that never pick: a
 reply on the live card, a resume, a follow-up and the tutor's own
 ``card_done``. Every refusal reuses an existing state (the pick's
 ``no_card_left``, a resume that "cannot be continued", a refused
-``card_done``), so no new text reaches the learner.
+``card_done``). A refused ``card_done`` is shown as the model's rewrite or
+the lock bubble with the module title (``tutor.done_refusal``), never as
+the draft that called the card done.
 """
 
 from __future__ import annotations

@@ -13,6 +13,7 @@ subject), plus every device's log events from the data dir copy and
 does. The model's working dir follows ``TUTOR_DATA`` into the sandbox
 (``tutor.session.sandbox_dir``); every system prompt is appended to
 ``<sandbox>/prompts.jsonl`` (F5 checks a struggle session's rule 16).
+``TUTOR_E2E_SCRIPT`` swaps the model for a scripted queue (F31).
 
 Run by ``scripts/e2e_sandbox.sh up``; refuses the real data dir and :8778.
 """
@@ -32,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import urlsplit
 
 from e2e_key import SANDBOX_ARGON, SANDBOX_PASSPHRASE
+import e2e_script_session
 import uvicorn
 
 from tutor import webapp
@@ -174,7 +176,10 @@ def serve(db: str, port: int, prompts: Path) -> None:
     As ``cli.relay_engine()``, but every system prompt is logged to ``prompts``.
     """
     sink = phases.PhaseSink()
-    engine = Engine(session_factory=logged(phases.session_factory(sink), prompts))
+    factory = phases.session_factory(sink)
+    if script := os.environ.get(e2e_script_session.ENV):  # up --scripted (F31)
+        factory = e2e_script_session.factory(Path(script))
+    engine = Engine(session_factory=logged(factory, prompts))
     cli.prepare(engine)
     app: Starlette = create_app(engine, port=port)
     inner = app.router.lifespan_context

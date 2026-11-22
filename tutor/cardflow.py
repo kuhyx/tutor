@@ -15,7 +15,7 @@ from dataclasses import asdict
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import credit, follow_up, gating, picked, unit_credit
+from tutor import credit, done_refusal, follow_up, gating, picked, unit_credit
 from tutor.curriculum import phase_gate
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
@@ -31,8 +31,8 @@ if TYPE_CHECKING:
     from tutor.clock import BlockReady
     from tutor.conversation import Conversation
     from tutor.curriculum.source import CardSource
+    from tutor.done_refusal import Settled
     from tutor.edit_flow import Notice
-    from tutor.models import TutorTurn
     from tutor.session import TutorSession
     from tutor.store import Store
 
@@ -211,10 +211,14 @@ class CardFlow:
         }
 
     def _apply(
-        self, turn: TutorTurn, t: float, message: dict[str, Any], *, tap: bool = False
+        self, settled: Settled, t: float, message: dict[str, Any], *, tap: bool = False
     ) -> None:
+        """Log and show the settled turn (``done_refusal``: a refused done)."""
         _, conv, card = self._live()
-        logged = asdict(turn)
+        turn, logged = settled.turn, asdict(settled.turn)
+        live = done_refusal.Live(self.source, card, conv, self.store)
+        # Only a card_done reads progress.json: most turns end nothing.
+        need = done_refusal.final_need(live, settled, logged, message, tap=tap)
         # A tapped check answer: no pass, no mastery, no card_done (picked.py).
         if tap and picked.refuse(logged, message, conv.check):
             conv.notes.append(picked.REFUSED)
@@ -225,13 +229,10 @@ class CardFlow:
             message["mastered_new"] = self.source.master(
                 names, card.id, self.session_id
             )
-        # Only a card_done reads progress.json: most turns end nothing.
-        done = bool(logged["card_done"]) and not conv.follow_up
-        need = phase_gate.blockers(self.source, card) if done else []
         if need:  # locked: logged as refused, so replay and repair skip it
             logged["card_done"], logged["card_done_refused"] = False, need
             conv.notes.append(gating.refused_note(card, need))
-        elif done:  # the tutor's word is enough (b193: a gate dropped it)
+        elif done_refusal.wants_done(turn, conv, tap=tap):  # b193: the word suffices
             conv.mark_card_done()  # the first time: a done card is a follow-up
             self.source.mark(card.id, self.session_id, done=True)
             message["card_done"] = True

@@ -104,8 +104,10 @@ start_server() {
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     dev="$(sed -n 's/^DEV=//p' "$STATE")"
     clock="$(sed -n 's/^CLOCK=//p' "$STATE")"
-    local -a fake=()
+    local -a fake=() script=()
     [[ -n "$clock" ]] && fake=(faketime "$clock")
+    # F31: every model turn comes from a queue the flow writes (e2e_script_session.py).
+    [[ "$(sed -n 's/^SCRIPTED=//p' "$STATE")" == 1 ]] && script=(-E "TUTOR_E2E_SCRIPT=$sandbox/model_script.json")
     model_env "$(sed -n 's/^MODEL=//p' "$STATE")"
     guard_env "$(sed -n 's/^GUARD=//p' "$STATE")" "$clock"
     systemd-run --user --quiet --collect --unit="$SERVER_UNIT" -p RuntimeMaxSec=3600 \
@@ -117,7 +119,7 @@ start_server() {
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
         -E FOCUS_PROJECT_DATA="$sandbox/focus" -E XDG_STATE_HOME="$sandbox/state" \
         -E TUTOR_THEORY_PHASE="$sandbox/theory_phase.json" -E TUTOR_GUARD_DATA="$sandbox/guard" \
-        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" \
+        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" "${script[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {
         tail -20 "$sandbox/server.log" >&2

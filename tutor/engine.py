@@ -9,7 +9,6 @@ and claimed once the ledger reads it back. Card end, Next, Stop: ``cardflow``.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import replace
 import time
 from typing import TYPE_CHECKING, Any
 import uuid
@@ -20,6 +19,7 @@ from tutor.cardflow import CardFlow
 from tutor.curriculum import phase_gate
 from tutor.curriculum.source import CardSource, source_for
 from tutor.delivery import DESKTOP, Delivery, learner_message
+from tutor.done_refusal import Live, settle
 from tutor.edit_flow import EditFlow, Notice
 from tutor.follow_up import FollowUpFlow
 from tutor.prompt import for_source, turn_prompt
@@ -225,24 +225,26 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
                 | {"t": t_learner, "msg_id": msg_id, "device": via.device}
                 | follow_up.tag(conv),
             )
-        turn, reply = await session.ask(asked.text)
-        if not self.source.profile.diagrams:  # schemdraw draws circuits only
-            turn = replace(turn, diagram=None)
+        # A refused card_done is rewritten before media and the clock stamp.
+        live = Live(self.source, self._live()[2], conv, self.store)
+        settled = await settle(session, live, asked.text, tap=asked.tap)
         # Only now: a failed ask leaves no learner bubble (the page keeps the
         # text for a retry) and keeps the notes and primer for that retry.
         conv.notes, conv.resumed.note = [], ""
         if learner_text is not None:
             conv.messages.append(learner_message(learner_text, via.device))
-        message = media.page_message(turn)
-        if reply.trace:  # display only: never sent back (resume.primer)
-            message["trace"] = reply.trace
-        gone = await self._edit_cards(conv, turn, message, notices)
-        await media.attach(media.Turn(session, conv, self.store), turn, message)
+        message = media.page_message(settled.turn)
+        if settled.trace:  # display only: never sent back (resume.primer)
+            message["trace"] = settled.trace
+        gone = await self._edit_cards(conv, settled.turn, message, notices)
+        await media.attach(media.Turn(session, conv, self.store), settled.turn, message)
         # Stamped when the final message (after any image check) is ready, so
         # the check's model call never eats into the learner's reply window.
         t_tutor = self.time()
         if learner_text is not None:
-            conv.clock.user_reply(t_learner, learner_text, low_effort=turn.low_effort)
+            conv.clock.user_reply(
+                t_learner, learner_text, low_effort=settled.turn.low_effort
+            )
         conv.clock.tutor_message(t_tutor)
-        self._apply(turn, t_tutor, message, tap=asked.tap)
+        self._apply(settled, t_tutor, message, tap=asked.tap)
         return gone

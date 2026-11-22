@@ -1,4 +1,4 @@
-# Agent E2E: the `/learn` flows F22-F28 and the rework chat F29
+# Agent E2E: the `/learn` flows F22-F28, the rework chat F29, F30 and F31
 
 These flows drive the LeetCode lock's learn button from the route to the
 signed rows. The sandbox is described in README "Agent E2E"; the contracts
@@ -45,8 +45,21 @@ scripts/e2e_i3_handover.sh     # optional argument: where to save the shot
 # F29: the lock's ? rework chat adds cards; C2 flips back to done: false
 $S up --phase solve --rework $LC/scans/matrix-diagonal-sum
 $S flow F29 open               # then, one call each: send, wait, check
+# F31: a refused card_done shows the rewrite or the lock, never the draft
+$S up --scripted               # the model is a queue the flow writes
+$S flow F31 rewrite            # then: fallback (same sandbox)
+E2E_SUBJECT=$LC $S up --scripted --learn $LC/prefix-sums --phase "theory $LC/prefix-sums"
+E2E_SUBJECT=$LC $S flow F31 module
 $S down
 ```
+
+- `up --scripted` swaps the Claude CLI for `scripts/e2e_script_session.py`:
+  each model turn is the next entry of `<sandbox>/model_script.json`, and
+  every prompt the engine sent goes to `model_script.prompts.jsonl`. The
+  engine, relay and app are the real ones. F31 `rewrite` starts a card whose
+  requires are taught, then a second device marks one of them not done;
+  `module` holds the draft while it moves the guard to `solve`
+  (`scripts/e2e_done_refusal.py`).
 
 - `wait` exits 75 while the tutor's turn is pending, and F22's `idle` exits 75
   until a minute has passed since the tutor's message (a C1 row needs one

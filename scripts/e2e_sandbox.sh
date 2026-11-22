@@ -21,9 +21,8 @@
 #        [--rework S/M/SLUG]        # F29: guard history of SLUG; module M done
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
-#                                    # the day before; --as-of runs the
-#                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28|F29 [PHASE]
+#        [--scripted]               # F31: the model is a queue (e2e_script_session)
+#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28..F31 [PHASE]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -126,13 +125,14 @@ cmd_down() {
 cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
-    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
+    local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0 scripted=0
     local learn="" unarchive="" unit_gate="" guard="" rework=""
     local -a pass=() c3=(missing)
     while (($#)); do
         case "$1" in
             --struggle) struggle=1 ;;
             --gate) gate=1 ;;
+            --scripted) scripted=1 ;;
             --carry) carry="${2:?--carry N}"; shift ;;
             --nocard) nocard="${2:?--nocard due|review}"; shift ;;
             --model-down) model="${2:?--model-down network|refuse}"; shift ;;
@@ -177,8 +177,8 @@ cmd_up() {
     db_port="$(free_port)"
     port="$(free_port)"
     db="http://127.0.0.1:$db_port"
-    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\nGUARD=%s\n' \
-        "$sandbox" "$db" "$port" "$dev" "$clock" "$model" "$guard" > "$STATE"
+    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\nGUARD=%s\nSCRIPTED=%s\n' \
+        "$sandbox" "$db" "$port" "$dev" "$clock" "$model" "$guard" "$scripted" > "$STATE"
     systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
         java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
     wait_http "$db/.json" 40 || die "emulator did not start"
@@ -218,12 +218,13 @@ cmd_hold() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F16}" phase="${2:-all}" db port sandbox
+    local flow="${1:?flow F1..F31}" phase="${2:-all}" db port sandbox driver=e2e_drive.py
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
+    case "$flow" in F30) driver=e2e_log_wake.py ;; F31) driver=e2e_done_refusal.py ;; esac
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
-    "$PY" "$ROOT/scripts/e2e_drive.py" "$flow" "$phase" --app "http://127.0.0.1:$port/app/" \
+    "$PY" "$ROOT/scripts/$driver" "$flow" "$phase" --app "http://127.0.0.1:$port/app/" \
         --db "$db" --card "$CARD" --display "$DISPLAY_ID" \
         --data "$sandbox/data" --focus "$sandbox/focus" --session "$SESSION" --subject "$SUBJECT" \
         --state "$(dirname "$STATE")/${flow,,}.json" --out "$SCREENS/e2e_${flow,,}"
@@ -241,7 +242,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28|F29 [PHASE] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] [--scripted] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28..F31 [PHASE] | down" ;;
     esac
 }
 

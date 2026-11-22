@@ -110,10 +110,13 @@ def test_a_reply_on_a_card_that_became_refused_never_reaches_the_model(
 
 def test_a_card_done_while_the_phase_flips_is_not_marked(tmp_path: Path) -> None:
     grant((LC, "a"))
-    engine = _engine(tmp_path, FlipSession(2, turn(), turn("Done.", **DONE)))
+    fake = FlipSession(2, turn(), turn("Done.", **DONE), turn("Closed"))
+    engine = _engine(tmp_path, fake)
     asyncio.run(engine.start(subject=LC))
     state = asyncio.run(engine.reply("the answer"))
     assert not state["card_done"]
+    assert state["messages"][-1]["text"] == "Closed"  # the rewrite, not "Done."
+    assert "closed for now" in str(fake.prompts[-1])  # the module, by title
     assert engine.ctx.fold().taught_ids(LC) == set()
     lines = [json.loads(x) for x in _sessions(tmp_path)[0].read_text().splitlines()]
     (logged,) = [e["turn"] for e in lines if e["type"] == "tutor"][1:]
