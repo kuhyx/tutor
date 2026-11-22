@@ -182,10 +182,13 @@ class TeachLock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SpokenLabel(
-    semanticLabel: 'Not teachable now',
+    semanticLabel: teachLockLabel,
     child: Icon(Icons.lock, color: Theme.of(context).colorScheme.outline),
   );
 }
+
+/// [TeachLock]'s spoken word (also in a module tile's merged label).
+const teachLockLabel = 'Not teachable now';
 
 /// Recall as a percent number (`62%`), tinted like a bar.
 class RecallStat extends StatelessWidget {

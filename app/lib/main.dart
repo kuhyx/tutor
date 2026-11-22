@@ -25,8 +25,8 @@ void main() {
   final zoom = UiZoom();
   unawaited(zoom.load(openKv()));
   final route = kIsWeb ? routeFromUri(Uri.base) : null;
-  // C4: one tutor window; the one a `/learn/...` link opened closes the rest.
-  joinWindows(claim: route?.startsWith('/learn/') ?? false);
+  // C4: a later `/learn/...` launch hands its route here (web/index.html).
+  joinWindows();
   runApp(
     TutorApp(
       config: FirebaseConfig.compiled,

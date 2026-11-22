@@ -5,4 +5,7 @@ library;
 void forgetDeepLink() {}
 
 /// One window per app off the web already.
-void joinWindows({required bool claim}) {}
+void joinWindows() {}
+
+/// No other window hands a route off the web.
+Stream<String> get handedRoutes => const Stream.empty();

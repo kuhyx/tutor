@@ -9,6 +9,7 @@ import 'package:material_ui/material_ui.dart' as mui;
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
+import 'package:tutor/ui/route_inbox.dart';
 import 'package:tutor/ui/sign_in_screen.dart';
 import 'package:tutor/ui/start_screen.dart';
 import 'package:tutor/ui/ui_scale.dart';
@@ -101,10 +102,13 @@ class _GateState extends State<_Gate> {
           return session.data!
               ? E2eUnlock(
                   services: services,
-                  child: StartScreen(
+                  child: RouteInbox(
                     services: services,
-                    onSignedOut: recheck,
-                    initialRoute: widget.initialRoute,
+                    child: StartScreen(
+                      services: services,
+                      onSignedOut: recheck,
+                      initialRoute: widget.initialRoute,
+                    ),
                   ),
                 )
               : SignInScreen(services: services, onSignedIn: recheck);

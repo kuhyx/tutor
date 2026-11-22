@@ -59,6 +59,7 @@ from e2e_path import f20_check, f20_send
 from e2e_split import f18_check, f18_send
 from e2e_start import f1_check, f1_send
 from e2e_struggle import f5_check, f5_send
+from e2e_takeover import LC, AppBrowser, f25
 from e2e_unbacked import f11
 
 if TYPE_CHECKING:
@@ -80,7 +81,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
         lambda flow, state: f20_check(flow, state, f1_check),
     ),
 }
-FLOWS = ["F1", *(f"F{n}" for n in range(3, 22))]  # F2 (the cap) is gone
+FLOWS = ["F1", *(f"F{n}" for n in range(3, 27))]  # F2 (the cap) is gone
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F7": f7,
     "F8": f8,
@@ -94,6 +95,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F16": f16,
     "F17": f17,
     "F19": f19,
+    "F25": f25,
 }
 
 
@@ -203,6 +205,10 @@ def main() -> int:
         return drive(args, None)
     width, height = (int(n) for n in args.size.split("x"))
     log = Path(f"{args.out}_chrome.log")
+    if args.flow == "F25":  # a real --app window on the plan (e2e_takeover.py)
+        plan = f"{args.app}?db={args.db}#/plan/{LC}"
+        with AppBrowser(args.display, log, (width, height), app=plan) as app:
+            return drive(args, app)
     with Browser(args.display, log, (width, height)) as browser:
         return drive(args, browser)
 

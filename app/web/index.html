@@ -41,6 +41,37 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // C4 window takeover (lib/ui/deep_link_web.dart). `tutor --route
+    // /learn/...` against a running profile opens a SECOND --app window, and
+    // a used window can never close itself (more than one history entry).
+    // So this new window, before Flutter boots, offers its route to a tutor
+    // window already open on this origin; once one answers "took", it closes
+    // itself (one history entry: the browser lets a script close it). No
+    // answer within a second, or the close refused: boot as usual.
+    (function () {
+      var boot = function () {
+        var s = document.createElement('script');
+        s.src = 'flutter_bootstrap.js';
+        s.async = true;
+        document.body.appendChild(s);
+      };
+      var route = decodeURIComponent(location.hash.slice(1));
+      if (route.indexOf('/learn/') !== 0 || !('BroadcastChannel' in window)) {
+        boot();
+        return;
+      }
+      var channel = new BroadcastChannel('tutor-window');
+      var wait = setTimeout(function () { channel.close(); boot(); }, 1000);
+      channel.onmessage = function (event) {
+        if (event.data !== 'took ' + route) return;
+        clearTimeout(wait);
+        channel.close();
+        window.close();
+        setTimeout(boot, 500);
+      };
+      channel.postMessage('learn ' + route);
+    })();
+  </script>
 </body>
 </html>

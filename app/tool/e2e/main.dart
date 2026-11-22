@@ -98,7 +98,7 @@ void main() {
   }
 
   final route = routeFromUri(Uri.base);
-  joinWindows(claim: route?.startsWith('/learn/') ?? false); // as lib/main.dart
+  joinWindows(); // as lib/main.dart
   runApp(
     TutorApp(
       config: config,

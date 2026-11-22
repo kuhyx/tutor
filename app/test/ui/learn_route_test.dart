@@ -12,6 +12,7 @@ import 'package:tutor/ui/module_tile.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/plan_grid.dart';
 import 'package:tutor/ui/plan_screen.dart';
+import 'package:tutor/ui/route_inbox.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
 import 'package:tutor/ui/session/session_screen.dart';
 
@@ -61,9 +62,31 @@ void main() {
     );
   });
 
-  test('joining the windows is safe off the web', () {
-    joinWindows(claim: true);
-    joinWindows(claim: false);
+  test('joining the windows is safe off the web; nothing is handed', () async {
+    joinWindows();
+    expect(await handedRoutes.isEmpty, isTrue);
+  });
+
+  testWidgets('a handed route opens over the screen; none after dispose', (
+    t,
+  ) async {
+    final db = fixtureDb();
+    final stream = FakeStream();
+    final s = await fixtureServices(db, stream);
+    final routes = StreamController<String>.broadcast();
+    await pumpScreen(
+      t,
+      RouteInbox(services: s, routes: routes.stream, child: const Text('x')),
+    );
+    expect(routes.hasListener, isTrue);
+    routes.add('/learn/car/fuel');
+    await _frames(t);
+    expect(find.byType(SessionScreen), findsOneWidget);
+    final (_, req) = lastRequest(db);
+    expect((req['body'] as Map)['module'], 'fuel');
+    await t.pumpWidget(const SizedBox()); // the session spins: no settle
+    expect(routes.hasListener, isFalse);
+    await routes.close();
   });
 
   for (final (teachable, glyphs) in [(false, 1), (true, 0), (null, 0)]) {
@@ -78,6 +101,11 @@ void main() {
         ),
       );
       expect(find.byType(TeachLock), findsNWidgets(glyphs));
+      // The tile's merged label carries the lock's word (an e2e finds it).
+      expect(
+        find.bySemanticsLabel(RegExp(teachLockLabel)),
+        findsNWidgets(glyphs),
+      );
       await pumpScreen(
         t,
         Scaffold(

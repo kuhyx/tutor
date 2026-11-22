@@ -53,8 +53,10 @@ class ModuleProgressTile extends StatelessWidget {
     final help = [?badgeHelp(badge), if (counted) tallyHelp].join('\n');
     // The old status line is the spoken label; the marks are glyphs.
     final subtitle = SpokenLabel(
+      // The lock glyph's word too: this label replaces its children's.
       semanticLabel: [
         badge,
+        if (!m.teachable) teachLockLabel,
         if (m.cards > 0) '${m.cards} cards',
         if (counted) tally!.doneText,
         'recall ${(m.recall * 100).round()}%',

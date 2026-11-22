@@ -2,12 +2,11 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """A stdlib-only Chrome DevTools Protocol client over ``--remote-debugging-pipe``.
 
-Chrome reads NUL-terminated JSON commands from fd 3 and writes replies and
-events to fd 4, so no port is opened and no websocket library is needed.
-Chrome runs headed on a virtual X display (never kuhy's ``:0``): CanvasKit
-renders blank in headless mode. Flutter web exposes its semantics tree as
-DOM nodes, so :meth:`Browser.find` locates a button by its label and
-:meth:`Browser.click` taps the centre of its box with real mouse events.
+Commands go in on fd 3 and replies come out on fd 4 (NUL-terminated JSON):
+no port, no websocket library. Chrome runs headed, muted, on a virtual X
+display (never kuhy's ``:0``): CanvasKit renders blank in headless mode.
+Flutter web's semantics tree is DOM, so :meth:`Browser.find` locates a button
+by its label and :meth:`Browser.click` taps it with real mouse events.
 """
 
 from __future__ import annotations
@@ -46,9 +45,13 @@ class Browser:
     """One Chrome window on ``display`` with a scratch profile."""
 
     def __init__(
-        self, display: str, log: Path, size: tuple[int, int] = (1366, 768)
+        self,
+        display: str,
+        log: Path,
+        size: tuple[int, int] = (1366, 768),
+        app: str | None = None,
     ) -> None:
-        """Start Chrome (stderr to ``log``) and attach to its first page."""
+        """Start Chrome (stderr to ``log``), a blank tab or an ``app`` window."""
         log.parent.mkdir(parents=True, exist_ok=True)
         self._log = log.open("wb")
         self._profile = Path(tempfile.mkdtemp(prefix="tutor-e2e-chrome."))
@@ -66,13 +69,14 @@ class Browser:
                 "--remote-debugging-pipe",
                 f"--user-data-dir={self._profile}",
                 "--disable-extensions",
+                "--mute-audio",
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--password-store=basic",
                 "--window-position=0,0",
                 f"--window-size={size[0]},{size[1]}",
                 "--force-device-scale-factor=1",
-                "about:blank",
+                f"--app={app}" if app else "about:blank",
             ],
             env=env,
             stdout=subprocess.DEVNULL,
@@ -172,19 +176,15 @@ class Browser:
 
     def _note(self, event: dict[str, Any]) -> None:
         """Keep the page's console errors and uncaught exceptions."""
-        params = event.get("params", {})
-        if event.get("method") == "Runtime.exceptionThrown":
+        params, method = event.get("params", {}), event.get("method")
+        kind = params.get("type")
+        if method == "Runtime.exceptionThrown":
             detail = params.get("exceptionDetails", {})
-            self.problems.append(
-                f"exception: {detail.get('exception', {}).get('description', detail)}"
-            )
-        elif event.get("method") == "Runtime.consoleAPICalled" and params.get(
-            "type"
-        ) in {"error", "warning"}:
-            args = " ".join(
-                str(a.get("value", a.get("description"))) for a in params["args"]
-            )
-            self.problems.append(f"console.{params['type']}: {args}")
+            exc = detail.get("exception", {}).get("description", detail)
+            self.problems.append(f"exception: {exc}")
+        elif method == "Runtime.consoleAPICalled" and kind in {"error", "warning"}:
+            args = (str(a.get("value", a.get("description"))) for a in params["args"])
+            self.problems.append(f"console.{kind}: {' '.join(args)}")
 
     def open(self, url: str) -> None:
         """Navigate the page (console errors are kept in :attr:`problems`)."""
