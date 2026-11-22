@@ -9,7 +9,7 @@ carry-over bank (:mod:`tutor.carry`), so extra minutes are recorded to be banked
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Final, TypedDict
 
 import earned_time
 
@@ -21,6 +21,13 @@ EARNER_CAP_MINUTES: Final = 60
 BANK_CAP: Final = 100
 # The writer's trim: a day records what it earns plus what it can bank.
 DAILY_CAP_MINUTES: Final = EARNER_CAP_MINUTES + BANK_CAP
+
+
+class Taught(TypedDict, total=False):
+    """A teaching turn's signed ``detail`` keys (contract C1); other rows: none."""
+
+    subject: str  # the subject slug
+    module: str  # the module id of the card taught when the span ended
 
 
 def minutes_of(row: dict[str, object]) -> int:

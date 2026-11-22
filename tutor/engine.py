@@ -52,8 +52,8 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         self.store = store or Store()
         self._now = now
         self._credit = credit_fn or (
-            lambda units, sid: unit_credit.credit_units(
-                units, sid, now=self.time(), subject=self.source.subject
+            lambda units, sid: unit_credit.teaching_units(
+                units, sid, now=self.time(), subject=self.source.subject, card=self.card
             )
         )
         self._factory = session_factory or (

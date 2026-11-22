@@ -34,6 +34,7 @@ from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from tutor.cards import Card
     from tutor.clock import BlockReady
 
 LEGACY_BLOCK_MINUTES: Final = ledger_pay.LEGACY_MINUTES
@@ -78,6 +79,7 @@ def credit_units(
     *,
     now: float,
     subject: str | None = None,
+    taught: ledger_pay.Taught | None = None,
 ) -> list[dict[str, Any]]:
     """Write one ledger row per span of ``units``; the rows to log, in order.
 
@@ -85,14 +87,17 @@ def credit_units(
     transcript's receipts say (a write whose read-back failed did land). Stops
     after a daily-cap refusal: no later minute of the day can pay either.
     A learner turn on ``subject`` that paid also counts as focus work when the
-    active focus project lists it (``focus_hook``; never raises).
+    active focus project lists it (``focus_hook``; never raises). ``taught``
+    (subject and module) goes into each row only for a teaching turn (C1).
     """
     rows: list[dict[str, Any]] = []
     beat_at: float | None = None  # when the last recorded unit was earned
     paid = credit.session_minutes(session_id)
     for group in spans(u for u in units if u.block not in paid):
         last = group[-1]
-        receipt = credit.credit_span(last, len(group), session_id, now=now)
+        receipt = credit.credit_span(
+            last, len(group), session_id, now=now, **(taught or {})
+        )
         rows.append(credit_row(last, len(group), receipt))
         if receipt.recorded:
             beat_at = last.ended_at
@@ -101,6 +106,27 @@ def credit_units(
     if subject and any(r["recorded"] for r in rows):
         focus_hook.heartbeat(subject, now, clock.activity_time(now, beat_at))
     return rows
+
+
+def teaching_units(
+    units: Iterable[BlockReady],
+    session_id: str,
+    *,
+    now: float,
+    subject: str,
+    card: Card | None,
+) -> list[dict[str, Any]]:
+    """:func:`credit_units` for an engine (teaching) turn on ``card`` of ``subject``.
+
+    The rows name the subject and the card's module (its topic stem; for a
+    curriculum subject the plan's module id), so a reader can tell which
+    module the minutes taught (contract C1). Drill, app review, Anki,
+    leftover and carry rows never come through here.
+    """
+    taught = (
+        ledger_pay.Taught(subject=subject, module=card.topic.stem) if card else None
+    )
+    return credit_units(units, session_id, now=now, subject=subject, taught=taught)
 
 
 def paid_minutes(receipts: Iterable[dict[str, Any]]) -> int:

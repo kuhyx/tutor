@@ -22,7 +22,7 @@ from datetime import UTC, datetime, timedelta
 import logging
 import re
 import time
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Unpack
 
 import earned_time
 
@@ -39,6 +39,7 @@ from tutor.ledger_pay import (
     CREDIT,
     DAILY_CAP_MINUTES,
     LEGACY_MINUTES,
+    Taught,
     minutes_between,
     minutes_of,
     paying,
@@ -126,23 +127,31 @@ def session_minutes(session_id: str, *, paths: Paths | None = None) -> set[int]:
 
 
 def build_row(
-    last: BlockReady, minutes: int, session_id: str, key: bytes, *, now: float
+    last: BlockReady,
+    minutes: int,
+    session_id: str,
+    key: bytes,
+    *,
+    now: float,
+    **taught: Unpack[Taught],
 ) -> dict[str, object]:
-    """The signed row for ``minutes`` ending at ``last`` (values coerced first)."""
+    """The signed row for ``minutes`` ending at ``last``; ``taught``: C1 keys."""
+    detail: dict[str, object] = {
+        "session_id": str(session_id),
+        "block": int(last.block),
+        "minutes": int(minutes),
+        "active_seconds": float(last.active_seconds),
+        "ended_at": float(last.ended_at),
+        "checks_passed": int(last.checks_passed),
+        "checks_total": int(last.checks_total),
+    }
+    detail |= {k: str(v) for k, v in taught.items()}
     row: dict[str, object] = {
         "kind": CREDIT,
         "entry_id": entry_id_for(session_id, last.block),
         "day": local_day(float(last.ended_at))[0],
         "created_at": float(now),
-        "detail": {
-            "session_id": str(session_id),
-            "block": int(last.block),
-            "minutes": int(minutes),
-            "active_seconds": float(last.active_seconds),
-            "ended_at": float(last.ended_at),
-            "checks_passed": int(last.checks_passed),
-            "checks_total": int(last.checks_total),
-        },
+        "detail": detail,
     }
     row["hmac"] = str(earned_time.entry_signature(row, key))
     return row
@@ -209,6 +218,7 @@ def credit_span(
     *,
     paths: Paths | None = None,
     now: float | None = None,
+    **taught: Unpack[Taught],
 ) -> CreditReceipt:
     """Append the row for ``minutes`` ending at ``last``, read back, say if it counts.
 
@@ -222,12 +232,12 @@ def credit_span(
         )
         raise ValueError(msg)
     where = paths or default_paths()
-    moment = time.time() if now is None else now
+    now = time.time() if now is None else now
     entry_id = entry_id_for(session_id, last.block)
     key = read_key(where.key_file)
     if key is None:
         return _refused(entry_id, f"signing key unreadable: {where.key_file}")
-    row = build_row(last, minutes, session_id, key, now=moment)
+    row = build_row(last, minutes, session_id, key, now=now, **taught)
     try:
         with exclusive(where.lock):
             refusal, paid = append_locked(row, where.ledger, key)
@@ -235,4 +245,4 @@ def credit_span(
     except (LedgerError, OSError) as exc:
         _logger.warning("credit %s not recorded: %s", entry_id, exc)
         return _refused(entry_id, str(exc))
-    return _read_back(paying(stored, key), entry_id, refusal, paid, moment)
+    return _read_back(paying(stored, key), entry_id, refusal, paid, now)
