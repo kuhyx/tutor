@@ -49,6 +49,9 @@ class _Prepared:
     def repair_done_cards(self) -> list[tuple[str, str]]:
         return [("card-a", "s1")]
 
+    def unrefuse_done_cards(self) -> list[tuple[str, str]]:
+        return [("card-b", "s2")]
+
     def backfill_today(self) -> None:
         self.calls.append("backfill")
 
@@ -65,6 +68,7 @@ def test_prepare_logs_repairs_and_resume(caplog: pytest.LogCaptureFixture) -> No
     with caplog.at_level(logging.WARNING):
         cli.prepare(cast("Engine", eng), fresh=False)
     assert "marked card-a done from s1" in caplog.text
+    assert "marked card-b done from s2 (was refused)" in caplog.text
     assert "resumed session 20261012-000000-abcd" in caplog.text
     fresh = _Prepared()
     cli.prepare(cast("Engine", fresh), fresh=True)

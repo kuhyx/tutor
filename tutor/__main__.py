@@ -86,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
         engine, sink = Engine(simulated_time=args.simulate_time), None
     for card, sid in engine.repair_done_cards():
         print(f"marked {card} done from {sid}", file=sys.stderr)
+    for card, sid in engine.unrefuse_done_cards():
+        print(f"marked {card} done from {sid} (was refused)", file=sys.stderr)
     engine.backfill_today()
     engine.record_module_states()
     if not args.fresh and engine.resume_latest():

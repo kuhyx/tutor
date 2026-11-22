@@ -21,6 +21,7 @@ class FakeEngine:
 
     resumes = True
     repaired: ClassVar[list[tuple[str, str]]] = []
+    unrefused: ClassVar[list[tuple[str, str]]] = []
     built: ClassVar[list[FakeEngine]] = []
 
     def __init__(self, *, simulated_time: bool = False) -> None:
@@ -33,6 +34,9 @@ class FakeEngine:
 
     def repair_done_cards(self) -> list[tuple[str, str]]:
         return FakeEngine.repaired
+
+    def unrefuse_done_cards(self) -> list[tuple[str, str]]:
+        return FakeEngine.unrefused
 
     def backfill_today(self) -> None:
         self.backfills += 1
@@ -69,6 +73,7 @@ def served(monkeypatch: pytest.MonkeyPatch) -> Recorder:
     FakeEngine.built = []
     FakeEngine.resumes = True
     FakeEngine.repaired = []
+    FakeEngine.unrefused = []
     monkeypatch.setattr(tutor_main, "_port_busy", lambda _port: False)
     monkeypatch.setattr(tutor_main, "Engine", FakeEngine)
     monkeypatch.setattr(tutor_main, "create_app", rec.create_app)
@@ -116,6 +121,16 @@ def test_reports_each_card_repaired_as_done(
     assert "marked card-a done from 20261009-s1" in err
     assert "marked card-b done from 20261008-s2" in err
     assert len(served.runs) == 1
+
+
+def test_reports_each_card_unrefused(
+    served: Recorder, capsys: pytest.CaptureFixture[str]
+) -> None:
+    FakeEngine.unrefused = [("card-c", "20261122-s3")]
+    assert tutor_main.main(["--port", "18999"]) == 0
+    assert (
+        "marked card-c done from 20261122-s3 (was refused)" in capsys.readouterr().err
+    )
 
 
 def test_no_resume_message_when_nothing_to_resume(

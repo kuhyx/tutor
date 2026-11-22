@@ -36,6 +36,7 @@ class Upkeep:
         card: Card | None
         _credit: Callable[[list[BlockReady], str], list[dict[str, Any]]]
         _set_today: Callable[[int], None]
+        _source_for: Callable[[str | None], CardSource]
         resume_path: Callable[[Path], bool]
         time: Callable[[], float]
 
@@ -54,6 +55,10 @@ class Upkeep:
     def repair_done_cards(self) -> list[tuple[str, str]]:
         """Run the one-off card_done repair (see ``repair``)."""
         return repair.repair_done_cards(self.store)
+
+    def unrefuse_done_cards(self) -> list[tuple[str, str]]:
+        """Re-apply the ``card_done`` the old gate refused (see ``repair``)."""
+        return repair.unrefuse_done_cards(self.store, self._source_for)
 
     def _pay(self, units: list[BlockReady], sid: str) -> list[dict[str, Any]]:
         """The default writer: the live session's rows name its card's module (C1).

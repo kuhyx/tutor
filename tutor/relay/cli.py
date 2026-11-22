@@ -40,6 +40,8 @@ def prepare(engine: Engine, *, fresh: bool = False) -> None:
     """What a starting server does before serving: repair, backfill, resume."""
     for card, sid in engine.repair_done_cards():
         _logger.warning("marked %s done from %s", card, sid)
+    for card, sid in engine.unrefuse_done_cards():
+        _logger.warning("marked %s done from %s (was refused)", card, sid)
     engine.backfill_today()
     engine.record_module_states()
     if not fresh and engine.resume_latest():
