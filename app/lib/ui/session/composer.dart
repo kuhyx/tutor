@@ -1,6 +1,6 @@
 /// The answer composer (`static/questions.js`): a box per question of the
 /// latest tutor message, sent as ONE message; else a plain box. Boxes get
-/// the question's choices as chips plus "Hint" (sends "Hint"). Drafts
+/// the question's choices as chips and a "Hint" bulb inside. Drafts
 /// survive a reload; Ctrl+Enter sends. Phone: one question at a time (dots,
 /// swipe right = back), one row [hint][don't know][field][check / send] at a
 /// tighter density, no Ctrl+Enter hint. A question with choices shows them
@@ -202,16 +202,15 @@ class _ComposerState extends State<Composer> {
         : (_asked.isEmpty ? 3 : 1),
     maxLines: widget.phone ? 6 : 12,
     dense: widget.phone,
+    hint: _asked.isNotEmpty,
+    onHint: widget.enabled ? _hint : null,
   );
 
   Widget _chips(int i) => AnswerChips(
     // Typing: the chips make room for the field (the keyboard is up).
     choices: _typing ? const [] : _asked[i].choices,
     selected: _boxes[i].text,
-    enabled: widget.enabled,
     onPick: (c) => _pick(i, c),
-    onHint: _hint,
-    hint: !widget.phone,
   );
 
   @override

@@ -1,30 +1,27 @@
 /// Small parts of the answer composer: the question label and tap-to-fill
-/// chips above an answer box, and the answer box itself. The phone's own
+/// chips above an answer box, and the Send row (the box itself is in
+/// `answer_box.dart`). The phone's own
 /// parts (dots, glyph row) live in `composer_phone.dart`.
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/session/answers.dart';
-import 'package:tutor/ui/session/composer_phone.dart';
 import 'package:tutor/widgets/content_text.dart';
-import 'package:tutor/widgets/icon_field.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
+export 'package:tutor/ui/session/answer_box.dart';
 export 'package:tutor/ui/session/composer_drafts.dart';
 export 'package:tutor/ui/session/composer_phone.dart';
 
-/// The tutor's suggested answers as chips, plus a fixed "Hint" chip.
+/// The tutor's suggested answers as chips (the "Hint" bulb is inside the
+/// answer box, `AnswerBox.hint`).
 class AnswerChips extends StatelessWidget {
   /// Creates the chips; [onPick] gets the tapped choice (it only fills the
-  /// box, so it always works), [onHint] sends "Hint" and is inert while
-  /// [enabled] is false (a turn in flight).
+  /// box, so it always works).
   const new({
     required this.choices,
-    required this.enabled,
     required this.onPick,
-    required this.onHint,
-    this.hint = true,
     this.selected,
     super.key,
   });
@@ -32,23 +29,14 @@ class AnswerChips extends StatelessWidget {
   /// The choice now in the box (drawn picked); null = none.
   final String? selected;
 
-  /// The "Hint" glyph sits among the chips (the phone has it in its row).
-  final bool hint;
-
-  /// The question's choices (may be empty: only "Hint" shows).
+  /// The question's choices (empty: no row at all).
   final List<String> choices;
-
-  /// False while a turn is in flight.
-  final bool enabled;
 
   /// A choice was tapped.
   final ValueChanged<String> onPick;
 
-  /// "Hint" was tapped.
-  final VoidCallback onHint;
-
   @override
-  Widget build(BuildContext context) => choices.isEmpty && !hint
+  Widget build(BuildContext context) => choices.isEmpty
       ? const SizedBox.shrink()
       : Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -64,12 +52,6 @@ class AnswerChips extends StatelessWidget {
                       : null,
                   label: ContentText(c),
                   onPressed: () => onPick(c),
-                ),
-              if (hint)
-                GlyphButton(
-                  icon: Icons.lightbulb_outline,
-                  semanticLabel: 'Hint',
-                  onPressed: enabled ? onHint : null,
                 ),
             ],
           ),
@@ -152,56 +134,5 @@ class SendRow extends StatelessWidget {
         onPressed: canSend ? onSend : null,
       ),
     ],
-  );
-}
-
-/// One answer box: always typeable, even while a turn is in flight.
-class AnswerBox extends StatelessWidget {
-  /// Creates the box.
-  const new({
-    required this.controller,
-    required this.label,
-    required this.minLines,
-    required this.maxLines,
-    this.dense = false,
-    this.focusNode,
-    super.key,
-  });
-
-  /// Focus owner (the composer opens a closed field and focuses it).
-  final FocusNode? focusNode;
-
-  /// The phone session: no pencil, [kPhoneText] text, no bottom gap (it
-  /// sits in a row).
-  final bool dense;
-
-  /// Its text.
-  final TextEditingController controller;
-
-  /// The field's spoken label (nothing is painted).
-  final String label;
-
-  /// Lines shown when empty.
-  final int minLines;
-
-  /// Lines before it scrolls.
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(bottom: dense ? 0 : AppSpacing.sm),
-    child: FieldLabel(
-      semanticLabel: label,
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        minLines: minLines,
-        maxLines: maxLines,
-        style: dense ? const TextStyle(fontSize: kPhoneText) : null,
-        decoration: dense
-            ? const InputDecoration(isDense: true, border: OutlineInputBorder())
-            : iconDecoration(Icons.edit_outlined),
-      ),
-    ),
   );
 }

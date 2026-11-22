@@ -106,11 +106,15 @@ class _PhoneStepState extends State<PhoneStep> {
     final last = widget.step == widget.asked.length - 1;
     final w = widget;
     return PhoneRow(
-      hint: phoneGlyph(
-        Icons.lightbulb_outline,
-        'Hint',
-        w.enabled ? w.onHint : null,
-      ),
+      // An open field holds the bulb itself (beside where the pencil would
+      // be); a closed one leaves it here, where the field would sit.
+      hint: w.fieldOpen
+          ? null
+          : phoneGlyph(
+              Icons.lightbulb_outline,
+              'Hint',
+              w.enabled ? w.onHint : null,
+            ),
       dontKnow: phoneGlyph(
         Icons.help_outline,
         kDontKnow,

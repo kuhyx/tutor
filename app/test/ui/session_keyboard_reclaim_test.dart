@@ -67,16 +67,20 @@ void main() {
       if (isLastMessageScroll(s)) continue; // scrolls by design
       expect(s.position.maxScrollExtent, 0, reason: '${s.context.widget}');
     }
-    // Glyphs share the small box's row, left and right of it.
+    // Glyphs share the small box's row, left and right of it; the hint
+    // bulb sits inside the box, at its leading edge.
     final field = t.getRect(_field.first);
     for (final glyph in ['Hint', "I don't know", 'Next']) {
       final r = t.getRect(glyphsLabelled(glyph).hitTestable().first);
       expect(r.center.dy, closeTo(field.center.dy, 12), reason: glyph);
     }
     expect(
-      t.getRect(glyphsLabelled('Hint').first).right,
+      t.getRect(glyphsLabelled("I don't know").first).right,
       lessThanOrEqualTo(field.left + 0.5),
     );
+    final bulb = t.getRect(glyphsLabelled('Hint').first);
+    expect(field.contains(bulb.center), isTrue, reason: 'bulb in the box');
+    expect(bulb.left - field.left, lessThan(16), reason: 'leading slot');
     expect(
       t.getRect(glyphsLabelled('Next').first).left,
       greaterThanOrEqualTo(field.right - 0.5),
@@ -147,7 +151,19 @@ void main() {
     expect(field.style?.fontSize, 13);
     final q = t.widget<Text>(_asked('Which stroke makes the power?'));
     expect(q.style?.fontSize, 13);
-    for (final glyph in ['Hint', 'Next']) {
+    // The in-box bulb: 16 dp, muted, a 28 dp target (rarely used).
+    final bulb = glyphsLabelled('Hint');
+    expect(
+      t
+          .widget<Icon>(find.descendant(of: bulb, matching: find.byType(Icon)))
+          .size,
+      16,
+    );
+    expect(
+      t.getSize(find.descendant(of: bulb, matching: find.byType(IconButton))),
+      const Size(28, 28),
+    );
+    for (final glyph in ["I don't know", 'Next']) {
       final b = glyphsLabelled(glyph);
       final icon = t.widget<Icon>(
         find.descendant(of: b, matching: find.byType(Icon)).first,
