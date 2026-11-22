@@ -14,12 +14,11 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/limit_switch.dart';
+import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/gate_flow.dart';
-import 'package:tutor/ui/session/session_actions.dart';
-import 'package:tutor/ui/session/session_bar.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_chrome.dart';
-import 'package:tutor/ui/session/session_header.dart';
+import 'package:tutor/ui/session/session_frame.dart';
 import 'package:tutor/ui/session/session_layout.dart';
 import 'package:tutor/ui/session/session_side.dart';
 import 'package:tutor/ui/session/session_subjects.dart';
@@ -198,7 +197,6 @@ class _SessionScreenState extends State<SessionScreen> {
           final wide = box.maxWidth >= kWideLayout;
           // The phone keeps its layout in landscape too.
           final desk = wide && !phone;
-          final twoLines = desk && box.maxWidth < kBarOneLine;
           final chat = SessionChat(
             services: _s,
             feed: _feed,
@@ -223,39 +221,22 @@ class _SessionScreenState extends State<SessionScreen> {
             mastered: mastered,
             actions: card,
           );
-          return Scaffold(
-            key: _scaffold,
-            // Phone keyboard up: the bar (and its sidebar button) goes.
-            appBar: keyboard
-                ? null
-                : sessionAppBar(
-                    title: subject?.meta.title,
-                    twoLines: twoLines,
-                    stats: desk
-                        ? barStats(meta, _today.today.value, widget.now)
-                        : null,
-                    actions: sessionActions(
-                      sid: view?.sid,
-                      wide: wide,
-                      card: desk ? card : null,
-                      mastered: mastered,
-                    ),
-                  ),
-            endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
-            drawerEnableOpenDragGesture: !keyboard,
-            endDrawerEnableOpenDragGesture: !keyboard,
-            // A wheel anywhere, the empty margins too, scrolls the chat.
-            body: Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerSignal: (e) => forwardWheel(_scroll, e, reversed: !desk),
-              child: SessionBody(
-                wide: wide,
-                width: box.maxWidth,
-                chat: chat,
-                fixedSide: desk ? kCardPaneWidth : null,
-                side: desk ? SessionCardPane(meta: meta) : side,
-              ),
-            ),
+          return SessionFrame(
+            scaffoldKey: _scaffold,
+            keyboard: keyboard,
+            wide: wide,
+            desk: desk,
+            width: box.maxWidth,
+            title: subject?.meta.title,
+            meta: meta,
+            sid: view?.sid,
+            today: _today.today.value,
+            now: widget.now,
+            card: card,
+            mastered: mastered,
+            scroll: _scroll,
+            chat: chat,
+            side: side,
           );
         },
       );
