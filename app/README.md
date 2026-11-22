@@ -31,7 +31,8 @@ sign-in button that can never work. A placeholder build compiles and shows
 - test: `fvm flutter test` (one file: `fvm flutter test test/<path>_test.dart`)
 - coverage: `fvm flutter test --coverage` (writes `coverage/lcov.info`)
 - build (desktop web, served by the tutor server at `/app/`):
-  `fvm flutter build web --release --base-href /app/`
+  `fvm flutter pub get && fvm flutter build web --release --no-pub --no-wasm-dry-run --base-href /app/`
+  (what `scripts/deploy.sh` runs)
 - build (Android): `fvm flutter build apk --release` (takes minutes)
 
 ## Layout

@@ -57,8 +57,8 @@ _LOCAL_HOSTS: Final = frozenset({"127.0.0.1", "localhost", "[::1]"})
 # cached bootstrap with a new main.dart.js.
 _REVALIDATE: Final = {"Cache-Control": "no-cache"}
 _NOT_BUILT: Final = (
-    "The Tutor web app is not built. Run: "
-    "cd app && fvm flutter build web --release --base-href /app/"
+    "The Tutor web app is not built. Run: cd app && fvm flutter pub get && "
+    "fvm flutter build web --release --no-pub --no-wasm-dry-run --base-href /app/"
 )
 
 

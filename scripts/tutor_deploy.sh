@@ -29,7 +29,7 @@ readonly DATA="${TUTOR_DATA:-$HOME/.local/share/tutor}"
 # The live server; it owns the port, the relay and deck-source env, the log.
 readonly UNIT="${TUTOR_UNIT:-tutor.service}"
 readonly PORT=8778
-readonly WEB_BUILD="fvm flutter build web --release --base-href /app/"
+readonly WEB_BUILD="fvm flutter pub get && fvm flutter build web --release --no-pub --no-wasm-dry-run --base-href /app/"
 SRC="$REPO"
 WAIT_LIMIT=300
 KEEP_RELEASES=5
