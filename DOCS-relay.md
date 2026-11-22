@@ -101,6 +101,11 @@ startup retries every 60 s and writes nothing; the web app still serves.
   parts; `rev.catalog` + 1), PATCH own `taught`/`untaught` events to
   `log/{worker}`, queue `generate` pairs. One generation at a time, under the
   build lock; a module whose generation raised is not retried until restart.
+  `log_wake.py` also syncs the moment another device writes to `log/`: the
+  worker follows `log/` by stream (wake only: `pull` stays the one path into
+  `log.jsonl`), skips the first dump and its own `log/{worker}` echoes, and
+  folds events that arrive during a sync into one follow-up sync. The
+  minute tick stays as the fallback.
 - `no_card_left` (`session_start` / `next` with no open card, or the module
   gate closed: curriculum §6) also carries `subject_title`, `writing` (an
   earlier module's cards are being generated), `gate_cards` (the exact cards

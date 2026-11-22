@@ -45,6 +45,9 @@ scripts/e2e_i3_handover.sh     # optional argument: where to save the shot
 # F29: the lock's ? rework chat adds cards; C2 flips back to done: false
 $S up --phase solve --rework $LC/scans/matrix-diagonal-sum
 $S flow F29 open               # then, one call each: send, wait, check
+# F30: a phone review lands in log.jsonl and review_due.json in < 5 s
+$S up
+$S flow F30 rate               # then, after 60 s: idle (75 = call again)
 # F31: a refused card_done shows the rewrite or the lock, never the draft
 $S up --scripted               # the model is a queue the flow writes
 $S flow F31 rewrite            # then: fallback (same sandbox)
@@ -53,6 +56,13 @@ E2E_SUBJECT=$LC $S flow F31 module
 $S down
 ```
 
+- F30 (`scripts/e2e_log_wake.py`, no browser) plays a phone: a fresh device
+  writes review events to `log/{dev}` on the emulator, sealed as the app
+  does. `rate` prints the write -> `log.jsonl` delay of three ratings and the
+  write -> `review_due.json` mtime delay of a fourth, and fails over 5 s, so a
+  change that brings back the 60 s poll goes red. `idle` checks that the
+  worker's own `log/` node stayed still and its CPU low for 60 s (no sync
+  loop from its own push).
 - `up --scripted` swaps the Claude CLI for `scripts/e2e_script_session.py`:
   each model turn is the next entry of `<sandbox>/model_script.json`, and
   every prompt the engine sent goes to `model_script.prompts.jsonl`. The

@@ -17,13 +17,14 @@ from typing import TYPE_CHECKING, Final
 from crdt_sync import E2eLockedError
 
 from tutor import anki_watch, carry, leftover
-from tutor.relay import config, e2e, feedback_drain
+from tutor.relay import config, e2e, feedback_drain, sse
 from tutor.relay.config import device_id, seal
 from tutor.relay.context import Wiring
 from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.relay.done import DoneMap
 from tutor.relay.inbox import Inbox
 from tutor.relay.lanes import Server
+from tutor.relay.log_wake import LogWake
 from tutor.relay.phone_check import PhoneCheck
 from tutor.relay.presence import Presence
 from tutor.relay.projection import Publisher
@@ -117,6 +118,9 @@ class Relay:
         await self._startup()
         self._spawn(self.presence.run(), "presence")
         self._spawn(self.inbox.watch(), "watch")
+        # Another device's review syncs at once (the 60 s tick is the fallback).
+        wake = LogWake(self.w.worker, self.curriculum.sync)
+        self._spawn(wake.run(sse.listen(self.w.rtdb, "log")), "logwake")
         self._spawn(self.inbox.tick(), "tick")
         self._spawn(self.inbox.lane(CHAT), "chat")
         self._spawn(self.inbox.lane(BUILD), "build")

@@ -1,7 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """The curriculum over RTDB: event log both ways, the fold, subjects, generation.
 
-``sync`` (before and after every request, and every minute) pulls every other
+``sync`` (before and after every request, every minute, and at once when
+another device writes to ``log/``: :mod:`tutor.relay.log_wake`) pulls every other
 device's new ``log/{dev}`` events into the local log, re-folds
 (``fold_and_advance``), publishes every subject whose local ``rev`` moved,
 deletes archived subjects (``curriculum/archive.py``), PATCHes this
