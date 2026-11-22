@@ -38,8 +38,12 @@ class SessionChat extends StatefulWidget {
     this.subject,
     this.phone = false,
     this.keyboard = false,
+    this.header = true,
     super.key,
   });
+
+  /// The stats row shows above the chat (false: they are in the top bar).
+  final bool header;
 
   /// Reopens the module gate's review (its glyph).
   final VoidCallback? onGate;
@@ -143,7 +147,7 @@ class _SessionChatState extends State<SessionChat> {
     return LayoutBuilder(
       builder: (context, box) => Column(
         children: [
-          if (meta != null)
+          if (meta != null && widget.header)
             SessionHeader(
               meta: meta,
               today: widget.today,

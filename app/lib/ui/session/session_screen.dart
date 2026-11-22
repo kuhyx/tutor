@@ -1,6 +1,6 @@
-/// Session (curriculum §8): the chat from the RTDB projection, Card done ->
-/// Next / Stop, Mark done, Switch card, known list, stall pills, PC-offline
-/// banner; wide: side panel inline; phone keyboard up: no bars, no sidebar.
+/// Session (curriculum §8): the chat, Card done -> Next / Stop, card actions,
+/// Known, stats; wide desktop: all in the bar, the card pane beside the chat
+/// (phone: side panel inline); phone keyboard up: no bars, no sidebar.
 library;
 
 import 'dart:async';
@@ -14,19 +14,18 @@ import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/limit_switch.dart';
-import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/gate_flow.dart';
 import 'package:tutor/ui/session/session_actions.dart';
+import 'package:tutor/ui/session/session_bar.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_chrome.dart';
+import 'package:tutor/ui/session/session_header.dart';
 import 'package:tutor/ui/session/session_layout.dart';
 import 'package:tutor/ui/session/session_side.dart';
 import 'package:tutor/ui/session/session_subjects.dart';
 import 'package:tutor/util/device.dart';
-import 'package:tutor/widgets/content_text.dart';
 
-export 'package:tutor/ui/session/session_layout.dart'
-    show kChatMaxWidth, kWideLayout, sideWidth;
+export 'package:tutor/ui/session/session_layout.dart' show kWideLayout;
 
 /// The Session screen.
 class SessionScreen extends StatefulWidget {
@@ -173,64 +172,65 @@ class _SessionScreenState extends State<SessionScreen> {
       _keyboard.changed(keyboard: keyboard);
       final meta = view?.meta;
       final subject = _subjects[meta?.subject];
-      final live = meta != null && !meta.stopped;
-      final side = SessionSide(
-        meta: meta,
-        subject: subject,
-        mastered: <String>{
-          ...?subject?.concepts.map((c) => c.name),
-          for (final m in view?.messages ?? const <KeyedMessage>[])
-            ...m.message.masteredNew,
-        }.toList(),
-        onSwitch: subject == null
-            ? null
-            : () => switchCard(context, subject, _run),
-        onMarkDone: live && meta.card != null && !meta.cardDone
-            ? () => _run(RequestBody.cardDone(meta.subject, meta.card!.id))
-            : null,
-        // Card done: CardEnd below offers Stop here instead.
-        onStop: live && !meta.cardDone
-            ? () => _run(RequestBody.stop(view!.sid))
-            : null,
-        onEdit: () => openEditor(context, _s, subject: meta?.subject),
-        onReport: () =>
-            showReport(context, _s, route: '/session', session: view?.sid),
-        onHistory: () => openHistory(context, _s),
-      );
-      final chat = Listener(
-        onPointerSignal: (e) => forwardWheel(_scroll, e),
-        child: SessionChat(
-          services: _s,
-          feed: _feed,
-          view: view,
-          today: _today.today.value,
-          runner: _runner,
-          scroll: _scroll,
-          now: widget.now ?? DateTime.now,
-          onRun: _run,
-          onStart: () => _run(_continue()),
-          subject: widget.subject,
-          onSend: _send,
-          onGate: _gate,
-          refused: _refused,
-          phone: phone,
-          keyboard: keyboard,
-        ),
-      );
+      final mastered = masteredOf(subject, view);
+      final card = cardActionsFor(context, _s, subject, view, _run);
       return LayoutBuilder(
         builder: (context, box) {
           final wide = box.maxWidth >= kWideLayout;
+          // The phone keeps its layout in landscape too.
+          final desk = wide && !phone;
+          final twoLines = desk && box.maxWidth < kBarOneLine;
+          final chat = Listener(
+            onPointerSignal: (e) => forwardWheel(_scroll, e),
+            child: SessionChat(
+              services: _s,
+              feed: _feed,
+              view: view,
+              today: _today.today.value,
+              runner: _runner,
+              scroll: _scroll,
+              now: widget.now ?? DateTime.now,
+              onRun: _run,
+              onStart: () => _run(_continue()),
+              subject: widget.subject,
+              onSend: _send,
+              onGate: _gate,
+              refused: _refused,
+              phone: phone,
+              keyboard: keyboard,
+              header: !desk,
+            ),
+          );
+          final side = SessionSide(
+            meta: meta,
+            subject: subject,
+            mastered: mastered,
+            actions: card,
+          );
           return Scaffold(
             key: _scaffold,
             // Phone keyboard up: the bar (and its sidebar button) goes.
             appBar: keyboard
                 ? null
-                : AppBar(
-                    // The subject's name (content); none before it loads.
-                    title: subject == null
-                        ? null
-                        : ContentText(subject.meta.title),
-                    actions: sessionActions(sid: view?.sid, wide: wide),
+                : sessionAppBar(
+                    title: subject?.meta.title,
+                    twoLines: twoLines,
+                    stats: desk && meta != null
+                        ? SessionHeader(
+                            meta: meta,
+                            today: _today.today.value,
+                            nowMs: (widget.now ?? DateTime.now)()
+                                .millisecondsSinceEpoch,
+                            live: !meta.stopped,
+                            inBar: true,
+                          )
+                        : null,
+                    actions: sessionActions(
+                      sid: view?.sid,
+                      wide: wide,
+                      card: desk ? card : null,
+                      mastered: mastered,
+                    ),
                   ),
             endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
             drawerEnableOpenDragGesture: !keyboard,
@@ -239,7 +239,8 @@ class _SessionScreenState extends State<SessionScreen> {
               wide: wide,
               width: box.maxWidth,
               chat: chat,
-              side: side,
+              fixedSide: desk ? kCardPaneWidth : null,
+              side: desk ? SessionCardPane(meta: meta) : side,
             ),
           );
         },

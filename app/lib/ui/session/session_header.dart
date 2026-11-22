@@ -1,5 +1,6 @@
 /// The Session's header: the day's totals and this card's minutes, plus the
-/// paused / stalled / stopped marks. With the phone keyboard open nothing
+/// paused / stalled / stopped marks; in the top bar on a wide desktop
+/// window, else a row above the chat. With the phone keyboard open nothing
 /// shows (the typing room is taken from it).
 /// Text-free: glyph + number; the old sentences are the spoken labels.
 library;
@@ -23,6 +24,7 @@ class SessionHeader extends StatelessWidget {
     required this.nowMs,
     required this.live,
     this.compact = false,
+    this.inBar = false,
     super.key,
   });
 
@@ -40,6 +42,9 @@ class SessionHeader extends StatelessWidget {
 
   /// Nothing shows (the phone keyboard is open).
   final bool compact;
+
+  /// It sits in the top bar (wide desktop): no padding of its own.
+  final bool inBar;
 
   @override
   Widget build(BuildContext context) {
@@ -71,13 +76,15 @@ class SessionHeader extends StatelessWidget {
     ];
     if (compact) return const SizedBox.shrink();
     return Container(
-      alignment: AlignmentDirectional.centerStart,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        0,
-      ),
+      alignment: inBar ? null : AlignmentDirectional.centerStart,
+      padding: inBar
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              0,
+            ),
       child: Wrap(
         spacing: AppSpacing.md,
         runSpacing: AppSpacing.xs,

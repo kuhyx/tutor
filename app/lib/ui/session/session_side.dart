@@ -1,17 +1,20 @@
-/// The Session's side panel (`index.html` aside): target card, Switch card,
-/// Mark card done, Stop here, Edit cards, Report a problem, known concepts.
+/// The Session's side panel (`index.html` aside) on narrow windows and the
+/// phone (a drawer): target card, the card actions, known concepts.
 /// Text-free: glyph buttons (the old wording is their spoken label); the
 /// subject, card and concept names are content.
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/app/services.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/plan.dart';
 import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/session.dart';
+import 'package:tutor/session/session_feed.dart';
+import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/session_bar.dart';
 import 'package:tutor/widgets/content_text.dart';
-import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
 /// Side panel.
@@ -21,12 +24,7 @@ class SessionSide extends StatelessWidget {
     required this.meta,
     required this.subject,
     required this.mastered,
-    required this.onSwitch,
-    required this.onMarkDone,
-    required this.onStop,
-    required this.onEdit,
-    required this.onReport,
-    required this.onHistory,
+    required this.actions,
     super.key,
   });
 
@@ -39,23 +37,8 @@ class SessionSide extends StatelessWidget {
   /// Known concept names (the wire's `mastered`), oldest first.
   final List<String> mastered;
 
-  /// Start another card instead.
-  final VoidCallback? onSwitch;
-
-  /// Count the live card as done.
-  final VoidCallback? onMarkDone;
-
-  /// End the live session before its card is done (old page's Stop here).
-  final VoidCallback? onStop;
-
-  /// Open the card editor.
-  final VoidCallback onEdit;
-
-  /// Report a problem with the whole experience.
-  final VoidCallback onReport;
-
-  /// Open History.
-  final VoidCallback onHistory;
+  /// The card action glyphs.
+  final CardActions actions;
 
   @override
   Widget build(BuildContext context) {
@@ -82,51 +65,50 @@ class SessionSide extends StatelessWidget {
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
-          children: [
-            GlyphButton(
-              icon: Icons.swap_horiz,
-              semanticLabel: 'Switch card',
-              onPressed: onSwitch,
-            ),
-            GlyphButton(
-              icon: Icons.task_alt,
-              semanticLabel: 'Mark card done',
-              tint: AppPalette.success,
-              onPressed: onMarkDone,
-            ),
-            GlyphButton(
-              icon: Icons.stop_circle_outlined,
-              semanticLabel: 'Stop here',
-              onPressed: onStop,
-            ),
-            GlyphButton(
-              icon: Icons.edit_note,
-              semanticLabel: 'Edit cards',
-              onPressed: onEdit,
-            ),
-            GlyphButton(
-              icon: Icons.history,
-              semanticLabel: 'History',
-              onPressed: onHistory,
-            ),
-            GlyphButton(
-              icon: Icons.flag_outlined,
-              semanticLabel: 'Report a problem',
-              onPressed: onReport,
-            ),
-          ],
+          children: actions.glyphs(),
         ),
         const SizedBox(height: AppSpacing.lg),
         // Known concepts: a glyph, the count, the names (content).
-        SpokenLabel(
-          semanticLabel: 'Known',
-          child: GlyphStat(Icons.lightbulb_outline, '${mastered.length}'),
-        ),
+        knownCount(mastered),
         const SizedBox(height: AppSpacing.xs),
         for (final c in mastered.reversed) ContentText('• $c'),
       ],
     );
   }
+}
+
+/// Known concept names of [subject] plus those [view]'s turns marked, oldest
+/// first.
+List<String> masteredOf(SubjectData? subject, SessionView? view) => <String>{
+  ...?subject?.concepts.map((c) => c.name),
+  for (final m in view?.messages ?? const <KeyedMessage>[])
+    ...m.message.masteredNew,
+}.toList();
+
+/// The card actions of [view] (of [subject]): requests go through [run].
+CardActions cardActionsFor(
+  BuildContext context,
+  TutorServices s,
+  SubjectData? subject,
+  SessionView? view,
+  Future<Object?> Function(RequestBody body) run,
+) {
+  final meta = view?.meta;
+  final live = meta != null && !meta.stopped;
+  return CardActions(
+    onSwitch: subject == null ? null : () => switchCard(context, subject, run),
+    onMarkDone: live && meta.card != null && !meta.cardDone
+        ? () => run(RequestBody.cardDone(meta.subject, meta.card!.id))
+        : null,
+    // Card done: CardEnd offers Stop here instead.
+    onStop: live && !meta.cardDone
+        ? () => run(RequestBody.stop(view!.sid))
+        : null,
+    onEdit: () => openEditor(context, s, subject: meta?.subject),
+    onReport: () =>
+        showReport(context, s, route: '/session', session: view?.sid),
+    onHistory: () => openHistory(context, s),
+  );
 }
 
 /// Switch card: picks a card of [subject] and starts it through [run].

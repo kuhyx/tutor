@@ -21,8 +21,12 @@ class SessionBody extends StatelessWidget {
     required this.width,
     required this.chat,
     required this.side,
+    this.fixedSide,
     super.key,
   });
+
+  /// The side panel's fixed width; null = [sideWidth] of the window.
+  final double? fixedSide;
 
   /// Side panel inline ([kWideLayout] and up).
   final bool wide;
@@ -57,7 +61,7 @@ class SessionBody extends StatelessWidget {
                 ),
               ),
               const VerticalDivider(width: 1),
-              SizedBox(width: sideWidth(width), child: side),
+              SizedBox(width: fixedSide ?? sideWidth(width), child: side),
             ],
           )
         : chat,
