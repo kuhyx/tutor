@@ -65,7 +65,7 @@ same-origin localhost only, uid checked) and keeps it in its own store.
 ## Screenshots (never on the real display)
 
 ```bash
-fvm flutter build web --release -t tool/fixture/main.dart -o build/web_fixture --base-href /app/
+tool/build_fixture.sh
 systemd-run --user --unit=tutor-webshot -E TUTOR_WEBAPP_DIR=$PWD/build/web_fixture \
   -p WorkingDirectory=$PWD/.. ../.venv/bin/python -m uvicorn --factory \
   tutor.webapp:standalone_app --port 8791

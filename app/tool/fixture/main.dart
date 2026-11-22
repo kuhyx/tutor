@@ -13,8 +13,7 @@
 // researching turn in flight, `&open=1` opens the Thinking panels.
 // `&lc=normal|unknown|full` makes the live session a LeetCode theory lesson.
 //
-// Build: fvm flutter build web -t tool/fixture/main.dart \
-//   -o build/web_fixture --base-href /app/
+// Build: tool/build_fixture.sh
 import 'dart:convert';
 
 import 'package:crdt_sync/crdt_sync.dart'
