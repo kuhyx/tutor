@@ -148,9 +148,17 @@ def carry(flow: Flow, args: argparse.Namespace) -> int:
     return 0
 
 
+def gate(flow: Flow, args: argparse.Namespace) -> int:
+    """F21: the usual phases, then ``again`` (Send, once the hint is answered)."""
+    if args.phase == "again":
+        return f21_again(flow)
+    return phases(flow, args)
+
+
 # Flows that keep their own state between calls; the exit code (75: again).
 STATEFUL: dict[str, Callable[[Flow, argparse.Namespace], int]] = {
     "F6": carry,
+    "F21": gate,
     "F22": lambda flow, args: f22(flow, args.phase, Path(args.state)),
 }
 
@@ -159,11 +167,7 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
     """Run ``args.flow`` (its ``args.phase``, or all of it); the exit code."""
     flow = Flow(args, browser)  # wait has no browser: it reads the emulator only
     try:
-        if args.flow == "F21" and args.phase == "again":
-            # After check: Send, once the in-box bulb's hint is answered.
-            if (code := f21_again(flow)) != 0:
-                return code
-        elif args.flow in STATEFUL:
+        if args.flow in STATEFUL:
             if (code := STATEFUL[args.flow](flow, args)) != 0:
                 return code
         elif args.flow in ONE_CALL:
