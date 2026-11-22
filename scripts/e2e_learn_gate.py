@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Agent-E2E flows F22-F24: the guard's phase refuses gated teaching (C3, C4).
+"""Agent-E2E flows F23-F25: the guard's phase refuses gated teaching (C3, C4).
 
-* F22 (``up --phase "theory LC/prefix-sums"``): ``#/learn/LC/stack-queue``,
+* F23 (``up --phase "theory LC/prefix-sums"``): ``#/learn/LC/stack-queue``,
   a module outside ``teachable``, is refused (``no_card_left``) and the
   subject's plan shows; live session, transcripts, RTDB sessions and ledger
   are unchanged.
-* F23 (``up --phase solve --unarchive SQL``: empty ``teachable``; kuhy has
+* F24 (``up --phase solve --unarchive SQL``: empty ``teachable``; kuhy has
   SQL archived, and a route into an archived subject stays on Home): every
   module of the plan carries ``teachable: false`` and every tile shows the
   lock glyph (spoken "Not teachable now"); then a learn route into the
   ungated SQL subject still starts a teaching session. A model turn:
   ``send``, ``wait``, ``check``.
-* F24 (``up``, no phase file): ``flow F24 missing``, then ``flow F24 bad``
+* F25 (``up``, no phase file): ``flow F25 missing``, then ``flow F25 bad``
   (it writes a ``theory`` row with a wrong ``hmac``). Each refuses a gated
   route twice (two reads of the file), and the server log has exactly one
   warning per failure, no Traceback, and ``/api/state`` still answers.
@@ -36,7 +36,7 @@ from tutor.curriculum.context import Context
 
 SQL: Final = "mysql-8-for-timed-sql-coding-tests-joins-and"  # never gated
 REFUSED: Final = "stack-queue"  # an LC module the theory row does not grant
-F24_PHASES: Final = ("missing", "bad")
+F25_PHASES: Final = ("missing", "bad")
 HTTP_OK: Final = 200
 STATE_JS: Final = (
     "(() => { const x = new XMLHttpRequest();"
@@ -75,7 +75,7 @@ def plan_modules(flow: Flow) -> list[dict[str, Any]]:
     return list(flow.db.node(f"subjects/{LC}/plan").get("modules") or [])
 
 
-def f22(flow: Flow) -> None:
+def f23(flow: Flow) -> None:
     """A refused module: the plan shows, nothing changes."""
     live, files = flow.db.node("live"), transcripts(flow)
     sessions, ledger = set(flow.db.node("sessions")), _ledger(flow.args.data)
@@ -127,7 +127,7 @@ def _into_view(flow: Flow, label: str) -> None:
     time.sleep(2)  # the tiles paint after the scroll settles
 
 
-def f23_send(flow: Flow) -> State:
+def f24_send(flow: Flow) -> State:
     """The locked plan; then a learn route into SQL."""
     flow.step(f"RTDB: every {LC} module is teachable: false")
     modules = plan_modules(flow)
@@ -156,7 +156,7 @@ def f23_send(flow: Flow) -> State:
     return {"rid": rid, "module": module, "cards": cards}
 
 
-def f23_check(flow: Flow, state: State) -> None:
+def f24_check(flow: Flow, state: State) -> None:
     """The SQL route started a teaching session on an untaught card of it."""
     flow.step("the SQL session_start result is ok")
     if not (result := flow.result_of(str(state["rid"]))).get("ok"):
@@ -176,7 +176,7 @@ def _server_log(flow: Flow) -> str:
     return (flow.args.data.parent / "server.log").read_text(encoding="utf-8")
 
 
-def f24(flow: Flow) -> None:
+def f25(flow: Flow) -> None:
     """One warning per phase-file failure; the server stays up and refuses."""
     phase = flow.args.phase
     path = flow.args.data.parent / "theory_phase.json"
@@ -184,7 +184,7 @@ def f24(flow: Flow) -> None:
         key = flow.args.data.parent / "test.key"
         flow.note(write(path, key, "bad", [f"{LC}/{MODULE}"]))
     elif path.exists():
-        msg = f"{path} exists: run F24 missing on a fresh up"
+        msg = f"{path} exists: run F25 missing on a fresh up"
         raise FlowError(msg)
     for _ in range(2):  # two reads of the same failure
         refused(flow, MODULE)

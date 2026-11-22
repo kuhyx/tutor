@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Agent-E2E flow F25: a ``/learn/...`` launch leaves ONE tutor window (C4).
+"""Agent-E2E flow F26: a ``/learn/...`` launch leaves ONE tutor window (C4).
 
 ``tutor --route /learn/S/M`` launches Chrome on the profile a tutor window
 already runs, so Chrome opens a SECOND ``--app`` window. A used window can
@@ -16,7 +16,7 @@ boots (``web/index.html``). Real ``--app`` windows on one profile:
    session (its ``session_start`` names M; a live session on M is reused,
    never lost).
 
-Run through ``e2e_drive.py``: ``up --phase "theory S/M"``, ``flow F25``.
+Run through ``e2e_drive.py``: ``up --phase "theory S/M"``, ``flow F26``.
 """
 
 from __future__ import annotations
@@ -142,7 +142,7 @@ def _learn_request(flow: Flow, before: set[str], live: dict[str, Any]) -> None:
     """The window asked to teach MODULE; the session live before is not lost.
 
     It stays open (no ``stop`` lands in its transcript), so Continue resumes
-    it on the server; F21 proves a live session on MODULE is reused.
+    it on the server; F22 proves a live session on MODULE is reused.
     """
     flow.step(f"the window sent session_start for {LC}/{MODULE}")
     stops = _stops(flow, live.get("session"))
@@ -159,11 +159,11 @@ def _learn_request(flow: Flow, before: set[str], live: dict[str, Any]) -> None:
         raise FlowError(msg)
 
 
-def f25(flow: Flow) -> None:
+def f26(flow: Flow) -> None:
     """The window takeover (module doc)."""
     browser = flow.browser
     if not isinstance(browser, AppBrowser):
-        msg = "F25 needs an AppBrowser"
+        msg = "F26 needs an AppBrowser"
         raise FlowError(msg)
     flow.step(f"the old window shows {LC}'s plan")
     if not text_below(browser, LOCK, 40):

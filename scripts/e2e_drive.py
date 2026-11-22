@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flows: tap the real web build, assert on the emulator, screenshot.
 
-Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F21> [send|wait|check]``
+Run by ``scripts/e2e_sandbox.sh flow <F1|F3|...|F26> [send|wait|check]``
 against a sandbox that is ``up``. Every step is printed before it runs, so on
 failure the last line names it; a failure also saves ``<out>_fail.png``.
 Exit 0 = PASS.
@@ -60,13 +60,13 @@ from e2e_glyphs import PHASES as F16_PHASES
 from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_keyless import f17
-from e2e_learn import F21_PHASES, f21
-from e2e_learn_gate import F24_PHASES, f22, f23_check, f23_send, f24
+from e2e_learn import F22_PHASES, f22
+from e2e_learn_gate import F25_PHASES, f23, f24_check, f24_send, f25
 from e2e_path import f20_check, f20_send
 from e2e_split import f18_check, f18_send
 from e2e_start import f1_check, f1_send
 from e2e_struggle import f5_check, f5_send
-from e2e_takeover import LC, AppBrowser, f25
+from e2e_takeover import LC, AppBrowser, f26
 from e2e_unbacked import f11
 
 if TYPE_CHECKING:
@@ -87,7 +87,7 @@ PHASED: dict[str, tuple[Callable[[Flow], State], Callable[[Flow, State], None]]]
         lambda flow: f20_send(flow, f1_send),
         lambda flow, state: f20_check(flow, state, f1_check),
     ),
-    "F24": (f23_send, f23_check),
+    "F24": (f24_send, f24_check),
 }
 FLOWS = ["F1", *(f"F{n}" for n in range(3, 27))]  # F2 (the cap) is gone
 ONE_CALL: dict[str, Callable[[Flow], None]] = {
@@ -103,9 +103,9 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F16": f16,
     "F17": f17,
     "F19": f19,
-    "F23": f22,
-    "F25": f24,
-    "F26": f25,
+    "F23": f23,
+    "F25": f25,
+    "F26": f26,
 }
 
 
@@ -151,7 +151,7 @@ def carry(flow: Flow, args: argparse.Namespace) -> int:
 # Flows that keep their own state between calls; the exit code (75: again).
 STATEFUL: dict[str, Callable[[Flow, argparse.Namespace], int]] = {
     "F6": carry,
-    "F22": lambda flow, args: f21(flow, args.phase, Path(args.state)),
+    "F22": lambda flow, args: f22(flow, args.phase, Path(args.state)),
 }
 
 
@@ -204,8 +204,8 @@ def main() -> int:
             *OUTAGES,
             *F14_PHASES,
             *F16_PHASES,
-            *F21_PHASES,
-            *F24_PHASES,
+            *F22_PHASES,
+            *F25_PHASES,
         ],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")

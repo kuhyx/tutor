@@ -1,9 +1,9 @@
 #!/bin/bash
 # ============================================================================
-# Agent E2E F26: `tutor --route /learn/S/M` must SHOW the tutor under i3 (C4).
+# Agent E2E F27: `tutor --route /learn/S/M` must SHOW the tutor under i3 (C4).
 #
 # The LeetCode lock's learn button launches it while kuhy looks at the lock.
-# F25 proves the launch is handed to the tutor window already open; this one
+# F26 proves the launch is handed to the tutor window already open; this one
 # proves kuhy then sees that window when i3 held it on a workspace that was
 # not shown. It runs the real launcher (run.sh, what ~/.local/bin/tutor
 # execs) against the e2e sandbox on a private Xvfb with its own i3: kuhy's i3

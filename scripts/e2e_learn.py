@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Agent-E2E flow F21: ``#/learn/S/M`` teaches a granted module (C1, C2, C4).
+"""Agent-E2E flow F22: ``#/learn/S/M`` teaches a granted module (C1, C2, C4).
 
 ``up --learn LC/prefix-sums --phase "theory LC/prefix-sums"``: the route
 lands on a teaching session whose live card is the ``c4_seed.json`` card;
@@ -10,7 +10,7 @@ a verified credit row naming the subject and module (C1); "Mark card done"
 then finishes the module: a verified ``module_state.json`` row reads ``done:
 true`` (C2). A model turn can outlast one 60 s call, so it runs as ``send``,
 ``wait``, ``again`` (reopen), ``idle`` (exits 75 until the minute is up),
-``reply``, ``wait``, ``check``. F22-F24 (the refusals): ``e2e_learn_gate.py``.
+``reply``, ``wait``, ``check``. F23-F25 (the refusals): ``e2e_learn_gate.py``.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ REPLY: Final = (
     "3, 1, 4 it goes 3, then 3 + 1 = 4, then 4 + 4 = 8, so 3, 4, 8. Is the "
     "prefix sum the same thing as that running total, or does it differ?"
 )
-F21_PHASES: Final = ("idle", "reply")
+F22_PHASES: Final = ("idle", "reply")
 
 
 def learn(flow: Flow, subject: str, module: str) -> None:
@@ -77,7 +77,7 @@ def _live_on(flow: Flow, sid: str) -> int:
     return int(tutor[-1]["at"])
 
 
-def f21_send(flow: Flow) -> State:
+def f22_send(flow: Flow) -> State:
     """The route sends a session_start for the module."""
     flow.note(f"c4 seed {seed(flow)}")
     before, files = flow.rids(), transcripts(flow)
@@ -85,7 +85,7 @@ def f21_send(flow: Flow) -> State:
     return {"rid": flow.request("session_start", before), "files": sorted(files)}
 
 
-def f21_again(flow: Flow, state: State) -> State:
+def f22_again(flow: Flow, state: State) -> State:
     """The first start is live; reopening the route reuses that session."""
     sid = _started(flow, str(state["rid"]))
     _live_on(flow, sid)
@@ -111,7 +111,7 @@ def f21_again(flow: Flow, state: State) -> State:
     return state | {"sid": sid, "due": at / 1000 + ACTIVE_S}
 
 
-def f21_idle(flow: Flow, state: State) -> int:
+def f22_idle(flow: Flow, state: State) -> int:
     """Wait (up to IDLE_PER_CALL s) for the reply's minute; 75 while early."""
     left = float(state["due"]) - time.time()
     flow.step(f"idle until a minute after the tutor's message ({left:.0f} s left)")
@@ -141,7 +141,7 @@ def _wheel_down(flow: Flow, label: str) -> None:
         time.sleep(0.3)
 
 
-def f21_reply(flow: Flow, state: State) -> State:
+def f22_reply(flow: Flow, state: State) -> State:
     """A substantive reply, sent after the minute is up."""
     if time.time() < float(state["due"]):
         msg = "reply before the minute is up: run idle first"
@@ -157,7 +157,7 @@ def f21_reply(flow: Flow, state: State) -> State:
     return state | {"rid": rid, "ledger": ledger}
 
 
-def f21_check(flow: Flow, state: State) -> None:
+def f22_check(flow: Flow, state: State) -> None:
     """The reply paid C1; Mark card done flips C2 to done."""
     flow.step("the reply's message result is ok")
     if not (result := flow.result_of(str(state["rid"]))).get("ok"):
@@ -198,19 +198,19 @@ def _answered(flow: Flow, rid: str) -> bool:
     return False
 
 
-def f21(flow: Flow, phase: str, state_file: Path) -> int:
-    """Run one F21 phase (module doc); 75 = call it again."""
+def f22(flow: Flow, phase: str, state_file: Path) -> int:
+    """Run one F22 phase (module doc); 75 = call it again."""
     if phase == "send":
-        state_file.write_text(json.dumps(f21_send(flow)))
+        state_file.write_text(json.dumps(f22_send(flow)))
         return 0
     state = json.loads(state_file.read_text())
     if phase == "wait":
         return 0 if _answered(flow, str(state["rid"])) else PENDING
     if phase == "idle":
-        return f21_idle(flow, state)
+        return f22_idle(flow, state)
     if phase == "check":
-        f21_check(flow, state)
+        f22_check(flow, state)
         return 0
-    step = {"again": f21_again, "reply": f21_reply}[phase]
+    step = {"again": f22_again, "reply": f22_reply}[phase]
     state_file.write_text(json.dumps(step(flow, state)))
     return 0

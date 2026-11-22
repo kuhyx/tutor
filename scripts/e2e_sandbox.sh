@@ -20,7 +20,7 @@
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
 #                                    # worker under libfaketime from then
-#   scripts/e2e_sandbox.sh flow F1|F3..F21 [send|wait|check|again]
+#   scripts/e2e_sandbox.sh flow F1|F3..F26 [send|wait|check|again]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -30,7 +30,7 @@
 #                                    # switches how Claude fails in between
 #   scripts/e2e_sandbox.sh hold               # F16: no worker; the app served statically
 #   scripts/e2e_sandbox.sh phase theory S/M.. | solve | bad S/M | missing
-#                                    # rewrite the sandbox's C3 row (F21-F25)
+#                                    # rewrite the sandbox's C3 row (F22-F26)
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
 # Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
 # E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
@@ -242,7 +242,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F21 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26 [send|wait|check|again] | down" ;;
     esac
 }
 

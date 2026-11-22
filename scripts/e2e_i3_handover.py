@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Agent-E2E flow F26: a ``/learn/...`` launch SHOWS the tutor under i3 (C4).
+"""Agent-E2E flow F27: a ``/learn/...`` launch SHOWS the tutor under i3 (C4).
 
 The LeetCode lock's learn button runs ``tutor --route /learn/S/M`` while kuhy
-looks at the lock, so the tutor must be on screen at once. F25 proves the
+looks at the lock, so the tutor must be on screen at once. F26 proves the
 launch is handed to the tutor window already open; i3 may hold that window on
 a workspace that is not shown, and a page cannot raise itself there. On a
 private Xvfb with its own i3 on kuhy's config (``e2e_i3_handover.sh``):
@@ -234,7 +234,7 @@ def main() -> int:
     parser.add_argument("--display", required=True, help="the private Xvfb, :N")
     parser.add_argument("--sock", required=True, help="the nested i3's socket")
     parser.add_argument("--shot", required=True, help="where the Xvfb root goes")
-    args = parser.parse_args(namespace=argparse.Namespace(flow="F26"))
+    args = parser.parse_args(namespace=argparse.Namespace(flow="F27"))
     if args.display.split(".")[0] == ":0":
         parser.error("never kuhy's display :0")
     logging.basicConfig(stream=sys.stdout, format="%(message)s", level=logging.INFO)
