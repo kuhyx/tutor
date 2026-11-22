@@ -15,6 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from tutor import gating
 from tutor.curriculum.errors import UNKNOWN_CARD, RequestError
 from tutor.curriculum.no_card import (
     Held,
@@ -32,22 +33,14 @@ if TYPE_CHECKING:
 
 
 def _open(view: View, card: CardRec, fold: Fold) -> bool:
-    """Not suspended and every required card taught, or in a module C3 refuses.
+    """Not suspended and every required card taught or waived (``gating``).
 
     A prerequisite the tutor may not teach now cannot hold a card shut
-    (:func:`unit_order_wins`, cards instead of modules): its unit comes later
-    in the guard's order than this card's, and the card would never open.
+    (:func:`unit_order_wins`, for cards): its unit comes later in the guard's
+    order than this card's, and the card would never open.
     """
     taught = fold.taught_ids(view.subject)
-    return not card.suspended and all(
-        need in taught or _refused(view, need) for need in card.requires
-    )
-
-
-def _refused(view: View, card_id: str) -> bool:
-    """Whether card ``card_id`` sits in a module C3 refuses now."""
-    rec = view.cards.get(card_id)
-    return rec is not None and rec.module in view.refused
+    return not card.suspended and not gating.missing(card, taught, view.waived)
 
 
 @dataclass(frozen=True)

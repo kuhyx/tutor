@@ -13,13 +13,12 @@ step, so the history and progress views read the same done-set.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Final, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
-from tutor import gating
-from tutor.cards import DECK_DIR, Card, load_deck
 from tutor.curriculum import card_rules, paths, profiles, rules, theory_phase
 from tutor.curriculum import pick as picking
-from tutor.curriculum.errors import BAD_REQUEST, LOCKED, NO_CARD_LEFT, RequestError
+from tutor.curriculum.deck_source import DEFAULT_SUBJECT, DeckSource
+from tutor.curriculum.errors import BAD_REQUEST, LOCKED, RequestError
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.no_card import no_card_left
 from tutor.curriculum.subject_store import LOCK, Change
@@ -27,12 +26,10 @@ from tutor.curriculum.subject_store import LOCK, Change
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tutor.cards import Card
     from tutor.curriculum.context import Context
     from tutor.curriculum.profiles import Profile
     from tutor.store import Store
-
-DEFAULT_SUBJECT: Final = "automation"
-_NO_PATHS: Final[dict[str, dict[str, Any]]] = {}
 
 
 class CardSource(Protocol):
@@ -46,6 +43,9 @@ class CardSource(Protocol):
 
     def done(self) -> dict[str, dict[str, Any]]:
         """Taught card id -> ``{"session": sid}`` (at least)."""
+
+    def waived(self) -> frozenset[str]:
+        """Card ids whose module C3 refuses now: they hold no card shut."""
 
     def pick(self, card_id: str | None, skip: str = "") -> Card:
         """The card a session opens (raises ``ValueError`` / ``RequestError``)."""
@@ -61,56 +61,6 @@ class CardSource(Protocol):
 
     def master(self, names: list[str], card_id: str, session: str) -> list[str]:
         """Record concepts; returns the new ones."""
-
-
-class DeckSource:
-    """The PLC deck and ``progress.json``, as before the curriculum."""
-
-    subject = DEFAULT_SUBJECT
-
-    def __init__(self, store: Store, deck: list[Card] | None = None) -> None:
-        """The given deck, else the repo deck."""
-        self.store = store
-        self.profile = profiles.automation()
-        self._deck = deck if deck is not None else load_deck(DECK_DIR)
-
-    def cards(self) -> list[Card]:
-        """The whole deck."""
-        return self._deck
-
-    def done(self) -> dict[str, dict[str, Any]]:
-        """``progress.json`` ``cards_done``."""
-        found: dict[str, dict[str, Any]] = self.store.progress()["cards_done"]
-        return found
-
-    def pick(self, card_id: str | None, skip: str = "") -> Card:
-        """``gating.pick`` (``skip``: the first open card other than it)."""
-        if skip and not card_id:
-            found = gating.first_open(self._deck, self.done(), skip=skip)
-            if found is None:
-                msg = "no unfinished card left"
-                raise RequestError(NO_CARD_LEFT, msg)
-            return found
-        return gating.pick(self._deck, self.done(), card_id)
-
-    def mark(self, card_id: str, session: str, *, done: bool) -> None:
-        """``progress.json`` only."""
-        if done:
-            self.store.finish_card(card_id, session)
-        else:
-            self.store.unfinish_card(card_id)
-
-    def mastered(self) -> list[str]:
-        """``progress.json`` ``mastered``."""
-        return self.store.mastered()
-
-    def path(self, card_id: str) -> dict[str, Any] | None:
-        """The old deck has no paths."""
-        return _NO_PATHS.get(card_id)
-
-    def master(self, names: list[str], card_id: str, session: str) -> list[str]:
-        """``progress.json`` ``mastered``."""
-        return self.store.master(names, card_id, session)
 
 
 class SubjectSource:
@@ -154,6 +104,10 @@ class SubjectSource:
             cid: {"session": folded.card(self.subject, cid).session}
             for cid in folded.taught_ids(self.subject)
         }
+
+    def waived(self) -> frozenset[str]:
+        """``View.waived`` under C3 (empty for an ungated subject)."""
+        return self._view(gated=True).waived
 
     def pick(self, card_id: str | None, skip: str = "", module: str = "") -> Card:
         """``pick.pick`` over the subject (``skip`` left out; ``module``: only it).

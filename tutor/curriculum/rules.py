@@ -38,6 +38,12 @@ class View:
     refused: frozenset[str] = frozenset()  # C3: modules never taught now
     only: str = ""  # C4: the next-card scan stays in this module
 
+    @property
+    def waived(self) -> frozenset[str]:
+        """Card ids in a module C3 refuses now: they hold no card shut."""
+        held = self.refused
+        return frozenset(c for c, rec in self.cards.items() if rec.module in held)
+
     def module_cards(self, module_id: str) -> list[tuple[str, CardRec]]:
         """The module's cards in ``order``."""
         found = [(cid, c) for cid, c in self.cards.items() if c.module == module_id]

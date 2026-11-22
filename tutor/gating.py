@@ -1,6 +1,12 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Card gating: a card whose ``requires`` are not all done is locked.
 
+The one rule for every reader: the pick, the tutor's ``card_done``, the manual
+mark and the card listing all ask :func:`missing`. A required card that is
+*waived* (``CardSource.waived``: it sits in a module C3 refuses now) holds
+nothing shut, since the tutor may not teach it now and the guard's unit order
+puts it after this card.
+
 The deck says which cards a card builds on (``cards.Card.requires``); the
 tutor alone enforces it, since Anki has no gating. A locked card is skipped by
 every auto-pick, refused when started by id, and never marked done, whether by
@@ -10,22 +16,36 @@ ids exist and never loop, so some unfinished card is always open.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from collections.abc import Collection
+    from collections.abc import Collection, Sequence
 
     from tutor.cards import Card
 
-
-def missing(card: Card, done: Collection[str]) -> list[str]:
-    """The ids ``card`` requires that are not done yet (empty: it is open)."""
-    return [need for need in card.requires if need not in done]
+NONE: frozenset[str] = frozenset()
 
 
-def refuse_locked(card: Card, done: Collection[str], action: str) -> None:
+class _Needs(Protocol):
+    """A card (``cards.Card``) or a stored one (``records.CardRec``)."""
+
+    @property
+    def requires(self) -> Sequence[str]:
+        """The ids of the cards it builds on."""
+
+
+def missing(
+    card: _Needs, done: Collection[str], waived: Collection[str] = NONE
+) -> list[str]:
+    """The ids ``card`` requires that are not done or waived (empty: open)."""
+    return [n for n in card.requires if n not in done and n not in waived]
+
+
+def refuse_locked(
+    card: Card, done: Collection[str], action: str, waived: Collection[str] = NONE
+) -> None:
     """Raise ``ValueError`` naming what is missing when ``card`` is locked."""
-    need = missing(card, done)
+    need = missing(card, done, waived)
     if need:
         msg = f"cannot {action} {card.id!r}: locked until {', '.join(need)} are done"
         raise ValueError(msg)
@@ -55,7 +75,9 @@ def pick(deck: list[Card], done: Collection[str], card_id: str | None) -> Card:
     return card
 
 
-def listing(deck: list[Card], done: Collection[str]) -> list[dict[str, Any]]:
+def listing(
+    deck: list[Card], done: Collection[str], waived: Collection[str] = NONE
+) -> list[dict[str, Any]]:
     """Every card, done or not, and what still locks it."""
     return [
         {
@@ -64,8 +86,8 @@ def listing(deck: list[Card], done: Collection[str]) -> list[dict[str, Any]]:
             "topic": c.topic.title,
             "done": c.id in done,
             "requires": list(c.requires),
-            "missing": missing(c, done),
-            "locked": bool(missing(c, done)),
+            "missing": missing(c, done, waived),
+            "locked": bool(missing(c, done, waived)),
         }
         for c in deck
     ]

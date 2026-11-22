@@ -13,7 +13,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from tutor import history, resume
-from tutor.curriculum.source import DEFAULT_SUBJECT, transcript_subject
+from tutor.curriculum.deck_source import DEFAULT_SUBJECT
+from tutor.curriculum.source import transcript_subject
 
 if TYPE_CHECKING:
     from pathlib import Path

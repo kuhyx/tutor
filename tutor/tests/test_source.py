@@ -9,10 +9,11 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tutor.curriculum import archive, migrate
+from tutor.curriculum.deck_source import DeckSource
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.ids import ulid
 from tutor.curriculum.records import Meta
-from tutor.curriculum.source import DeckSource, SubjectSource, source_for
+from tutor.curriculum.source import SubjectSource, source_for
 from tutor.engine import Engine
 from tutor.store import Store
 from tutor.tests._cur import card, make_ctx, module, subject

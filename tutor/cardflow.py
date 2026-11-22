@@ -182,7 +182,7 @@ class CardFlow:
             progress = src.done()
             conv, sid = (self._conv if src is self.source else None), ""
             if done:
-                gating.refuse_locked(card, progress, "mark done")
+                gating.refuse_locked(card, progress, "mark done", src.waived())
                 was = progress.get(card_id) or {}
                 sid = conv.session_id if conv else str(was.get("session", "manual"))
             src.mark(card_id, sid, done=done)

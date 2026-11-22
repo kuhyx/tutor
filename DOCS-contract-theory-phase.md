@@ -80,8 +80,13 @@ order, so waiting would leave the module never done (measured 2026-11-22:
 `histogram-prefix-sorted-position` of `prefix-sums` needs
 `direct-index-counting-array` of `hashing`). A required card in a module C3
 does not refuse still blocks, and ungated subjects keep every prerequisite.
-Only `pick._open` applies the rule; a module's done row (C2) follows from the
-taught cards, and the app only shows what the worker sends.
+One function applies the rule, `gating.missing(card, done, waived)`, with
+`CardSource.waived()` naming the refused modules' cards. The pick, the tutor's
+`card_done` (`phase_gate.blockers`), the manual mark (`set_card_done`) and the
+card listing all call it, so a card the pick offers can always be finished
+(2026-11-22: the done-gate had kept its own copy, and `card_done` was refused).
+A module's done row (C2) follows from the taught cards, and the app only shows
+what the worker sends.
 
 ## C4: `/learn/<subject>/<module>`, the lock's learn button
 The guard runs `~/.local/bin/tutor --route /learn/<subject>/<module>`

@@ -31,10 +31,11 @@ import uuid
 
 from tutor import credit, ledger_pay, unavailable, unit_credit
 from tutor.clock import EngagementClock
+from tutor.curriculum.deck_source import DEFAULT_SUBJECT
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.eventlog import DRILL, review_event
 from tutor.curriculum.ids import ulid
-from tutor.curriculum.source import DEFAULT_SUBJECT, source_for
+from tutor.curriculum.source import source_for
 from tutor.distractors import options_for
 from tutor.ledger_twin import REVIEW
 

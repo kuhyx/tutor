@@ -44,7 +44,7 @@ def blockers(src: CardSource, card: Card) -> list[str]:
     The requires not done yet (``gating``), else the card's module when C3
     refuses it (the phase moved while the model was answering).
     """
-    need = gating.missing(card, src.done())
+    need = gating.missing(card, src.done(), src.waived())
     return need or ([card.topic.stem] if refuses(src, card.id) else [])
 
 

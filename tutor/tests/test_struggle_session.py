@@ -11,8 +11,9 @@ import pytest
 
 from tutor import struggle
 from tutor.cards import Card, Topic
+from tutor.curriculum.deck_source import DeckSource
 from tutor.curriculum.errors import RequestError
-from tutor.curriculum.source import DeckSource, SubjectSource
+from tutor.curriculum.source import SubjectSource
 from tutor.engine import Engine
 from tutor.prompt import system_prompt
 from tutor.store import Store

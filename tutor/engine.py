@@ -86,7 +86,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
 
     def cards(self) -> list[dict[str, Any]]:
         """Every card, done or not, and what still locks it (``gating``)."""
-        return gating.listing(self.deck, self.source.done())
+        return gating.listing(self.deck, self.source.done(), self.source.waived())
 
     async def start(
         self,

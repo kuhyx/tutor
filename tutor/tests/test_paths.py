@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Any
 from tutor import path_prompt
 from tutor.cards import Card, Topic
 from tutor.curriculum import paths
-from tutor.curriculum.source import DeckSource, SubjectSource
+from tutor.curriculum.deck_source import DeckSource
+from tutor.curriculum.source import SubjectSource
 from tutor.curriculum.subject_store import Change
 from tutor.prompt import system_prompt
 from tutor.store import Store
