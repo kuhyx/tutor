@@ -59,32 +59,38 @@ class CardActions {
     GlyphButton(
       icon: Icons.swap_horiz,
       semanticLabel: 'Switch card',
+      tooltip: (l) => l.tooltip_switch,
       onPressed: onSwitch,
     ),
     GlyphButton(
       icon: Icons.task_alt,
       semanticLabel: 'Mark card done',
       tint: AppPalette.success,
+      tooltip: (l) => l.tooltip_complete,
       onPressed: onMarkDone,
     ),
     GlyphButton(
       icon: Icons.stop_circle_outlined,
       semanticLabel: 'Stop here',
+      tooltip: (l) => l.tooltip_stop,
       onPressed: onStop,
     ),
     GlyphButton(
       icon: Icons.edit_note,
       semanticLabel: 'Edit cards',
+      tooltip: (l) => l.tooltip_edit,
       onPressed: onEdit,
     ),
     GlyphButton(
       icon: Icons.history,
       semanticLabel: 'History',
+      tooltip: (l) => l.tooltip_history,
       onPressed: onHistory,
     ),
     GlyphButton(
       icon: Icons.flag_outlined,
       semanticLabel: 'Report a problem',
+      tooltip: (l) => l.tooltip_report,
       onPressed: onReport,
     ),
   ];
@@ -188,6 +194,7 @@ Widget knownGlyph(List<String> mastered) => Builder(
   builder: (context) => GlyphButton(
     icon: Icons.checklist,
     semanticLabel: 'Known',
+    tooltip: (l) => l.tooltip_known,
     onPressed: () => showKnown(context, mastered),
   ),
 );

@@ -88,6 +88,7 @@ class ModuleProgressTile extends StatelessWidget {
             ? GlyphButton(
                 icon: Icons.refresh,
                 semanticLabel: 'Retry',
+                tooltip: (l) => l.tooltip_retry,
                 tint: Theme.of(context).colorScheme.error,
                 onPressed: onRetry,
               )
@@ -95,6 +96,7 @@ class ModuleProgressTile extends StatelessWidget {
             ? GlyphButton(
                 icon: Icons.replay,
                 semanticLabel: 'Review this module',
+                tooltip: (l) => l.tooltip_review,
                 filled: true,
                 onPressed: onReview,
               )

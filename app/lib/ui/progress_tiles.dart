@@ -108,6 +108,7 @@ class _ProgressFitState extends State<ProgressFit> {
               GlyphButton(
                 icon: Icons.table_rows_outlined,
                 semanticLabel: 'All days',
+                tooltip: (l) => l.tooltip_calendar,
                 onPressed: () => showLearnSheet(
                   context,
                   header: const LearnHeader(

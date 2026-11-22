@@ -135,6 +135,7 @@ class _PlanScreenState extends State<PlanScreen> {
         GlyphButton(
           icon: Icons.refresh,
           semanticLabel: 'Reload',
+          tooltip: (l) => l.tooltip_reload,
           onPressed: _reload,
         ),
       ],
@@ -207,6 +208,7 @@ class _PlanScreenState extends State<PlanScreen> {
             child: GlyphButton(
               icon: Icons.auto_fix_high,
               semanticLabel: 'Redraft with this comment',
+              tooltip: (l) => l.tooltip_redraft,
               onPressed: _runner.canSend ? () => _redraft(data, plan) : null,
             ),
           ),

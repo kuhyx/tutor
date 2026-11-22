@@ -173,6 +173,7 @@ class _ReportDialogState extends State<ReportDialog> {
         GlyphButton(
           icon: Icons.save_outlined,
           semanticLabel: 'Save report',
+          tooltip: (l) => l.tooltip_save,
           filled: true,
           onPressed: _busy ? null : _submit,
         ),

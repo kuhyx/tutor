@@ -159,7 +159,14 @@ class _E2eUnlockState extends State<E2eUnlock> {
               children: [
                 E2ePassphraseButton(locked: true, onSaved: _retry),
                 const SizedBox(width: AppSpacing.md),
-                IconButton(icon: const Icon(Icons.refresh), onPressed: _retry),
+                approvedTooltip(
+                  message: AppLocalizations.of(context).tooltip_retry,
+                  excludeFromSemantics: true,
+                  child: IconButton(
+                    icon: const Icon(Icons.refresh, semanticLabel: 'Retry'),
+                    onPressed: _retry,
+                  ),
+                ),
               ],
             ),
           ),

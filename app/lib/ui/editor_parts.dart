@@ -13,6 +13,7 @@ extension on _EditorScreenState {
             child: GlyphButton(
               icon: Icons.restore,
               semanticLabel: 'Restore',
+              tooltip: (l) => l.tooltip_restore,
               onPressed: () => _undo(RequestBody.cardRestore(s.id, c.key)),
             ),
           ),

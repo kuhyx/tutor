@@ -83,6 +83,7 @@ class _FollowUpBoxState extends State<FollowUpBox> {
       GlyphButton(
         icon: Icons.send,
         semanticLabel: 'Ask',
+        tooltip: (l) => l.tooltip_ask,
         filled: true,
         onPressed: _busy ? null : _ask,
       ),

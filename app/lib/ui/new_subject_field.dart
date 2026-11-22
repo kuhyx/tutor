@@ -86,6 +86,7 @@ class _NewSubjectState extends State<NewSubjectField> {
         child: GlyphButton(
           icon: Icons.auto_awesome,
           semanticLabel: 'Draft a plan',
+          tooltip: (l) => l.tooltip_draft,
           filled: true,
           onPressed: widget.runner.canSend ? _submit : null,
         ),

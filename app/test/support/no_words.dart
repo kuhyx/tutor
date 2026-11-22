@@ -1,7 +1,8 @@
 /// The "no words" guard (textgate): nothing painted holds a word (two or
 /// more letters) unless it is content ([ContentText] / [ContentScope]), a
 /// text field's value, or an already-approved ledger string
-/// (`text-approvals.json`). Tooltips and field decorations count as painted.
+/// (`text-approvals.json`). Tooltips and field decorations count as painted;
+/// a shown tooltip of one word naming a glyph is allowed.
 library;
 
 import 'dart:convert';
@@ -13,6 +14,9 @@ import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/text_free_theme.dart';
 
 final _word = RegExp(r'\p{L}{2,}', unicode: true);
+
+/// textgate's one-word tooltip: no whitespace or sentence punctuation, <= 20.
+final _oneWord = RegExp(r'^[^\s.!?,;:]{1,20}$');
 
 /// The approved ledger strings as patterns (`{n}` = anything; each plural
 /// branch on its own).
@@ -73,11 +77,7 @@ List<String> wordsOnScreen(WidgetTester t) {
   // An empty walk proves nothing: something must be on screen (a text-free
   // screen may paint no RichText at all, only glyphs and spinners).
   expect(find.byType(MaterialApp), findsOneWidget, reason: 'nothing pumped');
-  for (final e in texts) {
-    final text = (e.widget as RichText).text.toPlainText();
-    if (!_word.hasMatch(text) || _approved(text) || _isContent(e)) continue;
-    bad.add('text: ${text.replaceAll('\n', ' ')}');
-  }
+  final oneWordTips = <String>{};
   for (final e in find.byType(Tooltip).evaluate()) {
     final w = e.widget as Tooltip;
     final theme = TooltipTheme.of(e);
@@ -86,7 +86,19 @@ List<String> wordsOnScreen(WidgetTester t) {
     // Spoken only: never shown on long-press or hover.
     if (mode == TooltipTriggerMode.manual && wait >= spokenOnlyWait) continue;
     final msg = w.message ?? w.richMessage?.toPlainText() ?? '';
+    // One word naming a glyph needs no approval (kuhy, 2026-11-22).
+    if (_oneWord.hasMatch(msg)) {
+      oneWordTips.add(msg);
+      continue;
+    }
     if (_word.hasMatch(msg) && !_approved(msg)) bad.add('tooltip: $msg');
+  }
+  for (final e in texts) {
+    final text = (e.widget as RichText).text.toPlainText();
+    if (!_word.hasMatch(text) || _approved(text) || _isContent(e)) continue;
+    // A shown one-word tooltip paints its word in the overlay.
+    if (oneWordTips.contains(text)) continue;
+    bad.add('text: ${text.replaceAll('\n', ' ')}');
   }
   for (final e in find.byType(InputDecorator).evaluate()) {
     final d = (e.widget as InputDecorator).decoration;

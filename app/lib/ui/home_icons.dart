@@ -27,11 +27,13 @@ List<Widget> homeIcons(
   GlyphButton(
     icon: Icons.storage_outlined,
     semanticLabel: 'SQL',
+    tooltip: (l) => l.tooltip_sql,
     onPressed: () => go(() => openSql(context, s)),
   ),
   GlyphButton(
     icon: Icons.psychology_outlined,
     semanticLabel: 'Coach',
+    tooltip: (l) => l.tooltip_coach,
     onPressed: () => go(() => openCoach(context, s)),
   ),
 ];

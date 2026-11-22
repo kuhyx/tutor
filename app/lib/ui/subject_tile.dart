@@ -143,6 +143,7 @@ class SubjectTile extends StatelessWidget {
                     icon: Icons.fact_check_outlined,
                     semanticLabel: 'Review ${review.title}',
                     tint: AppPalette.success,
+                    tooltip: (l) => l.tooltip_review,
                     onPressed: () => onReviewModule!(review),
                   ),
                 if (due > 0 && onReviewDue != null)
@@ -151,17 +152,20 @@ class SubjectTile extends StatelessWidget {
                     semanticLabel: 'Review ($due due)',
                     count: due,
                     tint: scheme.primary,
+                    tooltip: (l) => l.tooltip_review,
                     onPressed: onReviewDue,
                   ),
                 GlyphButton(
                   icon: Icons.account_tree_outlined,
                   semanticLabel: 'Plan',
+                  tooltip: (l) => l.tooltip_plan,
                   onPressed: onPlan,
                 ),
                 if (data != null && data.cards.isNotEmpty)
                   GlyphButton(
                     icon: Icons.view_carousel_outlined,
                     semanticLabel: 'Cards',
+                    tooltip: (l) => l.tooltip_cards,
                     onPressed: onEdit,
                   ),
                 if (teaching && !current)
@@ -169,6 +173,7 @@ class SubjectTile extends StatelessWidget {
                     icon: Icons.arrow_circle_right_outlined,
                     semanticLabel: 'Learn this next',
                     tint: scheme.primary,
+                    tooltip: (l) => l.tooltip_next,
                     onPressed: onPick,
                   ),
                 if (status == SubjectStatus.failed &&
@@ -177,6 +182,7 @@ class SubjectTile extends StatelessWidget {
                     icon: Icons.restart_alt,
                     semanticLabel: 'Try again',
                     tint: scheme.error,
+                    tooltip: (l) => l.tooltip_retry,
                     onPressed: onRetry,
                   ),
                 if (status == SubjectStatus.completed) ...[
@@ -184,12 +190,14 @@ class SubjectTile extends StatelessWidget {
                     icon: Icons.keyboard_double_arrow_down,
                     semanticLabel: 'Go deeper',
                     tint: AppPalette.warning,
+                    tooltip: (l) => l.tooltip_deeper,
                     onPressed: () => onFinish(true),
                   ),
                   GlyphButton(
                     icon: Icons.replay,
                     semanticLabel: 'Review only',
                     tint: AppPalette.success,
+                    tooltip: (l) => l.tooltip_review,
                     onPressed: () => onFinish(false),
                   ),
                 ],
@@ -197,6 +205,7 @@ class SubjectTile extends StatelessWidget {
                   GlyphButton(
                     icon: Icons.delete_outline,
                     semanticLabel: 'Archive ${entry.meta.title}',
+                    tooltip: (l) => l.tooltip_archive,
                     onPressed: onArchive,
                   ),
               ],

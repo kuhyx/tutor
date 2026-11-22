@@ -174,6 +174,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         GlyphButton(
           icon: _drill ? Icons.replay : Icons.quiz_outlined,
           semanticLabel: _drill ? 'Review' : 'Drill',
+          tooltip: (l) => _drill ? l.tooltip_review : l.tooltip_drill,
           onPressed: () => setState(() => _drill = !_drill),
         ),
       ],

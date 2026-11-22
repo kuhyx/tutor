@@ -16,6 +16,7 @@ import 'package:tutor/ui/home_archive.dart';
 import 'package:tutor/ui/home_fit.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
+import 'package:tutor/ui/session_kind_glyph.dart';
 import 'package:tutor/ui/subject_tile.dart';
 import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/cue_chip.dart';
@@ -132,12 +133,9 @@ class HomeBody extends StatelessWidget {
                 runSpacing: AppSpacing.sm,
                 children: [
                   GlyphButton(
-                    icon: switch (entry.kind) {
-                      SessionKind.learn => Icons.school_outlined,
-                      SessionKind.live => Icons.chat_bubble_outline,
-                      SessionKind.resume => Icons.play_circle_outline,
-                    },
+                    icon: entry.kind.glyph,
                     semanticLabel: entry.semanticLabel,
+                    tooltip: entry.kind.word,
                     filled: true,
                     onPressed: () => onSession(entry),
                   ),
@@ -149,12 +147,14 @@ class HomeBody extends StatelessWidget {
                       semanticLabel: 'Review (${data.due} due)',
                       count: data.due,
                       tint: scheme.primary,
+                      tooltip: (l) => l.tooltip_review,
                       onPressed: onReview,
                     ),
                   GlyphButton(
                     icon: Icons.touch_app_outlined,
                     semanticLabel: 'Drill',
                     tint: AppPalette.warning,
+                    tooltip: (l) => l.tooltip_drill,
                     onPressed: onDrill,
                   ),
                 ],

@@ -1,11 +1,14 @@
 /// Icon-only controls (textgate): the old wording lives on only as the
 /// spoken label (screen readers, the browser drivers' aria-label), never
-/// painted and never a tooltip (a tooltip paints on long-press).
+/// painted. A tooltip may only name the glyph in one ledger word
+/// (`tooltip_*` keys, kuhy 2026-11-22).
 library;
 
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/widgets/count_badge.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 /// Gives [child] exactly [semanticLabel] as its spoken label; its own
 /// semantics (an icon's, a badge's number) are folded into it.
@@ -61,7 +64,8 @@ class SpokenLabel extends StatelessWidget {
 }
 
 /// An icon button with a spoken label, an optional count badge and tint;
-/// [filled] for the screen's primary action.
+/// [filled] for the screen's primary action; [tooltip] picks the one ledger
+/// word shown on hover and long-press.
 class GlyphButton extends StatelessWidget {
   /// Creates the button.
   const new({
@@ -74,6 +78,7 @@ class GlyphButton extends StatelessWidget {
     this.selected = false,
     this.size,
     this.target,
+    this.tooltip,
     super.key,
   });
 
@@ -103,6 +108,9 @@ class GlyphButton extends StatelessWidget {
 
   /// Square tap target (dp); null = the theme's (48).
   final double? target;
+
+  /// The `tooltip_*` ledger word naming the glyph; null = none shown.
+  final String Function(AppLocalizations l)? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -139,12 +147,22 @@ class GlyphButton extends StatelessWidget {
                 : null,
             icon: glyph,
           );
-    return SpokenLabel(
+    final labeled = SpokenLabel(
       semanticLabel: semanticLabel,
       button: true,
       enabled: onPressed != null,
       onTap: onPressed,
       child: button,
+    );
+    final word = tooltip;
+    // No ledger in scope (a bare test harness): no word to show.
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
+    if (word == null || l10n == null) return labeled;
+    // The spoken label already says it: the word is painted, not spoken.
+    return approvedTooltip(
+      message: word(l10n),
+      excludeFromSemantics: true,
+      child: labeled,
     );
   }
 }

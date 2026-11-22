@@ -285,6 +285,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get doneStep;
+
+  /// No description provided for @tooltip_sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get tooltip_sync;
+
+  /// No description provided for @tooltip_review.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get tooltip_review;
+
+  /// No description provided for @tooltip_drill.
+  ///
+  /// In en, this message translates to:
+  /// **'Drill'**
+  String get tooltip_drill;
+
+  /// No description provided for @tooltip_plan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get tooltip_plan;
+
+  /// No description provided for @tooltip_cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get tooltip_cards;
+
+  /// No description provided for @tooltip_next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tooltip_next;
+
+  /// No description provided for @tooltip_retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get tooltip_retry;
+
+  /// No description provided for @tooltip_archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get tooltip_archive;
+
+  /// No description provided for @tooltip_save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get tooltip_save;
+
+  /// No description provided for @tooltip_approve.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get tooltip_approve;
+
+  /// No description provided for @tooltip_edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get tooltip_edit;
+
+  /// No description provided for @tooltip_send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get tooltip_send;
+
+  /// No description provided for @tooltip_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint'**
+  String get tooltip_hint;
+
+  /// No description provided for @tooltip_history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get tooltip_history;
+
+  /// No description provided for @tooltip_known.
+  ///
+  /// In en, this message translates to:
+  /// **'Known'**
+  String get tooltip_known;
+
+  /// No description provided for @tooltip_open.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get tooltip_open;
+
+  /// No description provided for @tooltip_redraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Redraft'**
+  String get tooltip_redraft;
+
+  /// No description provided for @tooltip_reload.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get tooltip_reload;
+
+  /// No description provided for @tooltip_refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get tooltip_refresh;
+
+  /// No description provided for @tooltip_stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get tooltip_stop;
+
+  /// No description provided for @tooltip_switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get tooltip_switch;
+
+  /// No description provided for @tooltip_report.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get tooltip_report;
+
+  /// No description provided for @tooltip_restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get tooltip_restore;
+
+  /// No description provided for @tooltip_reveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reveal'**
+  String get tooltip_reveal;
+
+  /// No description provided for @tooltip_deeper.
+  ///
+  /// In en, this message translates to:
+  /// **'Deeper'**
+  String get tooltip_deeper;
+
+  /// No description provided for @tooltip_sql.
+  ///
+  /// In en, this message translates to:
+  /// **'SQL'**
+  String get tooltip_sql;
+
+  /// No description provided for @tooltip_coach.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach'**
+  String get tooltip_coach;
+
+  /// No description provided for @tooltip_draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get tooltip_draft;
+
+  /// No description provided for @tooltip_complete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get tooltip_complete;
+
+  /// No description provided for @tooltip_ask.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get tooltip_ask;
+
+  /// No description provided for @tooltip_calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get tooltip_calendar;
+
+  /// No description provided for @tooltip_live.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get tooltip_live;
+
+  /// No description provided for @tooltip_learn.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get tooltip_learn;
+
+  /// No description provided for @tooltip_resume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get tooltip_resume;
 }
 
 class _AppLocalizationsDelegate

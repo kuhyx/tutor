@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tutor/coach/coach_requests.dart';
+import 'package:tutor/l10n/gen/app_localizations.dart';
 import 'package:tutor/ui/sql/data_grid.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/icon_field.dart';
+import 'package:tutor/widgets/text_free_theme.dart';
 
 /// Asks the user to type `reveal`; true only when they did and confirmed.
 Future<bool> askReveal(BuildContext context) async =>
@@ -57,12 +59,16 @@ class _RevealDialogState extends State<_RevealDialog> {
       ),
       ListenableBuilder(
         listenable: _text,
-        builder: (context, _) => IconButton.filled(
-          key: const ValueKey('reveal-ok'),
-          onPressed: _text.text.trim() == coachReveal
-              ? () => Navigator.of(context).pop(true)
-              : null,
-          icon: const Icon(Icons.visibility, semanticLabel: 'Reveal'),
+        builder: (context, _) => approvedTooltip(
+          message: AppLocalizations.of(context).tooltip_reveal,
+          excludeFromSemantics: true,
+          child: IconButton.filled(
+            key: const ValueKey('reveal-ok'),
+            onPressed: _text.text.trim() == coachReveal
+                ? () => Navigator.of(context).pop(true)
+                : null,
+            icon: const Icon(Icons.visibility, semanticLabel: 'Reveal'),
+          ),
         ),
       ),
     ],

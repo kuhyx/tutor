@@ -17,11 +17,17 @@ ThemeData textFreeTheme(ThemeData base) => base.copyWith(
   ),
 );
 
-/// A tooltip kuhy approved (text-approvals.json): shown as usual.
-Widget approvedTooltip({required String message, required Widget child}) =>
-    Tooltip(
-      message: message,
-      triggerMode: TooltipTriggerMode.longPress,
-      waitDuration: const Duration(milliseconds: 500),
-      child: child,
-    );
+/// A tooltip kuhy approved (text-approvals.json) or a one-word `tooltip_*`
+/// ledger entry: shown on long-press and hover. [excludeFromSemantics] when
+/// [child] already speaks its own label.
+Widget approvedTooltip({
+  required String message,
+  required Widget child,
+  bool excludeFromSemantics = false,
+}) => Tooltip(
+  message: message,
+  triggerMode: TooltipTriggerMode.longPress,
+  waitDuration: const Duration(milliseconds: 500),
+  excludeFromSemantics: excludeFromSemantics,
+  child: child,
+);

@@ -64,6 +64,7 @@ class CommonsFigure extends StatelessWidget {
               GlyphButton(
                 icon: Icons.open_in_new,
                 semanticLabel: 'Wikimedia Commons',
+                tooltip: (l) => l.tooltip_open,
                 onPressed: () => openLink(img.pageUrl),
               ),
             ],

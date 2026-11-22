@@ -62,15 +62,12 @@ class BlockedPanel extends StatelessWidget {
     final b = blocked;
     final Widget glyph;
     if (b.gated) {
-      glyph = Tooltip(
-        message: 'Review',
-        excludeFromSemantics: true, // the spoken line says it
-        child: GlyphButton(
-          icon: Icons.style,
-          semanticLabel: text,
-          filled: true,
-          onPressed: onGate,
-        ),
+      glyph = GlyphButton(
+        icon: Icons.style,
+        semanticLabel: text,
+        tooltip: (l) => l.tooltip_review,
+        filled: true,
+        onPressed: onGate,
       );
     } else if (b.writing) {
       glyph = Tooltip(

@@ -115,6 +115,7 @@ class AnswerBox extends StatelessWidget {
                     child: GlyphButton(
                       icon: Icons.lightbulb_outline,
                       semanticLabel: 'Hint',
+                      tooltip: (l) => l.tooltip_hint,
                       size: kHintGlyph,
                       target: kHintTarget,
                       tint: Theme.of(context).colorScheme.onSurfaceVariant,

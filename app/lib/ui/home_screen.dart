@@ -180,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
           GlyphButton(
             icon: Icons.refresh,
             semanticLabel: 'Refresh',
+            tooltip: (l) => l.tooltip_refresh,
             onPressed: _refresh,
           ),
         PopupMenuButton<String>(

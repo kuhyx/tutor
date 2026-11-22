@@ -130,6 +130,7 @@ class SendRow extends StatelessWidget {
       GlyphButton(
         icon: Icons.send,
         semanticLabel: 'Send',
+        tooltip: (l) => l.tooltip_send,
         filled: true,
         onPressed: canSend ? onSend : null,
       ),

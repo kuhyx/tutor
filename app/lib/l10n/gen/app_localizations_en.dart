@@ -118,4 +118,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get doneStep => 'Done';
+
+  @override
+  String get tooltip_sync => 'Sync';
+
+  @override
+  String get tooltip_review => 'Review';
+
+  @override
+  String get tooltip_drill => 'Drill';
+
+  @override
+  String get tooltip_plan => 'Plan';
+
+  @override
+  String get tooltip_cards => 'Cards';
+
+  @override
+  String get tooltip_next => 'Next';
+
+  @override
+  String get tooltip_retry => 'Retry';
+
+  @override
+  String get tooltip_archive => 'Archive';
+
+  @override
+  String get tooltip_save => 'Save';
+
+  @override
+  String get tooltip_approve => 'Approve';
+
+  @override
+  String get tooltip_edit => 'Edit';
+
+  @override
+  String get tooltip_send => 'Send';
+
+  @override
+  String get tooltip_hint => 'Hint';
+
+  @override
+  String get tooltip_history => 'History';
+
+  @override
+  String get tooltip_known => 'Known';
+
+  @override
+  String get tooltip_open => 'Open';
+
+  @override
+  String get tooltip_redraft => 'Redraft';
+
+  @override
+  String get tooltip_reload => 'Reload';
+
+  @override
+  String get tooltip_refresh => 'Refresh';
+
+  @override
+  String get tooltip_stop => 'Stop';
+
+  @override
+  String get tooltip_switch => 'Switch';
+
+  @override
+  String get tooltip_report => 'Report';
+
+  @override
+  String get tooltip_restore => 'Restore';
+
+  @override
+  String get tooltip_reveal => 'Reveal';
+
+  @override
+  String get tooltip_deeper => 'Deeper';
+
+  @override
+  String get tooltip_sql => 'SQL';
+
+  @override
+  String get tooltip_coach => 'Coach';
+
+  @override
+  String get tooltip_draft => 'Draft';
+
+  @override
+  String get tooltip_complete => 'Complete';
+
+  @override
+  String get tooltip_ask => 'Ask';
+
+  @override
+  String get tooltip_calendar => 'Calendar';
+
+  @override
+  String get tooltip_live => 'Live';
+
+  @override
+  String get tooltip_learn => 'Learn';
+
+  @override
+  String get tooltip_resume => 'Resume';
 }

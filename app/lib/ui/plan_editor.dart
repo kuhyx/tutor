@@ -143,6 +143,7 @@ class _PlanEditorState extends State<PlanEditor> {
                 GlyphButton(
                   icon: Icons.save_outlined,
                   semanticLabel: 'Save edits',
+                  tooltip: (l) => l.tooltip_save,
                   onPressed: _dirty && problems.isEmpty && !busy
                       ? () => widget.onSave(_modules)
                       : null,
@@ -150,6 +151,7 @@ class _PlanEditorState extends State<PlanEditor> {
                 GlyphButton(
                   icon: Icons.done_all,
                   semanticLabel: 'Approve plan',
+                  tooltip: (l) => l.tooltip_approve,
                   filled: true,
                   onPressed: _dirty || busy ? null : widget.onApprove,
                 ),

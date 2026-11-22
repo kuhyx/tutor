@@ -57,6 +57,7 @@ extension on _DrillViewState {
             GlyphButton(
               icon: Icons.sync,
               semanticLabel: 'Sync Anki & credit',
+              tooltip: (l) => l.tooltip_sync,
               onPressed: _anki.running ? null : () => unawaited(_anki.run()),
             ),
         ],
