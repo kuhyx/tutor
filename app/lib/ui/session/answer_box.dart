@@ -86,6 +86,11 @@ class AnswerBox extends StatelessWidget {
         style: dense ? const TextStyle(fontSize: kPhoneText) : null,
         decoration: InputDecoration(
           prefixIcon: _prefix(),
+          // Phone: the bulb's slot must not lift the one-line field to
+          // Material's 48 dp icon minimum (it stays 44 dp, as without it).
+          prefixIconConstraints: dense
+              ? const BoxConstraints(minWidth: kHintTarget)
+              : null,
           isDense: dense,
           border: const OutlineInputBorder(),
         ),

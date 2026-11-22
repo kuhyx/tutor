@@ -68,7 +68,9 @@ void main() {
     await openComposer(t, phone: true, edit: (m) => m.remove('choices'));
     final bulb = glyphsLabelled('Hint');
     expect(bulb, findsOneWidget);
-    _inside(t, bulb);
+    final box = _inside(t, bulb);
+    // The bulb does not grow the one-line field (44 dp without it).
+    expect(box.height, lessThanOrEqualTo(44), reason: '$box');
   });
 
   testWidgets('phone: a closed field keeps the bulb in the row', (t) async {
