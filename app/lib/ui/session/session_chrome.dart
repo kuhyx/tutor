@@ -48,13 +48,20 @@ class SessionKeyboard {
 
 /// Forwards a wheel over the margins/buttons to the chat's [scroll]
 /// (`wheel.js`): anything that scrolls itself (the chat, a text box) claims
-/// it first.
-void forwardWheel(ScrollController scroll, PointerSignalEvent e) {
+/// it first. [reversed]: the chat list grows up from offset 0 (the wide
+/// desktop chat does not: offset 0 is the latest turn's top, older turns
+/// are at negative offsets).
+void forwardWheel(
+  ScrollController scroll,
+  PointerSignalEvent e, {
+  bool reversed = true,
+}) {
   if (e is! PointerScrollEvent || !scroll.hasClients) return;
   GestureBinding.instance.pointerSignalResolver.register(e, (event) {
     final p = scroll.position;
     final d = (event as PointerScrollEvent).scrollDelta.dy;
-    // The chat list is reversed: wheel down = toward offset 0.
-    scroll.jumpTo((p.pixels - d).clamp(0, p.maxScrollExtent));
+    // Reversed: wheel down = toward offset 0.
+    final to = reversed ? p.pixels - d : p.pixels + d;
+    scroll.jumpTo(to.clamp(p.minScrollExtent, p.maxScrollExtent));
   });
 }

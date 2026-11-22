@@ -38,12 +38,13 @@ class SessionChat extends StatefulWidget {
     this.subject,
     this.phone = false,
     this.keyboard = false,
-    this.header = true,
+    this.desk = false,
     super.key,
   });
 
-  /// The stats row shows above the chat (false: they are in the top bar).
-  final bool header;
+  /// Wide desktop window: the stats are in the top bar (no row here), and
+  /// the answer panel follows the latest turn in the chat's own scroll.
+  final bool desk;
 
   /// Reopens the module gate's review (its glyph).
   final VoidCallback? onGate;
@@ -144,10 +145,51 @@ class _SessionChatState extends State<SessionChat> {
     // message alone, above the question and a small box (kuhy, 2026-11-16).
     // A plain box keeps the folded last line: it is the ask.
     final typing = widget.keyboard && boxes;
+    final panel = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        NotLiveStatus(
+          services: widget.services,
+          runner: widget.runner,
+          view: view,
+          subject: meta?.subject ?? widget.subject,
+          onRun: widget.onRun,
+          onGate: widget.onGate,
+        ),
+        // Card done: Next card / Stop here, and the composer
+        // stays for follow-up questions (kuhy, 2026-10-20).
+        if (live && meta.cardDone)
+          CardEnd(
+            onNext: () => widget.onRun(RequestBody.next(view!.sid)),
+            onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
+            refused: widget.refused,
+          ),
+        if (live)
+          Composer(
+            sid: view!.sid,
+            latest: last,
+            kv: widget.services.kv,
+            // A lost reply must not block Send forever: once the
+            // runner is stalled the learner may send again.
+            enabled:
+                widget.runner.stalled.value ||
+                (busy == null && !widget.runner.busy),
+            onSend: (t) => widget.onSend(view.sid, t),
+            phone: widget.phone,
+            keyboard: widget.keyboard,
+          )
+        // A block's call to action replaces Start (same result).
+        else if (!(widget.runner.status.value?.blocks ?? false))
+          StartButton(onStart: widget.onStart),
+      ],
+    );
+    // Wide desktop: the panel scrolls with the turns, nothing is pinned.
+    final inline = widget.desk && !empty && !typing;
     return LayoutBuilder(
       builder: (context, box) => Column(
         children: [
-          if (meta != null && widget.header)
+          if (meta != null && !widget.desk)
             SessionHeader(
               meta: meta,
               today: widget.today,
@@ -174,56 +216,24 @@ class _SessionChatState extends State<SessionChat> {
                       keyboard: widget.keyboard,
                       pages: _pages,
                       scroll: widget.scroll,
+                      // Its own selection (boxes, chips) stays its own.
+                      panel: inline
+                          ? SelectionContainer.disabled(child: panel)
+                          : null,
                     ),
                   ),
           ),
-          const Divider(height: 1),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
-            child: sessionPanel(
-              phone: widget.phone,
-              dense: widget.keyboard,
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  NotLiveStatus(
-                    services: widget.services,
-                    runner: widget.runner,
-                    view: view,
-                    subject: meta?.subject ?? widget.subject,
-                    onRun: widget.onRun,
-                    onGate: widget.onGate,
-                  ),
-                  // Card done: Next card / Stop here, and the composer
-                  // stays for follow-up questions (kuhy, 2026-10-20).
-                  if (live && meta.cardDone)
-                    CardEnd(
-                      onNext: () => widget.onRun(RequestBody.next(view!.sid)),
-                      onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
-                      refused: widget.refused,
-                    ),
-                  if (live)
-                    Composer(
-                      sid: view!.sid,
-                      latest: last,
-                      kv: widget.services.kv,
-                      // A lost reply must not block Send forever: once the
-                      // runner is stalled the learner may send again.
-                      enabled:
-                          widget.runner.stalled.value ||
-                          (busy == null && !widget.runner.busy),
-                      onSend: (t) => widget.onSend(view.sid, t),
-                      phone: widget.phone,
-                      keyboard: widget.keyboard,
-                    )
-                  // A block's call to action replaces Start (same result).
-                  else if (!(widget.runner.status.value?.blocks ?? false))
-                    StartButton(onStart: widget.onStart),
-                ],
+          if (!inline) ...[
+            const Divider(height: 1),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: box.maxHeight * _share),
+              child: sessionPanel(
+                phone: widget.phone,
+                dense: widget.keyboard,
+                panel,
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

@@ -132,6 +132,7 @@ void main() {
     expect(bySpoken('This card:', prefix: true), findsOneWidget);
 
     await t.ensureVisible(find.text('The camshaft lobe'));
+    await t.pump(); // the scroll lands in the next frame
     await t.tap(find.text('The camshaft lobe'));
     await t.pump();
     final boxes = find.byType(TextField);

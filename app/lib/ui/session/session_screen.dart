@@ -180,26 +180,23 @@ class _SessionScreenState extends State<SessionScreen> {
           // The phone keeps its layout in landscape too.
           final desk = wide && !phone;
           final twoLines = desk && box.maxWidth < kBarOneLine;
-          final chat = Listener(
-            onPointerSignal: (e) => forwardWheel(_scroll, e),
-            child: SessionChat(
-              services: _s,
-              feed: _feed,
-              view: view,
-              today: _today.today.value,
-              runner: _runner,
-              scroll: _scroll,
-              now: widget.now ?? DateTime.now,
-              onRun: _run,
-              onStart: () => _run(_continue()),
-              subject: widget.subject,
-              onSend: _send,
-              onGate: _gate,
-              refused: _refused,
-              phone: phone,
-              keyboard: keyboard,
-              header: !desk,
-            ),
+          final chat = SessionChat(
+            services: _s,
+            feed: _feed,
+            view: view,
+            today: _today.today.value,
+            runner: _runner,
+            scroll: _scroll,
+            now: widget.now ?? DateTime.now,
+            onRun: _run,
+            onStart: () => _run(_continue()),
+            subject: widget.subject,
+            onSend: _send,
+            onGate: _gate,
+            refused: _refused,
+            phone: phone,
+            keyboard: keyboard,
+            desk: desk,
           );
           final side = SessionSide(
             meta: meta,
@@ -215,15 +212,8 @@ class _SessionScreenState extends State<SessionScreen> {
                 : sessionAppBar(
                     title: subject?.meta.title,
                     twoLines: twoLines,
-                    stats: desk && meta != null
-                        ? SessionHeader(
-                            meta: meta,
-                            today: _today.today.value,
-                            nowMs: (widget.now ?? DateTime.now)()
-                                .millisecondsSinceEpoch,
-                            live: !meta.stopped,
-                            inBar: true,
-                          )
+                    stats: desk
+                        ? barStats(meta, _today.today.value, widget.now)
                         : null,
                     actions: sessionActions(
                       sid: view?.sid,
@@ -235,12 +225,17 @@ class _SessionScreenState extends State<SessionScreen> {
             endDrawer: wide ? null : Drawer(child: SafeArea(child: side)),
             drawerEnableOpenDragGesture: !keyboard,
             endDrawerEnableOpenDragGesture: !keyboard,
-            body: SessionBody(
-              wide: wide,
-              width: box.maxWidth,
-              chat: chat,
-              fixedSide: desk ? kCardPaneWidth : null,
-              side: desk ? SessionCardPane(meta: meta) : side,
+            // A wheel anywhere, the empty margins too, scrolls the chat.
+            body: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerSignal: (e) => forwardWheel(_scroll, e, reversed: !desk),
+              child: SessionBody(
+                wide: wide,
+                width: box.maxWidth,
+                chat: chat,
+                fixedSide: desk ? kCardPaneWidth : null,
+                side: desk ? SessionCardPane(meta: meta) : side,
+              ),
             ),
           );
         },

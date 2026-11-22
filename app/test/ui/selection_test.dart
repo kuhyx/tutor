@@ -30,7 +30,7 @@ void main() {
     final question = find.text('What moves inside the cylinder?');
     await t.dragUntilVisible(
       question,
-      find.byType(ListView).first,
+      find.ancestor(of: message, matching: find.byType(Scrollable)).first,
       const Offset(0, 300),
     );
     expect(t.widget(_area(question)), same(area));

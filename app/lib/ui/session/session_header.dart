@@ -140,3 +140,19 @@ class SessionHeader extends StatelessWidget {
     );
   }
 }
+
+/// The header for the top bar (wide desktop) of [meta]; null before the
+/// session loads. [now] decides "stalled" (null: the wall clock).
+SessionHeader? barStats(
+  SessionMeta? meta,
+  Today? today,
+  DateTime Function()? now,
+) => meta == null
+    ? null
+    : SessionHeader(
+        meta: meta,
+        today: today,
+        nowMs: (now ?? DateTime.now)().millisecondsSinceEpoch,
+        live: !meta.stopped,
+        inBar: true,
+      );
