@@ -29,6 +29,7 @@ import uuid
 
 from gatelock import log_integrity
 
+from tutor.curriculum import theory_phase
 from tutor.curriculum.context import Context
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.fold import fold
@@ -83,6 +84,11 @@ def write(path: Path, key: Path, mode: str, specs: list[str]) -> str:
     elif not pairs or any(len(p) != _PAIR for p in pairs):
         msg = f"{mode} needs SUBJECT/MODULE pairs, got {specs}"
         raise PhaseError(msg)
+    # A pair of an ungated subject (e.g. a bare "LC" for its full id) grants
+    # nothing: the flow would fail later as a misleading no_card_left.
+    if wrong := sorted({p[0] for p in pairs} - theory_phase.GATED):
+        msg = f"not a gated subject id: {wrong}; one of {sorted(theory_phase.GATED)}"
+        raise PhaseError(msg)
     row = phase_row("solve" if mode == "solve" else "theory", pairs, key)
     if mode == "bad":
         row["hmac"] = "0" * 64
@@ -104,24 +110,72 @@ def untaught(ctx: Context, subject: str, module: str | None = None) -> list[str]
     ]
 
 
-def seed(data: Path, subject: str, module: str) -> str:
-    """Teach all of ``module`` but its first untaught live card; that card."""
+def quiet_today(data: Path) -> int:
+    """Move today's transcripts out of the sandbox copy; how many moved.
+
+    The sandbox ledger starts empty, so the worker's startup backfill pays
+    kuhy's real sessions of today again and can fill the daily cap before a
+    flow's own C1 row (2026-11-22: 102 of 160 minutes, "daily cap"). The
+    event log keeps their events; only the transcripts move, beside ``data``.
+    """
     _sandboxed(data)
+    held = data.parent / "today-sessions"
+    held.mkdir(exist_ok=True)
+    found = sorted((data / "sessions").glob(time.strftime("%Y%m%d") + "-*.jsonl"))
+    for path in found:
+        path.rename(held / path.name)
+    return len(found)
+
+
+def _openable(ctx: Context, subject: str, module: str) -> list[str]:
+    """``module``'s live cards whose requires are in it or already taught.
+
+    Only such a card can be left untaught: the pick skips a card that needs
+    an untaught card of another module (kuhy's real progress decides which).
+    """
+    cards = ctx.subjects.cards(subject)
+    folded = fold(ctx.log.read())
+    taught = folded.taught_ids(subject)
+    return [
+        cid
+        for cid, card in cards.items()
+        if card.module == module
+        and not card.suspended
+        and all(
+            need in taught or getattr(cards.get(need), "module", "") == module
+            for need in card.requires
+        )
+    ]
+
+
+def seed(data: Path, subject: str, module: str) -> str:
+    """Teach all of ``module`` but one openable card; that card.
+
+    The card is the first openable untaught one, else (kuhy taught them all)
+    the first openable card, taken back by an ``untaught`` event newer than
+    any real one.
+    """
+    quiet_today(data)
     ctx = Context(data, device=str(uuid.uuid4()))
     cards_left = untaught(ctx, subject, module)
-    if not cards_left:
-        msg = f"{subject}/{module} has no untaught live card"
+    openable = _openable(ctx, subject, module)
+    if not openable:
+        msg = f"{subject}/{module} has no card whose requires can be met"
         raise PhaseError(msg)
-    at = int((time.time() - 2 * DAY_S) * 1000)
-    ctx.log.append(
-        [
-            worker_event("taught", (subject, c), dev=ctx.device, at=at)
-            for c in cards_left[1:]
-        ]
-    )
-    left = {"subject": subject, "module": module, "card": cards_left[0]}
+    card = next((c for c in openable if c in cards_left), openable[0])
+    now = int(time.time() * 1000)
+    at = now - 2 * DAY_S * 1000
+    events = [
+        worker_event("taught", (subject, c), dev=ctx.device, at=at)
+        for c in cards_left
+        if c != card
+    ]
+    if card not in cards_left:
+        events.append(worker_event("untaught", (subject, card), dev=ctx.device, at=now))
+    ctx.log.append(events)
+    left = {"subject": subject, "module": module, "card": card}
     (data.parent / "c4_seed.json").write_text(json.dumps(left), encoding="utf-8")
-    return cards_left[0]
+    return card
 
 
 def main() -> int:

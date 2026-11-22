@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flows F23-F25: the guard's phase refuses gated teaching (C3, C4).
 
-* F23 (``up --phase "theory LC/prefix-sums"``): ``#/learn/LC/stack-queue``,
+* F23 (``up --phase "theory $LC/prefix-sums"``): ``#/learn/LC/stack-queue``,
   a module outside ``teachable``, is refused (``no_card_left``) and the
   subject's plan shows; live session, transcripts, RTDB sessions and ledger
   are unchanged.

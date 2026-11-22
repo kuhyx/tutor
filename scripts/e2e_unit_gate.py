@@ -5,10 +5,10 @@
 LC's unit order puts prefix-sums before stack-queue. Each sandbox is a fresh
 ``up --unit-gate MODE``; its ``seed`` also stops LC's newest session.
 
-* day one (``--unit-gate fresh --phase "theory LC/prefix-sums"``): ``send``,
+* day one (``--unit-gate fresh --phase "theory $LC/prefix-sums"``): ``send``,
   ``wait``, ``lesson`` (an ok start on a prefix-sums card), ``idle``,
   ``reply``, ``wait``, ``paid`` (a C1 credit row naming the module).
-* the next unit (``--unit-gate taught --phase "theory LC/stack-queue"``):
+* the next unit (``--unit-gate taught --phase "theory $LC/stack-queue"``):
   ``review`` (refused, the two unpassed prefix-sums cards as gate_cards; the
   review opens, Good twice, the app starts again), ``wait``, ``check`` (the
   live card is in stack-queue).
@@ -33,8 +33,8 @@ from e2e_follow_up import COMPOSER
 from e2e_gate import UNPASSED, pass_review
 from e2e_learn import ACTIVE_S, PENDING, _answered, f22_idle, f22_reply, learn
 from e2e_learn_rows import credit_paid, transcripts
-from e2e_phase import untaught
-from e2e_seed import GAP_MS, GOOD, SeedError, _sandboxed, _stop_newest
+from e2e_phase import quiet_today, untaught
+from e2e_seed import GAP_MS, GOOD, SeedError, _stop_newest
 from e2e_takeover import LC, LOCK, MODULE, text_below
 
 from tutor.curriculum import rules
@@ -52,7 +52,7 @@ F28_PHASES: Final = ("lesson", "paid", "review", "solve")
 
 def seed(data: Path, mode: str, now: int) -> dict[str, Any]:
     """Day one for LC; ``taught``: then prefix-sums taught, two cards unpassed."""
-    _sandboxed(data)
+    quiet_today(data)  # also refuses the real data dir
     ctx = Context(data, device=str(uuid.uuid4()))
     plan = ctx.subjects.plan(LC)
     module = plan.module(MODULE) if plan else None

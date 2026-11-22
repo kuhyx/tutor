@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Agent-E2E flow F22: ``#/learn/S/M`` teaches a granted module (C1, C2, C4).
 
-``up --learn LC/prefix-sums --phase "theory LC/prefix-sums"``: the route
+``up --learn $LC/prefix-sums --phase "theory $LC/prefix-sums"``: the route
 lands on a teaching session whose live card is the ``c4_seed.json`` card;
 reopening the route reuses it (a second ``session_start``, the same session,
 no new transcript). A reply more than a minute after the tutor's message pays
