@@ -54,7 +54,15 @@ Rows are written only for the three subjects of the LeetCode course:
   already landed.
 
 ## Reader rules (leetcode-guard)
-- Verify every row; ignore one that fails, is not `kind: module_state`, or
-  has no `detail`.
-- An unreadable file is "cannot check", not "not done": the guard keeps its
-  last signed phase (SPEC, guard rules).
+- One rule for a bad row (decided 2026-11-22, guard `DOCS-theory-first.md`
+  says the same): a row whose signature fails makes the whole file "cannot
+  check". The guard does not skip it. Skipping could only hide a later
+  `done: true` row, so the module reads as not done and its theory pays
+  again. A signed row that is not `kind: module_state` or has no valid
+  `detail` is skipped; it is not a C2 row.
+- "Cannot check" is not "not done": the guard keeps its last signed phase,
+  mints no theory credit, and solves still pay. The lock keeps its Open
+  rows, escape hatch and break-glass (the THEORY card is only a slot).
+- The writer never appends an unsigned row (no key: it writes nothing), so a
+  bad row comes only from outside the tutor. To recover, delete that row by
+  hand: what is left is signed, so deleting it gains nothing.
