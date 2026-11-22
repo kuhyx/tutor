@@ -11,6 +11,7 @@
 # Start release $1 on a scratch port against its own copy of the sessions,
 # the subjects and the guard's C3 row; sets SMOKE_PORT and SMOKE_PID. Each
 # start gets a fresh copy: startup repairs, backfills and logs a resume.
+# Returns 1 when the release does not start.
 scratch_server() {
     local release="$1" dir tmp
     SMOKE_PORT="$(free_port)"
@@ -29,7 +30,7 @@ scratch_server() {
     if ! wait_listening "$SMOKE_PORT"; then
         echo "Smoke test: $release did not start:" >&2
         tail -n 20 "$tmp/smoke.log" >&2
-        exit 1
+        return 1
     fi
     SMOKE_PID="$(port_pid "$SMOKE_PORT")"
 }
@@ -48,7 +49,13 @@ baseline_session() {
         resumable "$(session_of "$PORT")"
         return 0
     fi
-    scratch_server "$(readlink -f "$live")"
+    # The live release failing to start on the copy (a venv bump broke its
+    # imports) must not block the deploy that carries the repair.
+    if ! scratch_server "$(readlink -f "$live")"; then
+        echo "Baseline: falling back to the live process's session" >&2
+        resumable "$(session_of "$PORT")"
+        return 0
+    fi
     got="$(session_of "$SMOKE_PORT")"
     stop_scratch
     resumable "$got"
@@ -57,7 +64,7 @@ baseline_session() {
 # The release must start, resume the same session and serve the web app.
 smoke_test() {
     local release="$1" expected="$2" port got
-    scratch_server "$release"
+    scratch_server "$release" || exit 1
     port="$SMOKE_PORT"
     got="$(session_of "$port")"
     if [[ -n "$expected" && "$got" != "$expected" ]]; then
