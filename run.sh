@@ -15,8 +15,11 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO
-# tutor.service's port (fixed in systemd/tutor.service).
-readonly PORT=8778
+# tutor.service's port (fixed in systemd/tutor.service). TUTOR_DESKTOP_PORT
+# aims the launcher at a sandbox server instead (scripts/e2e_i3_handover.sh);
+# a sandbox is never started from here.
+readonly LIVE_PORT=8778
+readonly PORT="${TUTOR_DESKTOP_PORT:-$LIVE_PORT}"
 readonly UNIT="tutor.service"
 readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="$HOME/.local/lib/tutor-live"  # current/ = tutor.service cwd
@@ -97,6 +100,9 @@ start_server() {
 main() {
     if is_up; then
         echo "Tutor already running."
+    elif [[ "$PORT" != "$LIVE_PORT" ]]; then
+        echo "No tutor on sandbox port $PORT." >&2
+        exit 1
     else
         echo "Starting tutor from $(readlink -f "$LIVE_ROOT/current" || echo 'a new release')..."
         start_server

@@ -76,7 +76,8 @@ class Browser:
                 "--window-position=0,0",
                 f"--window-size={size[0]},{size[1]}",
                 "--force-device-scale-factor=1",
-                f"--app={app}" if app else "about:blank",
+                # --class as run.sh sets it: a window manager matches on it.
+                *((f"--app={app}", "--class=tutor") if app else ("about:blank",)),
             ],
             env=env,
             stdout=subprocess.DEVNULL,

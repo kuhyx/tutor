@@ -22,7 +22,8 @@ Exit 0 = PASS.
 * F22 a ``#/learn/S/M`` route teaches the module, pays C1 and flips C2
   (``e2e_learn.py``, seven phases); F23-F25 the phase's refusals
   (``e2e_learn_gate.py``); F26 the window takeover
-  (``e2e_takeover.py``).
+  (``e2e_takeover.py``). F27, the takeover under i3, has its own runner
+  (``e2e_i3_handover.sh``: a private Xvfb with its own i3).
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
