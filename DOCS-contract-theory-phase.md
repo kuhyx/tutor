@@ -24,6 +24,9 @@ one bare signed row, rewritten by the guard when the phase changes:
 - `phase` is `theory`, `solve` or `none`. Only `theory` grants anything; a
   `solve` or `none` row with a non-empty `teachable` is treated as malformed.
 - `day` is not checked: the tutor honours the last signed phase.
+- `detail.theory_since` (guard, 2026-11-22): when THEORY of the unit began.
+  The guard pays only teaching minutes that ended after it; the tutor
+  ignores it, like any other key it does not read.
 
 ## Reader (`tutor/curriculum/theory_phase.py`)
 - Gated subjects: `leetcode-easy-algorithms-in-typescript` and
