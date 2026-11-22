@@ -85,13 +85,19 @@ def read_rows(ledger: Path) -> list[object]:
     return rows
 
 
-def write_rows(ledger: Path, rows: list[object]) -> None:
-    """Atomically replace the ledger: readers see the old file or the new one."""
+def write_rows(ledger: Path, rows: list[object], *, version: int | None = None) -> None:
+    """Atomically replace the ledger: readers see the old file or the new one.
+
+    ``version``, when given, is written beside ``entries`` (``module_state.json``).
+    """
     ledger.parent.mkdir(parents=True, exist_ok=True)
+    body: dict[str, object] = {"entries": rows}
+    if version is not None:
+        body = {"version": version, **body}
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", dir=ledger.parent, suffix=".tmp", delete=False
     ) as handle:
-        json.dump({"entries": rows}, handle, indent=1)
+        json.dump(body, handle, indent=1)
         handle.flush()
         os.fsync(handle.fileno())
     Path(handle.name).replace(ledger)

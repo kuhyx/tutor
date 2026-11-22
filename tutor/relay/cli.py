@@ -41,6 +41,7 @@ def prepare(engine: Engine, *, fresh: bool = False) -> None:
     for card, sid in engine.repair_done_cards():
         _logger.warning("marked %s done from %s", card, sid)
     engine.backfill_today()
+    engine.record_module_states()
     if not fresh and engine.resume_latest():
         _logger.warning("resumed session %s", engine.session_id)
 

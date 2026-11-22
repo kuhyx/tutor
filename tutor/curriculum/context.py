@@ -15,14 +15,17 @@ from typing import TYPE_CHECKING, Any
 
 from tutor import sources
 from tutor.curriculum import modelcall, wiki
-from tutor.curriculum.eventlog import EventLog, archived_subjects
+from tutor.curriculum.eventlog import archived_subjects
 from tutor.curriculum.fold import Fold, fold, without
 from tutor.curriculum.ids import device_id
-from tutor.curriculum.subject_store import SubjectStore
+from tutor.curriculum.module_state import WatchedLog, WatchedStore
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
+
+    from tutor.curriculum.eventlog import EventLog
+    from tutor.curriculum.subject_store import SubjectStore
 
     ModelFn = Callable[[str, str, dict[str, Any]], dict[str, Any]]
     CheckFn = Callable[[str, str, str], sources.Mismatch | None]
@@ -58,13 +61,13 @@ class Context:
 
     @property
     def subjects(self) -> SubjectStore:
-        """The subject files."""
-        return SubjectStore(self.data_dir)
+        """The subject files; a card commit records module flips (C2)."""
+        return WatchedStore(self.data_dir, self.clock)
 
     @property
     def log(self) -> EventLog:
-        """The event log mirror."""
-        return EventLog(self.data_dir)
+        """The event log mirror; a taught / untaught records module flips (C2)."""
+        return WatchedLog(self.data_dir, self.clock)
 
     def fold(self) -> Fold:
         """The fold of the whole local log, archived subjects masked out."""

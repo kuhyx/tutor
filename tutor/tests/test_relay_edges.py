@@ -52,6 +52,9 @@ class _Prepared:
     def backfill_today(self) -> None:
         self.calls.append("backfill")
 
+    def record_module_states(self) -> None:
+        self.calls.append("module_state")
+
     def resume_latest(self) -> bool:
         self.calls.append("resume")
         return True
@@ -65,7 +68,7 @@ def test_prepare_logs_repairs_and_resume(caplog: pytest.LogCaptureFixture) -> No
     assert "resumed session 20261012-000000-abcd" in caplog.text
     fresh = _Prepared()
     cli.prepare(cast("Engine", fresh), fresh=True)
-    assert fresh.calls == ["backfill"]
+    assert fresh.calls == ["backfill", "module_state"]
 
 
 def test_lane_skips_a_request_held_elsewhere(tmp_path: Path) -> None:

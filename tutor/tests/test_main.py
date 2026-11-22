@@ -27,6 +27,7 @@ class FakeEngine:
         self.simulated_time = simulated_time
         self.resume_calls = 0
         self.backfills = 0
+        self.module_states = 0
         self.session_id = "20261009-sess"
         FakeEngine.built.append(self)
 
@@ -35,6 +36,9 @@ class FakeEngine:
 
     def backfill_today(self) -> None:
         self.backfills += 1
+
+    def record_module_states(self) -> None:
+        self.module_states += 1
 
     def resume_latest(self) -> bool:
         self.resume_calls += 1
@@ -99,6 +103,7 @@ def test_serves_on_localhost_and_reports_resume(
     assert engine.simulated_time is False
     assert engine.resume_calls == 1
     assert engine.backfills == 1
+    assert engine.module_states == 1
     assert "marked" not in err
 
 
