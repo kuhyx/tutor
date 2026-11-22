@@ -413,11 +413,11 @@ packages:
     dependency: "direct main"
     description:
       path: "kuhy_credit/flutter"
-      ref: "kuhy-credit-v0.3.0"
-      resolved-ref: c3946412729991bf1e9c3b6a5cc55dbe80419fc0
+      ref: "kuhy-credit-v0.3.2"
+      resolved-ref: adeb40f68e1d6c701da43e396fc46bffa3ef10c7
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.3.0"
+    version: "0.3.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -467,7 +467,7 @@ packages:
     source: hosted
     version: "0.13.0"
   material_ui:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: material_ui
       sha256: a6b19012df437a356cbc01f8ea22a105e07194c47c9a6009da0032a0ce35c4ab

@@ -57,8 +57,11 @@ dependencies:
   kuhy_credit:
     git:
       url: https://github.com/kuhyx/utils
-      ref: kuhy-credit-v0.3.0
+      ref: kuhy-credit-v0.3.2
       path: kuhy_credit/flutter
+  # crdt_sync_flutter's passphrase dialog is built from this Material copy:
+  # MaterialApp must also hand it its own MaterialLocalizations (ui/app.dart).
+  material_ui: 1.11.1
   # The relay client (RTDB REST/SSE, e2e sealing, request hub, rev watcher,
   # passphrase gate, session): shared with other apps' PC relays.
   rtdb_relay:

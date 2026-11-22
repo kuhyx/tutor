@@ -5,6 +5,7 @@ import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
     show E2ePassphraseButton;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart' as mui;
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/l10n/gen/app_localizations.dart';
@@ -14,6 +15,15 @@ import 'package:tutor/ui/ui_scale.dart';
 import 'package:tutor/ui/ui_zoom.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/text_free_theme.dart';
+
+/// The app's delegates, plus `package:material_ui`'s own Material
+/// localizations: crdt_sync_flutter builds the passphrase dialog from that
+/// separate Material copy, whose `MaterialLocalizations.of` finds nothing
+/// in Flutter's (a fresh phone crashed on the lock, 2026-11-22).
+const List<LocalizationsDelegate<dynamic>> localizationsDelegates = [
+  ...AppLocalizations.localizationsDelegates,
+  mui.DefaultMaterialLocalizations.delegate,
+];
 
 /// The app.
 class TutorApp extends StatelessWidget {
@@ -42,7 +52,7 @@ class TutorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Tutor', // the proper noun: window / tab title
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     theme: textFreeTheme(buildLightTheme()),
     darkTheme: textFreeTheme(buildDarkTheme()),

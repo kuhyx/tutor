@@ -171,6 +171,36 @@ void main() {
     expect(s.e2e.locked, isFalse);
     expect(find.byIcon(Icons.lock), findsNothing);
   });
+
+  // A fresh phone has no passphrase saved: the lock's dialog (built by
+  // crdt_sync_flutter from package:material_ui) must open and take it.
+  // Live 2026-11-22 it threw in MaterialLocalizations.of instead.
+  testWidgets('locked e2e key: the lock takes the passphrase', (tester) async {
+    installFakeSecureStorage();
+    final seed = services(db, stream);
+    final needy = RtdbClient(
+      databaseUrl: 'https://fake',
+      idToken: () async => 'tok',
+      httpClient: seed.client.httpClient,
+      namespace: '',
+      sealRequired: true,
+    );
+    final s = services(db, stream, client: needy);
+    await s.auth.signInWithGoogle(tokenFetcher: () async => 'g');
+    await tester.pumpWidget(TutorApp(config: testConfig, open: () async => s));
+    await tester.runAsync(() => Future<void>.delayed(_settle));
+    await tester.pumpAndSettle();
+    expect(s.e2e.locked, isTrue);
+    db.root = setAt(db.root, 'tutor/e2e', _cheapHeader);
+    await tester.tap(find.byIcon(Icons.lock));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.enterText(find.byType(EditableText), 'pw');
+    await tester.tap(find.byIcon(Icons.check));
+    await tester.runAsync(() => Future<void>.delayed(_settle));
+    await tester.pumpAndSettle();
+    expect(s.e2e.locked, isFalse);
+  });
 }
 
 const _settle = Duration(milliseconds: 300);
