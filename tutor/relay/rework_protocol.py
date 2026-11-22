@@ -13,12 +13,11 @@ from typing import TYPE_CHECKING, Final
 
 from tutor.curriculum.ids import valid_id
 from tutor.relay.lc_protocol import MAX_TEXT
+from tutor.rework_context import SLUG
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-# A LeetCode titleSlug: it names a file of the guard's, so never ``../x``.
-_SLUG: Final = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.ASCII)
 MAX_SLUG: Final = 120
 _REWORK_ID: Final = re.compile(r"[0-9a-f]{12}", re.ASCII)
 
@@ -30,7 +29,7 @@ def _id(value: object) -> str:
 
 
 def _slug(value: object) -> str:
-    if isinstance(value, str) and len(value) <= MAX_SLUG and _SLUG.fullmatch(value):
+    if isinstance(value, str) and len(value) <= MAX_SLUG and SLUG.fullmatch(value):
         return value
     raise ValueError
 

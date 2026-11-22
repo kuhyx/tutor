@@ -24,11 +24,10 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import outage, sources
+from tutor import outage, rework_context, sources
 from tutor.curriculum import card_ops, module_state
 from tutor.curriculum.errors import RequestError as CurriculumError
 from tutor.curriculum.modelcall import ask_model
-from tutor.relay import rework_context
 from tutor.relay.errors import RequestError
 from tutor.store import data_dir
 
@@ -41,7 +40,7 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 type State = dict[str, Any]
-SOURCE_HOST: Final = "https://rework.leetcode-coach.invalid"
+SOURCE_HOST: Final = rework_context.SOURCE_HOST
 MAX_CARDS: Final = 5
 KEEP_THREAD: Final = 40
 _BREAK: Final = re.compile(r"[.!?](?=\s)")  # quote's sentence break: one sentence

@@ -209,9 +209,12 @@ with one line built from the card, `code_built` as the toolbox cards; its
 already holds is skipped.
 
 The prompt's history is display-only, never a gate input
-(`tutor/relay/rework_context.py`, tolerant of missing or corrupt files):
+(`tutor/rework_context.py`, tolerant of missing or corrupt files):
 `$TUTOR_GUARD_DATA` (default `~/.local/share/leetcode_guard`)
 `history/<slug>.json` (newest 8 submissions, code capped at 1500 chars) and
 `attempts.json` (newest 10 days), plus the newest 3 `lc_sessions` of the slug
 (the newest statement, belief, last code, chat tail). State:
 `<data>/rework_sessions/<rework_id>.json`.
+A lesson on a rework card (source host above) gets the same history as a
+"kuhy's own attempts on this problem (context only)" section of its system
+prompt (`tutor/prompt.py` `for_source`); every other card's prompt is unchanged.

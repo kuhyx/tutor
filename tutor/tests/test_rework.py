@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor import sources
+from tutor import rework_context, sources
 from tutor.curriculum import card_ops
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import EDIT_REFUSED
 from tutor.curriculum.errors import RequestError as CurriculumError
-from tutor.relay import rework, rework_context
+from tutor.relay import rework
 from tutor.relay.errors import RequestError
 from tutor.store import data_dir
 from tutor.tests import _lc_support as s

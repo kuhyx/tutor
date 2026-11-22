@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, TypedDict, Unpack
 
-from tutor import path_prompt, picked, struggle_rules
+from tutor import path_prompt, picked, rework_context, struggle_rules
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
 from tutor.delivery import note_lines
@@ -45,6 +45,15 @@ class Extras(TypedDict, total=False):
 
     struggle: Brief | None  # help on a struggling card (rule 16)
     path: dict[str, Any] | None  # the card's interrogation path
+    rework: str | None  # kuhy's history on a rework card's problem
+
+
+def _attempts(history: str | None) -> str:
+    """The rework card's section: kuhy's history on its problem, or nothing."""
+    if not history:
+        return ""
+    head = "# kuhy's own attempts on this problem (context only, never a grade)"
+    return f"{head}\n{history}\n\n"
 
 
 def system_prompt(
@@ -59,7 +68,8 @@ def system_prompt(
     ``profile`` is the subject's (default: automation, the PLC wording);
     ``deck``: the topic's live cards as (id, front), the ids ``card_edits``
     may name (rule 15); ``struggle``: help on a struggling card (rule 16);
-    ``path``: the card's interrogation path, as suggestions (``path_prompt``).
+    ``path``: the card's interrogation path, as suggestions (``path_prompt``);
+    ``rework``: kuhy's attempts on a rework card's problem (``rework_context``).
     """
     struggle, path = extras.get("struggle"), extras.get("path")
     done = ", ".join(mastered) if mastered else "(none yet)"
@@ -79,7 +89,8 @@ def system_prompt(
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
         f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n{aid}\n"
         f"{path_prompt.section(path)}"
-        f"{help_}{cards}# Already mastered concepts\n{done}\n"
+        f"{help_}{_attempts(extras.get('rework'))}{cards}"
+        f"# Already mastered concepts\n{done}\n"
     )
 
 
@@ -87,6 +98,8 @@ def for_source(src: CardSource, card: Card, struggle: Brief | None = None) -> st
     """``src``'s system prompt for ``card``: its topic's deck and its path."""
     deck = [(c.id, c.front) for c in src.cards() if c.topic == card.topic]
     path = src.path(card.id)
+    slug = rework_context.slug_of(card.source)
+    rework = rework_context.gather(slug).text if slug else None
     # The log line is the evidence a session ran with its path (E2E F20).
     _logger.warning(
         "tutor prompt for %s/%s: interrogation path %s",
@@ -95,7 +108,13 @@ def for_source(src: CardSource, card: Card, struggle: Brief | None = None) -> st
         "given" if path else "absent",
     )
     return system_prompt(
-        card, src.mastered(), src.profile, deck, struggle=struggle, path=path
+        card,
+        src.mastered(),
+        src.profile,
+        deck,
+        struggle=struggle,
+        path=path,
+        rework=rework,
     )
 
 

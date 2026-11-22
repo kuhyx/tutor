@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tutor.relay import rework_context as rc
+from tutor import rework_context as rc
 from tutor.store import data_dir
 
 if TYPE_CHECKING:

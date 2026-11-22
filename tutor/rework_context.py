@@ -4,9 +4,11 @@
 Display-only reads, never a gate input: leetcode-guard's
 ``history/<slug>.json`` and ``attempts.json`` (their shapes are documented
 in the guard's ``_history_store`` and ``_attempt_model``) and the coach's own
-``lc_sessions``. Anyone can edit these files, so every one may be missing,
-edited or corrupt: a bad file or row is left out, a broken file with a
-warning. Everything is capped so the prompt stays bounded.
+``lc_sessions``. The rework chat (``tutor.relay.rework``) and a lesson on a
+rework card (``tutor.prompt.for_source``) read it. Anyone can edit these
+files, so every one may be missing, edited or corrupt: a bad file or row is
+left out, a broken file with a warning. Everything is capped so the prompt
+stays bounded.
 """
 
 from __future__ import annotations
@@ -17,11 +19,16 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 from typing import Any, Final
+from urllib.parse import urlsplit
 
 from tutor.store import data_dir
 
 _logger = logging.getLogger(__name__)
+SOURCE_HOST: Final = "https://rework.leetcode-coach.invalid"  # rework card sources
+# A LeetCode titleSlug: it names a file of the guard's, so never ``../x``.
+SLUG: Final = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.ASCII)
 GUARD_ENV: Final = "TUTOR_GUARD_DATA"  # the guard's data dir (tests: tmp)
 MAX_SUBMISSIONS: Final = 8  # newest first
 MAX_CODE: Final = 1500  # characters of code per submission
@@ -50,6 +57,14 @@ class History:
             "days": self.days,
             "sessions": self.sessions,
         }
+
+
+def slug_of(source: str) -> str | None:
+    """The problem of a rework card's ``SOURCE_HOST/<slug>/<hash>``; else None."""
+    if not source.startswith(f"{SOURCE_HOST}/"):
+        return None
+    slug = urlsplit(source).path.split("/")[1]
+    return slug if SLUG.fullmatch(slug) else None
 
 
 def guard_dir() -> Path:
