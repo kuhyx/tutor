@@ -10,8 +10,10 @@
   SQL archived, and a route into an archived subject stays on Home): every
   module of the plan carries ``teachable: false`` and every tile shows the
   lock glyph (spoken "Not teachable now"); then a learn route into the
-  ungated SQL subject still starts a teaching session. A model turn:
-  ``send``, ``wait``, ``check``.
+  ungated SQL subject still starts a teaching session. The route names a
+  STARTED SQL module: the module gate (F21) holds an unstarted one behind
+  SQL's due reviews, in every phase. A model turn: ``send``, ``wait``,
+  ``check``.
 * F25 (``up``, no phase file): ``flow F25 missing``, then ``flow F25 bad``
   (it writes a ``theory`` row with a wrong ``hmac``). Each refuses a gated
   route twice (two reads of the file), and the server log has exactly one
@@ -33,6 +35,7 @@ from e2e_phase import untaught, write
 from e2e_takeover import LC, LOCK, MODULE, text_below
 
 from tutor.curriculum.context import Context
+from tutor.curriculum.fold import fold
 
 SQL: Final = "mysql-8-for-timed-sql-coding-tests-joins-and"  # never gated
 REFUSED: Final = "stack-queue"  # an LC module the theory row does not grant
@@ -127,6 +130,22 @@ def _into_view(flow: Flow, label: str) -> None:
     time.sleep(2)  # the tiles paint after the scroll settles
 
 
+def _started_module(ctx: Context, cards: list[str]) -> str:
+    """The module of the first of ``cards`` (untaught, SQL) the gate never holds.
+
+    A module with a taught card: the module gate keeps an unstarted one shut
+    until SQL's due reviews are done (24 on kuhy's data, more than one call).
+    """
+    recs = ctx.subjects.cards(SQL)
+    taught = fold(ctx.log.read()).taught_ids(SQL)
+    started = {recs[c].module for c in taught if c in recs}
+    found = next((recs[c].module for c in cards if recs[c].module in started), None)
+    if found is None:
+        msg = f"{SQL} has no started module with an untaught card"
+        raise FlowError(msg)
+    return found
+
+
 def f24_send(flow: Flow) -> State:
     """The locked plan; then a learn route into SQL."""
     flow.step(f"RTDB: every {LC} module is teachable: false")
@@ -148,7 +167,7 @@ def f24_send(flow: Flow) -> State:
     flow.shot("plan_locked")
     ctx = Context(flow.args.data, device=str(uuid.uuid4()))
     cards = untaught(ctx, SQL)
-    module = ctx.subjects.cards(SQL)[cards[0]].module
+    module = _started_module(ctx, cards)
     flow.note(f"{SQL}: {len(cards)} untaught; learn {module}")
     before = flow.rids()
     learn(flow, SQL, module)
