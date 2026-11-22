@@ -12,9 +12,11 @@ once the relay has pushed it.
 Credit is the tutor's: a drill run is a session (``drill-<id>``, one per local
 day), the prompt-to-answer gap accrues on an :class:`EngagementClock` like a
 learner gap, right or wrong, and released minutes go through
-``unit_credit.credit_units``. A pick under :data:`MIN_PICK_SECONDS` earns
-nothing. The open prompt lives in memory only: after a restart, answering
-it is :class:`PromptGoneError` (``unknown_prompt``), never a crash.
+``unit_credit.credit_units``, their rows naming the answered card's subject and
+module with ``activity: "review"`` (``DOCS-contract.md`` §7, C1). A pick under
+:data:`MIN_PICK_SECONDS` earns nothing. The open prompt lives in memory only:
+after a restart, answering it is :class:`PromptGoneError` (``unknown_prompt``),
+never a crash.
 """
 
 from __future__ import annotations
@@ -27,13 +29,14 @@ import time
 from typing import TYPE_CHECKING, Any, Final
 import uuid
 
-from tutor import credit, unavailable, unit_credit
+from tutor import credit, ledger_pay, unavailable, unit_credit
 from tutor.clock import EngagementClock
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.eventlog import DRILL, review_event
 from tutor.curriculum.ids import ulid
 from tutor.curriculum.source import DEFAULT_SUBJECT, source_for
 from tutor.distractors import options_for
+from tutor.ledger_twin import REVIEW
 
 if TYPE_CHECKING:
     from tutor.cards import Card
@@ -171,9 +174,13 @@ class Drill:
         clock.user_reply(at, _PICK_TEXT, low_effort=quick)
         clock.tutor_message(at)  # a zero "tutor gap": nothing accrues after a pick
         units = clock.ready_blocks()
+        # Every minute released here ends at this answer, on this card.
+        taught = ledger_pay.Taught(
+            subject=prompt.subject, module=prompt.card.topic.stem, activity=REVIEW
+        )
         rows = (
             unit_credit.credit_units(
-                units, run.session_id, now=at, subject=prompt.subject
+                units, run.session_id, now=at, subject=prompt.subject, taught=taught
             )
             if units
             else []

@@ -24,10 +24,16 @@ DAILY_CAP_MINUTES: Final = EARNER_CAP_MINUTES + BANK_CAP
 
 
 class Taught(TypedDict, total=False):
-    """A teaching turn's signed ``detail`` keys (contract C1); other rows: none."""
+    """The signed ``detail`` keys that say which module a row's minutes belong to.
+
+    A teaching turn carries ``subject`` and ``module`` (contract C1); a review
+    minute (app review, PC drill) also carries ``activity: "review"``. Other
+    rows (Anki, leftover, carry) carry none.
+    """
 
     subject: str  # the subject slug
-    module: str  # the module id of the card taught when the span ended
+    module: str  # the module id of the card taught / reviewed when the span ended
+    activity: str  # "review" on a review minute, absent on a lesson
 
 
 def minutes_of(row: dict[str, object]) -> int:

@@ -32,7 +32,7 @@ from tutor import clock, credit, focus_hook, ledger_pay
 from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
     from tutor.cards import Card
     from tutor.clock import BlockReady
@@ -79,7 +79,9 @@ def credit_units(
     *,
     now: float,
     subject: str | None = None,
-    taught: ledger_pay.Taught | None = None,
+    taught: ledger_pay.Taught
+    | Callable[[BlockReady], ledger_pay.Taught | None]
+    | None = None,
 ) -> list[dict[str, Any]]:
     """Write one ledger row per span of ``units``; the rows to log, in order.
 
@@ -88,15 +90,18 @@ def credit_units(
     after a daily-cap refusal: no later minute of the day can pay either.
     A learner turn on ``subject`` that paid also counts as focus work when the
     active focus project lists it (``focus_hook``; never raises). ``taught``
-    (subject and module) goes into each row only for a teaching turn (C1).
+    (subject and module) goes into each row only for a teaching turn (C1);
+    may instead be a function of the span's last unit (review minutes: each
+    ends on its own card); ``None`` leaves that row untagged.
     """
     rows: list[dict[str, Any]] = []
     beat_at: float | None = None  # when the last recorded unit was earned
     paid = credit.session_minutes(session_id)
     for group in spans(u for u in units if u.block not in paid):
         last = group[-1]
+        tag = taught(last) if callable(taught) else taught
         receipt = credit.credit_span(
-            last, len(group), session_id, now=now, **(taught or {})
+            last, len(group), session_id, now=now, **(tag or {})
         )
         rows.append(credit_row(last, len(group), receipt))
         if receipt.recorded:

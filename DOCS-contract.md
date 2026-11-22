@@ -196,11 +196,11 @@ card. Home Continue = `resume:true`: the subject's live session, else its newest
   turn of the live session (`Upkeep._pay`, `unit_credit.teaching_units`)
   also signs `detail.subject` (the subject slug) and `detail.module` (the
   module id of the card on screen when the span ended). A struggle session and
-  a follow-up after `card_done` are teaching turns too. Drill, app review,
-  Anki, leftover and carry rows carry neither key, and neither do rows that
-  `backfill_today` writes for another session (untagged, never the wrong
-  module). earned_time ignores both keys and pays the same minutes
-  (`tutor/tests/test_credit_taught.py`). C2, a module's signed done state: `DOCS-contract-module-state.md`. C3, the guard's teaching gate: `DOCS-contract-theory-phase.md`.
+  a follow-up after `card_done` are teaching turns too. A lesson row never has
+  `detail.activity`; app review and drill rows sign the same keys plus
+  `activity: "review"` (`DOCS-contract-review-rows.md`). Anki, leftover, carry
+  and other-session `backfill_today` rows carry none. earned_time ignores the
+  keys and pays the same minutes (`tutor/tests/test_credit_taught.py`). C2, a module's signed done state: `DOCS-contract-module-state.md`. C3, the guard's teaching gate: `DOCS-contract-theory-phase.md`.
 - An answer delayed by an offline phone earns only what `REPLY_TIMEOUT`
   (600 s) allows from server receipt. A device cannot claim minutes. A restart reopens the window (<= 1 h) only for an on-time reply still in flight; idle time across it earns nothing.
 - FSRS reviews earn no credit in v1; the drill credits active minutes only.

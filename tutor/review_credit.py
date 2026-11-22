@@ -22,7 +22,10 @@ minutes. The PC drill writes its reviews under the worker's own device id
 and credits them itself (``drill.py``), so the worker's own reviews are
 skipped; with no own id known nothing is paid (fail closed). AnkiDroid
 minutes (``anki.py``) come from the Anki collection, never from this log.
-Only today and yesterday are paid (a review at 23:59 synced at 00:05 still
+Each row names its module (contract C1): ``review_tag`` gives its ``subject``,
+``module`` and ``activity: "review"`` from the card of that completing review;
+today's rows written before that get a tagged twin (``ledger_twin``). Only
+today and yesterday are paid (a review at 23:59 synced at 00:05 still
 pays its own day; older reviews, or ones dated after today, never do).
 """
 
@@ -33,7 +36,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import credit, unit_credit
+from tutor import credit, ledger_twin, review_tag, unit_credit
 from tutor.clock import UNIT_SECONDS, BlockReady
 from tutor.curriculum.fold import undone_eids
 
@@ -65,20 +68,24 @@ def session_for(day: str, dev: str) -> str:
     return f"review-{day.replace('-', '')}-{dev}"
 
 
-def _units(reviews: list[dict[str, Any]]) -> list[BlockReady]:
-    """One unit per full minute of one session's reviews, in ``at`` order."""
-    total, out = 0.0, list[BlockReady]()
+Done = list[tuple[BlockReady, dict[str, Any]]]
+
+
+def _completions(reviews: list[dict[str, Any]]) -> Done:
+    """One (unit, review that completed it) per full minute, in ``at`` order."""
+    total, out = 0.0, Done()
     for event in sorted(reviews, key=lambda e: (e["at"], e["eid"])):
         total += active_seconds(event)
         while total >= (len(out) + 1) * UNIT_SECONDS:
-            out.append(BlockReady(len(out) + 1, total, event["at"] / 1000, 0, 0))
+            unit = BlockReady(len(out) + 1, total, event["at"] / 1000, 0, 0)
+            out.append((unit, event))
     return out
 
 
-def units_by_session(
+def completions_by_session(
     events: Iterable[dict[str, Any]], own_dev: str, now: float
-) -> dict[str, list[BlockReady]]:
-    """Session id -> units, for app reviews of today and yesterday (pure).
+) -> dict[str, Done]:
+    """Session id -> (unit, review that completed it), today and yesterday (pure).
 
     ``own_dev`` is the worker's device id (its drill reviews are skipped);
     empty means none can be told apart, so nothing is returned.
@@ -102,16 +109,56 @@ def units_by_session(
             continue
         day = credit.local_day(moment)[0]
         sessions.setdefault(session_for(day, str(event["dev"])), []).append(event)
-    found = {sid: _units(reviews) for sid, reviews in sorted(sessions.items())}
-    return {sid: units for sid, units in found.items() if units}
+    found = {sid: _completions(reviews) for sid, reviews in sorted(sessions.items())}
+    return {sid: done for sid, done in found.items() if done}
 
 
-def credit_pass(log: EventLog, own_dev: str, now: float) -> list[dict[str, Any]]:
-    """Pay every new minute of the app reviews in ``log``; the rows written."""
+def units_by_session(
+    events: Iterable[dict[str, Any]], own_dev: str, now: float
+) -> dict[str, list[BlockReady]]:
+    """Session id -> units, for app reviews of today and yesterday (pure)."""
+    found = completions_by_session(events, own_dev, now)
+    return {sid: [unit for unit, _ in done] for sid, done in found.items()}
+
+
+def _tag_today(
+    events: list[dict[str, Any]],
+    done: dict[str, Done],
+    own_dev: str,
+    now: float,
+    resolve: review_tag.Resolve,
+) -> None:
+    """Append the tagged twins today's untagged review rows (app, drill) lack."""
+    drills = [e for e in events if e.get("k") == "review" and e.get("dev") == own_dev]
+    day = credit.local_day(now)[0].replace("-", "")
+    question = review_tag.tag_for(done, drills, day, resolve)
+    for row in ledger_twin.backfill(question):
+        _logger.info("app review: %s re-signed with its module", row["entry_id"])
+
+
+def credit_pass(
+    log: EventLog,
+    own_dev: str,
+    now: float,
+    resolve: review_tag.Resolve | None = None,
+) -> list[dict[str, Any]]:
+    """Pay every new minute of the app reviews in ``log``; the rows written.
+
+    ``resolve`` finds a card's module: each row then signs its subject, module
+    and ``activity`` (contract C1), and today's rows still lacking them get a
+    tagged twin (:mod:`tutor.ledger_twin`; the PC drill's rows too). Without
+    it rows stay untagged.
+    """
     written: list[dict[str, Any]] = []
     with _PASS:
-        for sid, units in units_by_session(log.read(), own_dev, now).items():
-            written += unit_credit.credit_units(units, sid, now=now)
+        events = list(log.read())
+        done = completions_by_session(events, own_dev, now)
+        for sid, found in done.items():
+            units = [unit for unit, _ in found]
+            taught = review_tag.by_unit(found, sid, resolve)
+            written += unit_credit.credit_units(units, sid, now=now, taught=taught)
+        if resolve:
+            _tag_today(events, done, own_dev, now, resolve)
     for row in written:
         quiet = row["recorded"] or row["error"] == credit.DAILY_CAP_ERROR
         _logger.log(
@@ -127,7 +174,8 @@ def credit_pass(log: EventLog, own_dev: str, now: float) -> list[dict[str, Any]]
 def credit_now(ctx: Context, now: float | None = None) -> list[dict[str, Any]]:
     """:func:`credit_pass` on ``ctx``'s log; a failure is logged, never raised."""
     try:
-        return credit_pass(ctx.log, ctx.device, time.time() if now is None else now)
+        moment = time.time() if now is None else now
+        return credit_pass(ctx.log, ctx.device, moment, review_tag.card_modules(ctx))
     except (OSError, ValueError) as exc:  # unreadable log line, disk error
         _logger.warning("app review credit skipped: %s", exc)
         return []

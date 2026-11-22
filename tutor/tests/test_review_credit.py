@@ -4,29 +4,30 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 import logging
 import time
 from typing import TYPE_CHECKING, Any
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from tutor import credit, drill, ledger_pay, review_credit
 from tutor.clock import BlockReady
-from tutor.curriculum.eventlog import EventLog
 from tutor.ledger_io import default_paths, read_key, read_rows
 from tutor.relay.curriculum_sync import CurriculumSync
 from tutor.tests._fake_rtdb import FakeRtdb
 from tutor.tests._relay_support import PHONE, WORKER, engine, wiring
+from tutor.tests._review_support import (
+    DESK,
+    NOW,
+    at,
+    log_of,
+    rev,
+    review_rows,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
-
-ZONE = ZoneInfo("Europe/Warsaw")
-NOW = datetime(2026, 10, 15, 12, 0, tzinfo=ZONE).timestamp()
-DESK = "5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b"
 
 
 @pytest.fixture(autouse=True)
@@ -37,33 +38,6 @@ def _warsaw(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     yield
     monkeypatch.undo()
     time.tzset()
-
-
-def at(day: int, hh: int, mm: int, ss: int = 0) -> int:
-    """Unix ms of 2026-10-``day`` hh:mm:ss in Warsaw."""
-    return int(datetime(2026, 10, day, hh, mm, ss, tzinfo=ZONE).timestamp() * 1000)
-
-
-_N = iter(range(10_000))
-
-
-def rev(dev: str, when: int, dur: int | None, kind: str = "review") -> dict[str, Any]:
-    """A logged event of ``dev`` answered at ``when`` after ``dur`` ms."""
-    eid = f"01M4RBCX52MMHCK7K73E6K{next(_N):04d}"
-    event: dict[str, Any] = {
-        "dev": dev,
-        "eid": eid,
-        "k": kind,
-        "s": "car",
-        "c": "a-1",
-        "at": when,
-        "rev": 1,
-    }
-    if kind == "review":
-        event["r"] = 3
-    if dur is not None:
-        event["dur_ms"] = dur
-    return event
 
 
 def fake_log() -> list[dict[str, Any]]:
@@ -88,28 +62,6 @@ def fake_log() -> list[dict[str, Any]]:
         rev(PHONE, at(14, 23, 59, 30), 60_000),
         rev(PHONE, at(13, 12, 0, 0), 60_000),
     ]
-
-
-def review_rows() -> dict[str, dict[str, Any]]:
-    """The ledger's verified ``review-`` rows, by entry id."""
-    where = default_paths()
-    key = read_key(where.key_file)
-    assert key is not None
-    rows = read_rows(where.ledger) if where.ledger.exists() else []
-    paying = ledger_pay.paying(rows, key)
-    return {
-        r["entry_id"]: r
-        for r in rows
-        if isinstance(r, dict)
-        and str(r["entry_id"]).startswith("review-")
-        and r["entry_id"] in paying
-    }
-
-
-def log_of(tmp_path: Path, events: list[dict[str, Any]]) -> EventLog:
-    log = EventLog(tmp_path / "data")
-    log.append(events)
-    return log
 
 
 def test_app_reviews_pay_minutes_by_day_and_device(tmp_path: Path) -> None:
