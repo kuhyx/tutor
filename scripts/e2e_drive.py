@@ -44,6 +44,7 @@ from e2e_carry import f6_again, f6_check
 from e2e_cdp import Browser, CdpError
 from e2e_checkin import f9, f10
 from e2e_codes import OUTAGES, f13
+from e2e_composer_glyphs import again as f21_again
 from e2e_failures import PHASES as F14_PHASES
 from e2e_failures import f14
 from e2e_flow import Emulator, Flow, FlowError, State
@@ -140,6 +141,10 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
     try:
         if args.flow == "F6":
             carry(flow, args)
+        elif args.flow == "F21" and args.phase == "again":
+            # After check: Send, once the in-box bulb's hint is answered.
+            if (code := f21_again(flow)) != 0:
+                return code
         elif args.flow in ONE_CALL:
             ONE_CALL[args.flow](flow)
         elif (code := phases(flow, args)) != 0:

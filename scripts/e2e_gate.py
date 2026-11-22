@@ -30,6 +30,7 @@ import time
 from typing import TYPE_CHECKING, Any, Final
 import uuid
 
+from e2e_composer_glyphs import glyphs
 from e2e_flow import BLOCKED_CTAS, FlowError
 from e2e_seed import DAY_MS, GAP_MS, GOOD, SeedError, _sandboxed, _stop_newest
 
@@ -206,6 +207,7 @@ def f21_check(flow: Flow, state: State) -> None:
     flow.screen("/session")
     flow.expect("Send", timeout=20)
     flow.shot("started")
+    glyphs(flow, state)
 
 
 def main() -> int:
