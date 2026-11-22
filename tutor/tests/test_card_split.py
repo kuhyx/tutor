@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The ``mnemonic`` and ``split`` card edits, the split's undo and its cap (struggle §1/§2)."""
+"""The ``mnemonic`` and ``split`` card edits, the split's undo and its pick (struggle §1/§2)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tutor.curriculum import card_ops, card_split, card_undo, rules
+from tutor.curriculum import pick as picking
 from tutor.curriculum.subject_store import Change
 from tutor.tests._cur import T0, card, taught
 from tutor.tests.test_card_ops import BACK, FRONT, PAGE, PISTON, car_subject, refused
@@ -156,22 +157,15 @@ def test_restore_reverts_the_whole_split(car: tuple[Context, Fakes]) -> None:
     )
 
 
-def test_a_split_child_is_exempt_from_the_new_cap(car: tuple[Context, Fakes]) -> None:
+def test_a_split_child_opens_in_its_started_module(car: tuple[Context, Fakes]) -> None:
     ctx, _ = car
     taught(ctx, "car", "a1", T0)
     _, ids = card_split.split(ctx, "car", "a1", [KIND, SLIDES])
-    ctx.log.append(
-        [
-            {"dev": "p", "eid": "01M4RBCX52MMHCK7K73E6KV9AA", "k": "new_cap"}
-            | {"n": 1, "at": T0 - 1}
-        ]
-    )
     plan = ctx.subjects.plan("car")
     assert plan is not None
     view = rules.View("car", plan, ctx.subjects.cards("car"))
-    assert rules.pick(view, ctx.fold(), None, T0 + 10) == ids[0]  # 1 new today
-    with pytest.raises(ValueError, match="daily"):
-        rules.pick(view, ctx.fold(), "a2", T0 + 10)
+    # The module is started: the module gate never holds its children back.
+    assert picking.pick(view, ctx.fold(), None, T0 + 10) == ids[0]
 
 
 def test_a_two_word_hint_quotes_its_sentence(car: tuple[Context, Fakes]) -> None:

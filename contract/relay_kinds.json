@@ -27,8 +27,9 @@
       "kind": "blocked_locked_review"
     },
     {
-      "code": "daily_new_cap",
-      "kind": "blocked_cap"
+      "code": "locked",
+      "next": "reviews_due",
+      "kind": "blocked_locked_due"
     },
     {
       "code": "no_card_left",

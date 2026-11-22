@@ -140,9 +140,9 @@ pass the same vectors.
 - `review`/`flag` from any device, offline OK. `taught`/`untaught` worker
   only (tutor's `card_done`, or the manual `card_done` request).
 - `review_undo` (any device, Review's "Back"; `of` = a review eid): fold step 6.
-  `new_cap` (Settings; `n` int 1..200) and `cap_lift` (worker; `day` a real
-  `YYYY-MM-DD`) carry no `s`/`c` (§6). Malformed ones (`n` outside 1..200 too)
-  are dropped at parse, by both sides; the app skips `cap_lift` (an unknown kind).
+  `new_cap` (`n` int 1..200) and `cap_lift` (`day` a real `YYYY-MM-DD`) are
+  the old daily cap's (removed 2026-11-22): no `s`/`c`, still parsed so old
+  logs stay valid (malformed ones dropped), written by nobody, read by nothing.
 - `r`: 1 Again, 2 Hard, 3 Good, 4 Easy. `at` = device wall clock when answered.
   `rev` = card rev shown. `src` (optional): `"drill"` = a PC drill pick (`tutor/drill.py`);
   `"checkin"` = a focus check-in card (`DOCS-contract-focus.md`), an ordinary review;
@@ -187,7 +187,7 @@ pass the same vectors.
 - Review screen: front -> reveal back + excerpt + source host (link) -> 4
   rating buttons + "Flag". Client caches derived FSRS state, rebuildable from the log.
 
-## 6. Unlock, mastery, daily cap (raw log only, not FSRS)
+## 6. Unlock, mastery, module gate (raw log only, not FSRS)
 - `reviewed(c)` iff c taught and **some app** review after the last `taught` has
   `r >= 3`, no time gap. Never a drill pick: `src:"drill"`, or (older picks) any review
   by a `dev` that wrote a `taught`/`untaught` (the worker, §4; found over the whole log).
@@ -201,26 +201,26 @@ pass the same vectors.
   every request; a phone review alone unlocks on the next one): writes module
   `status`/`recall`, starts generation for newly unlocked modules, sets subject
   `completed` when every module is mastered ("Go deeper" / "Review only").
-- **Daily new cap, all subjects** = `n` of the latest valid `new_cap` by
-  `(at, eid)`, else **25**. New card = a `taught` on a card untaught at that
-  point; `new_today` = those with `at` on today's PC-local date. Teaching an
-  untaught card when `new_today >= cap` -> `daily_new_cap` (fields: DOCS-relay);
-  re-teaching and teaching a split child (`split_of`) are free. **Lift**: `session_start` `lift_cap:true` -> the worker
-  appends `cap_lift` for today (PC-local; none if today is lifted already);
-  while one names today the cap is off on every device, never the next day.
-  Client shows `stats.today.new`/`new_cap` (effective)/`new_cap_lifted`.
+- **Module gate** (kuhy 2026-11-22; no daily cap): a module's first card opens
+  only once every earlier open module has each counted card taught and
+  `reviewed`, no counted card of the subject is due (§5) and no earlier module
+  is `generating`. Started modules and other subjects are never held.
+  `gate_cards` (earlier unreviewed, then due) is what the app reviews before
+  it sends Next again; a re-taught card must pass again.
 - Next-card pick (worker): subject = `body.subject` or
   `prefs.current_subject`; first card in (module order, card order) that is
   untaught, not flagged/suspended, card `requires` taught, in an unlocked +
-  `ready`/`mastered` module. None -> `no_card_left` (+next step: DOCS-relay). Explicit card: unknown
-  -> `unknown_card`; its module not open or its requires untaught -> `locked`.
+  `ready`/`mastered` module, past the module gate. Gate closed or none left -> `no_card_left`
+  (+next step, `gate_cards`, `writing`: DOCS-relay). Explicit card: unknown
+  -> `unknown_card`; its module not open, its requires untaught or the gate
+  closed before its module -> `locked` (+`gate_cards`).
 - Teaching flow unchanged: one card per session, check questions, tutor
   `card_done` -> `taught` event, then Next card / Stop here. First FSRS review
   due from Good-at-taught.
 
 ## 7. Stats: `stats` (worker)
 ```json
-{"today":{"day":"2026-10-12","credited_minutes":23,"active_minutes":31,"target":60,"new":4,"new_cap":25,"new_cap_lifted":false},
+{"today":{"day":"2026-10-12","credited_minutes":23,"active_minutes":31,"target":60,"new":4},
  "days":{"2026-10-12":{"minutes":23,"taught":4,"reviews":31}}}
 ```
 `minutes` from the verified ledger (`progress.ledger_minutes_by_day`). Backs
@@ -233,7 +233,7 @@ a new session); that session's own minutes are secondary.
 
 ## 8. Client screens (parity with the retired `static/*.js` page) and their data
 - **Home**: subjects with `status`/progress; "new subject" free text; due
-  review count; PC presence; credited x/60; new x/cap.
+  review count; PC presence; credited x/60.
 - **Plan**: draft view + editing (rename, reorder, add, remove module without
   cards, edit requires); comment -> `plan_revise`; Approve. Live on
   `rev.catalog`; unsaved draft edits are kept behind a "Plan changed" banner.

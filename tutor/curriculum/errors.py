@@ -14,7 +14,6 @@ from tutor.relay.kinds import kind_of_node
 
 BAD_REQUEST: Final = "bad_request"
 LOCKED: Final = "locked"
-DAILY_NEW_CAP: Final = "daily_new_cap"
 NO_CARD_LEFT: Final = "no_card_left"
 UNKNOWN_CARD: Final = "unknown_card"
 PLAN_CONFLICT: Final = "plan_conflict"
@@ -27,7 +26,6 @@ CODES: Final = frozenset(
         BAD_REQUEST,
         "not_live",
         LOCKED,
-        DAILY_NEW_CAP,
         NO_CARD_LEFT,
         UNKNOWN_CARD,
         PLAN_CONFLICT,

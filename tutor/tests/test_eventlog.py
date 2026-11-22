@@ -10,7 +10,6 @@ import pytest
 from tutor.curriculum.eventlog import (
     DRILL,
     EventLog,
-    cap_lift_event,
     parse,
     review_event,
     worker_event,
@@ -140,12 +139,6 @@ def test_parse_global_events_need_no_card(raw: dict[str, Any], kept: bool) -> No
         assert "s" not in got
         assert "c" not in got
         assert got == {"dev": "d", "eid": EID, **{k: raw[k] for k in raw if k != "s"}}
-
-
-def test_cap_lift_event() -> None:
-    event = cap_lift_event("2026-10-17", dev="pc", at=5)
-    assert event["k"] == "cap_lift"
-    assert parse("pc", event["eid"], event) == event
 
 
 def test_worker_event() -> None:

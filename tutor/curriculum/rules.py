@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Unlock, mastery, recall, the daily new-card cap and the next-card pick.
+"""Unlock, mastery and recall; the gate and the pick are in ``pick``.
 
 ``DOCS-contract-curriculum.md`` §6, read from the folded log (never from FSRS
 state): a card is *reviewed* once some app review since it was last taught
@@ -17,17 +17,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
-from tutor.curriculum import cap
-from tutor.curriculum.errors import UNKNOWN_CARD, RequestError
-from tutor.curriculum.no_card import due_in_subject, locked, no_card_left
-
 if TYPE_CHECKING:
     from tutor.curriculum.fold import CardFold, Fold
     from tutor.curriculum.records import CardRec, Module, Plan
 
 GOOD_GAP_MS: Final = 20 * 3600 * 1000
 GOOD_RATING: Final = 3
-NEW_CAP: Final = cap.NEW_CAP  # the default; Settings' ``new_cap`` overrides
 OPEN: Final = frozenset({"ready", "mastered"})
 WAITING: Final = frozenset({"locked", "failed"})  # pre-generated, not yet unlocked
 
@@ -136,115 +131,3 @@ def completed(plan: Plan) -> bool:
     return plan.status == "approved" and all(
         m.status == "mastered" for m in plan.modules
     )
-
-
-def _open(view: View, card: CardRec, fold: Fold) -> bool:
-    """Not suspended and every required card taught."""
-    taught = fold.taught_ids(view.subject)
-    return not card.suspended and all(need in taught for need in card.requires)
-
-
-def _first(view: View, fold: Fold, skip: str) -> tuple[str, Module] | None:
-    taught = fold.taught_ids(view.subject)
-    for module in view.plan.modules:
-        if module.status not in OPEN or not unlocked(view, module, fold):
-            continue
-        for cid, card in view.module_cards(module.id):
-            flagged = fold.card(view.subject, cid).flagged(card.rev)
-            fresh = cid not in taught and cid != skip
-            if fresh and not flagged and _open(view, card, fold):
-                return cid, module
-    return None
-
-
-def _to_review(view: View, fold: Fold) -> Module | None:
-    """The first ``ready`` module fully taught but not yet reviewed."""
-    taught = fold.taught_ids(view.subject)
-    for module in view.plan.modules:
-        cards = counted(view, module.id, fold)
-        done = bool(cards) and all(cid in taught for cid, _ in cards)
-        if (
-            module.status == "ready"
-            and done
-            and not module_reviewed(view, module.id, fold)
-        ):
-            return module
-    return None
-
-
-def _no_card(view: View, fold: Fold, now_ms: int) -> RequestError:
-    """``no_card_left`` with the subject's title and its next step."""
-    states = [
-        s.fsrs_state() for m in view.plan.modules for _, s in counted(view, m.id, fold)
-    ]
-    dues = [state["due"] for state in states if state is not None]
-    err = no_card_left(
-        view.title,
-        module=_to_review(view, fold),
-        due_at=min(dues) if dues else None,
-        writing=any(m.status == "generating" for m in view.plan.modules),
-        now_ms=now_ms,
-    )
-    err.extra["subject_id"] = view.subject
-    err.extra["due_in_subject"] = due_in_subject(view, fold, now_ms)
-    return err
-
-
-def _to_unlock(view: View, module: Module, fold: Fold) -> Module | None:
-    """The required module to review before ``module`` opens, if there is one.
-
-    The first (plan order) not yet mastered, when it is ``ready``; None when
-    the plan is unapproved, ``module`` is already unlocked or the blocker
-    is not reviewable yet.
-    """
-    if view.plan.status != "approved" or unlocked(view, module, fold):
-        return None
-    need = next(
-        (
-            m
-            for m in view.plan.modules
-            if m.id in module.requires and m.status != "mastered"
-        ),
-        None,
-    )
-    return need if need is not None and need.status == "ready" else None
-
-
-def _explicit(view: View, fold: Fold, card_id: str) -> tuple[str, Module]:
-    """``card_id`` and its module, if it can be taught now."""
-    card = view.cards.get(card_id)
-    if card is None:
-        msg = f"unknown card {card_id!r} in {view.subject}"
-        raise RequestError(UNKNOWN_CARD, msg)
-    module = view.plan.module(card.module)
-    if module is None:
-        raise locked(view.title, card_id, subject=view.subject, module=None, need=None)
-    ready = module.status in OPEN and unlocked(view, module, fold)
-    if not ready or not _open(view, card, fold):
-        need = _to_unlock(view, module, fold)
-        raise locked(
-            view.title, card_id, subject=view.subject, module=module, need=need
-        )
-    return card_id, module
-
-
-def pick(
-    view: View, fold: Fold, card_id: str | None, now_ms: int, skip: str = ""
-) -> str:
-    """The card a session teaches: ``card_id`` if open, else the next one.
-
-    ``skip`` (no ``card_id``): never that card (Next card leaves it).
-
-    Raises ``unknown_card``, ``locked``, ``no_card_left`` or, when it would
-    teach an untaught card with today's cap reached and not lifted
-    (``cap``), ``daily_new_cap``. Re-teaching a taught card is free.
-    """
-    if card_id:
-        chosen, module = _explicit(view, fold, card_id)
-    else:
-        found = _first(view, fold, skip)
-        if found is None:
-            raise _no_card(view, fold, now_ms)
-        chosen, module = found
-    cap.check(view, fold, (chosen, module), now_ms)
-    return chosen

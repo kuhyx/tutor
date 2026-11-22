@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor.curriculum import cap, cardgen, handlers, judge, rules, subject_store, wiki
+from tutor.curriculum import cardgen, handlers, judge, rules, subject_store, wiki
 from tutor.curriculum.errors import RequestError
+from tutor.curriculum.pick import pick
 from tutor.curriculum.records import Module, Plan
 from tutor.curriculum.source import SubjectSource
 from tutor.store import Store
@@ -106,16 +107,15 @@ def test_pregenerated_module_has_cards_but_stays_locked(
     assert handlers.fold_and_advance(ctx)["generate"] == []
     assert mod(ctx, "b").status == "locked"
     # Never offered, never startable, never counted as new.
-    folded = ctx.fold()
     with pytest.raises(RequestError) as err:
-        rules.pick(view(ctx), folded, "bee-0", ctx.clock())
+        pick(view(ctx), ctx.fold(), "bee-0", ctx.clock())
     assert err.value.code == "locked"
     for n, cid in enumerate(A_CARDS):
         taught(ctx, "car", cid, T0 + n, n)
     with pytest.raises(RequestError) as err:
-        rules.pick(view(ctx), ctx.fold(), None, ctx.clock())
+        pick(view(ctx), ctx.fold(), None, ctx.clock())
     assert err.value.code == "no_card_left"
-    assert cap.new_today(ctx.fold(), ctx.clock()) == 3  # a's only
+    assert len(ctx.fold().taught_ids("car")) == 3  # a's only
     # A manual "card done" cannot teach it either (it would open the module).
     source = SubjectSource(Store(tmp_path / "store"), ctx, "car")
     with pytest.raises(RequestError) as err:
@@ -143,7 +143,7 @@ def test_mastered_requires_open_it_without_generating_again(
     assert b_cards(ctx) == before
     assert len(fakes.prompts) == calls
     assert handlers.pending(ctx) == []
-    assert rules.pick(view(ctx), ctx.fold(), None, ctx.clock()) == "bee-0"
+    assert pick(view(ctx), ctx.fold(), None, ctx.clock()) == "bee-0"
 
 
 def test_generation_finishing_after_unlock_opens_it(

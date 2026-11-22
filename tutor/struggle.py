@@ -1,8 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Help on a struggling card: ``session_start`` ``struggle: true``.
 
-``DOCS-contract-struggle.md`` §5. The card must be taught (a re-teach, so it
-is exempt from the daily new cap); its ``struggle(c)`` (fold step 7) and its
+``DOCS-contract-struggle.md`` §5. The card must be taught (a re-teach, so the
+module gate never answers for it); its ``struggle(c)`` (fold step 7) and its
 last 10 reviews go into the tutor's system prompt with rule 16
 (``struggle_rules``). The transcript's ``start`` event carries ``"struggle":
 true``, so a resumed session gets the same prompt.
@@ -64,9 +64,9 @@ def open_card(
     """The session's card (``src.pick``) and, ``struggling``, its brief.
 
     A struggle needs a card; a known but untaught one is refused BEFORE the
-    pick, so the daily cap never answers for it (its ``lift_cap`` fix would
-    lift the cap and still teach nothing). An unknown or locked card gets the
-    pick's own ``unknown_card`` / ``locked``; a taught one is cap-free.
+    pick, so the module gate never answers for it. An unknown or locked card
+    gets the pick's own ``unknown_card`` / ``locked``; a taught one is always
+    open.
     """
     if not struggling:
         return src.pick(card_id), None

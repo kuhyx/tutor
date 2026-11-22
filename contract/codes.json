@@ -3,7 +3,6 @@
   "relay_code": [
     "bad_request",
     "claude_unavailable",
-    "daily_new_cap",
     "edit_refused",
     "focus_refused",
     "gave_up",

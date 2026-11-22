@@ -2,7 +2,7 @@
 """Where the engine's cards come from: a curriculum subject or the old deck.
 
 :class:`SubjectSource` serves a migrated / generated subject: the next card is
-the curriculum pick (``rules.pick``: unlocked + ready modules, card gating,
+the curriculum pick (``pick.pick``: unlocked + ready modules, card gating,
 the daily new-card cap, ``cap``), ``card_done`` appends a ``taught`` event, and
 concepts go to the subject's ``concepts.json``. :class:`DeckSource` is the
 pre-curriculum behaviour (``deck/*.json`` + ``progress.json``), used while a
@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Final, Protocol
 from tutor import gating
 from tutor.cards import DECK_DIR, Card, load_deck
 from tutor.curriculum import card_rules, paths, profiles, rules
+from tutor.curriculum import pick as picking
 from tutor.curriculum.errors import BAD_REQUEST, LOCKED, NO_CARD_LEFT, RequestError
 from tutor.curriculum.eventlog import worker_event
 from tutor.curriculum.no_card import no_card_left
@@ -151,7 +152,7 @@ class SubjectSource:
         }
 
     def pick(self, card_id: str | None, skip: str = "") -> Card:
-        """``rules.pick`` over the subject (``skip`` left out of the pick).
+        """``pick.pick`` over the subject (``skip`` left out of the pick).
 
         An archived subject (``archive.py``) has nothing to teach.
         """
@@ -162,7 +163,7 @@ class SubjectSource:
             )
             err.extra |= {"subject_id": self.subject, "due_in_subject": 0}
             raise err
-        chosen = rules.pick(view, fold, card_id, now, "" if card_id else skip)
+        chosen = picking.pick(view, fold, card_id, now, "" if card_id else skip)
         return next(c for c in self.cards() if c.id == chosen)
 
     def mark(self, card_id: str, session: str, *, done: bool) -> None:

@@ -38,7 +38,7 @@ CASES: Final = (
     Case("session_live", "err_session_live"),
     Case("locked", "blocked_locked"),
     Case("locked", "blocked_locked_review", next="review_module"),
-    Case("daily_new_cap", "blocked_cap"),
+    Case("locked", "blocked_locked_due", next="reviews_due"),
     Case("no_card_left", "blocked_no_card_none"),
     Case("no_card_left", "blocked_no_card_review", next="review_module"),
     Case("no_card_left", "blocked_no_card_due", next="reviews_due"),

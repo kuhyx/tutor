@@ -27,7 +27,6 @@ RELAY_CODE: Final = frozenset(
         "not_live",
         "session_live",
         "locked",
-        "daily_new_cap",
         "no_card_left",
         "unknown_card",
         "plan_conflict",

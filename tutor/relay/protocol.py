@@ -159,7 +159,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "card": _opt_slug,
             "resume": _opt_bool,
             "device": delivery.device,
-            # "Learn more anyway": lift today's daily new cap first (``cap``).
+            # An older app's "Learn more anyway": accepted, ignored (no cap).
             "lift_cap": _opt_bool,
             # Help on a struggling taught card (``DOCS-contract-struggle.md`` §5).
             "struggle": _opt_bool,

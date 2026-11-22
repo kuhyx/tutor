@@ -41,7 +41,8 @@ def test_every_code_yields_a_kind(code: str) -> None:
         ("no_card_left", {}, "blocked_no_card_none"),
         ("locked", {"next": "review_module", "module": "m1"}, "blocked_locked_review"),
         ("locked", {"next": "none"}, "blocked_locked"),
-        ("daily_new_cap", {"next": "lift_cap"}, "blocked_cap"),
+        ("locked", {"next": "reviews_due", "due_at": 1}, "blocked_locked_due"),
+        ("daily_new_cap", {"next": "lift_cap"}, "err_worker"),  # gone
         ("claude_unavailable", {"reason": "rate_limit"}, "outage_claude"),
         ("claude_unavailable", {"reason": "network"}, "outage_claude"),
         ("model_error", {}, "err_model"),
@@ -77,7 +78,7 @@ def test_odd_reason_or_next_splits_nothing() -> None:
 
 def test_extra_never_overrides_kind() -> None:
     """A stray ``kind`` in ``extra`` cannot replace the computed one."""
-    err = RequestError("x", code="model_error", extra={"kind": "blocked_cap"})
+    err = RequestError("x", code="model_error", extra={"kind": "blocked_locked"})
     assert result_of(err)["kind"] == "err_model"
 
 

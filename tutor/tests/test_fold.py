@@ -143,7 +143,7 @@ def test_an_undo_of_an_unknown_or_non_review_eid_is_a_no_op() -> None:
     assert folded.undone == []
 
 
-def test_global_events_fold_into_the_cap_and_lifted_days() -> None:
+def test_old_daily_cap_events_are_kept_and_change_nothing() -> None:
     def glob(kind: str, at: int, seq: int, **extra: object) -> dict[str, object]:
         eid = ulid(at, bytes([seq] * 10))
         return {"dev": "a", "eid": eid, "k": kind, "at": at, **extra}
@@ -156,10 +156,9 @@ def test_global_events_fold_into_the_cap_and_lifted_days() -> None:
             glob("cap_lift", T0 + D, 4, day="2027-01-16"),
         ]
     )
-    assert folded.new_cap == 40  # the latest by ``at``
-    assert folded.lifted_days == {"2027-01-15", "2027-01-16"}
+    assert len(folded.kept) == 4  # an old log still folds
     assert folded.cards == {}
-    assert fold([]).new_cap is None
+    assert not hasattr(folded, "new_cap")
     assert undone_eids([_ev("review_undo", T0, of="E1"), _ev("review", T0)]) == {"E1"}
 
 

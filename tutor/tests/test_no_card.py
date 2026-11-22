@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from tutor.curriculum import pick as picking
 from tutor.curriculum import rules
 from tutor.curriculum.errors import RequestError
 from tutor.tests._cur import T0, H, card, make_ctx, module, review, subject, taught
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 
 def _no_card(view: rules.View, ctx: Context, now: int) -> RequestError:
     with pytest.raises(RequestError) as err:
-        rules.pick(view, ctx.fold(), None, now)
+        picking.pick(view, ctx.fold(), None, now)
     assert err.value.code == "no_card_left"
     assert "slug" not in err.value.message
     assert err.value.message.startswith("Hosting WWW — ")
@@ -48,6 +49,8 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "module": "dns-slug",
         "module_title": "DNS i CNAME",
         "due_in_subject": 0,
+        "gate_cards": ["a1", "a2"],
+        "writing": False,
     }
     assert err.result(5)["next"] == "review_module"
     review(ctx, "hosting-slug", "a1", T0 + H, 3)
@@ -66,6 +69,8 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "next": "reviews_due",
         "due_at": due,
         "due_in_subject": 1,
+        "gate_cards": ["a1"],
+        "writing": True,
     }
     assert "are due now" in err.message
     assert "still being written" in err.message
@@ -82,12 +87,14 @@ def test_no_card_left_with_nothing_taught_is_none(tmp_path: Path) -> None:
         "subject_title": "Hosting WWW",
         "next": "none",
         "due_in_subject": 0,
+        "gate_cards": [],
+        "writing": True,
     }
     plan.modules[0].status = "locked"
     assert "no card is open" in _no_card(view, ctx, T0).message
     untitled = rules.View("hosting-slug", plan, {})
     with pytest.raises(RequestError) as caught:
-        rules.pick(untitled, ctx.fold(), None, T0)
+        picking.pick(untitled, ctx.fold(), None, T0)
     assert caught.value.message.startswith("This subject — ")
 
 
@@ -97,7 +104,7 @@ def test_locked_names_the_module_to_review_first(tmp_path: Path) -> None:
     plan = subject(ctx, found=found)
     view = rules.View("car", plan, found, title="Cars")
     with pytest.raises(RequestError) as err:
-        rules.pick(view, ctx.fold(), "b1", T0)
+        picking.pick(view, ctx.fold(), "b1", T0)
     assert err.value.code == "locked"
     assert err.value.extra == {
         "subject_id": "car",
@@ -108,7 +115,7 @@ def test_locked_names_the_module_to_review_first(tmp_path: Path) -> None:
     }
     assert err.value.message == "Cars — “B” opens once “A” is reviewed."
     with pytest.raises(RequestError) as err:
-        rules.pick(view, ctx.fold(), "a2", T0)  # a card-level requires
+        picking.pick(view, ctx.fold(), "a2", T0)  # a card-level requires
     assert err.value.extra == {
         "subject_id": "car",
         "subject_title": "Cars",
@@ -125,14 +132,14 @@ def test_locked_behind_a_module_not_ready_has_no_step(tmp_path: Path) -> None:
     view = rules.View("car", plan, found, title="Cars")
     none = {"subject_id": "car", "subject_title": "Cars", "next": "none"}
     with pytest.raises(RequestError) as err:
-        rules.pick(view, ctx.fold(), "c1", T0)  # b is still locked
+        picking.pick(view, ctx.fold(), "c1", T0)  # b is still locked
     assert err.value.extra == none
     plan.status = "draft"
     mods[1].status = "ready"
     with pytest.raises(RequestError) as err:
-        rules.pick(view, ctx.fold(), "c1", T0)  # unapproved: nothing to review
+        picking.pick(view, ctx.fold(), "c1", T0)  # unapproved: nothing to review
     assert err.value.extra == none
     found["c1"].module = "gone"  # a card whose module left the plan
     with pytest.raises(RequestError) as err:
-        rules.pick(view, ctx.fold(), "c1", T0)
+        picking.pick(view, ctx.fold(), "c1", T0)
     assert (err.value.code, err.value.extra) == ("locked", none)

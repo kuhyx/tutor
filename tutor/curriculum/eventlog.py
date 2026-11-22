@@ -5,10 +5,11 @@ One event per line, each carrying the ``dev`` and ``eid`` it has in RTDB
 (``log/{dev}/{eid}``). Appending is idempotent on ``(dev, eid)``, so the
 relay worker can mirror the same remote events again after a restart. Events
 from RTDB are untrusted: :func:`parse` keeps only well-formed ones and drops
-unknown keys. The worker's own ``taught``/``untaught`` (and ``cap_lift``)
-events are written here first (the commit point) and published by the relay
-worker. ``cap_lift`` and ``new_cap`` name no subject or card
-(``DOCS-contract-curriculum.md`` §4/§6); ``subject_archive`` /
+unknown keys. The worker's own ``taught``/``untaught`` events are written
+here first (the commit point) and published by the relay worker.
+``cap_lift`` and ``new_cap`` (the daily cap, removed 2026-11-22) name no
+subject or card and still parse, so old logs stay valid; nothing reads
+them (``DOCS-contract-curriculum.md`` §4); ``subject_archive`` /
 ``subject_unarchive`` (worker) name a subject only (``DOCS-relay-kinds.md``).
 """
 
@@ -27,8 +28,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-CAP_LIFT: Final = "cap_lift"  # {"day"}: the daily new cap is off that local day
-NEW_CAP: Final = "new_cap"  # {"n"}: Settings' daily new cap, latest ``at`` wins
+CAP_LIFT: Final = "cap_lift"  # {"day"}: old daily cap lift, kept, unused
+NEW_CAP: Final = "new_cap"  # {"n"}: old daily cap setting, kept, unused
 GLOBAL_KINDS: Final = frozenset({CAP_LIFT, NEW_CAP})  # no subject or card
 REVIEW_UNDO: Final = "review_undo"  # {"of"}: that review eid never counts
 ARCHIVE: Final = "subject_archive"  # {"s"}: hidden and unlearned (worker)
@@ -208,11 +209,6 @@ def worker_event(
     if kind == "taught" and session:
         event["session"] = session
     return event
-
-
-def cap_lift_event(day: str, *, dev: str, at: int) -> dict[str, Any]:
-    """The worker's ``cap_lift`` for local ISO ``day``, fresh eid."""
-    return {"dev": dev, "eid": ulid(at), "k": CAP_LIFT, "day": day, "at": at}
 
 
 def review_event(

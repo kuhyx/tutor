@@ -82,11 +82,11 @@ startup retries every 60 s and writes nothing; the web app still serves.
   `generate(ctx, subj, module)` per pending module on the build lane
   (`pending(ctx)` lists them again after a restart).
 - `ctx.log.mirror(dev, {eid: event})` stores one device's RTDB subtree
-  (idempotent, untrusted input cleaned); the worker's own `taught`/`untaught`/
-  `cap_lift` events are in `ctx.log.read()` with `dev == ctx.device`, to be PUT
+  (idempotent, untrusted input cleaned); the worker's own `taught`/`untaught`
+  events are in `ctx.log.read()` with `dev == ctx.device`, to be PUT
   to `log/{dev}/{eid}`. `stats(ctx)` builds the `stats` node.
 - Engine: `Engine.start(card_id, subject=None)` (subject switch; raises
-  `RequestError` `daily_new_cap`/`locked`/`unknown_card`/`no_card_left`);
+  `RequestError` `locked`/`unknown_card`/`no_card_left`);
   `engine.source.subject` is the live subject (a refused start keeps the
   old one); `set_card_done(card, done=, subject=)` marks any subject's card;
   `resume_latest()` resumes in the transcript's subject. Until `python -m tutor migrate`
@@ -101,9 +101,12 @@ startup retries every 60 s and writes nothing; the web app still serves.
   parts; `rev.catalog` + 1), PATCH own `taught`/`untaught` events to
   `log/{worker}`, queue `generate` pairs. One generation at a time, under the
   build lock; a module whose generation raised is not retried until restart.
-- `no_card_left` (`session_start` / `next` with no open card) also carries
-  `subject_title` and `next`: `review_module` (+`module` id, `module_title`:
-  the first `ready` module fully taught, not yet reviewed), else
+- `no_card_left` (`session_start` / `next` with no open card, or the module
+  gate closed: curriculum §6) also carries `subject_title`, `writing` (an
+  earlier module's cards are being generated), `gate_cards` (the exact cards
+  to review before the next module; the app opens that review at once) and
+  `next`: `review_module` (+`module` id, `module_title`: the first open
+  module with a taught card not yet reviewed), else
   `reviews_due` (+`due_at` ms: earliest FSRS due of a taught, unflagged,
   unsuspended card), else `none`. `error` = the subject's title (never the
   slug) + that step, e.g. `Hosting WWW — all cards of “DNS i CNAME” are
@@ -112,13 +115,13 @@ startup retries every 60 s and writes nothing; the web app still serves.
   not flagged, not suspended).
 - `locked` (an explicit card) carries `subject_title` and `next`:
   `review_module` (+`module`, `module_title`: the first required module, plan
-  order, not mastered, when it is `ready`), else `none` (card-level requires,
-  unapproved plan, or the blocker is not reviewable yet).
-- `daily_new_cap` carries `subject_title`, `new_today`, `new_cap` (the
-  effective cap), `module` + `module_title` (where the next new card is),
-  `due_in_subject` and `next: "lift_cap"`; `error` e.g. `You learned 25 new
-  cards today (the daily limit). “vhost-apache” is open.` The one-tap fix is
-  `session_start` again with `lift_cap: true` (curriculum §6).
+  order, not mastered, when it is `ready`; or, the module gate, the first
+  earlier module with an unreviewed card, +`gate_cards`), `reviews_due`
+  (+`due_at`, `gate_cards`: only due cards hold the module back), else
+  `none` (card-level requires, unapproved plan, an earlier module not fully
+  taught, or the blocker is not reviewable yet).
+- There is no daily new-card cap (removed 2026-11-22): `session_start`'s
+  `lift_cap` is accepted and ignored.
 - `session_start` `struggle: true` (help on a struggling card): `DOCS-contract-struggle.md` §5.
 - Stats node: `handlers.stats(engine.ctx)`. `session_start` / `card_done` pass
   `subject`; `live.subject` = `engine.source.subject`.

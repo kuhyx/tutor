@@ -109,9 +109,9 @@ network error re-PUT the same `req` (same rid, same `sent_at`), never a new
 rid. Requests may queue while the PC is offline; served when it is back.
 
 A failed `result` also carries `kind` (how it failed, drawn as a glyph; not the request `kind`): `DOCS-relay-kinds.md`.
-Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `session_live` (stop the live session first), `locked` (+`subject_id`, `subject_title`, `next`: `review_module` +`module`, `module_title` | `none`),
-`daily_new_cap` (+`subject_title`, `new_today`, `new_cap`, `module`, `module_title`, `due_in_subject`, `next: "lift_cap"`), `no_card_left` (+`subject_id`, `subject_title`, `due_in_subject`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
-`worker_error` (`DOCS-relay.md`). `error` is shown, except for `locked`/`daily_new_cap`/`no_card_left`: the app builds a call to action from the fields (a `next: lift_cap` = "Learn more anyway"). Tracebacks stay in the log.
+Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `session_live` (stop the live session first), `locked` (+`subject_id`, `subject_title`, `gate_cards`?, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` | `none`),
+`no_card_left` (+`subject_id`, `subject_title`, `due_in_subject`, `writing`, `gate_cards`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
+`worker_error` (`DOCS-relay.md`). `error` is shown, except for `locked`/`no_card_left`: the app acts on the fields (non-empty `gate_cards`: it opens that review at once, curriculum §6). Tracebacks stay in the log.
 
 ### 4a. Machine codes beside the sentences
 
@@ -127,7 +127,7 @@ vocabulary, closed and additive: `DOCS-contract-codes.md`.
 | `subject_finish` | `{"subject","choice":"go_deeper"\|"review_only"}` | `{"plan_rev":5}` or `{}` | build |
 | `module_pregenerate` | `{"subject","modules":["b",...]\|"all"}` draft locked modules' cards ahead; study still waits for `requires` (curriculum §2) | `{"queued":["b"]}` | build |
 | `card_edit` | `{"subject","card":"ld-x"\|null,"module","front","back","source","excerpt","requires":[]}`; also `card_restore` / `card_remove` `{"subject","card"}`: the Editor's Restore of a tutor- or Editor-removed card (puts its `requires` back; an older unrecorded Editor removal is only un-suspended) and Remove of a tutor-added one (curriculum §3) | `{"card":"ld-x","rev":2}` (undo: `{"card"}`) | build |
-| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?,"lift_cap":bool?}` (null card = next open; `device` as for `message`, shapes the opening turn; `lift_cap:true` = "Learn more anyway": first lifts today's daily new cap on every device, a worker `cap_lift` event written once per day, curriculum §6) | `{"session":sid}` | chat |
+| `session_start` | `{"subject":"car"\|null,"card":"..."\|null,"resume":bool?,"device"?,"lift_cap":bool?}` (null card = next open; `device` as for `message`, shapes the opening turn; `lift_cap` is an older app's flag for the removed daily cap: accepted, ignored) | `{"session":sid}` | chat |
 | `session_resume` | `{"session":sid,"device"?}` (device validated only: no model turn) | `{"session":sid}` | chat |
 | `message` | `{"session":sid,"text":"...","device":"phone"\|"desktop"?}` <=8000 ch; no device = desktop, other values `bad_request`; phone: typos ignored, short answers, one question (prompt rule 13); text `Hint` gets a hint, never credit | `{"msg":"m0012"}` | chat |
 | `next` | `{"session":sid,"device"?}` (next_card+stop, starts new on `device`) | `{"session":newsid}` | chat |

@@ -20,7 +20,7 @@
    the whole log, so order cannot matter) is skipped before step 2: no FSRS,
    no dedupe, no ``app_good``, not ``kept`` (listed in ``undone``). An undo
    naming an unknown or non-review eid does nothing;
-8. ``cap_lift`` days and the latest ``new_cap`` (§6) are folded log-wide;
+8. ``cap_lift`` and ``new_cap`` (the old daily cap, gone) are kept, unused;
 9. ``struggle(rev)`` (``DOCS-contract-struggle.md`` §3): the trailing run of
    Again among the kept reviews since taught at the card's current ``rev``;
 10. ``subject_archive``/``subject_unarchive`` change no card here (the app
@@ -38,7 +38,6 @@ from typing import TYPE_CHECKING, Any, Final
 import fsrs
 
 from tutor.curriculum.eventlog import (
-    CAP_LIFT,
     DRILL,
     GLOBAL_KINDS,
     REVIEW_UNDO,
@@ -128,8 +127,6 @@ class Fold:
     dropped: list[str] = field(default_factory=list)  # cross-device duplicates
     ignored: list[str] = field(default_factory=list)  # reviews of untaught cards
     undone: list[str] = field(default_factory=list)  # reviews a review_undo names
-    lifted_days: set[str] = field(default_factory=set)  # cap_lift days (local)
-    new_cap: int | None = None  # the latest new_cap's n; None: the default
 
     def card(self, subject: str, card: str) -> CardFold:
         """The card's fold (an empty, untaught one if it never appeared)."""
@@ -184,15 +181,6 @@ def undone_eids(events: Iterable[dict[str, Any]]) -> set[str]:
     return {str(e["of"]) for e in events if e["k"] == REVIEW_UNDO}
 
 
-def _global(out: Fold, event: dict[str, Any]) -> None:
-    """``cap_lift`` / ``new_cap`` (events in ``(at, eid)`` order: latest wins)."""
-    if event["k"] == CAP_LIFT:
-        out.lifted_days.add(str(event["day"]))
-    else:
-        out.new_cap = int(event["n"])
-    out.kept.append(event)
-
-
 def fold(events: Iterable[dict[str, Any]]) -> Fold:
     """Fold clean events (``eventlog.parse`` output) into per-card state."""
     out = Fold()
@@ -202,10 +190,8 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
     undone = undone_eids(events)
     for event in sorted(events, key=lambda e: (e["at"], e["eid"])):
         kind = event["k"]
-        if kind in GLOBAL_KINDS:
-            _global(out, event)
-            continue
-        if kind == REVIEW_UNDO or kind in SUBJECT_KINDS:  # undo: ``undone`` above
+        # Undo: ``undone`` above; the old daily cap's events change nothing.
+        if kind == REVIEW_UNDO or kind in SUBJECT_KINDS or kind in GLOBAL_KINDS:
             out.kept.append(event)
             continue
         if kind == "review" and event["eid"] in undone:

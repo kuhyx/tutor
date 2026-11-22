@@ -43,7 +43,7 @@ def test_valid_message_drops_unknown_fields() -> None:
     assert got.body == {"session": SID, "text": "hello", "device": "desktop"}
 
 
-def test_session_start_lift_cap_defaults_to_false() -> None:
+def test_session_start_still_accepts_the_old_lift_cap() -> None:
     plain = protocol.validate(RID, req("session_start", subject=None, card=None))
     assert plain.body["lift_cap"] is False
     lift = req("session_start", subject=None, card=None, lift_cap=True)

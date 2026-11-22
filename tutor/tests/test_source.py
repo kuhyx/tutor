@@ -62,7 +62,7 @@ def test_migrated_automation_teaches_the_same_first_card(tmp_path: Path) -> None
     assert engine.ctx.log.read()[-1]["k"] == "untaught"
 
 
-def test_daily_cap_and_subject_switch_without_diagrams(tmp_path: Path) -> None:
+def test_no_daily_cap_and_subject_switch_without_diagrams(tmp_path: Path) -> None:
     clock = ManualClock(1_800_000_000.0)
     ctx, _ = make_ctx(tmp_path)
     many = {f"c{i}": card("a", i) for i in range(27)}
@@ -85,17 +85,15 @@ def test_daily_cap_and_subject_switch_without_diagrams(tmp_path: Path) -> None:
             for i in range(25)
         ]
     )
-    fake = FakeSession(turn("hi", diagram=DIAGRAM), turn("x"))
+    fake = FakeSession(turn("y"), turn("hi", diagram=DIAGRAM), turn("x"))
     engine = _engine(tmp_path, fake, clock)
-    with pytest.raises(RequestError) as err:
-        asyncio.run(engine.start(subject="car"))
-    assert err.value.code == "daily_new_cap"
-    state = asyncio.run(engine.start("c1", subject="car"))  # re-teaching is free
+    # 25 new cards today: no cap, the next one starts.
+    assert asyncio.run(engine.start(subject="car"))["card"]["id"] == "c25"
+    state = asyncio.run(engine.start("c1", subject="car"))  # re-teaching
     assert state["card"]["id"] == "c1"
     assert state["messages"][0]["diagrams"] == []  # car has no diagrams
     assert engine.source.profile.diagrams is False
     assert "industrial automation" not in fake_prompt(engine)
-    clock.advance(2 * 86400)
     assert asyncio.run(engine.next_card())["card"]["id"] == "c25"
 
 
@@ -141,7 +139,9 @@ def test_no_card_left_reads_the_title_and_ignores_the_skip(tmp_path: Path) -> No
         src.pick(None, skip="a2")  # a2 is untaught: "a" is not fully taught
     assert err.value.code == "no_card_left"
     assert err.value.extra["subject_title"] == "Cars"
-    assert err.value.extra["next"] == "reviews_due"
+    # Skipping the module's last card opens the review of what was taught.
+    assert err.value.extra["next"] == "review_module"
+    assert err.value.extra["gate_cards"] == ["a1"]
 
 
 def test_deck_source_skip_and_none_left(tmp_path: Path) -> None:

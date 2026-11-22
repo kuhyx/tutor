@@ -66,7 +66,7 @@ newer kind gets the right tint even before it has a glyph.
 | `err_session_live` | `session_live` | `play_disabled` | error |
 | `blocked_locked` | `locked` | `lock_outline` | calm |
 | `blocked_locked_review` | `locked` + next `review_module` | `replay` | calm |
-| `blocked_cap` | `daily_new_cap` | `add_circle_outline` | calm |
+| `blocked_locked_due` | `locked` + next `reviews_due` | `schedule` | calm |
 | `blocked_no_card_none` | `no_card_left` (next `none` or absent) | `inventory_2_outlined` | calm |
 | `blocked_no_card_review` | `no_card_left` + next `review_module` | `rate_review_outlined` | calm |
 | `blocked_no_card_due` | `no_card_left` + next `reviews_due` | `schedule` | calm |
@@ -138,7 +138,7 @@ archived subject (or unarchiving a live one) appends nothing and is ok.
 - **Not learned while archived.** The shared fold (Python and Dart) ignores
   both kinds, and the app skips them as unknown. `Context.fold()` on the PC
   then drops the subject's cards and events: nothing in it counts as taught,
-  reviewed, due or new today (this frees today's new-card cap), and
+  reviewed, due or new today, and
   `SubjectSource.pick` answers `no_card_left` (`next: none`). The earned-time
   ledger is never read or written.
 - **Hidden everywhere.** `SubjectStore.subjects()` leaves it out, so nothing

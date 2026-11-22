@@ -1,6 +1,6 @@
 # Tutor contract: struggling cards (v1)
 
-Extends `DOCS-contract-curriculum.md` (§3 card, §4 fold, §6 cap) and
+Extends `DOCS-contract-curriculum.md` (§3 card, §4 fold, §6 module gate) and
 `DOCS-relay.md` (`session_start`). Change this file first, then code.
 
 ## 1. Card fields
@@ -18,7 +18,7 @@ nothing changes and the whole edit is refused. Then the original is
 `suspended:true` (never deleted), each child gets a NEW id (never a reused or
 suspended one), `origin:"edited"`, `split_of` = the original id, the
 original's `module` and `requires`, and orders right after it. Children start
-untaught; teaching one is exempt from the daily new cap. The Editor's undo
+untaught; its module is started, so the module gate never holds it back. The Editor's undo
 reverts the whole split in one step (children suspended, original live).
 
 ## 3. Fold step 7: struggle
@@ -42,6 +42,6 @@ Needs `card`, a taught card (else `unknown_card` / `locked` as usual). A fresh
 session on that card in struggle mode: the tutor prompt gets the card, its
 `struggle(c)` and its last 10 reviews (`r`, `at`). The tutor first finds what
 keeps failing, then offers a mnemonic, a rewrite (`edit`), a split or a
-re-teach, and the learner picks in the chat. Exempt from the new cap (a
+re-teach, and the learner picks in the chat. Never held by the module gate (a
 re-teach). Pays active minutes like any session. Ends like any session:
 `card_done` writes `taught`, which resets the streak.
