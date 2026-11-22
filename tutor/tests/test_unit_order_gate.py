@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from tutor.curriculum import module_state
 from tutor.curriculum.errors import LOCKED, NO_CARD_LEFT, RequestError
 from tutor.curriculum.source import SubjectSource
 from tutor.store import Store
@@ -114,3 +115,48 @@ def test_due_reviews_of_taught_cards_still_block_in_a_gated_subject(
     nxt = _refusal(src, None)
     assert (nxt.code, nxt.extra["next"]) == (NO_CARD_LEFT, "reviews_due")
     assert nxt.extra["gate_cards"] == ["a0"]
+
+
+def _needy(tmp_path: Path, name: str = LC) -> tuple[Context, SubjectSource]:
+    """The live case: b0 taught, b1 needs b0 and a0, a0 sits in module a.
+
+    Plan order a, b; the guard's unit order starts at b (prefix-sums needs
+    hashing's direct-index-counting-array).
+    """
+    ctx, _ = make_ctx(tmp_path)
+    mods = [module("a", status="ready"), module("b", status="ready")]
+    found = {"a0": card("a", 0), "b0": card("b", 0), "b1": card("b", 1, "b0", "a0")}
+    subject(ctx, name, modules=mods, found=found)
+    teach(ctx, name, "b0", T0, 1)
+    return ctx, SubjectSource(Store(tmp_path), ctx, name)
+
+
+def test_a_prerequisite_in_a_refused_module_does_not_hold_a_card_shut(
+    tmp_path: Path,
+) -> None:
+    grant((LC, "b"))  # THEORY(b); a (hashing) is refused
+    ctx, src = _needy(tmp_path)
+    assert module_state.truth(tmp_path, LC) == {"a": False, "b": False}
+    assert src.pick(None, module="b").id == "b1"  # what /learn/<LC>/b picks
+    assert src.pick("b1").id == "b1"  # Engine.start picks it again, by id
+    teach(ctx, LC, "b1", T0 + H, 2)
+    assert module_state.truth(tmp_path, LC)["b"] is True
+    assert _refusal(src, "a0").code == NO_CARD_LEFT  # C3 itself is untouched
+
+
+def test_a_prerequisite_in_a_teachable_module_still_holds_a_card_shut(
+    tmp_path: Path,
+) -> None:
+    grant((LC, "a"), (LC, "b"))  # both teachable: a0 is not refused
+    ctx, src = _needy(tmp_path)
+    assert _refusal(src, "b1").code == LOCKED
+    assert src.pick(None).id == "a0"  # the prerequisite comes first
+    teach(ctx, LC, "a0", T0 + H, 2)
+    assert src.pick("b1").id == "b1"
+
+
+@pytest.mark.parametrize("name", [SQL, "car"])
+def test_an_ungated_subject_keeps_every_prerequisite(name: str, tmp_path: Path) -> None:
+    grant((LC, "b"))  # never read: the subject is not gated
+    _, src = _needy(tmp_path, name)
+    assert _refusal(src, "b1").code == LOCKED

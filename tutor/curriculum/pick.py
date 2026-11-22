@@ -6,7 +6,8 @@ of a module with no taught card opens only once every earlier module is
 fully taught with each card reviewed, and no card of the subject is due.
 Due cards never block a module already started. The refusal lists the
 exact cards that block (``gate_cards``), which the app reviews. Under C3 the
-guard's unit order beats the plan order (:func:`unit_order_wins`).
+guard's unit order beats the plan order (:func:`unit_order_wins`), for a card's
+required cards too (:func:`_open`).
 """
 
 from __future__ import annotations
@@ -31,9 +32,22 @@ if TYPE_CHECKING:
 
 
 def _open(view: View, card: CardRec, fold: Fold) -> bool:
-    """Not suspended and every required card taught."""
+    """Not suspended and every required card taught, or in a module C3 refuses.
+
+    A prerequisite the tutor may not teach now cannot hold a card shut
+    (:func:`unit_order_wins`, cards instead of modules): its unit comes later
+    in the guard's order than this card's, and the card would never open.
+    """
     taught = fold.taught_ids(view.subject)
-    return not card.suspended and all(need in taught for need in card.requires)
+    return not card.suspended and all(
+        need in taught or _refused(view, need) for need in card.requires
+    )
+
+
+def _refused(view: View, card_id: str) -> bool:
+    """Whether card ``card_id`` sits in a module C3 refuses now."""
+    rec = view.cards.get(card_id)
+    return rec is not None and rec.module in view.refused
 
 
 @dataclass(frozen=True)

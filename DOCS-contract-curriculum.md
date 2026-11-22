@@ -209,7 +209,7 @@ pass the same vectors.
   then due) is what the app reviews before it sends Next again; a re-taught card must pass again.
 - Next-card pick (worker): subject = `body.subject` or
   `prefs.current_subject`; first card in (module order, card order) that is
-  untaught, not flagged/suspended, card `requires` taught, in an unlocked +
+  untaught, not flagged/suspended, card `requires` taught (C3-refused ones aside), in an unlocked +
   `ready`/`mastered` module, past the module gate. Gate closed or none left -> `no_card_left`
   (+next step, `gate_cards`, `writing`: DOCS-relay). Explicit card: unknown
   -> `unknown_card`; its module not open, its requires untaught or the gate

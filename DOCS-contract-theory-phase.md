@@ -74,6 +74,15 @@ the start again. A teachable earlier module (a unit of several modules) still
 holds the next one until it is fully taught. Ungated subjects refuse nothing
 and keep the plan order.
 
+The same rule covers a card's `requires`. A required card in a module C3
+refuses now does not hold the card shut: its unit comes later in the guard's
+order, so waiting would leave the module never done (measured 2026-11-22:
+`histogram-prefix-sorted-position` of `prefix-sums` needs
+`direct-index-counting-array` of `hashing`). A required card in a module C3
+does not refuse still blocks, and ungated subjects keep every prerequisite.
+Only `pick._open` applies the rule; a module's done row (C2) follows from the
+taught cards, and the app only shows what the worker sends.
+
 ## C4: `/learn/<subject>/<module>`, the lock's learn button
 The guard runs `~/.local/bin/tutor --route /learn/<subject>/<module>`
 (`run.sh`). The app opens the Session screen and sends `session_start` with
