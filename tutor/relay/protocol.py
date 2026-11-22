@@ -160,8 +160,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "module": _opt_slug,  # C4: that module's next card (``learn_module``)
             "resume": _opt_bool,
             "device": delivery.device,
-            # An older app's "Learn more anyway": accepted, ignored (no cap).
-            "lift_cap": _opt_bool,
+            "lift_cap": _opt_bool,  # an older app's cap flag: accepted, ignored
             # Help on a struggling taught card (``DOCS-contract-struggle.md`` §5).
             "struggle": _opt_bool,
         },
