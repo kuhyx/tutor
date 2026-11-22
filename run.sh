@@ -53,14 +53,15 @@ app_url() {
     echo "${URL}app/${APP_ROUTE:+#$APP_ROUTE}"
 }
 
-# A /learn or /rework route is handed to the tutor window that is already open
+# A /learn, /review or /rework route is handed to the tutor window that is already open
 # (web/index.html). i3 keeps that window on its own workspace, and a page
 # cannot raise itself from one that is not shown: the route would land out of
 # sight (scripts/e2e_i3_handover.sh). So i3 shows that window first; the new
 # one then opens beside it and closes. No tutor window, an i3 that does not
 # answer in 2 s, or no i3 at all: the launch goes on as before.
 show_open_window() {
-    [[ "$APP_ROUTE" == /learn/* || "$APP_ROUTE" == /rework/* ]] || return 0
+    [[ "$APP_ROUTE" == /learn/* || "$APP_ROUTE" == /review/* \
+        || "$APP_ROUTE" == /rework/* ]] || return 0
     timeout 2 i3-msg '[class="^tutor$"] focus' >/dev/null 2>&1 || true
 }
 

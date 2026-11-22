@@ -43,7 +43,7 @@
   -->
   <script>
     // C4 window takeover (lib/ui/deep_link_web.dart). `tutor --route
-    // /learn/...` (or `/rework/...`) against a running profile opens a
+    // /learn/...` (or `/review/...`, `/rework/...`) against a running profile opens a
     // SECOND --app window, and
     // a used window can never close itself (more than one history entry).
     // So this new window, before Flutter boots, offers its route to a tutor
@@ -58,7 +58,9 @@
         document.body.appendChild(s);
       };
       var route = decodeURIComponent(location.hash.slice(1));
-      var handed = route.indexOf('/learn/') === 0 || route.indexOf('/rework/') === 0;
+      var handed = ['/learn/', '/review/', '/rework/'].some(function (p) {
+        return route.indexOf(p) === 0;
+      });
       if (!handed || !('BroadcastChannel' in window)) {
         boot();
         return;

@@ -73,11 +73,12 @@ def test_without_a_route_the_plain_app_opens(tmp_path: Path) -> None:
     assert f"--app={APP}" in line.split()
 
 
-def test_a_learn_route_shows_the_open_window_first(tmp_path: Path) -> None:
+@pytest.mark.parametrize("route", ["/learn/s/m", "/review/s/m", "/rework/s/m/x"])
+def test_a_handed_route_shows_the_open_window_first(tmp_path: Path, route: str) -> None:
     """i3 focuses the open tutor window before the browser hands the route over."""
-    [focus, opened] = _run(tmp_path, "--route", "/learn/s/m")
+    [focus, opened] = _run(tmp_path, "--route", route)
     assert focus == FOCUS
-    assert f"--app={APP}#/learn/s/m" in opened.split()
+    assert f"--app={APP}#{route}" in opened.split()
 
 
 @pytest.mark.parametrize("i3", ["exit 2", "exec sleep 20", None])

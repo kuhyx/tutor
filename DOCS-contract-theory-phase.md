@@ -106,7 +106,7 @@ Fallbacks:
 - A refusal that lists `gate_cards` (the module gate, curriculum §6) first
   opens that review, as for any start. Passing it sends the start again.
 - Any other failure (an outage, a model error) stays on the Session screen.
-- An unknown or archived subject stays on Home.
+- An unknown subject stays on Home (as `/learn/...`).
 
 ### Window hand-over
 Chrome hands every launch to the browser that already runs the tutor's
@@ -123,8 +123,25 @@ close itself, so the new window gives its route to the old one:
 4. The new window closes itself. With no answer within 1 s, or when the
    browser refuses the close, it boots and opens the route itself.
 
-Only `/learn/...` routes are handed over. The channel is per origin, so a
-sandbox on another port never hears the live window.
+Only `/learn/...`, `/review/...` and `/rework/...` routes are handed over
+(`deep_link.handedOffer`, `web/index.html` and `run.sh`'s i3 focus step all
+list the same three prefixes). The channel is per origin, so a sandbox on
+another port never hears the live window.
+
+## C5: `/review/<subject>/<module>`, the lock's review of a module
+The guard runs `~/.local/bin/tutor --route /review/<subject>/<module>`. It is
+handed to an open window like `/learn/...` (above), and on a cold start it
+opens from Home like any deep link. The app (`nav.openModuleReview`) opens
+Review on that module, the same screen as "Review this module" on the plan:
+the module's taught cards not yet passed (no Good/Easy since taught), due or
+not, flagged and suspended ones left out, Again/Hard requeued
+(`review_items.moduleItems`). No request goes to the worker and no text is new.
+
+Fallbacks, none of them a blank or error page:
+- The module has nothing to review (nothing taught, all passed, no cards) or
+  the plan lacks the module: that subject's plan screen.
+- An unknown subject stays on Home (as `/learn/...`).
+- `/review` alone, or with one segment, is the old due queue of every subject.
 
 `TUTOR_DESKTOP_PORT` points `run.sh` at a sandbox server instead of
 `tutor.service`'s 8778 (`scripts/e2e_i3_handover.sh`). `run.sh` never starts

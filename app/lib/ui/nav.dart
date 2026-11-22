@@ -6,6 +6,8 @@
 /// `/session/continue` opens the Session and asks for the open session;
 /// `/learn/<subject>/<module>`, the LeetCode lock's learn button, teaches
 /// that module, else shows the subject's plan: [openLearn];
+/// `/review/<subject>/<module>`, the lock's review of a module: that
+/// module's review, else the subject's plan: [openModuleReview];
 /// `/rework/<subject>/<module>/<slug>`, the lock's `?`: [openRework]).
 library;
 
@@ -22,6 +24,7 @@ import 'package:tutor/ui/coach/rework_screen.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
+import 'package:tutor/ui/nav_module_review.dart';
 import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/report_dialog.dart';
@@ -201,6 +204,12 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
   return switch (parts.firstOrNull) {
     'plan' when arg != null => openPlan(context, s, arg),
     'learn' when parts.length == 3 => openLearn(context, s, parts[1], parts[2]),
+    'review' when parts.length == 3 => openModuleReview(
+      context,
+      s,
+      parts[1],
+      parts[2],
+    ),
     'rework' when parts.length == 4 => openRework(
       context,
       s,

@@ -51,8 +51,8 @@ final _handed = StreamController<String>.broadcast();
 /// Routes a later window handed to this one ([joinWindows]).
 Stream<String> get handedRoutes => _handed.stream;
 
-/// Every window joins at start, to take a later `/learn/...` or
-/// `/rework/...` launch.
+/// Every window joins at start, to take a later `/learn/...`, `/review/...`
+/// or `/rework/...` launch.
 ///
 /// Chrome hands each `tutor --route` launch to the browser already running
 /// the profile, which opens a NEW `--app` window. A page may close itself

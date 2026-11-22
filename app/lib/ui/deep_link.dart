@@ -11,6 +11,10 @@ String? routeFromUri(Uri uri) {
 }
 
 /// Whether a new window's `learn <route>` offer is one an open window takes:
-/// the lock's `/learn/...` and `/rework/...` (`web/index.html` offers them).
-bool handedOffer(String offer) =>
-    offer.startsWith('learn /learn/') || offer.startsWith('learn /rework/');
+/// the lock's `/learn/...`, `/review/...` and `/rework/...` (`web/index.html`
+/// offers them).
+bool handedOffer(String offer) => const [
+  'learn /learn/',
+  'learn /review/',
+  'learn /rework/',
+].any(offer.startsWith);
