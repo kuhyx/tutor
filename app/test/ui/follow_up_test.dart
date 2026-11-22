@@ -37,8 +37,6 @@ void main() {
     expect(RequestKind.followUpOpen.lane, Lane.chat);
     final body = RequestBody.followUpOpen('s1').withDevice('phone');
     expect(body.body, {'session': 's1'});
-    // Was the app's one coverage gap (no test built a lift_cap start).
-    expect(RequestBody.sessionStart(liftCap: true).body['lift_cap'], isTrue);
     expect(
       kindText('err_session_live', 'session_live'),
       'Another session is live.',

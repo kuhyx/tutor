@@ -58,7 +58,10 @@ void main() {
     final statuses = <RelayStatus>[];
     final done = relay.resend(pending).listen(statuses.add).asFuture<void>();
     await pump();
-    expect(puts.single.url.path, '/tutor/v1-e2e/requests/${pending.rid}/req.json');
+    expect(
+      puts.single.url.path,
+      '/tutor/v1-e2e/requests/${pending.rid}/req.json',
+    );
     final body = jsonDecode(puts.single.body) as Map<String, dynamic>;
     expect(body['created'], {'.sv': 'timestamp'});
     expect(body['sent_at'], pending.req.sentAt);
@@ -164,7 +167,8 @@ void main() {
   });
 
   test('error texts', () {
-    expect(kindText(null, 'daily_new_cap'), contains('limit of new cards'));
+    // The daily cap is gone (2026-11-22): an old worker's code is unknown.
+    expect(kindText(null, 'daily_new_cap'), contains('daily_new_cap'));
     expect(kindText(refusedPasteStatement, 'bad_request'), contains('paste'));
     expect(kindText('err_new', 'weird'), 'The request failed (weird).');
     expect(headlineFor(null), 'The request failed.');

@@ -19,7 +19,6 @@ const Map<String, String> _plain = {
   'not_live': 'err_not_live',
   'session_live': 'err_session_live',
   'locked': 'blocked_locked',
-  'daily_new_cap': 'blocked_cap',
   'no_card_left': 'blocked_no_card_none',
   'unknown_card': 'err_unknown_card',
   'plan_conflict': 'err_plan_conflict',
@@ -38,6 +37,7 @@ const Map<(String, String), String> _byReason = {
 
 const Map<(String, String), String> _byNext = {
   ('locked', 'review_module'): 'blocked_locked_review',
+  ('locked', 'reviews_due'): 'blocked_locked_due',
   ('no_card_left', 'review_module'): 'blocked_no_card_review',
   ('no_card_left', 'reviews_due'): 'blocked_no_card_due',
 };

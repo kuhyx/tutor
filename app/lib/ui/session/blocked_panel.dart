@@ -1,199 +1,168 @@
-/// A blocking result (`daily_new_cap`, `locked`, `no_card_left`) as a call
-/// to action, never an error: one short line on why, a primary button that
-/// fixes it at once, and "Review this subject (N due)" when cards wait.
-/// No red, and never the worker's raw text (kuhy, 2026-10-17: a red "Ten
-/// new cards today already" with no way on to the next module). The why is
-/// the kind's glyph (DOCS-relay-kinds.md); reviews due add a ring for how
-/// far off they are, a module review adds the module's mark (tap: review).
+/// A blocking result (`locked`, `no_card_left`) as ONE glyph, never a panel
+/// of chips and buttons (kuhy, 2026-11-22: "a mess of icons"). The module
+/// gate's review opens by itself (`throughGate`); what is left here:
+///
+/// - cards still to review (left early): the review glyph; tap reopens it;
+/// - the next module's cards being written: an animated pencil;
+/// - nothing to do now: a ring for when the next review falls due (or the
+///   kind's glyph); tap opens Home on the subject.
+///
+/// Each glyph carries a one-word tooltip; the why is spoken only.
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
-import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
-import 'package:tutor/model/request_body.dart';
-import 'package:tutor/progress/terms.dart';
+import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/relay/blocked.dart';
-import 'package:tutor/relay/request_relay.dart';
-import 'package:tutor/ui/learn_bits.dart';
-import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/relay_cue.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
-typedef _Act = Future<void> Function(BuildContext);
-
-/// The call to action for [blocked].
+/// The glyph for [blocked].
 class BlockedPanel extends StatelessWidget {
-  /// Creates the panel; [text] is the line, [subject] the screen's subject
-  /// (a hint when the payload names none), [lastBody] the request that was
-  /// blocked (Learn more anyway re-sends it with `lift_cap`).
+  /// Creates the glyph; [subject] is the screen's subject (a hint when the
+  /// payload names none), [onGate] reopens the gate review.
   const new({
     required this.services,
     required this.blocked,
     required this.kind,
     required this.text,
-    required this.onRun,
+    this.onGate,
     this.subject,
-    this.lastBody,
+    this.now,
     super.key,
   });
 
-  /// Services (the catalog, and Review).
+  /// Services (the catalog and the Home pick).
   final TutorServices services;
 
   /// The block.
   final Blocked blocked;
 
-  /// The result's kind: its glyph is the why.
+  /// The result's kind: its glyph when there is no due time.
   final String? kind;
 
   /// Why, in one line (spoken only).
   final String text;
 
+  /// Reopens the gate review (cards still to pass).
+  final VoidCallback? onGate;
+
   /// The screen's subject.
   final String? subject;
 
-  /// The blocked request.
-  final RequestBody? lastBody;
-
-  /// Runs a request on the screen's runner.
-  final Future<RelayStatus> Function(RequestBody body) onRun;
+  /// Clock (tests).
+  final DateTime Function()? now;
 
   @override
   Widget build(BuildContext context) {
     final b = blocked;
-    final due = b.dueInSubject ?? 0;
-    final primary = switch (b) {
-      Blocked(code: dailyNewCap) => (
-        'Learn more anyway',
-        Icons.lock_open,
-        0,
-        _liftCap,
-      ),
-      Blocked(reviewsModule: true) => (
-        'Review ${b.moduleTitle ?? 'this module'}',
-        Icons.menu_book_outlined,
-        0,
-        _reviewModule,
-      ),
-      _ => null,
-    };
-    final review = due > 0
-        ? ('Review this subject ($due due)', Icons.style, due, _reviewSubject)
-        : null;
-    // The first action is the prominent one (right); a second is plain.
-    final actions = <(String, IconData, int, _Act)>[?primary, ?review];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Why: the kind's glyph on an amber chip, not a sentence.
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: GestureDetector(
-                onTap: b.reviewsModule
-                    ? () => unawaited(_reviewModule(context))
-                    : null,
-                child: CueChip(
-                  kind: CueKind.blocked,
-                  icon: kindIcon(kind),
-                  semanticLabel: text,
-                  trailing: _trailing(context, b),
-                ),
-              ),
-            ),
-            if (actions.isNotEmpty) const SizedBox(height: AppSpacing.md),
-            if (actions.isNotEmpty)
-              Wrap(
-                alignment: WrapAlignment.end,
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  for (final (label, icon, n, act) in actions.skip(1))
-                    GlyphButton(
-                      icon: icon,
-                      semanticLabel: label,
-                      count: n > 0 ? n : null,
-                      onPressed: () => unawaited(act(context)),
-                    ),
-                  GlyphButton(
-                    icon: actions.first.$2,
-                    semanticLabel: actions.first.$1,
-                    count: actions.first.$3 > 0 ? actions.first.$3 : null,
-                    filled: true,
-                    onPressed: () => unawaited(actions.first.$4(context)),
-                  ),
-                ],
-              ),
-          ],
+    final Widget glyph;
+    if (b.gated) {
+      glyph = Tooltip(
+        message: 'Review',
+        child: GlyphButton(
+          icon: Icons.style,
+          semanticLabel: text,
+          filled: true,
+          onPressed: onGate,
         ),
-      ),
-    );
-  }
-
-  // Due reviews: how far off, as a ring. A module to review: its own mark
-  // as Home shows a done, unreviewed module (the spoken label and the
-  // Review button already name it, so the mark itself stays silent).
-  List<Widget> _trailing(BuildContext context, Blocked b) {
-    final due = b.dueAt;
-    return [
-      if (b.next == BlockedNext.reviewsDue && due != null) ...[
-        const SizedBox(width: AppSpacing.sm),
-        DueRing(due),
-      ],
-      if (b.reviewsModule) ...[
-        const SizedBox(width: AppSpacing.sm),
-        ExcludeSemantics(
+      );
+    } else if (b.writing) {
+      glyph = Tooltip(
+        message: 'Writing',
+        child: SpokenLabel(semanticLabel: text, child: const WritingPencil()),
+      );
+    } else {
+      final due = b.dueAt;
+      final at = (now ?? DateTime.now)().millisecondsSinceEpoch;
+      glyph = Tooltip(
+        message: 'Done',
+        child: SpokenLabel(
+          semanticLabel: text,
+          onTap: () => unawaited(_home(context)),
           child: GestureDetector(
-            onTap: () => unawaited(_reviewModule(context)),
-            child: const ModuleMarkIcon(ModuleMark.done),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => unawaited(_home(context)),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: due != null && due > at
+                  ? DueRing(due, now: now)
+                  : Icon(
+                      kindIcon(kind),
+                      color: cueColor(context, CueKind.blocked),
+                    ),
+            ),
           ),
         ),
-      ],
-    ];
+      );
+    }
+    return Align(alignment: AlignmentDirectional.centerStart, child: glyph);
   }
 
-  // The blocked `session_start` again with `lift_cap`; anything else (Next
-  // card) starts the subject's next card with the cap lifted.
-  Future<void> _liftCap(BuildContext context) async {
-    final again = lastBody?.liftingCap();
-    if (again != null) {
-      await onRun(again);
-      return;
-    }
+  // Home, on this subject (its progress row is the one picked).
+  Future<void> _home(BuildContext context) async {
     final id = blocked.subjectId(
       await services.catalog.cached(),
       hint: subject,
     );
-    await onRun(RequestBody.sessionStart(subject: id, liftCap: true));
+    if (id != null) {
+      try {
+        await setCurrentSubject(services.client, id);
+      } on Exception catch (_) {
+        // Offline: Home still opens, on the last pick.
+      }
+    }
+    if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
+}
 
-  // The payload names the module but not always the subject id: the cached
-  // plan that holds the module does (the screen's subject first).
-  Future<void> _reviewModule(BuildContext context) async {
-    final ref = blocked.moduleRef(
-      await services.catalog.cached(),
-      hint: subject,
-    );
-    if (ref != null && context.mounted) {
-      await openReview(context, services, module: ref);
+/// The next module's cards are being written: a pencil that writes.
+class WritingPencil extends StatefulWidget {
+  /// Creates the pencil.
+  const new({super.key});
+
+  @override
+  State<WritingPencil> createState() => _WritingPencilState();
+}
+
+class _WritingPencilState extends State<WritingPencil>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduced motion: a still pencil.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat();
     }
   }
 
-  // Only this subject's due cards, never another subject's.
-  Future<void> _reviewSubject(BuildContext context) async {
-    final subjects = await services.catalog.cached();
-    final id = blocked.subjectId(subjects, hint: subject);
-    if (id == null || !context.mounted) return;
-    await openReview(
-      context,
-      services,
-      subject: id,
-      subjectTitle: blocked.subjectTitle ?? subjects[id]?.meta.title,
-    );
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
   }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (context, child) {
+      final t = _c.value * 2 * math.pi;
+      return Transform.translate(
+        offset: Offset(4 * math.sin(t), 2 * math.sin(2 * t)),
+        child: child,
+      );
+    },
+    child: Icon(Icons.edit, color: cueColor(context, CueKind.blocked)),
+  );
 }

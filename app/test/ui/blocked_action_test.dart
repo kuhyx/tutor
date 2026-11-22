@@ -1,8 +1,10 @@
-// A blocking result is a call to action, not an error: one "why" line, a
-// primary button that fixes it, a secondary one where it helps; no red,
-// never the worker's raw text.
+// A blocking result is one glyph, never a panel of chips and buttons
+// (kuhy, 2026-11-22): cards to review open their review at once, a locked
+// later module opens the earlier module's review, and nothing to do is a
+// single calm glyph that leads Home. No red, never the worker's raw text.
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tutor/model/log_event.dart';
+import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/session/session_screen.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 
@@ -11,132 +13,110 @@ import '../support/fake_stream.dart';
 import '../support/label_finders.dart';
 import '../support/ui.dart';
 
-/// Opens the car Session as Continue learning does and answers [code].
-Future<(FakeRtdb, FakeStream)> _blocked(
+const _pc = '9c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f';
+
+/// The car Session as Continue learning opens it (pushed over a Home
+/// stand-in), answered [code]; the engine cards taught by the PC.
+Future<FakeRtdb> _blocked(
   WidgetTester t,
   String code,
-  Map<String, Object?> extra, {
-  String error = 'raw worker text',
-  bool taught = false,
-}) async {
+  Map<String, Object?> extra,
+) async {
   final db = fixtureDb();
+  var n = 0;
+  for (final c in ['eng-strokes', 'eng-crank', 'fuel-spark']) {
+    db.root = setAt(
+      db.root,
+      'tutor/v1-e2e/log/$_pc/01JA000000000000000000000${n++}',
+      {'k': 'taught', 's': 'car', 'c': c, 'at': fixtureNow - 60000},
+    );
+  }
   final stream = FakeStream();
   final s = await fixtureServices(db, stream);
-  if (taught) {
-    final month = DateTime.fromMillisecondsSinceEpoch(fixtureNow)
-        .subtract(const Duration(days: 30))
-        .millisecondsSinceEpoch;
-    for (final c in ['eng-strokes', 'eng-crank', 'fuel-spark']) {
-      await s.events.record(TaughtEvent(subject: 'car', card: c, at: month));
-    }
-  }
   await pumpScreen(
     t,
-    SessionScreen(services: s, subject: 'car', resume: true),
-    settle: false,
+    Builder(
+      builder: (context) => TextButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SessionScreen(
+              services: s,
+              subject: 'car',
+              resume: true,
+              now: () => DateTime.fromMillisecondsSinceEpoch(fixtureNow),
+            ),
+          ),
+        ),
+        child: const Icon(Icons.home),
+      ),
+    ),
   );
+  await t.tap(find.byIcon(Icons.home));
+  await sent(t);
   await sent(t);
   await answer(
     t,
     db,
     stream,
     code: code,
-    error: error,
+    error: 'raw worker text',
     extra: extra,
     settle: false,
   );
-  return (db, stream);
-}
-
-final Finder _rawWorkerText = find.byWidgetPredicate(
-  (w) => w is CueChip && w.semanticLabel.contains('raw worker text'),
-);
-
-/// A block is a call to action: an amber cue, never the red error cue.
-void _noRed(WidgetTester t) {
-  expect(cueOfKind(CueKind.error), findsNothing);
-  expect(cueOfKind(CueKind.blocked), findsOneWidget);
+  for (var i = 0; i < 10; i++) {
+    await t.pump(const Duration(milliseconds: 100));
+  }
+  return db;
 }
 
 void main() {
-  testWidgets('daily_new_cap -> Learn more anyway sends lift_cap', (t) async {
-    final (db, _) = await _blocked(t, 'daily_new_cap', {
-      'subject_title': 'How a car works',
-      'new_today': 25,
-      'new_cap': 25,
-      'module_title': 'Fuel and ignition',
-      'due_in_subject': 2,
-      'next': 'lift_cap',
-    }, error: 'Ten new cards today already. Reviews still work.');
-    expect(
-      cueLabelled(
-        'You learned 25 new cards today (the daily limit). '
-        '“Fuel and ignition” is open.',
-      ),
-      findsOneWidget,
-    );
-    expect(bySpoken('Reviews still work', prefix: true), findsNothing);
-    expect(controlByLabel('Review this subject (2 due)'), findsOneWidget);
-    _noRed(t);
-
-    await t.tap(controlByLabel('Learn more anyway'));
-    await sent(t);
-    final (_, req) = lastRequest(db);
-    expect(req['kind'], 'session_start');
-    final body = req['body'] as Map<String, dynamic>;
-    expect(body['lift_cap'], isTrue);
-    expect(body['subject'], 'car');
-    expect(body['resume'], isTrue);
-  });
-
-  testWidgets('daily_new_cap, no fields: still the button', (t) async {
-    await _blocked(t, 'daily_new_cap', const {});
-    expect(cueLabelled("You reached today's limit of new cards."), findsOne);
-    expect(controlByLabel('Learn more anyway'), findsOneWidget);
-    expect(controlByLabel('Review this subject', prefix: true), findsNothing);
-    expect(_rawWorkerText, findsNothing);
-  });
-
-  testWidgets('Review this subject opens only its due cards', (t) async {
-    await _blocked(t, 'no_card_left', {
-      'subject_title': 'How a car works',
-      'next': 'none',
-      'due_in_subject': 3,
-    }, taught: true);
-    _noRed(t);
-    await t.tap(controlByLabel('Review this subject (3 due)'));
-    await sent(t);
-    await sent(t);
-    expect(controlByLabel('Review: How a car works'), findsOneWidget);
-    expect(controlByLabel('3 left'), findsOneWidget);
-  });
-
-  testWidgets('locked -> Review <module> opens the module review', (t) async {
+  testWidgets('a locked later module opens the earlier review', (t) async {
     await _blocked(t, 'locked', {
+      'subject_id': 'car',
       'subject_title': 'How a car works',
       'next': 'review_module',
-      'module': 'fuel',
-      'module_title': 'Fuel and ignition',
-    }, taught: true);
-    expect(
-      cueLabelled('That is locked until “Fuel and ignition” is reviewed.'),
-      findsOneWidget,
-    );
-    _noRed(t);
-    await t.tap(controlByLabel('Review Fuel and ignition'));
-    await sent(t);
-    await sent(t);
-    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
+      'module': 'engine',
+      'module_title': 'The four-stroke engine',
+      'gate_cards': ['eng-strokes', 'eng-crank'],
+    });
+    expect(controlByLabel('Review: The four-stroke engine'), findsOneWidget);
+    expect(controlByLabel('2 left'), findsOneWidget);
   });
 
-  testWidgets('locked, nothing to do: the line, no button', (t) async {
-    await _blocked(t, 'locked', const {'next': 'none'});
+  testWidgets('every module done, reviews due: the due review opens', (
+    t,
+  ) async {
+    await _blocked(t, 'no_card_left', {
+      'subject_id': 'car',
+      'subject_title': 'How a car works',
+      'next': 'reviews_due',
+      'due_at': fixtureNow - 1000,
+      'gate_cards': ['fuel-spark'],
+    });
+    expect(controlByLabel('Review: How a car works'), findsOneWidget);
+    expect(controlByLabel('1 left'), findsOneWidget);
+  });
+
+  testWidgets('locked, nothing to do: one calm glyph that goes Home', (
+    t,
+  ) async {
+    final db = await _blocked(t, 'locked', const {
+      'subject_id': 'car',
+      'next': 'none',
+      'gate_cards': <String>[],
+    });
+    expect(cueOfKind(CueKind.error), findsNothing);
+    expect(find.byType(CueChip), findsNothing);
+    expect(bySpoken('raw worker text', prefix: true), findsNothing);
     expect(
-      cueLabelled('That is locked until earlier modules are reviewed.'),
+      bySpoken('That is locked until earlier modules are reviewed.'),
       findsOneWidget,
     );
-    expect(_rawWorkerText, findsNothing);
-    expect(glyphsLabelled('Review Fuel and ignition'), findsNothing);
-    _noRed(t);
+    await t.tap(find.byTooltip('Done'));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(SessionScreen), findsNothing); // Home again
+    expect(getAt(db.root, 'tutor/v1-e2e/prefs/current_subject'), 'car');
   });
 }

@@ -147,7 +147,6 @@ const Map<String, Map<String, Object>> stats = {
     'credited_minutes': 23,
     'target': 60,
     'new': 4,
-    'new_cap': 10,
     'banked': 40,
     'prepaid': 15,
   },

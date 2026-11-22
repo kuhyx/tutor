@@ -18,6 +18,7 @@ import 'package:tutor/ui/follow_up_box.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
+import 'package:tutor/ui/session/gate_flow.dart';
 import 'package:tutor/ui/session/message_tile.dart';
 import 'package:tutor/util/device.dart';
 import 'package:tutor/widgets/content_text.dart';
@@ -72,8 +73,13 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
     _data = _load()..ignore(); // FutureBuilder reports errors
   });
 
+  // Through the module gate (a gated Repeat opens its review first).
   Future<void> _toSession(RequestBody body) async {
-    final status = await _runner.run(body.withDevice(deviceName));
+    final status = await throughGate(
+      context,
+      _s,
+      () => _runner.run(body.withDevice(deviceName)),
+    );
     if (status is RelayDone && mounted) {
       await openSession(context, _s, replace: true);
     }
@@ -182,7 +188,7 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                 onAsked: () => openSession(context, _s, replace: true),
               ),
             ],
-            // A blocked Repeat (locked, cap) shows its call to action.
+            // A blocked Repeat (locked) shows its one glyph.
             ValueListenableBuilder<RelayStatus?>(
               valueListenable: _runner.status,
               builder: (context, st, _) => st is RelayFailed && st.blocks
@@ -192,10 +198,9 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                       kind: st.kind,
                       text: st.text,
                       subject: subject,
-                      lastBody: _runner.lastBody,
-                      onRun: (body) async {
-                        await _toSession(body);
-                        return _runner.status.value!;
+                      onGate: () {
+                        final last = _runner.lastBody;
+                        if (last != null) unawaited(_toSession(last));
                       },
                     )
                   : RequestStatusLine(_runner),

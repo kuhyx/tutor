@@ -33,11 +33,19 @@ class SessionChat extends StatefulWidget {
     required this.onRun,
     required this.onStart,
     required this.onSend,
+    this.onGate,
+    this.refused = 0,
     this.subject,
     this.phone = false,
     this.keyboard = false,
     super.key,
   });
+
+  /// Reopens the module gate's review (its glyph).
+  final VoidCallback? onGate;
+
+  /// Next presses refused with nothing to do ([CardEnd] shakes).
+  final int refused;
 
   /// The screen's subject (when no session shows yet).
   final String? subject;
@@ -181,6 +189,7 @@ class _SessionChatState extends State<SessionChat> {
                     view: view,
                     subject: meta?.subject ?? widget.subject,
                     onRun: widget.onRun,
+                    onGate: widget.onGate,
                   ),
                   // Card done: Next card / Stop here, and the composer
                   // stays for follow-up questions (kuhy, 2026-10-20).
@@ -188,6 +197,7 @@ class _SessionChatState extends State<SessionChat> {
                     CardEnd(
                       onNext: () => widget.onRun(RequestBody.next(view!.sid)),
                       onStop: () => widget.onRun(RequestBody.stop(view!.sid)),
+                      refused: widget.refused,
                     ),
                   if (live)
                     Composer(

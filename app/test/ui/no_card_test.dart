@@ -1,7 +1,9 @@
-// The Session's no-card state: the subject title and the next step, never
-// the slug; "Review <module>" opens that module's review.
+// The Session's no-card state: one glyph that speaks the subject title and
+// the next step, never the slug, and no "Review <module>" button (kuhy,
+// 2026-11-22: the gate review opens by itself, see gate_flow_test).
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/model/log_event.dart';
+import 'package:tutor/ui/relay_cue.dart';
 import 'package:tutor/ui/session/session_screen.dart';
 
 import '../support/fake_stream.dart';
@@ -9,7 +11,9 @@ import '../support/label_finders.dart';
 import '../support/ui.dart';
 
 void main() {
-  testWidgets('no card left -> Review <module> opens its review', (t) async {
+  testWidgets('no card left, no gate cards (older worker): one glyph', (
+    t,
+  ) async {
     final db = fixtureDb();
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
@@ -37,18 +41,15 @@ void main() {
       settle: false, // the empty chat's spinner never settles
     );
     expect(
-      cueContaining('No card left to teach in How a car works'),
+      bySpoken('No card left to teach in How a car works', prefix: true),
       findsOneWidget,
     );
-    expect(cueContaining('left in car'), findsNothing);
-    await t.tap(controlByLabel('Review Fuel and ignition'));
-    await sent(t);
-    await sent(t);
-    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
-    expect(find.text('What ignites the mixture?'), findsOneWidget);
+    expect(bySpoken('left in car', prefix: true), findsNothing);
+    expect(controlByLabel('Review Fuel and ignition'), findsNothing);
+    expect(controlByLabel('Review: Fuel and ignition'), findsNothing);
   });
 
-  testWidgets('no card left, reviews due: the time, no button', (t) async {
+  testWidgets('no card left, reviews due later: a ring, no button', (t) async {
     final db = fixtureDb();
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
@@ -67,10 +68,7 @@ void main() {
       extra: {'next': 'reviews_due', 'due_at': due.millisecondsSinceEpoch},
       settle: false,
     );
-    final hh = due.hour.toString().padLeft(2, '0');
-    final mm = due.minute.toString().padLeft(2, '0');
-    expect(cueContaining('Reviews due on'), findsOneWidget);
-    expect(cueContaining('at $hh:$mm.'), findsOneWidget);
+    expect(find.byType(DueRing), findsOneWidget);
     expect(glyphsLabelled('Review Fuel and ignition'), findsNothing);
   });
 }

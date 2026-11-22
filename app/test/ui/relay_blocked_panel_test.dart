@@ -1,9 +1,8 @@
-// The blocked panel draws a result without words: no_card_left draws its due
-// time and module, a locked review its replay glyph, and a red failure never
-// speaks the worker's sentence (the kinds themselves: relay_kinds_test.dart).
+// The blocked panel draws a result without words: no_card_left draws one
+// ring for its due time, and a red failure never speaks the worker's
+// sentence (the kinds themselves: relay_kinds_test.dart).
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tutor/progress/terms.dart';
 import 'package:tutor/ui/learn_bits.dart';
 import 'package:tutor/ui/relay_cue.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
@@ -44,15 +43,14 @@ Future<(FakeRtdb, FakeStream)> _blocked(
   return (db, stream);
 }
 
-/// Everything painted inside the block's cue, letters and digits only.
-String _paintedInCue(WidgetTester t) {
-  final cue = find.descendant(
-    of: find.byType(BlockedPanel),
-    matching: find.byType(CueChip),
-  );
+/// Everything painted inside the block's glyph, letters and digits only.
+String _painted(WidgetTester t) {
   return t
       .widgetList<RichText>(
-        find.descendant(of: cue, matching: find.byType(RichText)),
+        find.descendant(
+          of: find.byType(BlockedPanel),
+          matching: find.byType(RichText),
+        ),
       )
       .map((r) => r.text.toPlainText())
       .join()
@@ -60,14 +58,15 @@ String _paintedInCue(WidgetTester t) {
 }
 
 void main() {
-  testWidgets('no_card_left due: clock glyph plus a ring, no text', (t) async {
-    final due = fixtureNow + const Duration(hours: 6).inMilliseconds;
+  testWidgets('no_card_left due: one ring, no text', (t) async {
+    final due = DateTime.now()
+        .add(const Duration(hours: 6))
+        .millisecondsSinceEpoch;
     await _blocked(t, 'no_card_left', {
       'subject_title': 'How a car works',
       'next': 'reviews_due',
       'due_at': due,
     });
-    expect(find.byIcon(Icons.schedule), findsOneWidget);
     final ring = t.widget<DueRing>(find.byType(DueRing));
     expect(ring.dueAt, due);
     expect(
@@ -77,50 +76,26 @@ void main() {
       ),
       findsNothing,
     );
-    expect(_paintedInCue(t), isEmpty);
-    expect(cueLabelled('No card left', prefix: true), findsOneWidget);
-    expect(cueLabelled(_sentinel, prefix: true), findsNothing);
+    expect(_painted(t), isEmpty);
+    expect(bySpoken('No card left', prefix: true), findsOneWidget);
+    expect(bySpoken(_sentinel, prefix: true), findsNothing);
   });
 
-  testWidgets('no_card_left review: the module mark, tappable', (t) async {
+  // The gated refusals open their review by themselves (gate_flow_test,
+  // blocked_action_test); without gate cards nothing is tappable to review.
+  testWidgets('review_module, no gate cards: no module mark, no replay', (
+    t,
+  ) async {
     await _blocked(t, 'no_card_left', {
       'subject_title': 'How a car works',
       'next': 'review_module',
       'module': 'fuel',
       'module_title': 'Fuel and ignition',
     });
-    final cue = find.descendant(
-      of: find.byType(BlockedPanel),
-      matching: find.byType(CueChip),
-    );
-    final mark = find.descendant(
-      of: cue,
-      matching: find.byType(ModuleMarkIcon),
-    );
-    expect(mark, findsOneWidget);
-    expect(t.widget<ModuleMarkIcon>(mark).mark, ModuleMark.done);
-    expect(_paintedInCue(t), isEmpty);
-    await t.tap(mark);
-    await sent(t);
-    await sent(t);
-    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
-  });
-
-  testWidgets('locked review: tapping the replay glyph opens the review', (
-    t,
-  ) async {
-    await _blocked(t, 'locked', {
-      'subject_title': 'How a car works',
-      'next': 'review_module',
-      'module': 'fuel',
-      'module_title': 'Fuel and ignition',
-    });
-    expect(find.byIcon(Icons.replay), findsOneWidget);
-    expect(_paintedInCue(t), isEmpty);
-    await t.tap(find.byIcon(Icons.replay));
-    await sent(t);
-    await sent(t);
-    expect(controlByLabel('Review: Fuel and ignition'), findsOneWidget);
+    expect(find.byType(ModuleMarkIcon), findsNothing);
+    expect(find.byIcon(Icons.replay), findsNothing);
+    expect(find.byType(CueChip), findsNothing);
+    expect(controlByLabel('Review: Fuel and ignition'), findsNothing);
   });
 
   testWidgets('a red failure speaks the app sentence, never the worker', (

@@ -99,7 +99,7 @@ class RelayFailed extends RelayStatus {
   /// Error code.
   final String? code;
 
-  /// For a blocking code (daily_new_cap, locked, no_card_left): why, and
+  /// For a blocking code (locked, no_card_left): why, and
   /// what fixes it (a call to action, not an error).
   final Blocked? blocked;
 

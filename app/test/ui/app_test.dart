@@ -35,7 +35,6 @@ void main() {
       'credited_minutes': 23,
       'target': 60,
       'new': 4,
-      'new_cap': 10,
     });
     stream = FakeStream();
   });

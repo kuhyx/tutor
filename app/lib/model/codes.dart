@@ -31,9 +31,6 @@ enum RelayCode {
   /// Locked until a module is reviewed.
   locked,
 
-  /// Today's new cards are used up.
-  dailyNewCap('daily_new_cap'),
-
   /// No card left to teach.
   noCardLeft('no_card_left'),
 

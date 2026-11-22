@@ -11,9 +11,7 @@ class Today {
     required this.creditedMinutes,
     required this.target,
     required this.newCards,
-    required this.newCap,
     this.activeMinutes,
-    this.newCapLifted = false,
     this.banked,
     this.prepaid,
   });
@@ -25,8 +23,6 @@ class Today {
     activeMinutes: intOr(j, 'active_minutes'),
     target: integer(j, 'target'),
     newCards: integer(j, 'new'),
-    newCap: integer(j, 'new_cap'),
-    newCapLifted: j['new_cap_lifted'] == true,
     banked: intOr(j, 'banked'),
     prepaid: intOr(j, 'prepaid'),
   );
@@ -46,12 +42,6 @@ class Today {
   /// Cards taught today.
   final int newCards;
 
-  /// Daily new-card cap (25 by default; Settings sets it).
-  final int newCap;
-
-  /// The cap was lifted for the rest of today ("Learn more anyway").
-  final bool newCapLifted;
-
   /// Carry-over bank balance after today (DOCS-contract-carry.md; null: an
   /// older worker).
   final int? banked;
@@ -66,8 +56,6 @@ class Today {
     'active_minutes': ?activeMinutes,
     'target': target,
     'new': newCards,
-    'new_cap': newCap,
-    if (newCapLifted) 'new_cap_lifted': true,
     'banked': ?banked,
     'prepaid': ?prepaid,
   };

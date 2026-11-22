@@ -1,8 +1,6 @@
-/// Session (curriculum §8): the chat from the RTDB projection, answer
-/// boxes, busy phase and pending bubble, Card done -> Next card / Stop
-/// here, Mark card done, Switch card, known list, paused/stalled pills,
-/// PC-offline banner. Wide windows get the side panel inline. Phone with
-/// the keyboard up: no top bar, no sidebar, no status bar.
+/// Session (curriculum §8): the chat from the RTDB projection, Card done ->
+/// Next / Stop, Mark done, Switch card, known list, stall pills, PC-offline
+/// banner; wide: side panel inline; phone keyboard up: no bars, no sidebar.
 library;
 
 import 'dart:async';
@@ -17,6 +15,7 @@ import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/session/today_header.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/gate_flow.dart';
 import 'package:tutor/ui/session/session_actions.dart';
 import 'package:tutor/ui/session/session_chat.dart';
 import 'package:tutor/ui/session/session_chrome.dart';
@@ -77,6 +76,9 @@ class _SessionScreenState extends State<SessionScreen> {
   late final SessionSubjects _subjectFeed = SessionSubjects(_s, _feed);
   Map<String, SubjectData> get _subjects => _subjectFeed.subjects.value;
 
+  // Next presses refused with nothing to do (Next shakes each time).
+  int _refused = 0;
+
   TutorServices get _s => widget.services;
 
   @override
@@ -111,16 +113,40 @@ class _SessionScreenState extends State<SessionScreen> {
     super.dispose();
   }
 
-  /// Runs [body]; a result naming a session is followed at once.
+  /// Runs [body] through the module gate ([throughGate]: a gated refusal
+  /// opens its review, a pass sends [body] again); follows a new session.
   Future<RelayStatus> _run(RequestBody body) async {
-    // Every request of this screen says which device it comes from.
-    final status = await _runner.run(body.withDevice(deviceName));
-    if (status is RelayDone) {
-      final sid = status.data['session'];
-      if (sid is String && mounted) _feed.follow(sid);
-      if (mounted) unawaited(_today.load());
+    final status = await throughGate(
+      context,
+      _s,
+      () => _send1(body),
+      hint: widget.subject ?? _feed.view.value?.meta?.subject,
+      now: widget.now ?? DateTime.now,
+    );
+    // Next with nothing to do now: Next shakes and turns amber.
+    if (status case RelayFailed(:final blocked?)
+        when !blocked.gated && mounted) {
+      setState(() => _refused++);
     }
     return status;
+  }
+
+  // One request; every request of this screen says its device.
+  Future<RelayStatus> _send1(RequestBody body) async {
+    final status = await _runner.run(body.withDevice(deviceName));
+    if (status is RelayDone && mounted) {
+      _refused = 0;
+      final sid = status.data['session'];
+      if (sid is String) _feed.follow(sid);
+      unawaited(_today.load());
+    }
+    return status;
+  }
+
+  // The review glyph: the same request again reopens what is unpassed.
+  void _gate() {
+    final last = _runner.lastBody;
+    if (last != null) unawaited(_run(last));
   }
 
   /// Continue (or start) the screen's subject (DOCS-contract §4 `resume`).
@@ -129,15 +155,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
   Future<bool> _send(String sid, String text) async =>
       await _run(RequestBody.message(sid, text)) is! RelayNotSent;
-
-  Future<void> _switch(String? subjectId) async {
-    final subject = _subjects[subjectId];
-    if (subject == null) return;
-    final card = await pickCard(context, subject);
-    if (card != null) {
-      await _run(RequestBody.sessionStart(subject: subject.id, card: card));
-    }
-  }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -165,7 +182,9 @@ class _SessionScreenState extends State<SessionScreen> {
           for (final m in view?.messages ?? const <KeyedMessage>[])
             ...m.message.masteredNew,
         }.toList(),
-        onSwitch: subject == null ? null : () => _switch(subject.id),
+        onSwitch: subject == null
+            ? null
+            : () => switchCard(context, subject, _run),
         onMarkDone: live && meta.card != null && !meta.cardDone
             ? () => _run(RequestBody.cardDone(meta.subject, meta.card!.id))
             : null,
@@ -192,6 +211,8 @@ class _SessionScreenState extends State<SessionScreen> {
           onStart: () => _run(_continue()),
           subject: widget.subject,
           onSend: _send,
+          onGate: _gate,
+          refused: _refused,
           phone: phone,
           keyboard: keyboard,
         ),

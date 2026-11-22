@@ -33,7 +33,7 @@ void main() {
     expect(plain.toJson().containsKey('mnemonic'), isFalse);
   });
 
-  test('session_start carries struggle: true, also through a cap lift', () {
+  test('session_start carries struggle: true', () {
     final body = RequestBody.sessionStart(
       subject: 'car',
       card: 'eng-crank',
@@ -41,7 +41,6 @@ void main() {
     );
     expect(body.body, containsPair('struggle', true));
     expect(body.body, containsPair('card', 'eng-crank'));
-    expect(body.liftingCap()!.body, containsPair('struggle', true));
     expect(RequestBody.sessionStart().body.containsKey('struggle'), isFalse);
   });
 

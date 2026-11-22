@@ -205,13 +205,14 @@ class UntaughtEvent extends LogEvent {
   Json toJson() => {'k': 'untaught', 's': subject, 'c': card, 'at': at};
 }
 
-/// Settings' "New cards per day" = [n] (no card; the latest by `at` wins).
+/// The old daily cap's setting (removed 2026-11-22): still parsed, so an
+/// old log reads, but nothing writes or applies it.
 class NewCapEvent extends LogEvent {
   /// Creates the event.
   const new({required this.n, required super.at})
     : super(subject: '', card: '');
 
-  /// New cards per day.
+  /// The old new-cards-per-day value.
   final int n;
 
   @override
@@ -233,13 +234,10 @@ class LoggedEvent {
   final LogEvent event;
 }
 
-/// The range Settings accepts (and the worker keeps).
-const minNewCap = 1;
-
-/// The range Settings accepts (and the worker keeps).
-const maxNewCap = 200;
+const _minNewCap = 1;
+const _maxNewCap = 200;
 
 /// `new_cap`'s `n` in 1..200 (the worker drops any other at parse too).
-int _capN(int n) => n >= minNewCap && n <= maxNewCap
+int _capN(int n) => n >= _minNewCap && n <= _maxNewCap
     ? n
-    : throw FormatException('new_cap n $n not in $minNewCap..$maxNewCap');
+    : throw FormatException('new_cap n $n not in $_minNewCap..$_maxNewCap');

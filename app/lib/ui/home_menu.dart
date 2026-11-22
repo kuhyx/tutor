@@ -14,7 +14,6 @@ List<PopupMenuEntry<String>> homeMenuItems({
   _entry('progress', Icons.show_chart, 'Progress'),
   _entry('editor', Icons.edit_note, 'Edit cards'),
   _entry('display', Icons.zoom_in, 'Display size'),
-  _entry('newcap', Icons.library_add_outlined, 'New cards per day'),
   _entry('report', Icons.bug_report_outlined, 'Report a problem'),
   if (signOut) _entry('signout', Icons.logout, 'Sign out'),
 ];

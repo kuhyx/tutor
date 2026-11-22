@@ -8,6 +8,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/model/plan.dart';
+import 'package:tutor/model/request_body.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/widgets/content_text.dart';
 import 'package:tutor/widgets/count_badge.dart';
@@ -125,6 +126,18 @@ class SessionSide extends StatelessWidget {
         for (final c in mastered.reversed) ContentText('• $c'),
       ],
     );
+  }
+}
+
+/// Switch card: picks a card of [subject] and starts it through [run].
+Future<void> switchCard(
+  BuildContext context,
+  SubjectData subject,
+  Future<Object?> Function(RequestBody body) run,
+) async {
+  final card = await pickCard(context, subject);
+  if (card != null) {
+    await run(RequestBody.sessionStart(subject: subject.id, card: card));
   }
 }
 

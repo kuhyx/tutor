@@ -2,7 +2,6 @@
 // their dialogs paint no app words in any state (only glyphs, numbers and
 // content). Complements no_words_test.dart (one frame per route); the drill:
 // no_words_drill_test.dart.
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +9,6 @@ import 'package:tutor/log/event_log.dart';
 import 'package:tutor/model/log_event.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/editor_screen.dart';
-import 'package:tutor/ui/new_cap_dialog.dart';
 import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/review_screen.dart';
@@ -199,25 +197,4 @@ void main() {
       expectNoWords(t, 'progress no days');
     });
   }
-
-  testWidgets('new cap dialog: field, error', (t) async {
-    final s = await fixtureServices(fixtureDb(), FakeStream());
-    await pumpScreen(
-      t,
-      Builder(
-        builder: (context) => TextButton(
-          onPressed: () => unawaited(showNewCap(context, s.events)),
-          child: const Icon(Icons.add),
-        ),
-      ),
-    );
-    await t.tap(find.byIcon(Icons.add));
-    await t.pumpAndSettle();
-    expectNoWords(t, 'new cap');
-    await t.enterText(find.byType(TextField), '999');
-    await t.tap(spoken('Save'));
-    await t.pumpAndSettle();
-    expect(cueHas('A number from'), findsOneWidget);
-    expectNoWords(t, 'new cap error');
-  });
 }

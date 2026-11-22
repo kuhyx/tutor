@@ -187,7 +187,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
       case ReviewUndoEvent():
         break; // applied in mergeEvents
       case NewCapEvent():
-        break; // a setting, not a card
+        break; // the old daily cap's setting: ignored
     }
   }
   return FoldResult(

@@ -71,7 +71,7 @@ void main() {
     expectNoWords(t, 'busy + trace');
   });
 
-  testWidgets('blocked: daily cap call to action', (t) async {
+  testWidgets('blocked: nothing to do, one glyph', (t) async {
     final db = fixtureDb();
     final stream = FakeStream();
     final s = await fixtureServices(db, stream);
@@ -85,17 +85,17 @@ void main() {
       t,
       db,
       stream,
-      code: 'daily_new_cap',
+      code: 'no_card_left',
       extra: {
         'subject_title': 'How a car works',
-        'new_today': 25,
-        'new_cap': 25,
-        'due_in_subject': 2,
-        'next': 'lift_cap',
+        'next': 'reviews_due',
+        'due_at': DateTime.now()
+            .add(const Duration(hours: 6))
+            .millisecondsSinceEpoch,
       },
       settle: false,
     );
-    expectNoWords(t, 'blocked cap');
+    expectNoWords(t, 'blocked due');
   });
 
   testWidgets('past session with follow-up box and archived mark', (t) async {

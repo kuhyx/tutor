@@ -1,4 +1,4 @@
-// The blocking results (`daily_new_cap`, `locked`, `no_card_left`) never
+// The blocking results (`locked`, `no_card_left`) never
 // show the subject slug or the worker's raw text: one short "why" line from
 // the payload fields, each optional, plus the next step.
 import 'package:flutter_test/flutter_test.dart';
@@ -138,37 +138,23 @@ void main() {
         },
       }) as RelayFailed;
 
-  test('daily_new_cap: why + what is open, never the worker text', () {
-    const raw = 'Ten new cards today already. Reviews still work.';
-    final f = blocked('daily_new_cap', {
-      'subject_title': 'Apache',
-      'new_today': 25,
-      'new_cap': 25,
-      'module_title': 'vhost-apache',
-      'due_in_subject': 3,
-      'next': 'lift_cap',
-    }, raw);
-    expect(
-      f.text,
-      'You learned 25 new cards today (the daily limit). '
-      '“vhost-apache” is open.',
-    );
-    expect(f.text, isNot(contains('Reviews still work')));
-    final b = f.blocked!;
-    expect(b.code, 'daily_new_cap');
-    expect(b.next, BlockedNext.liftCap);
-    expect((b.dueInSubject, b.newToday, b.newCap), (3, 25, 25));
-    // Every field optional: a plain line, still no worker text.
-    final bare = blocked('daily_new_cap', const {}, raw);
-    expect(bare.text, "You reached today's limit of new cards.");
-    expect(bare.blocked!.next, BlockedNext.liftCap);
-    expect(
-      blocked('daily_new_cap', const {
-        'new_today': 12,
-        'new_cap': 10,
-      }, raw).text,
-      'You learned 12 new cards today (the daily limit is 10).',
-    );
+  test('gate_cards and writing: the module gate, read safely', () {
+    final b = blocked('no_card_left', {
+      'next': 'review_module',
+      'module': 'engine',
+      'gate_cards': ['a', 7, '', 'b'],
+      'writing': true,
+    }, 'raw').blocked!;
+    expect(b.gateCards, ['a', 'b']);
+    expect(b.gated, isTrue);
+    expect(b.writing, isTrue);
+    final plain = blocked('no_card_left', const {'gate_cards': 'x'}, 'raw');
+    expect(plain.blocked!.gated, isFalse);
+    expect(plain.blocked!.writing, isFalse);
+  });
+
+  test('an old daily_new_cap is no block any more', () {
+    expect(blocked('daily_new_cap', const {}, 'raw').blocked, isNull);
   });
 
   test('locked: names the module to review first', () {

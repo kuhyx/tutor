@@ -234,11 +234,9 @@ Widget _counters(Today today, ColorScheme scheme) {
           child: GlyphStat(Icons.timer_outlined, '$active'),
         ),
       SpokenLabel(
-        semanticLabel: 'new cards ${today.newCards}/${today.newCap}',
-        child: GlyphStat(Icons.add_card, '${today.newCards}/${today.newCap}'),
+        semanticLabel: 'new cards ${today.newCards}',
+        child: GlyphStat(Icons.add_card, '${today.newCards}'),
       ),
-      if (today.newCapLifted)
-        const Icon(Icons.lock_open, semanticLabel: '(limit lifted)'),
       if (banked > 0 || prepaid > 0)
         SpokenLabel(
           semanticLabel: 'Banked $banked min · prepaid $prepaid',

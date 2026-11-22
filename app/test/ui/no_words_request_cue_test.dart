@@ -1,5 +1,5 @@
 // textgate guard for the request cues: relayCue's kinds and glyphs, and
-// the request status line (offline, blocked, cap, locked, model error,
+// the request status line (offline, blocked, gate, locked, model error,
 // busy phases) painting no app words. Split from no_words_home_test.dart.
 
 import 'package:flutter/material.dart';
@@ -17,11 +17,10 @@ import '../support/label_finders.dart';
 import '../support/no_words.dart';
 import '../support/ui.dart';
 
-const _blockedCap = Blocked(
-  code: dailyNewCap,
-  next: BlockedNext.liftCap,
-  newToday: 10,
-  newCap: 10,
+const _gated = Blocked(
+  next: BlockedNext.reviewModule,
+  module: 'm1',
+  gateCards: ['a'],
 );
 const _locked = Blocked(
   code: lockedCode,
@@ -56,14 +55,15 @@ void main() {
     test('a block is calm and shows what fixes it', () {
       final cue = relayCue(
         const RelayFailed(
-          code: dailyNewCap,
-          kind: 'blocked_cap',
+          code: noCardLeft,
+          kind: 'blocked_no_card_review',
           text: 'x',
-          blocked: _blockedCap,
+          blocked: _gated,
         ),
       );
       expect(cue?.kind, CueKind.blocked);
-      expect(cue?.icon, Icons.add_circle_outline);
+      expect(cue?.icon, Icons.rate_review_outlined);
+      expect(kindIcon('blocked_locked_due'), Icons.lock_clock);
       expect(kindIcon('blocked_locked_review'), Icons.replay);
       expect(kindIcon('blocked_no_card_due'), Icons.schedule);
       expect(kindIcon('blocked_locked'), Icons.lock_outline);
@@ -83,10 +83,10 @@ void main() {
         text: 'The tutor model failed on this turn.',
         retry: true,
       ),
-      'cap': const RelayFailed(
-        code: dailyNewCap,
-        text: 'cap',
-        blocked: _blockedCap,
+      'gate': const RelayFailed(
+        code: noCardLeft,
+        text: 'gate',
+        blocked: _gated,
       ),
       'locked': const RelayFailed(
         code: lockedCode,

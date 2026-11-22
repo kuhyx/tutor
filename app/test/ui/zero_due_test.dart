@@ -39,11 +39,11 @@ void main() {
       t,
       db,
       stream,
-      code: 'daily_new_cap',
-      extra: const {'due_in_subject': 0, 'new_today': 25},
+      code: 'no_card_left',
+      extra: const {'due_in_subject': 0, 'next': 'none'},
       settle: false,
     );
-    expect(bySpoken('Learn more anyway'), findsWidgets);
+    expect(bySpoken('Learn more anyway'), findsNothing);
     expect(bySpoken('Review this subject'), findsNothing);
   });
 }

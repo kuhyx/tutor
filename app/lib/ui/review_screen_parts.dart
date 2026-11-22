@@ -4,13 +4,15 @@ part of 'review_screen.dart';
 extension on _ReviewScreenState {
   // The mode's glyph, then the subject or module name (content) if any.
   Widget _title() {
-    final name = widget.module?.title ?? widget.subjectTitle;
-    final scoped = widget.module != null || widget.subject != null;
+    final name =
+        widget.module?.title ?? widget.gate?.title ?? widget.subjectTitle;
+    final scoped =
+        widget.module != null || widget.gate != null || widget.subject != null;
     return SpokenLabel(
       semanticLabel: _drill
           ? 'Drill'
-          : widget.module != null
-          ? 'Review: ${widget.module!.title}'
+          : name != null && widget.subject == null
+          ? 'Review: $name'
           : scoped
           ? 'Review: ${widget.subjectTitle ?? 'this subject'}'
           : 'Review',
@@ -30,6 +32,14 @@ extension on _ReviewScreenState {
   Widget _body(BuildContext context, ReviewSession run) {
     final item = run.current;
     final text = Theme.of(context).textTheme;
+    if (item == null && widget.gate != null) {
+      // Every gate card passed: back to the Session, which sends Next.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final nav = Navigator.of(context);
+        if (mounted && nav.canPop()) nav.pop(true);
+      });
+      return const Center(child: CircularProgressIndicator());
+    }
     if (item == null) return ReviewEnd(run, module: widget.module != null);
     final face = [
       Row(

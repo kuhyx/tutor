@@ -11,6 +11,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/mock/mock_entry.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/review/review_items.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/coach/coach_picker.dart';
 import 'package:tutor/ui/editor_screen.dart';
@@ -91,6 +92,19 @@ Future<void> openEditor(
   TutorServices s, {
   String? subject,
 }) => _push(context, EditorScreen(services: s, subject: subject));
+
+/// Opens the module gate's review; true once every card was passed (false:
+/// left early).
+Future<bool> openGateReview(
+  BuildContext context,
+  TutorServices s,
+  GateReview gate,
+) async {
+  final route = MaterialPageRoute<bool>(
+    builder: (_) => ReviewScreen(services: s, gate: gate),
+  );
+  return await Navigator.of(context).push(route) ?? false;
+}
 
 /// Opens Review; [drill] starts in Drill mode (pick-an-answer, no model),
 /// with [unavailable] as the "Claude limit" banner; [module] reviews that

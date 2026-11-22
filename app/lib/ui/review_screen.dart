@@ -46,11 +46,16 @@ class ReviewScreen extends StatefulWidget {
     this.unavailable,
     this.anki,
     this.module,
+    this.gate,
     this.subject,
     this.subjectTitle,
     this.now,
     super.key,
   });
+
+  /// The module gate's cards: Again/Hard requeued, and the screen closes
+  /// with `true` once every card is passed (the Session then sends Next).
+  final GateReview? gate;
 
   /// Only this subject's due cards (null: every subject's).
   final String? subject;
@@ -97,7 +102,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final now = widget.now ?? DateTime.now;
     final s = widget.services;
     final module = widget.module;
-    final items = module == null
+    final gate = widget.gate;
+    final items = gate != null
+        ? gate.items
+        : module == null
         ? await dueItems(
             catalog: s.catalog,
             events: s.events,
@@ -112,7 +120,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return ReviewSession(
       items: items,
       events: s.events,
-      requeue: module != null,
+      requeue: module != null || gate != null,
       now: now,
     );
   }

@@ -40,7 +40,7 @@ const Map<String, IconData> kindIcons = {
   'err_session_live': Icons.play_disabled,
   'blocked_locked': Icons.lock_outline,
   'blocked_locked_review': Icons.replay,
-  'blocked_cap': Icons.add_circle_outline,
+  'blocked_locked_due': Icons.lock_clock,
   'blocked_no_card_none': Icons.inventory_2_outlined,
   'blocked_no_card_review': Icons.rate_review_outlined,
   'blocked_no_card_due': Icons.schedule,

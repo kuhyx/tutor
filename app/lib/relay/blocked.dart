@@ -1,11 +1,13 @@
-/// The blocking results (DOCS-contract §4): `daily_new_cap`, `locked` and
-/// `no_card_left`. The worker adds flat fields next to `code`/`error`, each
-/// optional: `subject_title`, `next` (`review_module` with `module` and
-/// `module_title`, `reviews_due` with `due_at` in ms, `lift_cap`, or
-/// `none`), `due_in_subject`, and for the cap `new_today`/`new_cap`. The app
-/// builds its own one-line "why" from those, never the worker's `error` text
-/// (it names the subject slug and repeated the headline). A result without
-/// `next` reads as `none`, except the cap, which can always be lifted.
+/// The blocking results (DOCS-contract §4): `locked` and `no_card_left`.
+/// The worker adds flat fields next to `code`/`error`, each optional:
+/// `subject_title`, `next` (`review_module` with `module` and
+/// `module_title`, `reviews_due` with `due_at` in ms, or `none`),
+/// `due_in_subject`, `writing` (the next module's cards are being written)
+/// and `gate_cards` (the module gate, curriculum §6: the exact cards to
+/// review before the next module; the app opens that review at once). The
+/// app builds its own one-line "why" from those, never the worker's `error`
+/// text. A result without `next` reads as `none`. An old `daily_new_cap`
+/// (the cap is gone) is no block any more.
 library;
 
 import 'package:tutor/home/catalog.dart';
@@ -15,14 +17,11 @@ import 'package:tutor/progress/card_progress.dart';
 /// No card left to teach.
 const noCardLeft = 'no_card_left';
 
-/// Today's new cards are used up.
-const dailyNewCap = 'daily_new_cap';
-
 /// The card's module is not open yet.
 const lockedCode = 'locked';
 
 /// The codes that read as a call to action, not an error.
-const Set<String> blockedCodes = {noCardLeft, dailyNewCap, lockedCode};
+const Set<String> blockedCodes = {noCardLeft, lockedCode};
 
 /// What fixes a block.
 enum BlockedNext {
@@ -31,9 +30,6 @@ enum BlockedNext {
 
   /// Wait for reviews (`due_at`).
   reviewsDue,
-
-  /// Lift today's new-card cap (`session_start` with `lift_cap`).
-  liftCap,
 
   /// Nothing (or the worker did not say).
   none,
@@ -51,8 +47,8 @@ class Blocked {
     this.moduleTitle,
     this.dueAt,
     this.dueInSubject,
-    this.newToday,
-    this.newCap,
+    this.gateCards = const [],
+    this.writing = false,
   });
 
   /// Reads the fields from the result node (or its `data`, to be safe).
@@ -75,8 +71,6 @@ class Blocked {
       next: switch (field('next')) {
         'review_module' => BlockedNext.reviewModule,
         'reviews_due' => BlockedNext.reviewsDue,
-        'lift_cap' => BlockedNext.liftCap,
-        _ when code == dailyNewCap => BlockedNext.liftCap,
         _ => BlockedNext.none,
       },
       subjectTitle: text('subject_title'),
@@ -85,8 +79,14 @@ class Blocked {
       moduleTitle: text('module_title'),
       dueAt: number('due_at'),
       dueInSubject: number('due_in_subject'),
-      newToday: number('new_today'),
-      newCap: number('new_cap'),
+      gateCards: switch (field('gate_cards')) {
+        final List<dynamic> ids => [
+          for (final id in ids)
+            if (id is String && id.isNotEmpty) id,
+        ],
+        _ => const [],
+      },
+      writing: field('writing') == true,
     );
   }
 
@@ -102,10 +102,10 @@ class Blocked {
   /// The subject id (`subject_id`, DOCS-contract §4), when sent.
   final String? subject;
 
-  /// Module id to review (for the cap: none).
+  /// Module id to review.
   final String? module;
 
-  /// Its title (for the cap: the module that is open).
+  /// Its title.
   final String? moduleTitle;
 
   /// When reviews fall due (ms).
@@ -114,11 +114,15 @@ class Blocked {
   /// Cards of this subject due for review now.
   final int? dueInSubject;
 
-  /// New cards learned today.
-  final int? newToday;
+  /// The module gate: the cards to review before the next module starts
+  /// (empty: nothing to review now).
+  final List<String> gateCards;
 
-  /// Today's new-card limit.
-  final int? newCap;
+  /// The next module's cards are still being written.
+  final bool writing;
+
+  /// The module gate holds the next card for a review.
+  bool get gated => gateCards.isNotEmpty;
 
   /// A module waits for its review first.
   bool get reviewsModule => next == BlockedNext.reviewModule && module != null;
@@ -126,23 +130,12 @@ class Blocked {
   /// The line for kuhy: why, and what is next; [now] decides whether the
   /// due time needs its date.
   String text({DateTime? now}) => switch (code) {
-    dailyNewCap => _capText(),
     lockedCode =>
       reviewsModule
           ? 'That is locked until “${moduleTitle ?? module}” is reviewed.'
           : 'That is locked until earlier modules are reviewed.',
     _ => _noCardText(now ?? DateTime.now()),
   };
-
-  String _capText() {
-    final n = newToday;
-    final cap = newCap;
-    final limit = cap == null || cap == n ? '' : ' is $cap';
-    final why = n == null
-        ? "You reached today's limit of new cards."
-        : 'You learned $n new cards today (the daily limit$limit).';
-    return moduleTitle == null ? why : '$why “$moduleTitle” is open.';
-  }
 
   String _noCardText(DateTime now) {
     final where = subjectTitle ?? 'this subject';

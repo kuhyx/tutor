@@ -86,21 +86,18 @@ class RequestBody {
       RequestBody._(RequestKind.cardRemove, {'subject': subject, 'card': card});
 
   /// `session_start`: null [card] = next open card; [resume] (Continue)
-  /// first makes the subject's open session live; [liftCap] ("Learn more
-  /// anyway") lifts today's new-card cap for the rest of the day
-  /// (DOCS-contract §4); [struggle] (Review's "Get help") opens a struggle
+  /// first makes the subject's open session live (DOCS-contract §4);
+  /// [struggle] (Review's "Get help") opens a struggle
   /// session on [card] (DOCS-contract-struggle §5).
   factory sessionStart({
     String? subject,
     String? card,
     bool resume = false,
-    bool liftCap = false,
     bool struggle = false,
   }) => RequestBody._(RequestKind.sessionStart, {
     'subject': subject,
     'card': card,
     if (resume) 'resume': true,
-    if (liftCap) 'lift_cap': true,
     if (struggle) 'struggle': true,
   });
 
@@ -232,12 +229,6 @@ class RequestBody {
   RequestBody withDevice(String device) => deviceKinds.contains(kind)
       ? RequestBody._(kind, {...body, 'device': device})
       : this;
-
-  /// This `session_start` again with `lift_cap: true` (same subject, card
-  /// and resume); null for any other kind.
-  RequestBody? liftingCap() => kind == RequestKind.sessionStart
-      ? RequestBody._(kind, {...body, 'lift_cap': true})
-      : null;
 
   /// Kind.
   final RequestKind kind;

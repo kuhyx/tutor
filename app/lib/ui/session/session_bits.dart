@@ -1,6 +1,9 @@
 /// Small parts of the Session's bottom panel.
 library;
 
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
@@ -10,20 +13,28 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/ui/common.dart';
-import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
+import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
-/// Card done: Next card / Stop here.
+/// Card done: Stop / Next; no check, the green answer box says it (2026-11-22).
 class CardEnd extends StatelessWidget {
-  /// Creates the bar.
-  const new({required this.onNext, required this.onStop, super.key});
+  /// Creates the bar; each [refused] Next shakes it, any tints it amber.
+  const new({
+    required this.onNext,
+    required this.onStop,
+    this.refused = 0,
+    super.key,
+  });
 
   /// Next card (stops this session, starts the next).
   final VoidCallback onNext;
 
   /// Stop here.
   final VoidCallback onStop;
+
+  /// Next presses refused with nothing to do.
+  final int refused;
 
   @override
   Widget build(BuildContext context) {
@@ -33,36 +44,68 @@ class CardEnd extends StatelessWidget {
       onPressed: onStop,
     );
     // No autofocus: the follow-up composer below takes the keys.
-    final next = GlyphButton(
-      icon: Icons.skip_next,
-      semanticLabel: 'Next card',
-      filled: true,
-      onPressed: onNext,
+    final next = Shake(
+      trigger: refused,
+      child: GlyphButton(
+        icon: Icons.skip_next,
+        semanticLabel: 'Next card',
+        filled: true,
+        tint: refused > 0 ? cueColor(context, CueKind.blocked) : null,
+        onPressed: onNext,
+      ),
     );
-    const done = SpokenLabel(
-      semanticLabel: 'Card done',
-      child: Icon(Icons.check_circle, color: AppPalette.success),
-    );
-    // Phone: wraps at a large font instead of overflowing.
-    if (isCompact(context)) {
-      return Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: AppSpacing.sm,
-        children: [done, stop, next],
-      );
-    }
-    return Row(
-      children: [
-        const Expanded(
-          child: Align(alignment: Alignment.centerLeft, child: done),
-        ),
-        stop,
-        const SizedBox(width: AppSpacing.sm),
-        next,
-      ],
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppSpacing.sm,
+      children: [stop, next],
     );
   }
+}
+
+/// Shakes [child] sideways once each time [trigger] changes.
+class Shake extends StatefulWidget {
+  /// Creates the shake.
+  const new({required this.trigger, required this.child, super.key});
+
+  /// A new value shakes.
+  final int trigger;
+
+  /// What shakes.
+  final Widget child;
+
+  @override
+  State<Shake> createState() => _ShakeState();
+}
+
+class _ShakeState extends State<Shake> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 400),
+  );
+
+  @override
+  void didUpdateWidget(Shake old) {
+    super.didUpdateWidget(old);
+    if (old.trigger != widget.trigger) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (context, child) => Transform.translate(
+      // Three swings that die out.
+      offset: Offset(8 * (1 - _c.value) * math.sin(_c.value * 6 * math.pi), 0),
+      child: child,
+    ),
+    child: widget.child,
+  );
 }
 
 /// Start session (or continue the subject's open one).
@@ -85,9 +128,8 @@ class StartButton extends StatelessWidget {
   );
 }
 
-/// The request status, plus Continue when the session is no longer live;
-/// a blocking result (cap, locked, no card left) shows its call to action
-/// instead ([BlockedPanel]).
+/// The request status, plus Continue once the session is over; a block
+/// (locked, no card left) shows its one glyph instead ([BlockedPanel]).
 class NotLiveStatus extends StatelessWidget {
   /// Creates the line.
   const new({
@@ -95,9 +137,13 @@ class NotLiveStatus extends StatelessWidget {
     required this.runner,
     required this.view,
     required this.onRun,
+    this.onGate,
     this.subject,
     super.key,
   });
+
+  /// Reopens the module gate's review (the block's review glyph).
+  final VoidCallback? onGate;
 
   /// Services (the catalog and Review, for the call to action).
   final TutorServices services;
@@ -111,7 +157,7 @@ class NotLiveStatus extends StatelessWidget {
   /// Session on screen.
   final SessionView? view;
 
-  /// Runs a request (`session_resume`, or the block's fix).
+  /// Runs a request (`session_resume`).
   final Future<RelayStatus> Function(RequestBody body) onRun;
 
   @override
@@ -128,8 +174,7 @@ class NotLiveStatus extends StatelessWidget {
             kind: s.kind,
             text: s.text,
             subject: subject,
-            lastBody: runner.lastBody,
-            onRun: onRun,
+            onGate: onGate,
           )
         else
           RequestStatusLine(runner, stalledText: noReplyText),
