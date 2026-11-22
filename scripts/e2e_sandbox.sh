@@ -13,6 +13,8 @@
 #        [--struggle] [--carry N]   # F5: seed 2 Again; F6: N signed minutes
 #        [--nocard due|review]      # F12: no card left (reviews due / module review)
 #        [--gate]                   # F21: the next module waits on 2 unpassed cards
+#        [--learn S/M]              # F22: one untaught card left in module M of S
+#        [--phase "MODE [S/M ...]"] # the guard's C3 row (default missing)
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
 #                                    # the day before; --as-of runs the
@@ -26,6 +28,8 @@
 #                                    # F6 again: a second worker start; F14
 #                                    # switches how Claude fails in between
 #   scripts/e2e_sandbox.sh hold               # F16: no worker; the app served statically
+#   scripts/e2e_sandbox.sh phase theory S/M.. | solve | bad S/M | missing
+#                                    # rewrite the sandbox's C3 row (F21-F25)
 #   scripts/e2e_sandbox.sh down               # stop units, delete the sandbox
 # Env: E2E_SUBJECT, E2E_CARD (the card a flow must start), E2E_DISPLAY (:97),
 # E2E_SESSION (F3/F4: the session at card end; up --as-of "2026-10-20 17:24:30").
@@ -128,7 +132,8 @@ cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
     local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0
-    local -a pass=()
+    local learn=""
+    local -a pass=() c3=(missing)
     while (($#)); do
         case "$1" in
             --struggle) struggle=1 ;;
@@ -136,6 +141,8 @@ cmd_up() {
             --carry) carry="${2:?--carry N}"; shift ;;
             --nocard) nocard="${2:?--nocard due|review}"; shift ;;
             --model-down) model="${2:?--model-down network|refuse}"; shift ;;
+            --learn) learn="${2:?--learn S/M}"; shift ;;
+            --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
         esac
@@ -155,6 +162,11 @@ cmd_up() {
     if [[ -n "$nocard" ]]; then  # F12: no card left to teach
         "$PY" "$ROOT/scripts/e2e_seed.py" nocard "$sandbox/data" --subject "$SUBJECT" --next "$nocard"
     fi
+    if [[ -n "$learn" ]]; then  # C4: one untaught card left in module M
+        TUTOR_KEY="$sandbox/test.key" "$PY" "$ROOT/scripts/e2e_phase.py" seed "$sandbox/data" \
+            --subject "${learn%%/*}" --module "${learn#*/}"
+    fi
+    write_phase "$sandbox" "${c3[@]}"
     if [[ -n "$carry" ]]; then  # the day before the worker's today
         "$PY" "$ROOT/scripts/e2e_seed.py" carry "$sandbox/data" --key "$sandbox/test.key" \
             --minutes "$carry" --day "$(date -d "$(date -d "${clock:-now}" +%F) -1 day" +%F)"
@@ -223,9 +235,11 @@ main() {
         up) cmd_up "$@" ;;
         restart) cmd_restart "$@" ;;
         hold) cmd_hold ;;
+        phase) [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
+            write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | flow F1|F3..F21 [send|wait|check|again] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F21 [send|wait|check|again] | down" ;;
     esac
 }
 
