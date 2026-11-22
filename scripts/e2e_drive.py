@@ -19,6 +19,9 @@ Exit 0 = PASS.
   ``e2e_failures`` (F14), ``e2e_interview`` (F15), ``e2e_glyphs`` (F16),
   ``e2e_keyless`` (F17), ``e2e_split`` (F18), ``e2e_archive`` (F19),
   ``e2e_path`` (F20), ``e2e_gate`` (F21, phased; ``up --gate``).
+* F22 a ``#/learn/S/M`` route teaches the module, pays C1 and flips C2
+  (``e2e_learn.py``, seven phases); F26 the window takeover
+  (``e2e_takeover.py``).
 
 A tutor turn (high effort, thinking, up to 90 s of research) can outlast one
 60 s call, so F1, F3 and F4 run in phases, one call each: ``send`` taps up
@@ -55,6 +58,7 @@ from e2e_glyphs import PHASES as F16_PHASES
 from e2e_glyphs import f16
 from e2e_interview import f15
 from e2e_keyless import f17
+from e2e_learn import F21_PHASES, f21
 from e2e_path import f20_check, f20_send
 from e2e_split import f18_check, f18_send
 from e2e_start import f1_check, f1_send
@@ -95,7 +99,7 @@ ONE_CALL: dict[str, Callable[[Flow], None]] = {
     "F16": f16,
     "F17": f17,
     "F19": f19,
-    "F25": f25,
+    "F26": f25,
 }
 
 
@@ -128,24 +132,33 @@ def phases(flow: Flow, args: argparse.Namespace) -> int:
     return 0
 
 
-def carry(flow: Flow, args: argparse.Namespace) -> None:
+def carry(flow: Flow, args: argparse.Namespace) -> int:
     """F6: ``check`` (or ``all``) saves the ledger; ``again`` compares it."""
     state_file = Path(args.state)
     if args.phase == "again":
         f6_again(flow, json.loads(state_file.read_text()))
     else:
         state_file.write_text(json.dumps(f6_check(flow)))
+    return 0
+
+
+# Flows that keep their own state between calls; the exit code (75: again).
+STATEFUL: dict[str, Callable[[Flow, argparse.Namespace], int]] = {
+    "F6": carry,
+    "F22": lambda flow, args: f21(flow, args.phase, Path(args.state)),
+}
 
 
 def drive(args: argparse.Namespace, browser: Browser | None) -> int:
     """Run ``args.flow`` (its ``args.phase``, or all of it); the exit code."""
     flow = Flow(args, browser)  # wait has no browser: it reads the emulator only
     try:
-        if args.flow == "F6":
-            carry(flow, args)
-        elif args.flow == "F21" and args.phase == "again":
+        if args.flow == "F21" and args.phase == "again":
             # After check: Send, once the in-box bulb's hint is answered.
             if (code := f21_again(flow)) != 0:
+                return code
+        elif args.flow in STATEFUL:
+            if (code := STATEFUL[args.flow](flow, args)) != 0:
                 return code
         elif args.flow in ONE_CALL:
             ONE_CALL[args.flow](flow)
@@ -159,7 +172,8 @@ def drive(args: argparse.Namespace, browser: Browser | None) -> int:
                 print(f"  page {problem[:500]}", flush=True)
             flow.shot("fail")
         return 1
-    if args.phase in {"check", "all", "again"} or args.flow not in PHASED:
+    terminal = {"check"} if args.flow == "F22" else {"check", "all", "again"}
+    if args.phase in terminal or args.flow not in {*PHASED, "F22"}:
         print(f"PASS {args.flow}", flush=True)
     else:
         print(f"OK {args.flow} {args.phase}", flush=True)
@@ -184,6 +198,7 @@ def main() -> int:
             *OUTAGES,
             *F14_PHASES,
             *F16_PHASES,
+            *F21_PHASES,
         ],
     )
     parser.add_argument("--app", required=True, help="http://127.0.0.1:N/app/")
@@ -205,7 +220,7 @@ def main() -> int:
         return drive(args, None)
     width, height = (int(n) for n in args.size.split("x"))
     log = Path(f"{args.out}_chrome.log")
-    if args.flow == "F25":  # a real --app window on the plan (e2e_takeover.py)
+    if args.flow == "F26":  # a real --app window on the plan (e2e_takeover.py)
         plan = f"{args.app}?db={args.db}#/plan/{LC}"
         with AppBrowser(args.display, log, (width, height), app=plan) as app:
             return drive(args, app)
