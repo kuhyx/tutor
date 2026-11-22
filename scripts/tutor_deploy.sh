@@ -107,6 +107,8 @@ wait_listening() {
 }
 
 copy_release() {
+    # A bundle built without the Firebase config paints one error glyph.
+    "$REPO/scripts/check_web_build_config.sh" "$SRC/app"
     mkdir -p "$1"
     rsync -a --exclude .venv --exclude .git --exclude __pycache__ \
         --exclude node_modules --exclude build "$SRC/" "$1/"

@@ -14,6 +14,7 @@ readonly REPO
 # only costs time: pub get runs once as its own step (--no-pub), and the wasm
 # dry run (compiles wasm to a scratch dir, prints warnings, writes no output)
 # is off. Under machine load the plain build overran 60 s.
+"$REPO/scripts/check_web_build_config.sh" --source-only "$REPO/app"
 (cd "$REPO/app" && fvm flutter pub get)
 (cd "$REPO/app" && fvm flutter build web --release --no-pub --no-wasm-dry-run --base-href /app/)
 exec "$REPO/scripts/tutor_deploy.sh" "$@"
