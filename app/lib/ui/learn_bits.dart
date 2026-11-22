@@ -173,6 +173,20 @@ class ModuleMarkIcon extends StatelessWidget {
   );
 }
 
+/// Beside a module's mark when the LeetCode lock's theory phase keeps the
+/// tutor from teaching it now (`Module.teachable` false). A filled lock, so
+/// it never reads as [ModuleMark.locked]'s outline (requires not mastered).
+class TeachLock extends StatelessWidget {
+  /// Creates the glyph.
+  const new({super.key});
+
+  @override
+  Widget build(BuildContext context) => SpokenLabel(
+    semanticLabel: 'Not teachable now',
+    child: Icon(Icons.lock, color: Theme.of(context).colorScheme.outline),
+  );
+}
+
 /// Recall as a percent number (`62%`), tinted like a bar.
 class RecallStat extends StatelessWidget {
   /// Creates the stat.

@@ -157,6 +157,7 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
         {
             "subject": _opt_slug,
             "card": _opt_slug,
+            "module": _opt_slug,  # C4: that module's next card (``learn_module``)
             "resume": _opt_bool,
             "device": delivery.device,
             # An older app's "Learn more anyway": accepted, ignored (no cap).

@@ -24,6 +24,9 @@ void main() {
   // sign-in screen on.
   final zoom = UiZoom();
   unawaited(zoom.load(openKv()));
+  final route = kIsWeb ? routeFromUri(Uri.base) : null;
+  // C4: one tutor window; the one a `/learn/...` link opened closes the rest.
+  joinWindows(claim: route?.startsWith('/learn/') ?? false);
   runApp(
     TutorApp(
       config: FirebaseConfig.compiled,
@@ -36,7 +39,7 @@ void main() {
             : platformCheckinNotifier(),
       ),
       zoom: zoom,
-      initialRoute: kIsWeb ? routeFromUri(Uri.base) : null,
+      initialRoute: route,
     ),
   );
 }

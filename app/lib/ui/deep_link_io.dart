@@ -3,3 +3,6 @@ library;
 
 /// Nothing to forget off the web.
 void forgetDeepLink() {}
+
+/// One window per app off the web already.
+void joinWindows({required bool claim}) {}

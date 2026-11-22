@@ -40,6 +40,7 @@ class Module {
     this.cards = 0,
     this.error,
     this.errorKind = ErrorKind.other,
+    this.teachable = true,
   });
 
   /// Parses a module.
@@ -57,6 +58,7 @@ class Module {
       cards: intOr(j, 'cards') ?? 0,
       error: strOr(j, 'error'),
       errorKind: ErrorKind.parse(j['error_kind']),
+      teachable: flag(j, 'teachable', fallback: true),
     );
   }
 
@@ -92,6 +94,12 @@ class Module {
 
   /// What kind of failure [error] is (`error_kind`); unknown = other.
   final ErrorKind errorKind;
+
+  /// Whether the tutor may teach it now: false only on a module of a
+  /// LeetCode subject the guard's theory phase does not list (C3, display
+  /// only; the worker refuses on its own). Absent = true. Never sent back
+  /// ([toJson] is the `plan_edit` body).
+  final bool teachable;
 
   /// Wire form (empty lists omitted: RTDB stores none).
   Json toJson() => compact({

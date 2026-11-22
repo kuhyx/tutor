@@ -65,6 +65,7 @@ class ModuleProgressTile extends StatelessWidget {
         runSpacing: AppSpacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          if (!m.teachable) const TeachLock(),
           if (m.cards > 0) GlyphStat(Icons.style_outlined, '${m.cards}'),
           if (counted) TallyRow(tally!),
           RecallStat(m.recall),

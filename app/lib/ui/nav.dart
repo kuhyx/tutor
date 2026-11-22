@@ -3,7 +3,9 @@
 /// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
 /// `/report`, `/sql`, `/coach`, `/mock`;
 /// `/focus?start=1` also starts the focus timer if it is not running;
-/// `/session/continue` opens the Session and asks for the open session).
+/// `/session/continue` opens the Session and asks for the open session;
+/// `/learn/<subject>/<module>`, the LeetCode lock's learn button, teaches
+/// that module, else shows the subject's plan: [openLearn]).
 library;
 
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/drill/drill_models.dart';
 import 'package:tutor/mock/mock_entry.dart';
 import 'package:tutor/progress/card_progress.dart';
+import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/review/review_items.dart';
 import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/coach/coach_picker.dart';
@@ -53,8 +56,45 @@ Future<void> openSession(
 );
 
 /// Opens [subject]'s plan.
-Future<void> openPlan(BuildContext context, TutorServices s, String subject) =>
-    _push(context, PlanScreen(services: s, subject: subject));
+Future<void> openPlan(
+  BuildContext context,
+  TutorServices s,
+  String subject, {
+  bool replace = false,
+}) => _push(
+  context,
+  PlanScreen(services: s, subject: subject),
+  replace: replace,
+);
+
+/// The worker's "not this module" answers to a C4 start ([openLearn]);
+/// anything else (a cap, an outage) stays on the Session.
+bool learnRefused(RelayStatus status) =>
+    status is RelayFailed &&
+    const {
+      'no_card_left',
+      'locked',
+      'unknown_card',
+      'bad_request',
+    }.contains(status.code);
+
+/// Opens a session on [module] of [subject] (C4): its live or open session,
+/// else its next untaught card. The worker's refusal (C3 does not let the
+/// tutor teach it now, no cards yet, unknown module) replaces it with the
+/// subject's plan (`SessionScreen.module`). An unknown subject stays Home.
+Future<void> openLearn(
+  BuildContext context,
+  TutorServices s,
+  String subject,
+  String module,
+) async {
+  final data = await s.catalog.fetch(subject);
+  if (data == null || !context.mounted) return;
+  await _push(
+    context,
+    SessionScreen(services: s, subject: subject, module: module),
+  );
+}
 
 /// Opens the focus project screen; [autoStart] starts a stopped timer.
 Future<void> openFocus(
@@ -158,6 +198,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
   final arg = parts.length > 1 ? parts[1] : null;
   return switch (parts.firstOrNull) {
     'plan' when arg != null => openPlan(context, s, arg),
+    'learn' when parts.length == 3 => openLearn(context, s, parts[1], parts[2]),
     'session' when arg == 'continue' => openSession(
       context,
       s,

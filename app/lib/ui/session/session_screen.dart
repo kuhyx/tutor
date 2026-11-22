@@ -34,6 +34,7 @@ class SessionScreen extends StatefulWidget {
     required this.services,
     this.subject,
     this.resume = false,
+    this.module,
     this.now,
     super.key,
   });
@@ -46,6 +47,10 @@ class SessionScreen extends StatefulWidget {
 
   /// On opening, ask for [subject]'s open session (Home's Continue).
   final bool resume;
+
+  /// On opening, teach this module of [subject] (C4, `/learn/...`); the
+  /// worker refusing it replaces this screen with the subject's plan.
+  final String? module;
 
   /// Clock for "stalled".
   final DateTime Function()? now;
@@ -95,8 +100,19 @@ class _SessionScreenState extends State<SessionScreen> {
       },
       onHide: () => unawaited(_feed.stop()),
     );
-    if (widget.resume) unawaited(_run(_continue()));
+    final module = widget.module;
+    if (module != null) unawaited(_learn(widget.subject!, module));
+    if (module == null && widget.resume) unawaited(_run(_continue()));
     _subjectFeed.start();
+  }
+
+  bool _leaving = false; // C4 refused: blank until the plan replaces us
+
+  Future<void> _learn(String subject, String module) async {
+    final body = RequestBody.sessionStart(subject: subject, module: module);
+    if (!learnRefused(await _run(body)) || !mounted) return;
+    setState(() => _leaving = true);
+    unawaited(openPlan(context, _s, subject, replace: true));
   }
 
   @override
@@ -156,7 +172,10 @@ class _SessionScreenState extends State<SessionScreen> {
       await _run(RequestBody.message(sid, text)) is! RelayNotSent;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
+  Widget build(BuildContext context) =>
+      _leaving ? const Scaffold() : _screen(context);
+
+  Widget _screen(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
       _feed.view,
       _feed.loaded,

@@ -87,7 +87,8 @@ def gate(view: View, fold: Fold, now_ms: int, before: str | None = None) -> Gate
 def _first(view: View, fold: Fold, skip: str, now_ms: int) -> tuple[str, Module] | None:
     taught = fold.taught_ids(view.subject)
     for module in view.plan.modules:
-        held = module.status not in OPEN or module.id in view.refused
+        other = bool(view.only) and module.id != view.only
+        held = other or module.status not in OPEN or module.id in view.refused
         if held or not unlocked(view, module, fold):
             continue
         for cid, card in view.module_cards(module.id):

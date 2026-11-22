@@ -125,7 +125,7 @@ class _PlanFitState extends State<PlanFit> {
       key: ValueKey('module-tile-$i'),
       title: m.title,
       corner: ModuleMarkIcon(mark),
-      details: [RecallStat(m.recall)],
+      details: [if (!m.teachable) const TeachLock(), RecallStat(m.recall)],
       marked: failed || reviewable,
       onMore: sheet,
     );

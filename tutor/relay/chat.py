@@ -1,12 +1,11 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """Chat-lane handlers: the session kinds of ``DOCS-contract.md`` §4 on the Engine.
 
-Credit is untouched: the engine's clock and ledger rows work exactly as for
-the web page. The relay only supplies the learner's times (§7): ``created``
-is RTDB server time, and the first Send press (``sent_at``) may date the
-reply up to ``SEND_GRACE`` earlier, never later. The kinds that talk to
-Claude fail fast with ``claude_unavailable`` while an outage window is open;
-the drill kinds never need Claude.
+Credit is untouched: the engine's clock and ledger rows work as for the web
+page. The relay only supplies the learner's times (§7): ``created`` is RTDB
+server time; the first Send press (``sent_at``) may date the reply up to
+``SEND_GRACE`` earlier, never later. Kinds that talk to Claude fail fast with
+``claude_unavailable`` during an outage; the drill kinds never need Claude.
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Final
 from weakref import WeakKeyDictionary
 
-from tutor import anki, anki_collection, history, outage, resume
+from tutor import anki, anki_collection, history, learn_module, outage, resume
 from tutor.clock import reply_time
 from tutor.delivery import Delivery
 from tutor.drill import Drill
@@ -89,11 +88,13 @@ async def session_start(ctx: RequestContext) -> dict[str, Any]:
     if body["struggle"] and body["card"] is None:
         msg = "help on a struggling card needs the card"
         raise RequestError(msg, code="bad_request")
+    device, struggling = str(body["device"]), bool(body["struggle"])
+    if body["module"] is not None:  # C4, ``learn_module``: the lock's learn button
+        return await learn_module.start(engine, body, device)
     subject = body["subject"] or await _home_pick(ctx)
     wants_open = body["resume"] and body["card"] is None
     if wants_open and await engine.continue_subject(subject):
         return {"session": engine.session_id}
-    device, struggling = str(body["device"]), bool(body["struggle"])
     await engine.start(
         body["card"], subject=subject, device=device, struggling=struggling
     )

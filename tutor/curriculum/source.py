@@ -124,8 +124,8 @@ class SubjectSource:
             profiles.Profile.from_json(raw) if raw else profiles.generated(subject, {})
         )
 
-    def _view(self, *, gated: bool = False) -> rules.View:
-        """``gated``: with the modules C3 refuses now (``theory_phase``)."""
+    def _view(self, *, gated: bool = False, only: str = "") -> rules.View:
+        """``gated``: with the modules C3 refuses now; ``only``: ``View.only``."""
         plan = self.ctx.subjects.plan(self.subject)
         if plan is None:
             msg = f"{self.subject} has no plan yet"
@@ -134,7 +134,8 @@ class SubjectSource:
         cards = self.ctx.subjects.cards(self.subject)
         ids = [m.id for m in plan.modules] if gated else []
         held = theory_phase.refused(self.subject, ids)
-        return rules.View(self.subject, plan, cards, meta.title if meta else "", held)
+        title = meta.title if meta else ""
+        return rules.View(self.subject, plan, cards, title, held, only)
 
     def cards(self) -> list[Card]:
         """Every non-suspended card of a module that has cards, in order."""
@@ -154,12 +155,13 @@ class SubjectSource:
             for cid in folded.taught_ids(self.subject)
         }
 
-    def pick(self, card_id: str | None, skip: str = "") -> Card:
-        """``pick.pick`` over the subject (``skip`` left out of the pick).
+    def pick(self, card_id: str | None, skip: str = "", module: str = "") -> Card:
+        """``pick.pick`` over the subject (``skip`` left out; ``module``: only it).
 
         An archived subject (``archive.py``) has nothing to teach.
         """
-        view, fold, now = self._view(gated=True), self.ctx.fold(), self.ctx.clock()
+        view = self._view(gated=True, only=module)
+        fold, now = self.ctx.fold(), self.ctx.clock()
         if self.subject in self.ctx.archived():
             err = no_card_left(
                 view.title, module=None, due_at=None, writing=False, now_ms=now

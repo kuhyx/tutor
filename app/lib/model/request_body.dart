@@ -85,18 +85,20 @@ class RequestBody {
   factory cardRemove(String subject, String card) =>
       RequestBody._(RequestKind.cardRemove, {'subject': subject, 'card': card});
 
-  /// `session_start`: null [card] = next open card; [resume] (Continue)
-  /// first makes the subject's open session live (DOCS-contract §4);
-  /// [struggle] (Review's "Get help") opens a struggle
+  /// `session_start`: null [card] = next open card ([module]: of that module,
+  /// C4); [resume] (Continue) first makes the subject's open session live
+  /// (DOCS-contract §4); [struggle] (Review's "Get help") opens a struggle
   /// session on [card] (DOCS-contract-struggle §5).
   factory sessionStart({
     String? subject,
     String? card,
+    String? module,
     bool resume = false,
     bool struggle = false,
   }) => RequestBody._(RequestKind.sessionStart, {
     'subject': subject,
     'card': card,
+    'module': ?module,
     if (resume) 'resume': true,
     if (struggle) 'struggle': true,
   });

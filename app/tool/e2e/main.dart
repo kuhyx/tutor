@@ -97,13 +97,14 @@ void main() {
     );
   }
 
+  final route = routeFromUri(Uri.base);
+  joinWindows(claim: route?.startsWith('/learn/') ?? false); // as lib/main.dart
   runApp(
     TutorApp(
       config: config,
       open: open,
       // The desktop deep link (`#/focus?start=1`), else `?screen=`.
-      initialRoute:
-          routeFromUri(Uri.base) ?? Uri.base.queryParameters['screen'],
+      initialRoute: route ?? Uri.base.queryParameters['screen'],
       zoom: UiZoom(),
     ),
   );
