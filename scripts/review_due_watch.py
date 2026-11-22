@@ -4,8 +4,9 @@ r"""Log how fast another device's review lands here (``tutor.review_due_watch``)
 
 Start it as a unit that stops itself after 30 min; it only reads the data dir:
 
+    R=~/.local/lib/tutor-live/current  # the live release, not a checkout
     systemd-run --user --collect --unit=tutor-review-watch -p RuntimeMaxSec=1800 \\
-        ~/src/tutor/.venv/bin/python ~/src/tutor/scripts/review_due_watch.py
+        -E PYTHONPATH="$R" ~/src/tutor/.venv/bin/python "$R/scripts/review_due_watch.py"
 
 Rows: ``~/.local/state/tutor/review_due_watch.jsonl``.
 """
