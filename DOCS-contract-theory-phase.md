@@ -42,7 +42,8 @@ marked taught. Each refusal reuses an existing state; no new text is shown.
 
 | Entry point | Refusal |
 |---|---|
-| `Engine.start` (`/api/start`, relay `session_start`), struggle help included | `SubjectSource.pick`: the next-card scan skips the module; an explicit card raises `no_card_left`, checked before the daily cap so "Learn more anyway" is never offered |
+| `Engine.start` (`/api/start`, relay `session_start`), struggle help included | `SubjectSource.pick`: the next-card scan skips the module; an explicit card raises `no_card_left`, checked before the module gate: passing a review does not open it |
+| relay `session_start` with `module` (C4 below, `learn_module.start`) | the same pick, kept to that module: `no_card_left`; an open session on a refused module's card is not reused |
 | `CardFlow.next_card`, `EditFlow._leave_removed` | the same pick |
 | `Engine.reply` on a live card whose module became refused | the pick's `no_card_left`, before the model runs |
 | `Engine.resume_path` (`resume_latest` at startup, `resume_session`) | not resumed; `resume_session` raises its existing "cannot be continued" |
@@ -69,6 +70,48 @@ due: the refusal lists them in `gate_cards`, the app reviews them and sends
 the start again. A teachable earlier module (a unit of several modules) still
 holds the next one until it is fully taught. Ungated subjects refuse nothing
 and keep the plan order.
+
+## C4: `/learn/<subject>/<module>`, the lock's learn button
+The guard runs `~/.local/bin/tutor --route /learn/<subject>/<module>`
+(`run.sh`). The app opens the Session screen and sends `session_start` with
+`subject`, `module` and a null `card` (`DOCS-contract.md` §4). The worker
+(`tutor/learn_module.py`) then:
+
+1. reuses the live or open session whose card is an untaught card of that
+   module (never a second session on it);
+2. otherwise starts a session on the module's next untaught card.
+
+Fallbacks:
+- The worker answers `no_card_left` when C3 refuses the module, when the
+  module has no cards yet, is fully taught or is unknown. The app then shows
+  that subject's plan screen instead of the Session (`nav.learnRefused`: it
+  does the same on `locked`, `unknown_card` and `bad_request`).
+- A refusal that lists `gate_cards` (the module gate, curriculum §6) first
+  opens that review, as for any start. Passing it sends the start again.
+- Any other failure (an outage, a model error) stays on the Session screen.
+- An unknown or archived subject stays on Home.
+
+### Window hand-over
+Chrome hands every launch to the browser that already runs the tutor's
+profile, and that browser opens a second `--app` window. A used window cannot
+close itself, so the new window gives its route to the old one:
+
+1. `run.sh` asks i3 to focus the open tutor window
+   (`i3-msg '[class="^tutor$"] focus'`, 2 s limit). i3 switches to that
+   window's workspace. No tutor window or no i3: the launch goes on anyway.
+2. The new window, before Flutter boots (`app/web/index.html`), posts
+   `learn <route>` on the BroadcastChannel `tutor-window`.
+3. The open window (`deep_link_web.joinWindows`, `RouteInbox`) answers
+   `took <route>` and opens the route over its current screen.
+4. The new window closes itself. With no answer within 1 s, or when the
+   browser refuses the close, it boots and opens the route itself.
+
+Only `/learn/...` routes are handed over. The channel is per origin, so a
+sandbox on another port never hears the live window.
+
+`TUTOR_DESKTOP_PORT` points `run.sh` at a sandbox server instead of
+`tutor.service`'s 8778 (`scripts/e2e_i3_handover.sh`). `run.sh` never starts
+a sandbox: it exits 1 when nothing answers on that port.
 
 ## Plan payload (for the plan screen's lock glyph)
 `subjects/<subject>/plan` in RTDB gives each module of a gated subject a boolean
