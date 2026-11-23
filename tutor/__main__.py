@@ -7,7 +7,8 @@
 ``python -m tutor subject archive|unarchive ID``: hide a subject, or undo it.
 ``python -m tutor review-due SUBJECT``: re-publish its ``review_due.json`` rows.
 ``python -m tutor redraft start|status|drain|report``: the Fable backfill.
-``python -m tutor postmortem UNIT --dry-run|--retry``: a unit's post-mortem.
+``python -m tutor postmortem UNIT --dry-run|--retry``: a unit's post-mortem;
+``apply-postmortem UNIT [--module M]``: its approved future-module cards.
 ``python -m tutor worker`` runs the RTDB relay alone, ``publish-all`` publishes
 every transcript once (``tutor.relay.cli``).
 """
@@ -26,6 +27,7 @@ from tutor.curriculum import archive, migrate, regen, review_due_cli, sql_cards_
 from tutor.curriculum.redraft import cli as redraft_cli
 from tutor.engine import Engine
 from tutor.postmortem import cli as postmortem_cli
+from tutor.postmortem import future as postmortem_future
 from tutor.relay import cli, mock_prebuild
 from tutor.server import DEFAULT_PORT as SERVER_PORT
 from tutor.server import create_app
@@ -45,6 +47,7 @@ TOOLS: Final[dict[str, ModuleType]] = {
     "subject": archive,
     "review-due": review_due_cli,
     "postmortem": postmortem_cli,
+    "apply-postmortem": postmortem_future,
 }
 
 

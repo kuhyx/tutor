@@ -41,12 +41,25 @@ SOURCE_HOST: Final = "https://postmortem.leetcode-coach.invalid"
 _BREAK: Final = re.compile(r"[.!?](?=\s)")  # quote's sentence break: one sentence
 
 
-def _seeded(unit: str, rev: int, front: str, back: str) -> str:
+def seeded(unit: str, rev: int, front: str, back: str) -> str:
     """A fresh source URL holding one line built from the card."""
     tag = hashlib.sha256(f"{front}\n{back}".encode()).hexdigest()[:8]
     url = f"{SOURCE_HOST}/{unit}/{rev}/{tag}"
     sources.seed_text(url, _BREAK.sub(";", f"Post-mortem of {unit}: {front} {back}"))
     return url
+
+
+def seeded_draft(
+    where: tuple[str, int], module: str, front: str, back: str, kind: str
+) -> card_ops.Draft:
+    """A code-built card on its own seeded source; ``where`` is (unit, rev)."""
+    unit, rev = where
+    url = seeded(unit, rev, front, back)
+    quote = f"{front} {back}"
+    origin = f"{kind}:{unit}:{rev}"
+    return card_ops.Draft(
+        module, front, back, url, quote, code_built=True, origin=origin
+    )
 
 
 def _refuse(out: dict[str, Any], what: tuple[str, str], reason: str) -> None:
@@ -59,11 +72,7 @@ def _add(ctx: Context, found: dict[str, Any], rev: int, out: dict[str, Any]) -> 
     unit, module = found["unit"], found["modules"][0]
     for new in found["new_cards"]:
         front, back = new["front"], new["back"]
-        url = _seeded(unit, rev, front, back)
-        text = (front, back, url, f"{front} {back}")
-        draft = card_ops.Draft(
-            module, *text, code_built=True, origin=f"postmortem:{unit}:{rev}"
-        )
+        draft = seeded_draft((unit, rev), module, front, back, "postmortem")
         try:
             cid, _ = card_ops.add(ctx, found["subject"], draft)
         except RequestError as err:
@@ -80,7 +89,7 @@ def _edit_one(
     old = ctx.subjects.cards(subject)[card["id"]]
     front = " ".join(card["new_front"].split()) or old.front
     back = " ".join(card["new_back"].split()) or old.back
-    url = _seeded(*where, front, back)
+    url = seeded(*where, front, back)
     excerpt = card_ops.quoted(ctx, url, (front, back), f"{front} {back}")
     body = {
         "subject": subject,

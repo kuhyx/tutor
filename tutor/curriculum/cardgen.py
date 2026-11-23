@@ -35,7 +35,7 @@ from tutor.curriculum import (
     webpages,
     wiki,
 )
-from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt
+from tutor.curriculum.draft_prompt import CARDS_SCHEMA, SYSTEM, prompt, with_lessons
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.plan_context import Scope
 from tutor.curriculum.subject_store import LOCK, Change
@@ -112,7 +112,9 @@ def _outcome(
         found = sources(ctx, scope)
         if isinstance(found, str):  # the search failed or found too few
             return {}, found, codes.SOURCES_MISSING
-        raw = ctx.model(SYSTEM, prompt(scope, existing, found), CARDS_SCHEMA)
+        raw = ctx.model(
+            SYSTEM, with_lessons(prompt(scope, existing, found), subject), CARDS_SCHEMA
+        )
         items = raw.get("cards")
         batch = vet.Batch(scope, found, frozenset(existing), limit=MAX_CARDS)
         vetted = vet.vet(ctx, batch, items if isinstance(items, list) else [])

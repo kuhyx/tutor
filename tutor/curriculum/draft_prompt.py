@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Final
 from tutor.curriculum import quality, quality_judge, vet
 from tutor.curriculum.modelcall import array_of, strict_object
 from tutor.curriculum.plan_context import SCOPE_RULE
+from tutor.postmortem import lessons
 
 if TYPE_CHECKING:
     from tutor.curriculum import wiki
@@ -80,3 +81,20 @@ def prompt(scope: Scope, existing: dict[str, CardRec], found: list[wiki.Source])
     avoid = f"\n{refused}: {json.dumps(gone)}" if gone else ""
     listed = f"Existing cards (id: front): {known}{avoid}"
     return f"{scope.about()}\n{listed}\n\n{vet.texts(found)}"
+
+
+LESSONS_HEAD: Final = (
+    "Lessons from post-mortems of finished modules of this subject. FIX: a gap "
+    "the cards left, so cover it where it applies here. KEEP: the shape of a "
+    "card that worked (opening question, toy example, length), so copy it"
+)
+
+
+def with_lessons(text: str, subject: str) -> str:
+    """``text`` plus the subject's signed post-mortem lessons, when there are any.
+
+    Applied on every draft with no approval step (kuhy, 2026-11-23): the
+    lessons only shape wording; every card still passes ``vet`` and the judge.
+    """
+    found = lessons.text(subject)
+    return f"{text}\n\n{LESSONS_HEAD}:\n{found}" if found else text

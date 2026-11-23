@@ -18,7 +18,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from tutor.curriculum import judge, paths, vet
-from tutor.curriculum.draft_prompt import CARDS_SCHEMA
+from tutor.curriculum.draft_prompt import CARDS_SCHEMA, with_lessons
 from tutor.curriculum.errors import MODEL_ERROR, RequestError
 from tutor.curriculum.plan_context import Scope
 from tutor.curriculum.records import CardRec
@@ -123,7 +123,8 @@ def _draft(
     """The module drafted again and vetted against the seven rules."""
     limit = prompts.most(len(snap.live(scope.module.id)))
     system = prompts.draft_system(limit)
-    raw = ctx.model(system, prompts.draft(scope, snap, found), CARDS_SCHEMA)
+    text = with_lessons(prompts.draft(scope, snap, found), snap.subject)
+    raw = ctx.model(system, text, CARDS_SCHEMA)
     items = raw.get("cards")
     batch = vet.Batch(scope, found, frozenset(snap.cards), limit=limit)
     return batch, vet.vet(ctx, batch, items if isinstance(items, list) else [])

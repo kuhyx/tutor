@@ -70,6 +70,7 @@ ignore = [
 # ``postmortem`` prints the dry run's report and the CLI's outcome lines.
 "tutor/postmortem/dry.py" = ["T201"]
 "tutor/postmortem/cli.py" = ["T201"]
+"tutor/postmortem/future.py" = ["T201"]
 # The todo MCP URL is http(s) by default; TUTOR_TODO_URL is set by install/tests only.
 "tutor/postmortem/todo.py" = ["S310"]
 # Dev tool: the printed JSON is the smoke run's evidence.
