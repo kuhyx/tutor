@@ -52,7 +52,7 @@ $S flow F30 rate               # then, after 60 s: idle (75 = call again)
 $S up --scripted               # the model is a queue the flow writes
 $S flow F31 rewrite            # then: fallback (same sandbox)
 E2E_SUBJECT=$LC $S up --scripted --learn $LC/prefix-sums --phase "theory $LC/prefix-sums"
-E2E_SUBJECT=$LC $S flow F31 module
+E2E_SUBJECT=$LC $S flow F31 module   # or, on a fresh up of the same kind: waived
 $S down
 ```
 
@@ -69,7 +69,9 @@ $S down
   engine, relay and app are the real ones. F31 `rewrite` starts a card whose
   requires are taught, then a second device marks one of them not done;
   `module` holds the draft while it moves the guard to `solve`
-  (`scripts/e2e_done_refusal.py`).
+  (`scripts/e2e_done_refusal.py`). `waived` replays session 58ac
+  (2026-11-22): a card whose require sits untaught in a module C3 refuses
+  starts, and its `card_done` is kept, with no refusal or rewrite logged.
 
 - `wait` exits 75 while the tutor's turn is pending, and F22's `idle` exits 75
   until a minute has passed since the tutor's message (a C1 row needs one

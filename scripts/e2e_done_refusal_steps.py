@@ -56,6 +56,34 @@ def candidates(flow: Flow, subject: str) -> list[tuple[str, str]]:
     ]
 
 
+def mark(flow: Flow, subject: str, card: str, *, done: bool) -> None:
+    """A second device's ``card_done`` request for ``card``; refused fails."""
+    flow.step(f"a second device marks {card} done={done}")
+    body = {"subject": subject, "card": card, "done": done}
+    if not _await(flow, _send(flow, "card_done", body)).get("ok"):
+        msg = f"card_done {card} {done} was refused"
+        raise FlowError(msg)
+
+
+def waived_pick(flow: Flow, subject: str) -> tuple[str, str, list[str]]:
+    """A card of a granted module with an untaught require in a refused one.
+
+    Returns the card, that require, and its other untaught requires (in granted
+    modules: the flow teaches them first). The grant is the sandbox's C3 row.
+    """
+    row = json.loads((Path(flow.args.data).parent / "theory_phase.json").read_text())
+    granted = {m for s, m in row["detail"]["teachable"] if s == subject}
+    cards, done = Context(flow.args.data).subjects.cards(subject), taught(flow, subject)
+    for cid, rec in cards.items():
+        if rec.module not in granted or rec.suspended:
+            continue
+        held = [r for r in rec.requires if r not in done]
+        if waived := [r for r in held if cards[r].module not in granted]:
+            return cid, waived[0], [r for r in held if r not in waived]
+    msg = f"no card of {sorted(granted)} needs an untaught card of a refused module"
+    raise FlowError(msg)
+
+
 def send_message(flow: Flow, entries: list[dict[str, Any]], text: str) -> str:
     """Queue the model's answers, type ``text`` in the app and Send."""
     script.write(queue(flow), entries)

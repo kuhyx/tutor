@@ -16,6 +16,11 @@ call per phase, each under 60 s:
 * ``module`` (a fresh ``up --scripted --learn $LC/M --phase "theory $LC/M"``
   with ``E2E_SUBJECT=$LC``): the draft is held while the flow moves the guard
   to ``solve``; the rewrite prompt names the module by its plan title.
+* ``waived`` (the same ``up`` as ``module``; session 58ac, 2026-11-22): a card
+  of the granted module whose require sits untaught in a module C3 refuses
+  starts, and its ``card_done`` is kept: the draft is the bubble, the card is
+  taught, and no refusal or rewrite is logged. Its other requires are taught
+  first, and the card made untaught if needed, by a second device.
 """
 
 from __future__ import annotations
@@ -30,8 +35,9 @@ from typing import Any, Final
 
 from e2e_cdp import Browser, CdpError
 import e2e_done_refusal_steps as steps
-from e2e_failures import _await, _send
+from e2e_failures import _await
 from e2e_flow import Flow, FlowError, State
+from e2e_follow_up import _events
 from e2e_phase import write as write_phase
 import e2e_script_session as script
 
@@ -39,7 +45,7 @@ from tutor import done_refusal
 from tutor.curriculum.context import Context
 
 _logger = logging.getLogger(__name__)
-PHASES: Final = ("rewrite", "fallback", "module")
+PHASES: Final = ("rewrite", "fallback", "module", "waived")
 DRAFT: Final = "Great work, this card is done!"
 DRAFT2: Final = "Perfect, this card is finished, on to the next!"
 
@@ -56,11 +62,7 @@ def rewrite(flow: Flow) -> State:
         raise FlowError(msg)
     card, need = pair
     sid = str(flow.db.node("live")["session"])
-    flow.step(f"a second device marks the prerequisite {need} not done")
-    undo = {"subject": subject, "card": need, "done": False}
-    if not _await(flow, _send(flow, "card_done", undo)).get("ok"):
-        msg = f"card_done {need} false was refused"
-        raise FlowError(msg)
+    steps.mark(flow, subject, need, done=False)
     front = steps.front(flow, subject, need)
     state: State = {"sid": sid, "subject": subject, "card": card, "need": need}
     state |= {"front": front, "theory_rows": steps.theory_rows(flow), "shot": "rewrite"}
@@ -119,6 +121,43 @@ def module(flow: Flow) -> None:
     steps.verify(flow, state, said, [DRAFT], "rewritten")
 
 
+def waived(flow: Flow) -> None:
+    """A require in a refused module never refuses ``card_done`` (session 58ac)."""
+    flow.precheck()
+    subject = str(flow.args.subject)
+    card, need, held = steps.waived_pick(flow, subject)
+    for other in held:
+        steps.mark(flow, subject, other, done=True)
+    if card in steps.taught(flow, subject):
+        steps.mark(flow, subject, card, done=False)
+    if not steps.start(flow, subject, {"card": card}).get("ok"):
+        msg = f"{card} did not start; only {need} of a refused module is untaught"
+        raise FlowError(msg)
+    sid = str(flow.db.node("live")["session"])
+    steps.ask_done(flow, [{"message": DRAFT, "card_done": True}])
+    bubbles = steps.shown(flow, sid)
+    flow.step(f"the draft is the last bubble and {card} is taught, {need} untaught")
+    if bubbles[-1:] != [DRAFT] or card not in steps.taught(flow, subject):
+        msg = f"card_done was not kept: bubbles {bubbles[-1:]!r}"
+        raise FlowError(msg)
+    if need in steps.taught(flow, subject):
+        msg = f"{need} was taught: the case under test did not happen"
+        raise FlowError(msg)
+    refused = [
+        e
+        for e in _events(flow.args.data, sid)
+        if e.get("type") == done_refusal.EVENT
+        or (e.get("turn") or {}).get("card_done_refused")
+    ]
+    if refused:
+        msg = f"card_done was refused or rewritten: {refused[-1:]}"
+        raise FlowError(msg)
+    flow.screen("/session")
+    flow.expect("Send", timeout=30)
+    time.sleep(2)
+    flow.shot("waived")
+
+
 def run(flow: Flow, phase: str) -> None:
     """One phase; ``rewrite`` saves the state ``fallback`` reads."""
     state_file = Path(flow.args.state)
@@ -126,8 +165,10 @@ def run(flow: Flow, phase: str) -> None:
         state_file.write_text(json.dumps(rewrite(flow)), encoding="utf-8")
     elif phase == "fallback":
         fallback(flow, json.loads(state_file.read_text(encoding="utf-8")))
-    else:
+    elif phase == "module":
         module(flow)
+    else:
+        waived(flow)
 
 
 def main() -> int:
