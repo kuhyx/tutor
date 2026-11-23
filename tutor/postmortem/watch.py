@@ -71,7 +71,6 @@ def due(now: float) -> tuple[Request, int] | None:
 
 
 def _fail(found: Request, rev: int, err: Exception) -> str:
-    _logger.warning("post-mortem of %s failed: %s", found.unit, err)
     marker = files.failed_path(found.unit, rev)
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(json.dumps({"rev": rev, "error": str(err)}), encoding="utf-8")
@@ -84,10 +83,15 @@ def _fail(found: Request, rev: int, err: Exception) -> str:
 
 
 def perform(ctx: Context, found: Request, rev: int) -> dict[str, Any]:
-    """Analyse, apply and record revision ``rev``; returns the saved entry."""
+    """Analyse, apply and record revision ``rev``; returns the saved entry.
+
+    The revision is stamped BEFORE the model call and the apply: the guard pays
+    the re-pass only for a ``done: false`` signed after ``at``, and the apply's
+    own un-teaching is that row.
+    """
+    at = ctx.clock() / 1000
     analysis = run.analyse(ctx, found)
     applied = apply.apply(ctx, analysis, rev)
-    at = ctx.clock() / 1000
     entry = {**analysis, "rev": rev, "at": at, "applied": applied}
     entry["earlier"] = report.earlier(found.unit)
     report.save(found.subject, found.unit, entry)
@@ -113,7 +117,7 @@ def tick(ctx: Context, now: float) -> str:
         perform(ctx, found, rev)
         outcome = "done"
     except ERRORS as err:
-        _logger.warning("post-mortem of %s raised: %s", found.unit, err)
+        _logger.warning("post-mortem of %s failed: %s", found.unit, err)
         outcome = _fail(found, rev, err)
     todo.flush()
     return outcome

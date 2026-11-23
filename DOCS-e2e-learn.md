@@ -116,3 +116,18 @@ $S down
   wants a new card of M with `tutor.source == "rework:SLUG"` and a new
   verified C2 row of M reading `done: false`, then saves the reopened chat
   as `app/build/screens/e2e_f29_rework.png`.
+- F32 (`scripts/e2e_postmortem.py`, DOCS-contract-postmortem.md): a finished
+  unit's post-mortem across tutor and guard, with no sandbox worker (its
+  `up --scripted` scripts tutor turns, not the draft tier, and would race
+  the driver). `watch.tick` runs in-process on a scratch tutor dir; the
+  guard's real harvester, `--status` and first lock run run from
+  `$E2E_GUARD_ROOT` (default `~/src/leetcode-guard`; point it at a worktree
+  to test unlanded guard code) under the same scratch `$HOME` and key. The
+  draft tier is one canned reply (`e2e_pm_reply.py`), or for C5 the real
+  `ask_draft` against a closed port; todo tasks go to a fake MCP. One phase
+  per call, exit 0 = PASS, logs in `$E2E_PM_EVIDENCE`:
+  `setup main`, `finish main`, `c2`, `c3`, `c6`, `c7`; `setup c4`,
+  `finish c4`, `c4-finish`, `c4-rev-edit`, `c4-rev-delete`,
+  `c4-rev-control`; `setup c5`, `finish c5`, `c5-fail`, `c5-retry`; `down`.
+  `c3` was red until the revision's `at` was stamped before the apply
+  (2026-11-23): the apply's own `done: false` must be later than `at`.

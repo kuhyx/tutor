@@ -89,6 +89,11 @@ ignore = [
 "scripts/e2e_prepare.py" = ["T201"]
 "scripts/e2e_server.py" = ["T201"]
 "scripts/e2e_cdp.py" = ["PLW1509"]
+# F32 (scripts/e2e_postmortem.py): the PASS/FAIL lines and the children's JSON
+# on stdout are the run's evidence.
+"scripts/e2e_pm_run.py" = ["T201"]
+"scripts/e2e_pm_guard.py" = ["T201"]
+"scripts/e2e_pm_tutor.py" = ["T201"]
 # ``publish-all`` prints its counts: the evidence the migration ran.
 "tutor/relay/cli.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).

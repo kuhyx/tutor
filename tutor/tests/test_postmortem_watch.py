@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 import urllib.request
@@ -102,6 +103,10 @@ def test_a_finished_unit_is_analysed_once_and_its_cards_fixed(
     rows = signed.verified_rows(files.revisions_path(), files.REV_KIND)
     assert rows is not None
     assert [r["detail"]["rev"] for r in rows] == [1]
+    # The guard pays the re-pass only for a done: false signed AFTER the
+    # revision's at (F32, 2026-11-23): the apply's own row must count.
+    undone = json.loads((cur.data_dir / "module_state.json").read_text())
+    assert rows[0]["detail"]["at"] < undone["entries"][-1]["detail"]["at"]
     assert "Teach the sentinel" in lessons.text(_pm.LC)
     assert [t["title"] for t in mcp.tasks] == [
         "Apply post-mortem prefix-sums: future modules + skills"
@@ -116,7 +121,7 @@ def test_a_finished_unit_is_analysed_once_and_its_cards_fixed(
 
 
 def test_a_failure_writes_nothing_files_one_task_and_stops(
-    cur: Context, mcp: FakeTodo, capsys: pytest.CaptureFixture[str]
+    cur: Context, mcp: FakeTodo, caplog: pytest.LogCaptureFixture
 ) -> None:
     calls: list[str] = []
 
@@ -127,7 +132,9 @@ def test_a_failure_writes_nothing_files_one_task_and_stops(
 
     cur.draft = down
     before = dict(cur.subjects.cards(_pm.LC))
-    assert watch.tick(cur, time.time()) == "failed"
+    with caplog.at_level(logging.WARNING, logger=watch.__name__):
+        assert watch.tick(cur, time.time()) == "failed"
+    assert len(caplog.records) == 1  # C5: one warning per failure (F32)
     assert cur.subjects.cards(_pm.LC) == before
     assert report.revisions(_pm.LC, _pm.UNIT) == []
     assert [t["title"] for t in mcp.tasks] == ["Post-mortem prefix-sums failed"]
