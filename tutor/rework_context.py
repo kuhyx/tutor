@@ -73,7 +73,7 @@ def guard_dir() -> Path:
     return Path(found) if found else Path.home() / ".local/share/leetcode_guard"
 
 
-def _read(path: Path) -> object:
+def read_file(path: Path) -> object:
     """The file's JSON; ``None`` when it is missing or unreadable."""
     if not path.is_file():
         return None
@@ -92,15 +92,15 @@ def _num(value: object) -> int:
     return int(value) if isinstance(value, int | float) else 0
 
 
-def _dicts(value: object) -> list[dict[str, Any]]:
+def dict_rows(value: object) -> list[dict[str, Any]]:
     """The dict rows of a list (or of a dict's values); anything else is none."""
     rows = list(value.values()) if isinstance(value, dict) else value
     return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
 
 
 def _submissions(slug: str) -> list[str]:
-    raw = _read(guard_dir() / "history" / f"{slug}.json")
-    rows = _dicts(raw.get("submissions") if isinstance(raw, dict) else None)
+    raw = read_file(guard_dir() / "history" / f"{slug}.json")
+    rows = dict_rows(raw.get("submissions") if isinstance(raw, dict) else None)
     rows.sort(key=lambda r: _num(r.get("timestamp")), reverse=True)
     out = []
     for row in rows[:MAX_SUBMISSIONS]:
@@ -116,8 +116,8 @@ def _submissions(slug: str) -> list[str]:
 
 
 def _days(slug: str) -> list[str]:
-    raw = _read(guard_dir() / "attempts.json")
-    found = _dicts(raw.get("records") if isinstance(raw, dict) else None)
+    raw = read_file(guard_dir() / "attempts.json")
+    found = dict_rows(raw.get("records") if isinstance(raw, dict) else None)
     mine = sorted(
         (r for r in found if r.get("slug") == slug),
         key=lambda r: str(r.get("day")),
@@ -129,7 +129,7 @@ def _days(slug: str) -> list[str]:
             b for b in rec.get("beats") or [] if isinstance(b, list) and len(b) == _BEAT
         ]
         tabs = ", ".join(sorted({str(b[1]) for b in beats})) or "none"
-        subs = [str(v.get("status")) for v in _dicts(rec.get("submissions"))]
+        subs = [str(v.get("status")) for v in dict_rows(rec.get("submissions"))]
         out.append(
             f"{rec.get('day', '?')}: {len(beats)} beats ({tabs}); "
             f"submissions: {', '.join(subs) or 'none'}; "
@@ -138,13 +138,18 @@ def _days(slug: str) -> list[str]:
     return out
 
 
-def _sessions(slug: str) -> list[dict[str, Any]]:
+def sessions_of(slug: str) -> list[dict[str, Any]]:
+    """Every coach session on ``slug``, newest first (the post-mortem reads all)."""
     folder = data_dir() / "lc_sessions"
     paths = sorted(folder.glob("*.json")) if folder.is_dir() else []
-    found = [_read(p) for p in paths]
+    found = [read_file(p) for p in paths]
     mine = [s for s in found if isinstance(s, dict) and s.get("slug") == slug]
     mine.sort(key=lambda s: _num(s.get("updated_ms")), reverse=True)
-    return mine[:MAX_SESSIONS]
+    return mine
+
+
+def _sessions(slug: str) -> list[dict[str, Any]]:
+    return sessions_of(slug)[:MAX_SESSIONS]
 
 
 def _session_text(state: dict[str, Any]) -> str:
@@ -153,7 +158,7 @@ def _session_text(state: dict[str, Any]) -> str:
         lines.append(f"Opening belief: {state['belief']}")
     if state.get("last_code"):
         lines.append(f"Last code:\n```\n{_cap(str(state['last_code']), MAX_CODE)}\n```")
-    for entry in _dicts(state.get("thread"))[-MAX_TAIL:]:
+    for entry in dict_rows(state.get("thread"))[-MAX_TAIL:]:
         who = "kuhy" if entry.get("mine") else "coach"
         lines.append(f"{who}: {_cap(str(entry.get('md')), MAX_ENTRY)}")
     return "\n".join(lines)

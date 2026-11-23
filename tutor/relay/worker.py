@@ -26,6 +26,7 @@ from tutor.relay.inbox import Inbox
 from tutor.relay.lanes import Server
 from tutor.relay.log_wake import LogWake
 from tutor.relay.phone_check import PhoneCheck
+from tutor.relay.postmortem_task import PostmortemWork
 from tutor.relay.presence import Presence
 from tutor.relay.projection import Publisher
 from tutor.relay.protocol import BUILD, CHAT
@@ -130,6 +131,8 @@ class Relay:
         self._spawn(self.curriculum.generate_forever(), "generate")
         work = CardWork(self.w, self.curriculum, self.server.current)
         self._spawn(work.run(), "cards")
+        autopsy = PostmortemWork(self.w, self.curriculum, work.busy)
+        self._spawn(autopsy.run(), "postmortem")
         self.ready.set()
 
     async def _refresh(self) -> None:

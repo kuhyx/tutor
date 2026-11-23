@@ -67,6 +67,11 @@ ignore = [
 "tutor/curriculum/regen.py" = ["T201"]
 # ``redraft`` prints the queue, each unit's state and the report's path.
 "tutor/curriculum/redraft/cli.py" = ["T201"]
+# ``postmortem`` prints the dry run's report and the CLI's outcome lines.
+"tutor/postmortem/dry.py" = ["T201"]
+"tutor/postmortem/cli.py" = ["T201"]
+# The todo MCP URL is http(s) by default; TUTOR_TODO_URL is set by install/tests only.
+"tutor/postmortem/todo.py" = ["S310"]
 # Dev tool: the printed JSON is the smoke run's evidence.
 "scripts/curriculum_smoke.py" = ["T201"]
 "scripts/lc_live_e2e.py" = ["T201"]
