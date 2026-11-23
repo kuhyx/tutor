@@ -46,7 +46,8 @@ def everything() -> list[dict[str, Any]]:
     """Every signed report on file (all subjects), oldest revision first."""
     folder = files.root()
     paths = sorted(folder.glob("*/*.json")) if folder.is_dir() else []
-    docs = [signed.read_doc(p) for p in paths if p.name != "lessons.json"]
+    mine = [p for p in paths if p.parent.name not in files.OWN_DIRS]
+    docs = [signed.read_doc(p) for p in mine if p.name != "lessons.json"]
     return [d for d in docs if d and d.get("kind") == KIND]
 
 

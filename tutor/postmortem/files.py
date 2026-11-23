@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
 FINISH_KIND: Final = "unit_finish"
 PREVIEW_KIND: Final = "unit_preview"
+OWN_DIRS: Final = frozenset({"dry", "failed", "tasks"})
+"""Folders under :func:`root` that hold no subject's reports."""
 REV_KIND: Final = "postmortem_rev"
 
 

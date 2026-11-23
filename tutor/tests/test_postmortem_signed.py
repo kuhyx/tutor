@@ -7,6 +7,8 @@ import asyncio
 import json
 from typing import TYPE_CHECKING
 
+import pytest
+
 from tutor import sources
 from tutor.curriculum.context import Context
 from tutor.postmortem import apply, files, proposal, report, show, signed, todo, watch
@@ -68,8 +70,13 @@ def test_a_document_is_read_only_when_its_signature_holds(tmp_path: Path) -> Non
     assert not signed.valid(3, b"k")
 
 
-def test_earlier_units_rates_and_history_of_revisions() -> None:
+def test_earlier_units_rates_and_history_of_revisions(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     entry = {"rev": 1, "one_shot": {"post": [1, 4]}, "seen": ["p1"]}
+    for own in ("dry/prefix-sums.json", "failed/x-1.json", "tasks/t.filed.json"):
+        (files.root() / own).parent.mkdir(parents=True, exist_ok=True)
+        (files.root() / own).write_text('{"unsigned": true}', encoding="utf-8")
     assert report.save(_pm.LC, "other", entry)
     assert report.save(_pm.LC, _pm.UNIT, {**entry, "seen": ["p2"]})
     assert report.save(_pm.LC, "empty", {})
@@ -79,6 +86,7 @@ def test_earlier_units_rates_and_history_of_revisions() -> None:
         path, {**{k: v for k, v in doc.items() if k != "hmac"}, "revisions": []}
     )
     assert report.earlier(_pm.UNIT) == [{"unit": "other", "rev": 1, "post": [1, 4]}]
+    assert "fails its signature" not in caplog.text  # dry/, failed/, tasks/ skipped
     assert report.seen(_pm.LC, _pm.UNIT) == {"p2"}
     assert proposal._rate([0, 0]) == "n/a"
     assert proposal._rate([1, 4]) == "1/4 (25%)"
