@@ -109,7 +109,9 @@ def test_rows_without_a_taught_card_get_no_c1_keys() -> None:
     assert rows[0]["recorded"] is True
     assert not {"subject", "module"} & set(_ledger()[0]["detail"])
     unit_credit.teaching_units([unit(1)], "early", now=NOON, subject="x", card=None)
-    assert not {"subject", "module"} & set(_ledger()[-1]["detail"])
+    detail = _ledger()[-1]["detail"]
+    assert detail["subject"] == "x"  # the subject only: it picks the row's kind
+    assert "module" not in detail
 
 
 def test_a_trimmed_teaching_row_stays_signed_with_its_module() -> None:
@@ -128,7 +130,7 @@ def test_a_trimmed_teaching_row_stays_signed_with_its_module() -> None:
 def test_backfill_never_tags_another_session_with_the_live_card(
     tmp_path: Path,
 ) -> None:
-    """A backfilled session is not the one on screen: its rows stay untagged."""
+    """A backfilled session is not the one on screen: its own start tags it."""
     first = _teach(tmp_path, credit_fn=FakeCredit(error="down"))
     live = Engine(
         store=Store(tmp_path),
@@ -140,4 +142,36 @@ def test_backfill_never_tags_another_session_with_the_live_card(
     live.backfill_today()
     rows = _ledger()
     assert {r["detail"]["session_id"] for r in rows} == {first.session_id}
-    assert not any({"subject", "module"} & set(r["detail"]) for r in rows)
+    assert {(r["detail"]["subject"], r["detail"]["module"]) for r in rows} == {
+        ("car", "a")  # its own card c0, never c1 on screen
+    }
+    assert {r["kind"] for r in rows} == {"credit"}
+
+
+def test_backfill_names_the_subject_only_when_its_card_is_gone(
+    tmp_path: Path,
+) -> None:
+    first = _teach(tmp_path, credit_fn=FakeCredit(error="down"))
+    path = tmp_path / "sessions" / f"{first.session_id}.jsonl"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = json.loads(lines[0]) | {"subject": "gone"}
+    path.write_text("\n".join([json.dumps(start), *lines[1:]]) + "\n", "utf-8")
+    Engine(store=Store(tmp_path), now=ManualClock(T0 / 1000 + 600)).backfill_today()
+    rows = _ledger()
+    assert rows
+    assert all(r["detail"]["subject"] == "gone" for r in rows)
+    assert not any("module" in r["detail"] for r in rows)
+
+
+def test_a_pre_curriculum_transcript_backfills_as_the_old_deck(
+    tmp_path: Path,
+) -> None:
+    first = _teach(tmp_path, credit_fn=FakeCredit(error="down"))
+    path = tmp_path / "sessions" / f"{first.session_id}.jsonl"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = {k: v for k, v in json.loads(lines[0]).items() if k != "subject"}
+    path.write_text("\n".join([json.dumps(start), *lines[1:]]) + "\n", "utf-8")
+    Engine(store=Store(tmp_path), now=ManualClock(T0 / 1000 + 600)).backfill_today()
+    rows = _ledger()
+    assert rows
+    assert {r["detail"]["subject"] for r in rows} == {"automation"}

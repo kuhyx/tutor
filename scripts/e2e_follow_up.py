@@ -50,7 +50,8 @@ def _ledger(data: Path) -> list[dict[str, Any]]:
     if not path.is_file():
         return []
     rows = json.loads(path.read_text()).get("entries", [])
-    return [r for r in rows if isinstance(r, dict) and r.get("kind") == "credit"]
+    kinds = {"credit", "leetcode_theory"}  # ledger_pay.MINUTE_KINDS
+    return [r for r in rows if isinstance(r, dict) and r.get("kind") in kinds]
 
 
 def _minutes(rows: list[dict[str, Any]], sid: str) -> list[tuple[int, int]]:

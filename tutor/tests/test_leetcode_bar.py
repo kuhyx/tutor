@@ -9,6 +9,7 @@ give is left out, never 0.
 
 from __future__ import annotations
 
+import functools
 import http.client
 import logging
 from typing import TYPE_CHECKING, Any
@@ -119,11 +120,20 @@ def test_full_once_today_reached_the_daily_cap(
     grant((LC, "a"))
     ctx = _ctx(tmp_path)
     cap = ledger_pay.DAILY_CAP_MINUTES
+    asked: list[object] = []
+
+    def today(_at: float, kinds: object, m: int) -> int:
+        asked.append(kinds)
+        return m
+
     for minutes, want in ((cap - 1, False), (cap, True), (cap + 5, True)):
-        monkeypatch.setattr(unit_credit, "ledger_minutes_today", lambda _, m=minutes: m)
+        monkeypatch.setattr(
+            unit_credit, "ledger_minutes_today", functools.partial(today, m=minutes)
+        )
         bar = _bar(ctx)
         assert bar is not None
         assert bar["full"] is want
+    assert asked == [{ledger_pay.LC_CREDIT}] * 3  # the LC kind's own cap
 
 
 @pytest.mark.parametrize(

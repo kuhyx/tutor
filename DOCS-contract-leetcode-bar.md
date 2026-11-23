@@ -28,8 +28,9 @@ All hold, or the key is absent:
 ```
 - `unit`: the signed phase's unit. `taught` / `total`: live (not suspended)
   cards of the card's module, taught / all, from the tutor's own cards and
-  event log. `full`: today's ledger minutes reached
-  `ledger_pay.DAILY_CAP_MINUTES` (no further minute can be recorded today).
+  event log. `full`: today's `leetcode_theory` ledger minutes reached
+  `ledger_pay.DAILY_CAP_MINUTES` (the cap is per row kind: no further
+  LeetCode minute can be recorded today).
 - `into`, `per_credit`, `credits`, `needed` are the guard's, from
   `GET http://127.0.0.1:8771/api/theory`:
   `{"theory": {"checked", "day", "unit", "phase", "minutes_today",

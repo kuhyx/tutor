@@ -4,15 +4,14 @@
 The learner must know *when minutes are earned* and whether they counted, so
 every write is read back and verified; only a row surviving that is "recorded".
 
-The row contract is ``earned_time`` 0.8.0's (its README, "tutor row
-contract"): ``detail.minutes`` is the positive int of active minutes the row
-pays (a row without it is a legacy 15-minute block); ``entry_id`` is
-``<session>-m<n>`` with ``n`` the session's LAST credited minute in the row, so
-a retry rewrites the same id and rows never overlap; ``detail.ended_at`` is
-when that last minute ended and picks the day, so a row never spans local
-midnight (the caller splits). An ``entry_id`` is never written twice; the
-writer's own cap sums verified minutes (legacy rows as 15) up to
-:data:`DAILY_CAP_MINUTES` a local day, trimming a row that would cross it.
+The row contract is ``earned_time`` 0.8.0's (README "tutor row contract"):
+``detail.minutes`` is the positive int of active minutes the row pays (none:
+a legacy 15-minute block); ``entry_id`` is ``<session>-m<n>``, ``n`` the
+session's LAST credited minute in the row, so a retry rewrites the same id
+and rows never overlap; ``detail.ended_at`` (when that minute ended) picks
+the day, so a row never spans midnight (the caller splits). ``kind``:
+``ledger_pay.kind_for`` the subject. No ``entry_id`` is written twice; the cap
+sums one kind's verified minutes (legacy: 15) to :data:`DAILY_CAP_MINUTES` a day.
 """
 
 from __future__ import annotations
@@ -36,10 +35,11 @@ from tutor.ledger_io import (
     write_rows,
 )
 from tutor.ledger_pay import (
-    CREDIT,
     DAILY_CAP_MINUTES,
     LEGACY_MINUTES,
+    MINUTE_KINDS,
     Taught,
+    kind_for,
     minutes_between,
     minutes_of,
     paying,
@@ -60,8 +60,8 @@ _logger = logging.getLogger(__name__)
 class CreditReceipt:
     """``recorded`` only if the re-read file holds the row verified; else ``error``.
 
-    ``minutes`` is what the row finally paid (0 when refused); ``minutes_today``
-    is today's verified total in the ledger, capped at the daily cap.
+    ``minutes``: what the row paid (0 if refused); ``minutes_today``: today's
+    verified ``credit`` minutes in the ledger (capped), the tutor bonus's.
     """
 
     recorded: bool
@@ -96,12 +96,12 @@ def entry_id_for(session_id: str, last_minute: int) -> str:
 
 
 def session_minutes(session_id: str, *, paths: Paths | None = None) -> set[int]:
-    """The minutes of ``session_id`` the LEDGER's verified rows pay.
+    """The minutes of ``session_id`` the LEDGER's verified rows (either kind) pay.
 
     The only truth for "already paid" (a receipt can say "failed" for a write
     that landed). ``-m<n>`` with ``detail.minutes`` k covers ``n-k+1..n``, a
-    legacy ``-b<n>`` covers ``15 (n-1)+1..15 n``. Unreadable key or ledger:
-    nothing is known paid; the write that follows reports the failure.
+    legacy ``-b<n>`` ``15 (n-1)+1..15 n``. Unreadable key or ledger: nothing
+    known paid; the write that follows reports the failure.
     """
     where = paths or default_paths()
     key = read_key(where.key_file)
@@ -113,7 +113,7 @@ def session_minutes(session_id: str, *, paths: Paths | None = None) -> set[int]:
     own = re.compile(rf"{re.escape(session_id)}-([bm])(\d+)", re.ASCII)
     paid: set[int] = set()
     for row in rows:
-        if not (key and isinstance(row, dict) and row.get("kind") == CREDIT):
+        if not (key and isinstance(row, dict) and row.get("kind") in MINUTE_KINDS):
             continue
         found = own.fullmatch(str(row.get("entry_id")))
         if found is None or not earned_time.verified(row, key):
@@ -147,7 +147,7 @@ def build_row(
     }
     detail |= {k: str(v) for k, v in taught.items()}
     row: dict[str, object] = {
-        "kind": CREDIT,
+        "kind": kind_for(taught.get("subject")),
         "entry_id": entry_id_for(session_id, last.block),
         "day": local_day(float(last.ended_at))[0],
         "created_at": float(now),
@@ -176,7 +176,7 @@ def append_locked(
             return None, 0
         return "entry_id already present (unverified or another day)", 0
     _, lo, hi = local_day(float(detail["ended_at"]))
-    room = DAILY_CAP_MINUTES - minutes_between(paying(rows, key), lo, hi)
+    room = DAILY_CAP_MINUTES - minutes_between(paying(rows, key, {row["kind"]}), lo, hi)
     if room <= 0:
         return DAILY_CAP_ERROR, 0
     if detail["minutes"] > room:  # trim to the remainder; the id is unchanged
@@ -195,19 +195,21 @@ def _refused(entry_id: str, error: str) -> CreditReceipt:
 
 
 def _read_back(
-    paid_rows: dict[str, tuple[float, int]],
+    stored: list[object],
+    key: bytes,
     entry_id: str,
-    refusal: str | None,
-    paid: int,
+    outcome: tuple[str | None, int],
     moment: float,
 ) -> CreditReceipt:
-    """The receipt from the re-read ledger: recorded only if the row is there."""
+    """The re-read ledger's receipt for ``append_locked``'s (refusal, paid)."""
+    refusal, paid = outcome
+    paid_rows = paying(stored, key, MINUTE_KINDS)
     if refusal is None and entry_id not in paid_rows:
         refusal = "row not found verified on read-back"
-    _, lo, hi = local_day(moment)
-    today = minutes_between(paid_rows, lo, hi)
     if refusal is None and not paid:  # an identical row was already there
         paid = paid_rows[entry_id][1]
+    _, lo, hi = local_day(moment)
+    today = minutes_between(paying(stored, key), lo, hi)  # the tutor bonus's
     return CreditReceipt(refusal is None, paid, today, entry_id, refusal)
 
 
@@ -240,9 +242,9 @@ def credit_span(
     row = build_row(last, minutes, session_id, key, now=now, **taught)
     try:
         with exclusive(where.lock):
-            refusal, paid = append_locked(row, where.ledger, key)
+            outcome = append_locked(row, where.ledger, key)
             stored = read_rows(where.ledger)
     except (LedgerError, OSError) as exc:
         _logger.warning("credit %s not recorded: %s", entry_id, exc)
         return _refused(entry_id, str(exc))
-    return _read_back(paying(stored, key), entry_id, refusal, paid, now)
+    return _read_back(stored, key, entry_id, outcome, now)

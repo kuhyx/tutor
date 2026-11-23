@@ -192,12 +192,17 @@ def source_for(store: Store, ctx: Context, subject: str | None = None) -> CardSo
     raise RequestError(BAD_REQUEST, msg)
 
 
-def transcript_subject(path: Path) -> str | None:
-    """The ``subject`` of a transcript's ``start`` event (None: pre-curriculum)."""
+def transcript_start(path: Path) -> dict[str, Any]:
+    """A transcript's ``start`` event (``{}``: it has none)."""
     with path.open(encoding="utf-8") as handle:
         for line in handle:
             event = json.loads(line) if line.strip() else {}
             if isinstance(event, dict) and event.get("type") == "start":
-                found = event.get("subject")
-                return found if isinstance(found, str) else None
-    return None
+                return event
+    return {}
+
+
+def transcript_subject(path: Path) -> str | None:
+    """The ``subject`` of a transcript's ``start`` event (None: pre-curriculum)."""
+    found = transcript_start(path).get("subject")
+    return found if isinstance(found, str) else None

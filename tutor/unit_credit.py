@@ -32,7 +32,7 @@ from tutor import clock, credit, focus_hook, ledger_pay
 from tutor.ledger_io import LedgerError, default_paths, read_key, read_rows
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Collection, Iterable
 
     from tutor.cards import Card
     from tutor.clock import BlockReady
@@ -125,11 +125,14 @@ def teaching_units(
 
     The rows name the subject and the card's module (its topic stem; for a
     curriculum subject the plan's module id), so a reader can tell which
-    module the minutes taught (contract C1). Drill, app review, Anki,
-    leftover and carry rows never come through here.
+    module the minutes taught (contract C1); with no card, the subject only
+    (it still picks the row's kind, ``ledger_pay.kind_for``). Drill, app
+    review, Anki, leftover and carry rows never come through here.
     """
     taught = (
-        ledger_pay.Taught(subject=subject, module=card.topic.stem) if card else None
+        ledger_pay.Taught(subject=subject, module=card.topic.stem)
+        if card
+        else ledger_pay.Taught(subject=subject)
     )
     return credit_units(units, session_id, now=now, subject=subject, taught=taught)
 
@@ -157,17 +160,21 @@ def minutes_today(receipts: Iterable[dict[str, Any]]) -> int:
     )
 
 
-def ledger_minutes_today(at: float) -> int:
-    """What the ledger's verified rows pay on ``at``'s local day (every source).
+def ledger_minutes_today(
+    at: float, kinds: Collection[str] = ledger_pay.BONUS_KINDS
+) -> int:
+    """What the ledger's verified rows of ``kinds`` pay on ``at``'s local day.
 
-    The ledger's own word, not a receipt's: 0 when the key or ledger is unreadable.
+    Every source (lessons, reviews, Anki, leftover, carry); by default the
+    tutor bonus's ``credit`` rows. The ledger's own word, not a receipt's: 0
+    when the key or ledger is unreadable.
     """
     where = default_paths()
     key = read_key(where.key_file)
     if key is None:
         return 0
     try:
-        paid = ledger_pay.paying(read_rows(where.ledger), key)
+        paid = ledger_pay.paying(read_rows(where.ledger), key, kinds)
     except LedgerError as exc:
         _logger.warning("ledger unreadable, today's credit unknown: %s", exc)
         return 0

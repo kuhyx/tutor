@@ -5,15 +5,31 @@ A row pays ``detail.minutes`` (15 if absent: a legacy block; 0 if invalid);
 repeats of one ``entry_id`` pay their smallest count; a local day is capped
 at :data:`DAILY_CAP_MINUTES`: earned_time's own 60 plus room for the
 carry-over bank (:mod:`tutor.carry`), so extra minutes are recorded to be banked.
+
+Two kinds of minute row (kuhy, 2026-11-23). A minute taught or reviewed on a
+GATED LeetCode subject (``theory_phase.GATED``) is :data:`LC_CREDIT`:
+leetcode-guard pays it as theory minutes, and the tutor bonus (earned_time
+counts ``credit`` only) and the carry bank never do. Every other minute is
+:data:`CREDIT`. "Already paid" (``credit.session_minutes``) reads both
+(:data:`MINUTE_KINDS`); what pays the tutor bonus reads :data:`BONUS_KINDS`;
+the daily cap is per kind.
 """
 
 from __future__ import annotations
 
-from typing import Final, TypedDict
+from typing import TYPE_CHECKING, Final, TypedDict
 
 import earned_time
 
+from tutor.curriculum.theory_phase import GATED
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
+
 CREDIT: Final = "credit"
+LC_CREDIT: Final = "leetcode_theory"  # a GATED subject's minute: the guard's only
+BONUS_KINDS: Final = frozenset({CREDIT})
+MINUTE_KINDS: Final = frozenset({CREDIT, LC_CREDIT})
 LEGACY_MINUTES: Final = 15  # a row without ``detail.minutes`` pays this
 # What one day's minutes can earn at most (earned_time clamps its units at 60).
 EARNER_CAP_MINUTES: Final = 60
@@ -36,6 +52,11 @@ class Taught(TypedDict, total=False):
     activity: str  # "review" on a review minute, absent on a lesson
 
 
+def kind_for(subject: object) -> str:
+    """The row kind of a minute on ``subject``: :data:`LC_CREDIT` if it is GATED."""
+    return LC_CREDIT if subject in GATED else CREDIT
+
+
 def minutes_of(row: dict[str, object]) -> int:
     """What a verified credit row pays: ``detail.minutes``, 15 if absent, 0 if bad."""
     detail = row.get("detail")
@@ -46,14 +67,17 @@ def minutes_of(row: dict[str, object]) -> int:
     return int(minutes) if ok else 0
 
 
-def paying(rows: list[object], key: bytes) -> dict[str, tuple[float, int]]:
-    """``entry_id`` -> (``detail.ended_at``, minutes) of every verified credit row.
+def paying(
+    rows: list[object], key: bytes, kinds: Collection[str] = BONUS_KINDS
+) -> dict[str, tuple[float, int]]:
+    """``entry_id`` -> (``detail.ended_at``, minutes) of verified rows of ``kinds``.
 
-    Repeats of one id pay the smallest count, as the earner reads them.
+    Repeats of one id pay the smallest count, as the earner reads them. The
+    default is what pays the tutor bonus (``credit`` rows only).
     """
     found: dict[str, tuple[float, int]] = {}
     for row in rows:
-        if not isinstance(row, dict) or row.get("kind") != CREDIT:
+        if not isinstance(row, dict) or row.get("kind") not in kinds:
             continue
         detail = row.get("detail")
         ended = detail.get("ended_at") if isinstance(detail, dict) else None

@@ -5,9 +5,10 @@ Contract: ``DOCS-contract-carry.md``. The balance is never stored; it is
 derived from the verified ledger on every call, like leetcode-guard's
 credit bank. From :data:`CARRY_FROM`, day by day:
 ``balance = clamp(balance - spent_d + max(0, paid_d - quota_d), 0, BANK_CAP)``,
-where ``paid_d`` counts every verified tutor minute ending on ``d`` (carry rows
-included) and ``spent_d`` the carry rows of ``d`` the ledger holds. A day the
-worker never spent on keeps its balance.
+where ``paid_d`` counts every verified ``credit`` minute ending on ``d`` (carry
+rows included; never a ``leetcode_theory`` one, the guard's) and ``spent_d``
+the carry rows of ``d`` the ledger holds. A day the worker never spent on
+keeps its balance.
 
 Today's carry is ``min(balance before today, quota today)``. :func:`spend`
 tops the ledger up to it with one signed ``credit`` row, ``entry_id``

@@ -161,3 +161,18 @@ a sandbox: it exits 1 when nothing answers on that port.
 `teachable` (`theory_phase.overlay` at publish time; `plan.json` never stores
 it). A phase change re-PUTs only the plan at the same rev and moves
 `rev.catalog`. Ungated subjects have no such key.
+
+## Row kinds: LeetCode minutes pay the guard only (kuhy, 2026-11-23)
+A lesson, drill or app-review minute on a `GATED` subject is written to
+`ledger.json` as `kind: "leetcode_theory"` (`ledger_pay.LC_CREDIT`,
+`ledger_pay.kind_for`); every other minute stays `kind: "credit"`. Same
+`entry_id`, `detail` and signature rules as a C1 credit row.
+- earned_time's tutor earner and the carry bank count `credit` only, so a
+  LeetCode minute never pays or banks the tutor bonus; leetcode-guard reads
+  both kinds as theory minutes.
+- "Already paid" (`credit.session_minutes`) reads both kinds, so a session
+  that crosses the change is paid each minute once.
+- The writer's 160-minute daily cap is per kind; the LeetCode bar's `full`
+  reads the LeetCode kind.
+- Rows written before 2026-11-23 keep their kind (never rewritten). Tests:
+  `tutor/tests/test_lc_credit_kind.py`.

@@ -105,7 +105,8 @@ def session_map(
     if grant is None or rec is None or (subject, rec.module) not in grant.pairs:
         return None
     taught, total = _counts(ctx, subject, rec.module, cards)
-    full = unit_credit.ledger_minutes_today(at) >= ledger_pay.DAILY_CAP_MINUTES
+    lc_today = unit_credit.ledger_minutes_today(at, {ledger_pay.LC_CREDIT})
+    full = lc_today >= ledger_pay.DAILY_CAP_MINUTES  # the LC kind's own cap
     local = {"unit": grant.unit, "taught": taught, "total": total, "full": full}
     return local | _guard_numbers(grant.unit, at)
 

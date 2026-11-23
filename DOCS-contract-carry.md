@@ -15,6 +15,8 @@ every call. Nothing else holds it, so there is no state to drift.
   weekend), never a copy in this repo.
 - `paid_d` = verified tutor minutes whose `detail.ended_at` falls on local day
   `d`, carry rows included (`ledger_pay.paying`; one `entry_id` pays once).
+  Only `kind: "credit"` rows: a LeetCode minute (`leetcode_theory`,
+  `DOCS-contract-theory-phase.md` "Row kinds") is the guard's and never banks.
 - `spent_d` = minutes of the verified carry rows of day `d` in the ledger.
 - `deposit_d` = `max(0, paid_d - quota_d)`.
 - From `CARRY_FROM` = 2026-10-23, day by day in order:

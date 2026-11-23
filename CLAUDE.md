@@ -15,6 +15,11 @@ Read README.md first. These are the invariants that are easy to break.
   every POST/PUT/PATCH/DELETE: a cross-site `text/plain` POST or a DNS-rebound
   name must never reach `/api/start` (it runs Claude). Pass `port=` to
   `create_app`; scripted clients must send `Content-Type: application/json`.
+- **LeetCode minutes never pay the tutor bonus.** A minute on a
+  `theory_phase.GATED` subject is a `kind: "leetcode_theory"` row
+  (`ledger_pay.kind_for`), which leetcode-guard pays and earned_time and the
+  carry bank skip. A reader of "already paid" must use `MINUTE_KINDS`; one of
+  the tutor bonus `BONUS_KINDS` (`DOCS-contract-theory-phase.md` "Row kinds").
 - **Tests never touch real data.** `tutor/tests/conftest.py` moves HOME, the
   data dir, the ledger key and the image cache into `tmp_path` and blocks
   the network. Keep it that way; the real ledger mints gaming time.

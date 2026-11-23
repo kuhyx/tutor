@@ -7,6 +7,7 @@ checker.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -14,7 +15,8 @@ from tutor import backfill, leftover, repair, resume, unit_credit
 from tutor.clock import EngagementClock
 from tutor.conversation import Conversation
 from tutor.curriculum import module_state, review_due
-from tutor.curriculum.source import transcript_subject
+from tutor.curriculum.deck_source import DEFAULT_SUBJECT
+from tutor.curriculum.source import transcript_start, transcript_subject
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -25,6 +27,8 @@ if TYPE_CHECKING:
     from tutor.curriculum.context import Context
     from tutor.curriculum.source import CardSource
     from tutor.store import Store
+
+_logger = logging.getLogger(__name__)
 
 
 class Upkeep:
@@ -61,16 +65,36 @@ class Upkeep:
         return repair.unrefuse_done_cards(self.store, self._source_for)
 
     def _pay(self, units: list[BlockReady], sid: str) -> list[dict[str, Any]]:
-        """The default writer: the live session's rows name its card's module (C1).
+        """The default writer: each row names its own session's subject and module (C1).
 
-        Backfill pays other sessions through it too; the card on screen is not
-        theirs, so their rows stay untagged (never the wrong module).
+        Backfill pays other sessions through it too: their tags come from their
+        own transcript's ``start``, never from the card on screen. The subject
+        picks the row's kind (``ledger_pay.kind_for``), so a LeetCode session's
+        backfilled minutes never pay the tutor bonus either.
         """
-        card = self.card if sid == self.session_id else None
-        subject = self.source.subject
+        if sid == self.session_id:
+            subject, card = self.source.subject, self.card
+        else:
+            subject, card = self._own_card(sid)
         return unit_credit.teaching_units(
             units, sid, now=self.time(), subject=subject, card=card
         )
+
+    def _own_card(self, sid: str) -> tuple[str, Card | None]:
+        """A non-live session's subject and card, read from its transcript.
+
+        The card is ``None`` (the rows then name the subject only) when it or
+        its subject is gone or unreadable.
+        """
+        start = transcript_start(self.store.root / "sessions" / f"{sid}.jsonl")
+        found = start.get("subject")
+        subject = found if isinstance(found, str) else DEFAULT_SUBJECT
+        try:
+            cards = self._source_for(subject).cards()
+        except (OSError, ValueError) as exc:  # RequestError: subject gone
+            _logger.warning("backfill %s: no card of %s (%s)", sid, subject, exc)
+            return subject, None
+        return subject, next((c for c in cards if c.id == start.get("card")), None)
 
     def backfill_today(self) -> None:
         """Credit minutes today's transcripts earned but never got paid (idempotent)."""
