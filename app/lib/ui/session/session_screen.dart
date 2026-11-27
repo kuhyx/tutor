@@ -64,8 +64,9 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   late final SessionFeed _feed = SessionFeed(
-    widget.services.stream,
+    _s.stream,
     subject: widget.subject,
+    kv: _s.kv,
   );
   late final RequestRunner _runner = RequestRunner(
     widget.services.relay,

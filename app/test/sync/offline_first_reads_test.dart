@@ -27,14 +27,34 @@ const _reviewed = {
 
 final _read = RegExp(r'\bclient\.(get|keys)\(');
 
+/// File -> stream listens it opens, as for [_reviewed].
+const _reviewedListens = {
+  // `live` + the session: kept by session_kept.dart;
+  // test/session/session_feed_kept_test.dart
+  'lib/session/session_feed.dart': 2,
+  // live-only: which workers are up now; a kept copy would claim a dead
+  // worker is alive
+  'lib/presence/presence_watcher.dart': 1,
+};
+
+final _listen = RegExp(r'stream\.listen\(');
+
+Map<String, int> _count(RegExp pattern) {
+  final found = <String, int>{};
+  for (final f in Directory('lib').listSync(recursive: true)) {
+    if (f is! File || !f.path.endsWith('.dart')) continue;
+    final n = pattern.allMatches(f.readAsStringSync()).length;
+    if (n > 0) found[f.path] = n;
+  }
+  return found;
+}
+
 void main() {
   test('every database read is on the reviewed offline-first list', () {
-    final found = <String, int>{};
-    for (final f in Directory('lib').listSync(recursive: true)) {
-      if (f is! File || !f.path.endsWith('.dart')) continue;
-      final n = _read.allMatches(f.readAsStringSync()).length;
-      if (n > 0) found[f.path] = n;
-    }
-    expect(found, _reviewed);
+    expect(_count(_read), _reviewed);
+  });
+
+  test('every stream listen is on the reviewed offline-first list', () {
+    expect(_count(_listen), _reviewedListens);
   });
 }

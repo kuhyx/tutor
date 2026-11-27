@@ -6,7 +6,9 @@
 /// a Send's PUT (2026-10-20). A reconnect resends the whole session.
 ///
 /// When `live` turns null (after Stop here) the last session stays on screen,
-/// read-only, as the web page keeps its hash on the stopped session.
+/// read-only, as the web page keeps its hash on the stopped session. With a
+/// `kv` the last session is kept on this install (`session_kept.dart`) and a
+/// cold start shows it before the stream answers.
 library;
 
 import 'dart:async';
@@ -19,6 +21,8 @@ import 'package:tutor/model/message.dart';
 import 'package:tutor/model/root.dart';
 import 'package:tutor/model/session.dart';
 import 'package:tutor/model/trace.dart';
+import 'package:tutor/session/session_kept.dart';
+import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rtdb_event.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -89,10 +93,15 @@ SessionMeta? parseMeta(Object? node) {
 /// Follows the live session.
 class SessionFeed {
   /// Creates the feed over [_stream]; with [subject] it follows `live` only
-  /// while `live` is a session of that subject.
-  new(this._stream, {this.subject});
+  /// while `live` is a session of that subject. With [kv] the last session
+  /// is kept there and shown first on the next start.
+  new(this._stream, {this.subject, this.kv});
 
   final RtdbStream _stream;
+
+  /// Where the last session is kept (null: not kept).
+  final KvStore? kv;
+  String? _kept;
 
   /// The subject whose live session is followed (null: any).
   final String? subject;
@@ -119,6 +128,7 @@ class SessionFeed {
   /// was on screen is re-followed from a fresh snapshot.
   void start() {
     if (_liveSub != null) return;
+    if (view.value == null) unawaited(_restore());
     _liveSub = _stream.listen(Paths.live).listen((event) {
       if (event is! RtdbPut && event is! RtdbPatch) return;
       _liveTree = applyEvent(_liveTree, event);
@@ -137,6 +147,14 @@ class SessionFeed {
     });
     final shown = view.value?.sid;
     if (shown != null && _sessionSub == null) _subscribe(shown);
+  }
+
+  Future<void> _restore() async {
+    final store = kv;
+    if (store == null) return;
+    final kept = await keptSession(store, keptSessionKey(subject));
+    // The stream may have answered first: its view is newer.
+    if (view.value == null && kept != null) view.value = kept;
   }
 
   bool _mine(Live live) => subject == null || live.subject == subject;
@@ -167,6 +185,13 @@ class SessionFeed {
       // The turn's thinking / research, live (DOCS-contract §6).
       progress: LiveProgress.parse(getAt(tree, 'progress')),
     );
+    final store = kv;
+    if (store == null) return;
+    // Progress events re-publish often; write only when meta/msgs moved.
+    final kept = encodeKeptSession(sid, tree);
+    if (kept == _kept) return;
+    _kept = kept;
+    unawaited(keepSession(store, keptSessionKey(subject), kept));
   }
 
   void _cancelSession() {
