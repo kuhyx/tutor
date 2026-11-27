@@ -10,6 +10,7 @@ import 'dart:developer';
 
 import 'package:tutor/home/catalog.dart';
 import 'package:tutor/home/home_snapshot.dart';
+import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/card.dart';
@@ -20,6 +21,7 @@ import 'package:tutor/model/stats.dart';
 import 'package:tutor/model/subject.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/storage/kv_store.dart';
+import 'package:tutor/sync/put_outbox.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 
 export 'package:tutor/home/home_snapshot.dart';
@@ -45,6 +47,7 @@ class UnsupportedSchema implements Exception {
 }
 
 const String _cacheKey = kCatalogCacheKey;
+const _currentKey = 'home.current_subject';
 
 /// Loads [HomeSnapshot]s.
 class HomeLoader {
@@ -54,6 +57,7 @@ class HomeLoader {
     required this.kv,
     required this.events,
     this.flushMore,
+    this.outbox,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -68,6 +72,10 @@ class HomeLoader {
 
   /// Other offline queues pushed with the log (History's archive flags).
   final Future<Object?> Function()? flushMore;
+
+  /// Client writes made on this install (the picked subject among them),
+  /// pushed with the log; a queued pick wins over the database's.
+  final PutOutbox? outbox;
   final DateTime Function() _now;
 
   /// Loads Home. Throws [UnsupportedSchema]; network failures fall back
@@ -91,6 +99,9 @@ class HomeLoader {
       today = t == null ? null : Today.fromJson(asJson(t, 'today'));
       final p = await client.get(Paths.prefs);
       current = p == null ? null : Prefs.fromJson(asJson(p)).currentSubject;
+      await (current == null
+          ? kv.remove(_currentKey)
+          : kv.set(_currentKey, current));
       final l = await client.get(Paths.live);
       live = l == null ? null : Live.fromJson(asJson(l, 'live'));
     } on RtdbError catch (error) {
@@ -98,7 +109,11 @@ class HomeLoader {
       if (cached == null) rethrow;
       log('database unreachable; Home from cache', level: 900, error: error);
       catalog = asJson(jsonDecode(cached));
+      current = await kv.get(_currentKey);
       offline = true;
+    }
+    if (await outbox?.pendingAt(currentSubjectPath) case final String pick) {
+      current = pick;
     }
     await _syncLog(offline: offline);
     final snap = await _build(
@@ -142,6 +157,7 @@ class HomeLoader {
     try {
       // First: it never throws, so a log failure cannot hold it back.
       await flushMore?.call();
+      await outbox?.flush();
       await events.flush();
       await events.pull();
     } on Object catch (error) {

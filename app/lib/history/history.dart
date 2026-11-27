@@ -16,6 +16,7 @@ import 'package:tutor/model/session.dart';
 import 'package:tutor/model/session_index.dart';
 import 'package:tutor/session/session_feed.dart';
 import 'package:tutor/storage/kv_store.dart';
+import 'package:tutor/sync/retry_backoff.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 
 export 'package:tutor/history/kept_then_live.dart';
@@ -191,6 +192,7 @@ class HistoryRepo {
   }
 
   AppLifecycleListener? _lifecycle;
+  late final _backoff = RetryBackoff(flush);
 
   /// Runs [flush] each time the app comes back on screen (the app calls
   /// this once; tests pass their [binding]).
@@ -202,7 +204,8 @@ class HistoryRepo {
   }
 
   /// Pushes queued archive flags. A failure keeps the rest queued for the
-  /// next call (every History load, Home load, app resume and archive).
+  /// next call (every History load, Home load, app resume and archive)
+  /// and for a backoff retry.
   /// Returns how many were written.
   Future<int> flush() async {
     var written = 0;
@@ -215,11 +218,13 @@ class HistoryRepo {
         );
       } on RtdbError catch (error) {
         log('archive flag kept queued', level: 800, error: error);
+        _backoff.failed();
         return written;
       }
       await store.pushed(sid, archived: archived);
       written++;
     }
+    _backoff.ok();
     return written;
   }
 }

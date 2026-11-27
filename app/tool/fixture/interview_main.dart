@@ -26,6 +26,7 @@ import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
+import 'package:tutor/sync/put_outbox.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/ui_zoom.dart';
@@ -157,6 +158,7 @@ Future<TutorServices> _open() async {
   final stream = FixtureStream(client, () => db.root, worker: standIn.answer);
   final ulid = UlidGenerator();
   final events = EventLog(client: client, kv: kv, dev: _dev, ulid: ulid);
+  final outbox = PutOutbox(client, kv);
   return TutorServices(
     config: _config,
     dev: _dev,
@@ -169,10 +171,11 @@ Future<TutorServices> _open() async {
     beacon: ClientBeacon(client: client, dev: _dev, platform: 'android'),
     rev: RevWatcher(stream),
     events: events,
-    home: HomeLoader(client: client, kv: kv, events: events),
+    home: HomeLoader(client: client, kv: kv, events: events, outbox: outbox),
     catalog: Catalog(client: client, kv: kv),
     history: HistoryRepo(client, kv),
-    feedback: FeedbackSender(client: client, dev: _dev, ulid: ulid),
+    feedback: FeedbackSender(outbox: outbox, dev: _dev, ulid: ulid),
+    outbox: outbox,
     // On a phone the real check-in alarm and notifications, as in the app.
     checkinNotifier: platformCheckinNotifier(),
   );

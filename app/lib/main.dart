@@ -31,15 +31,20 @@ Future<void> main() async {
   runApp(
     TutorApp(
       config: FirebaseConfig.compiled,
-      open: () => TutorServices.open(
-        FirebaseConfig.compiled,
-        // The desktop (web) build adopts the PC's session from its server.
-        wrapperBase: kIsWeb ? Uri.base : null,
-        checkinNotifier: kIsWeb
-            ? createWebCheckinNotifier()
-            : platformCheckinNotifier(),
-        // Back in the app: archive flags queued offline are pushed.
-      ).then((s) => s..history.flushOnShow()),
+      open: () =>
+          TutorServices.open(
+            FirebaseConfig.compiled,
+            // The desktop (web) build adopts the PC's session from its server.
+            wrapperBase: kIsWeb ? Uri.base : null,
+            checkinNotifier: kIsWeb
+                ? createWebCheckinNotifier()
+                : platformCheckinNotifier(),
+            // Back in the app: writes queued offline are pushed.
+          ).then(
+            (s) => s
+              ..history.flushOnShow()
+              ..outbox.flushOnShow(),
+          ),
       zoom: zoom,
       initialRoute: route,
     ),

@@ -123,7 +123,7 @@ class BlockedPanel extends StatelessWidget {
     );
     if (id != null) {
       try {
-        await setCurrentSubject(services.client, id);
+        await setCurrentSubject(services.outbox, id);
       } on Exception catch (_) {
         // Offline: Home still opens, on the last pick.
       }

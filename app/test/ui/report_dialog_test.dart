@@ -54,15 +54,14 @@ void main() {
     await t.tap(find.byKey(const ValueKey('report-ui')));
     await t.pumpAndSettle();
     await t.enterText(find.byType(TextField), 'same image twice');
+    // Offline: saved on the device at once, pushed once the DB answers.
     db.offline = true;
     await t.tap(glyphsLabelled('Save report'));
     await t.pumpAndSettle();
-    expect(find.text('same image twice'), findsOneWidget);
-    expect(cueOfKind(CueKind.error), findsOneWidget);
-    db.offline = false;
-    await t.tap(glyphsLabelled('Save report'));
-    await t.pumpAndSettle();
     expect(cueOfKind(CueKind.ok), findsOneWidget); // saved
+    expect(getAt(db.root, 'tutor/v1-e2e/feedback'), isNull);
+    db.offline = false;
+    expect(await s.outbox.flush(), 1);
     final fb = getAt(db.root, 'tutor/v1-e2e/feedback')! as Map;
     final report = fb.values.single as Map;
     expect(report['category'], 'ui');

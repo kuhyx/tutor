@@ -18,6 +18,7 @@ import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
+import 'package:tutor/sync/put_outbox.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -64,6 +65,7 @@ TutorServices services(
   final ulid = UlidGenerator();
   final events = EventLog(client: client, kv: store, dev: testDev, ulid: ulid);
   final history = HistoryRepo(client, store);
+  final outbox = PutOutbox(client, store);
   final relay = RequestRelay(
     client: client,
     stream: stream,
@@ -87,9 +89,11 @@ TutorServices services(
       kv: store,
       events: events,
       flushMore: history.flush,
+      outbox: outbox,
     ),
     catalog: Catalog(client: client, kv: store),
     history: history,
-    feedback: FeedbackSender(client: client, dev: testDev, ulid: ulid),
+    feedback: FeedbackSender(outbox: outbox, dev: testDev, ulid: ulid),
+    outbox: outbox,
   );
 }

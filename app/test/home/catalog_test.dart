@@ -52,9 +52,6 @@ void main() {
     final db = FakeRtdb();
     final client = db.client();
     expect(await fetchStats(client), isNull);
-    await setCurrentSubject(client, 'car');
-    expect(getAt(db.root, 'tutor/v1-e2e/prefs/current_subject'), 'car');
-    expect(() => setCurrentSubject(client, 'B A D'), throwsArgumentError);
     db.root = setAt(db.root, 'tutor/v1-e2e/stats', stats);
     expect((await fetchStats(client))!.today.target, 60);
   });

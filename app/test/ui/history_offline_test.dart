@@ -65,5 +65,21 @@ void main() {
     db.offline = false;
     await again.home.load();
     expect(getAt(db.root, '$_old/user/archived'), isTrue);
+    // The first run's waiting retry finds nothing left to push.
+    await t.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('a failed archive push retries by itself', (t) async {
+    final db = fixtureDb();
+    final s = await fixtureServices(db, FakeStream());
+    await pumpScreen(t, TranscriptScreen(services: s, sid: _sid));
+    db.offline = true;
+    await t.tap(controlByLabel('Archive'));
+    await t.pumpAndSettle();
+    db.offline = false;
+    expect(getAt(db.root, '$_old/user/archived'), isNot(isTrue));
+    await t.pump(const Duration(seconds: 5)); // the backoff's first wait
+    await t.pumpAndSettle();
+    expect(getAt(db.root, '$_old/user/archived'), isTrue);
   });
 }

@@ -4,7 +4,9 @@ The phone (Android) and desktop (web build in a Chrome `--app` window) client
 for the tutor. It talks only to the Firebase RTDB relay described in
 `../DOCS-contract.md` and `../DOCS-contract-curriculum.md`; the PC Python
 worker answers. Card review works offline; History (list, opened transcripts,
-Archive) is kept on the device and reads offline too.
+Archive) is kept on the device and reads offline too. The picked subject and
+problem reports land on the device first (`lib/sync/put_outbox.dart`) and are
+pushed on Home load, app resume and a backoff retry.
 
 ## Firebase identifiers (never committed)
 

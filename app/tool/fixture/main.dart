@@ -36,6 +36,7 @@ import 'package:tutor/session/answers.dart' show answersDraftKey;
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/json_tree.dart';
+import 'package:tutor/sync/put_outbox.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/ui/session/thinking_panel.dart' show debugThinkingOpen;
@@ -128,6 +129,7 @@ Future<TutorServices> _open() async {
   );
   final ulid = UlidGenerator();
   final events = EventLog(client: client, kv: kv, dev: _dev, ulid: ulid);
+  final outbox = PutOutbox(client, kv);
   for (final c in fixtureTaught) {
     await events.record(
       TaughtEvent(subject: 'car', card: c, at: now - 30 * 86400000),
@@ -155,10 +157,11 @@ Future<TutorServices> _open() async {
     beacon: ClientBeacon(client: client, dev: _dev, platform: 'web'),
     rev: RevWatcher(stream),
     events: events,
-    home: HomeLoader(client: client, kv: kv, events: events),
+    home: HomeLoader(client: client, kv: kv, events: events, outbox: outbox),
     catalog: Catalog(client: client, kv: kv),
     history: HistoryRepo(client, kv),
-    feedback: FeedbackSender(client: client, dev: _dev, ulid: ulid),
+    feedback: FeedbackSender(outbox: outbox, dev: _dev, ulid: ulid),
+    outbox: outbox,
   );
 }
 

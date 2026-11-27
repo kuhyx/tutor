@@ -1,24 +1,25 @@
 /// Report a problem (DOCS-contract §6 `feedback/{fid}`): for the developer,
 /// never the tutor. The worker drains the node into `feedback.jsonl`.
+/// Offline-first: a report is kept on this install until it is written.
 library;
 
 import 'package:tutor/model/ids.dart';
 import 'package:tutor/model/stats.dart';
-import 'package:tutor/sync/rtdb_client.dart';
+import 'package:tutor/sync/put_outbox.dart';
 import 'package:tutor/util/ulid.dart';
 
 /// Writes reports.
 class FeedbackSender {
   /// Creates the sender for device [dev].
   new({
-    required this.client,
+    required this.outbox,
     required this.dev,
     required this.ulid,
     int Function()? now,
   }) : _now = now ?? (() => DateTime.now().millisecondsSinceEpoch);
 
-  /// REST client.
-  final RtdbClient client;
+  /// Where a report waits until the database answers.
+  final PutOutbox outbox;
 
   /// This install's device id.
   final String dev;
@@ -27,8 +28,8 @@ class FeedbackSender {
   final UlidGenerator ulid;
   final int Function() _now;
 
-  /// Saves one report; returns its fid. Throws [ArgumentError] for empty
-  /// or oversize text, [RtdbError] when it could not be written.
+  /// Saves one report on this install (pushed by [outbox], offline too);
+  /// returns its fid. Throws [ArgumentError] for empty or oversize text.
   Future<String> send({
     required FeedbackCategory category,
     required String text,
@@ -54,7 +55,7 @@ class FeedbackSender {
       session: session,
       msg: msg,
     );
-    await client.put(Paths.feedback(fid), report.toJson());
+    await outbox.put(Paths.feedback(fid), report.toJson());
     return fid;
   }
 }

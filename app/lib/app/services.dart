@@ -25,6 +25,7 @@ import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/auth.dart';
 import 'package:tutor/sync/e2e_gate.dart';
+import 'package:tutor/sync/put_outbox.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 import 'package:tutor/sync/rtdb_stream.dart';
@@ -50,6 +51,7 @@ class TutorServices {
     required this.catalog,
     required this.history,
     required this.feedback,
+    required this.outbox,
     this.checkinNotifier = const NoopCheckinNotifier(),
     this.recoverPassphrase,
   });
@@ -94,6 +96,7 @@ class TutorServices {
     final ulid = UlidGenerator();
     final events = EventLog(client: client, kv: kvStore, dev: dev, ulid: ulid);
     final history = HistoryRepo(client, kvStore);
+    final outbox = PutOutbox(client, kvStore);
     final relay = RequestRelay(
       client: client,
       stream: stream,
@@ -121,10 +124,12 @@ class TutorServices {
         kv: kvStore,
         events: events,
         flushMore: history.flush,
+        outbox: outbox,
       ),
       catalog: Catalog(client: client, kv: kvStore),
       history: history,
-      feedback: FeedbackSender(client: client, dev: dev, ulid: ulid),
+      feedback: FeedbackSender(outbox: outbox, dev: dev, ulid: ulid),
+      outbox: outbox,
       checkinNotifier: checkinNotifier ?? const NoopCheckinNotifier(),
       recoverPassphrase: wrapperBase == null
           ? null
@@ -183,6 +188,9 @@ class TutorServices {
 
   /// Report a problem.
   final FeedbackSender feedback;
+
+  /// Client writes kept on this install until the database answers.
+  final PutOutbox outbox;
 
   /// The system "Still working?" prompt (Android, browser, or none).
   final FocusCheckinNotifier checkinNotifier;

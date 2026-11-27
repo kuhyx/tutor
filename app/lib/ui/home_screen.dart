@@ -155,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pick(String subject) async {
     try {
-      await setCurrentSubject(_s.client, subject);
+      await setCurrentSubject(_s.outbox, subject);
     } on Object catch (error) {
       // `on Object`: shown, never swallowed; the pick is simply not saved.
       if (mounted) showNotSaved(context, error);
