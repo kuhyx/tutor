@@ -63,6 +63,7 @@ TutorServices services(
   );
   final ulid = UlidGenerator();
   final events = EventLog(client: client, kv: store, dev: testDev, ulid: ulid);
+  final history = HistoryRepo(client, store);
   final relay = RequestRelay(
     client: client,
     stream: stream,
@@ -81,9 +82,14 @@ TutorServices services(
     beacon: ClientBeacon(client: client, dev: testDev, platform: 'android'),
     rev: RevWatcher(stream, yieldTo: relay.inFlight),
     events: events,
-    home: HomeLoader(client: client, kv: store, events: events),
+    home: HomeLoader(
+      client: client,
+      kv: store,
+      events: events,
+      flushMore: history.flush,
+    ),
     catalog: Catalog(client: client, kv: store),
-    history: HistoryRepo(client),
+    history: history,
     feedback: FeedbackSender(client: client, dev: testDev, ulid: ulid),
   );
 }

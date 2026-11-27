@@ -15,6 +15,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/follow_up_box.dart';
+import 'package:tutor/ui/history_screen.dart';
 import 'package:tutor/ui/limit_switch.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/session/blocked_panel.dart';
@@ -43,17 +44,11 @@ class TranscriptScreen extends StatefulWidget {
 
 class _TranscriptScreenState extends State<TranscriptScreen> {
   late final RequestRunner _runner = RequestRunner(widget.services.relay);
-  late Future<(Transcript, HistoryEntry?)> _data = _load();
+  late Stream<Fetched<(Transcript, HistoryEntry?)>> _data = _s.history
+      .watchTranscript(widget.sid);
   late final VoidCallback _unwatch;
 
   TutorServices get _s => widget.services;
-
-  Future<(Transcript, HistoryEntry?)> _load() async {
-    final t = await _s.history.transcript(widget.sid);
-    final rows = await _s.history.load();
-    final row = rows.where((r) => r.sid == widget.sid).firstOrNull;
-    return (t, row);
-  }
 
   @override
   void initState() {
@@ -69,9 +64,8 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
     super.dispose();
   }
 
-  void _reload() => setState(() {
-    _data = _load()..ignore(); // FutureBuilder reports errors
-  });
+  void _reload() =>
+      setState(() => _data = _s.history.watchTranscript(widget.sid));
 
   // Through the module gate (a gated Repeat opens its review first).
   Future<void> _toSession(RequestBody body) async {
@@ -98,12 +92,9 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(),
-    body: FutureBuilder<(Transcript, HistoryEntry?)>(
-      future: _data,
+    body: StreamBuilder<Fetched<(Transcript, HistoryEntry?)>>(
+      stream: _data,
       builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
         if (snap.hasError) {
           return PageList(
             children: [
@@ -114,7 +105,11 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
             ],
           );
         }
-        final (t, entry) = snap.requireData;
+        final data = snap.data;
+        if (data == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final (t, entry) = data.value;
         final row = entry?.row;
         final subject = row?.subject ?? t.view.meta?.subject;
         final first = row?.cards.firstOrNull?.id ?? t.view.meta?.card?.id;
@@ -125,6 +120,7 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
         final meta = t.view.meta;
         return PageList(
           children: [
+            if (data.offline) const HistoryOfflineCue(),
             Row(
               children: [
                 // Read-only: a lock beside the session id (content).

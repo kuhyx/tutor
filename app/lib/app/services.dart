@@ -93,6 +93,7 @@ class TutorServices {
     final stream = RtdbStream(client);
     final ulid = UlidGenerator();
     final events = EventLog(client: client, kv: kvStore, dev: dev, ulid: ulid);
+    final history = HistoryRepo(client, kvStore);
     final relay = RequestRelay(
       client: client,
       stream: stream,
@@ -115,9 +116,14 @@ class TutorServices {
       ),
       rev: RevWatcher(stream, yieldTo: relay.inFlight),
       events: events,
-      home: HomeLoader(client: client, kv: kvStore, events: events),
+      home: HomeLoader(
+        client: client,
+        kv: kvStore,
+        events: events,
+        flushMore: history.flush,
+      ),
       catalog: Catalog(client: client, kv: kvStore),
-      history: HistoryRepo(client),
+      history: history,
       feedback: FeedbackSender(client: client, dev: dev, ulid: ulid),
       checkinNotifier: checkinNotifier ?? const NoopCheckinNotifier(),
       recoverPassphrase: wrapperBase == null

@@ -28,15 +28,14 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  late Future<HistoryLists> _lists = _load();
+  late Stream<Fetched<HistoryLists>> _lists = _load();
   bool _showArchived = false;
 
-  Future<HistoryLists> _load() async =>
-      splitHistory(await widget.services.history.load());
+  Stream<Fetched<HistoryLists>> _load() => widget.services.history.watch().map(
+    (f) => Fetched(splitHistory(f.value), live: f.live, offline: f.offline),
+  );
 
-  void _reload() => setState(() {
-    _lists = _load()..ignore(); // FutureBuilder reports errors
-  });
+  void _reload() => setState(() => _lists = _load());
 
   Future<void> _open(String sid) async {
     await openTranscript(context, widget.services, sid);
@@ -54,12 +53,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ],
     ),
-    body: FutureBuilder<HistoryLists>(
-      future: _lists,
+    body: StreamBuilder<Fetched<HistoryLists>>(
+      stream: _lists,
       builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
         if (snap.hasError) {
           return PageList(
             children: [
@@ -70,9 +66,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           );
         }
-        final lists = snap.requireData;
+        final data = snap.data;
+        if (data == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final lists = data.value;
         return PageList(
           children: [
+            if (data.offline) const HistoryOfflineCue(),
             if (lists.shown.isEmpty) const _Empty(),
             for (final e in lists.shown)
               _Row(entry: e, onTap: () => unawaited(_open(e.sid))),
@@ -98,6 +99,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ],
         );
       },
+    ),
+  );
+}
+
+/// The database is unreachable: History shows the copy on this install.
+class HistoryOfflineCue extends StatelessWidget {
+  /// Creates the cue.
+  const new({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Align(
+    alignment: Alignment.centerLeft,
+    child: CueChip(
+      kind: CueKind.offline,
+      semanticLabel: 'Offline: showing the saved copy',
     ),
   );
 }

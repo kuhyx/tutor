@@ -171,7 +171,7 @@ Future<TutorServices> _open() async {
     events: events,
     home: HomeLoader(client: client, kv: kv, events: events),
     catalog: Catalog(client: client, kv: kv),
-    history: HistoryRepo(client),
+    history: HistoryRepo(client, kv),
     feedback: FeedbackSender(client: client, dev: _dev, ulid: ulid),
     // On a phone the real check-in alarm and notifications, as in the app.
     checkinNotifier: platformCheckinNotifier(),

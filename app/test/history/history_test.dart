@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/history/history.dart';
 import 'package:tutor/model/session_index.dart';
+import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/json_tree.dart';
 
 import '../model/samples.dart';
@@ -20,13 +21,13 @@ void main() {
       '20261013-100000-dddd': {'rev': 'x'},
     });
     root = setAt(root, 'tutor/v1-e2e/sessions/$_c/user', {'archived': true});
-    final repo = HistoryRepo((FakeRtdb()..root = root).client());
+    final repo = HistoryRepo((FakeRtdb()..root = root).client(), MemoryKv());
     final rows = await repo.load();
     expect(rows.map((r) => r.sid), [_a, _b, _c]);
     final lists = splitHistory(rows);
     expect(lists.shown.map((e) => e.sid), [_a]);
     expect(lists.hidden.map((e) => e.sid), [_c, _b]);
-    expect(await HistoryRepo(FakeRtdb().client()).load(), isEmpty);
+    expect(await HistoryRepo(FakeRtdb().client(), MemoryKv()).load(), isEmpty);
   });
 
   test('transcript and archiving', () async {
@@ -36,7 +37,7 @@ void main() {
         'msgs': {'m0001': tutorMessage},
         'user': {'archived': true},
       });
-    final repo = HistoryRepo(db.client());
+    final repo = HistoryRepo(db.client(), MemoryKv());
     final t = await repo.transcript(_a);
     expect(t.archived, isTrue);
     expect(t.view.meta!.rev, 31);

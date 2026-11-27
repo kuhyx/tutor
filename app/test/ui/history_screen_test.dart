@@ -6,6 +6,7 @@ import 'package:tutor/widgets/cue_chip.dart';
 
 import '../support/fake_stream.dart';
 import '../support/label_finders.dart';
+import '../support/services.dart';
 import '../support/ui.dart';
 
 const _old = 'tutor/v1-e2e/sessions/20261011-090000-a1b2';
@@ -73,6 +74,14 @@ void main() {
     db.offline = true;
     await t.tap(controlByLabel('Reload'));
     await t.pumpAndSettle();
+    // The kept (empty) list, marked offline.
+    expect(cueOfKind(CueKind.offline), findsOneWidget);
+    expect(bySpoken('No past sessions'), findsOneWidget);
+    // Nothing kept on this install: the error.
+    await pumpScreen(
+      t,
+      HistoryScreen(services: services(db, stream), key: UniqueKey()),
+    );
     expect(cueOfKind(CueKind.error), findsOneWidget);
   });
 }

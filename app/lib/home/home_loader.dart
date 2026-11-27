@@ -53,6 +53,7 @@ class HomeLoader {
     required this.client,
     required this.kv,
     required this.events,
+    this.flushMore,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -64,6 +65,9 @@ class HomeLoader {
 
   /// Event log (flushed and pulled on every load).
   final EventLog events;
+
+  /// Other offline queues pushed with the log (History's archive flags).
+  final Future<Object?> Function()? flushMore;
   final DateTime Function() _now;
 
   /// Loads Home. Throws [UnsupportedSchema]; network failures fall back
@@ -136,6 +140,8 @@ class HomeLoader {
   Future<void> _syncLog({required bool offline}) async {
     if (offline) return;
     try {
+      // First: it never throws, so a log failure cannot hold it back.
+      await flushMore?.call();
       await events.flush();
       await events.pull();
     } on Object catch (error) {

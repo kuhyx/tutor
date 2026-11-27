@@ -38,7 +38,8 @@ Future<void> main() async {
         checkinNotifier: kIsWeb
             ? createWebCheckinNotifier()
             : platformCheckinNotifier(),
-      ),
+        // Back in the app: archive flags queued offline are pushed.
+      ).then((s) => s..history.flushOnShow()),
       zoom: zoom,
       initialRoute: route,
     ),
