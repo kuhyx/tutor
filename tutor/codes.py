@@ -73,9 +73,10 @@ _OUTAGE_KIND: Final = {
     OVERLOADED: "claude_overloaded",
     NETWORK: "claude_network",
 }
+# The ``error_kind`` values of a Claude outage (``outage_retry`` drafts again).
+OUTAGE_KINDS: Final = frozenset(_OUTAGE_KIND.values())
 ERROR_KIND: Final = frozenset(
-    {MODEL_FAILED, SOURCES_MISSING, TOO_FEW_CARDS, BAD_REQUEST, OTHER}
-    | set(_OUTAGE_KIND.values())
+    {MODEL_FAILED, SOURCES_MISSING, TOO_FEW_CARDS, BAD_REQUEST, OTHER} | OUTAGE_KINDS
 )
 # The worker's phases, in order (``relay.claims.PHASES``).
 RELAY_PHASE: Final = ("claimed", "thinking", "images", "checking_images", "publishing")

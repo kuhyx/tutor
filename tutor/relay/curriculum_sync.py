@@ -22,11 +22,10 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import carry, leftover, outage, review_credit, unavailable
+from tutor import carry, leftover, review_credit
 from tutor.credit import local_day
 from tutor.curriculum import handlers as cur
-from tutor.curriculum import log_order, theory_phase
-from tutor.curriculum.errors import CLAUDE_UNAVAILABLE
+from tutor.curriculum import log_order, outage_retry, theory_phase
 from tutor.curriculum.subject_store import read_json
 from tutor.relay import hooks
 from tutor.relay.protocol import DEV
@@ -54,8 +53,7 @@ class CurriculumSync:
         self.queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
         self._queued: set[tuple[str, str]] = set()
         self._failed: set[tuple[str, str]] = set()  # not retried in this process
-        # Hit Claude's spent limit: drafted again once the outage window closes.
-        self._waiting: set[tuple[str, str]] = set()
+        self._retried: dict[tuple[str, str], float] = {}  # outage_retry's
         self._syncing = asyncio.Lock()
         self._last: dict[str, str] = {}  # device -> newest eid seen
         self._pushed: set[str] = set()
@@ -175,6 +173,10 @@ class CurriculumSync:
 
     async def _sync(self) -> None:
         await self.pull()
+        for key in await asyncio.to_thread(
+            outage_retry.retry, self.ctx, self.w.now(), self._retried
+        ):  # the spent limit reset: draft again, even after it failed here
+            self._failed.discard(key)
         outcome: dict[str, Any] = await asyncio.to_thread(
             cur.fold_and_advance, self.ctx
         )
@@ -184,12 +186,9 @@ class CurriculumSync:
             self._catalog += 1
             await self.w.rtdb.patch("rev", {"catalog": self._catalog})
         await self.push()
-        closed = unavailable.current(self.w.now()) is None
         for subject, module in outcome.get("generate", []):
             key = (subject, module)
-            if key in self._waiting and closed:
-                self._waiting.discard(key)
-            if key not in self._queued | self._failed | self._waiting:
+            if key not in self._queued and key not in self._failed:
                 self._queued.add(key)
                 self.queue.put_nowait(key)
         await asyncio.to_thread(review_credit.credit_now, self.ctx, self.w.now())
@@ -212,24 +211,10 @@ class CurriculumSync:
             async with self.lock:
                 try:
                     if subject not in self.ctx.archived():  # not archived since
-                        outage.ensure_available(self.w.now())  # no CLI in a window
                         await asyncio.to_thread(cur.generate, self.ctx, subject, module)
                 except hooks.BASE_ERRORS as err:
                     _logger.warning("generating %s/%s failed: %s", subject, module, err)
-                    spent = _spent(err)
-                    (self._waiting if spent else self._failed).add((subject, module))
+                    self._failed.add((subject, module))
                 finally:
                     self._queued.discard((subject, module))
             await self.sync()
-
-
-def _spent(err: BaseException) -> bool:
-    """True when ``err`` (or its cause) is Claude's spent limit or an outage."""
-    seen: BaseException | None = err
-    while seen is not None:
-        if isinstance(seen, outage.ClaudeUnavailableError):
-            return True
-        if getattr(seen, "code", None) == CLAUDE_UNAVAILABLE:
-            return True
-        seen = seen.__cause__
-    return False
