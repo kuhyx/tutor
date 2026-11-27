@@ -208,7 +208,7 @@ CHAT_HANDLERS: Final[
     "next": _needs_model(next_card),
     "stop": stop,
     "follow_up_open": _needs_model(follow_up_open),
-    "card_done": card_done,
+    "card_done": free_backend.marks(card_done),
     "drill_next": drill_next,
     "drill_answer": drill_answer,
     "anki_status": anki_status,

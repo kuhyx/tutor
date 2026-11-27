@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import credit, done_refusal, follow_up, gating, picked, unit_credit
-from tutor.check_flagged import finish as finish_card
+from tutor.check_flagged import finish, manual
 from tutor.curriculum import phase_gate
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
@@ -185,7 +185,7 @@ class CardFlow:
                 gating.refuse_locked(card, progress, "mark done", src.waived())
                 was = progress.get(card_id) or {}
                 sid = conv.session_id if conv else str(was.get("session", "manual"))
-            src.mark(card_id, sid, done=done)
+            manual(src, card_id, sid, done=done)
             if conv is not None and card_id in conv.cards:
                 conv.set_done(card_id, done=done)
                 event = {"type": "card_done_manual", "card": card_id, "done": done}
@@ -234,7 +234,7 @@ class CardFlow:
             conv.notes.append(gating.refused_note(card, need))
         elif done_refusal.wants_done(turn, conv, tap=tap):  # b193: the word suffices
             conv.mark_card_done()  # the first time: a done card is a follow-up
-            finish_card(self.source, card.id, self.session_id, logged)
+            finish(self.source, card.id, self.session_id, logged)
             message["card_done"] = True
         conv.messages.append(message)
         event = {"type": "tutor", "turn": logged, "ui": message, "t": t}

@@ -15,7 +15,9 @@ module gate's check of unchecked cards runs on Claude) skips the Claude
 outage check, runs with
 ``backend_mode.FREE`` set, and turns a gateway failure into
 ``free_unavailable``; any other request goes through
-``relay.model_gate.needs_a_model`` (Claude, else the local model). Read mode
+``relay.model_gate.needs_a_model`` (Claude, else the local model).
+:func:`marks` wraps the kinds that need no model but must know a free
+session (``card_done``: its card is marked unchecked). Read mode
 never needs any of this, so a gateway outage cannot block it.
 """
 
@@ -98,3 +100,20 @@ def gate(
         return result
 
     return gated
+
+
+def marks(
+    handler: Callable[[RequestContext], Awaitable[dict[str, Any]]],
+) -> Callable[[RequestContext], Awaitable[dict[str, Any]]]:
+    """``handler`` with ``backend_mode.FREE`` set while a free session is live."""
+
+    async def marked(ctx: RequestContext) -> dict[str, Any]:
+        if not live(ctx.engine):
+            return await handler(ctx)
+        token = backend_mode.FREE.set(True)
+        try:
+            return await handler(ctx)
+        finally:
+            backend_mode.FREE.reset(token)
+
+    return marked

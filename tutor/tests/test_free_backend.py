@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, cast
 
 from claude_agent_sdk import ClaudeAgentOptions
 import httpx
@@ -27,6 +28,7 @@ from tutor.tests.test_relay_lanes import Rig, run
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from tutor.relay.context import RequestContext
     from tutor.session import TutorSession
 
 
@@ -173,3 +175,20 @@ def test_live_is_false_before_any_session(tmp_path: Path) -> None:
     eng, _ = engine(tmp_path, turn("Q?"))
     assert not free_backend.live(eng)
     assert isinstance(FakeSession(), FakeSession)
+
+
+def test_marks_runs_on_the_free_backend_only_in_a_free_session(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    eng, _ = _free_engine(tmp_path)
+    seen: list[bool] = []
+
+    async def handler(_ctx: Any) -> dict[str, Any]:
+        seen.append(backend_mode.free())
+        return {}
+
+    ctx = cast("RequestContext", SimpleNamespace(engine=eng))
+    asyncio.run(free_backend.marks(handler)(ctx))
+    monkeypatch.setattr(free_backend, "live", lambda _engine: True)
+    asyncio.run(free_backend.marks(handler)(ctx))
+    assert seen == [False, True]

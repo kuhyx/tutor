@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from tutor import backend_mode, check_flagged
 from tutor.cards import Card, Topic
 from tutor.curriculum.deck_source import DeckSource
-from tutor.curriculum.eventlog import FREE, UNCHECKED, unchecked_event
+from tutor.curriculum.eventlog import FREE, READ, UNCHECKED, unchecked_event
 from tutor.curriculum.source import SubjectSource
 from tutor.engine import Engine
 from tutor.store import Store
@@ -161,3 +161,18 @@ def test_the_old_deck_has_no_check(tmp_path: Path) -> None:
     assert check_flagged.section(deck, "io-x") == ""
     check_flagged.finish(deck, "io-x", "s1", {})
     assert "io-x" in store.progress()["cards_done"]
+
+
+def test_a_manual_done_in_a_free_session_marks_the_card(tmp_path: Path) -> None:
+    """The learner's "Mark card done" in a free chat is weak teaching too (Q9)."""
+    ctx = _car(tmp_path)
+    engine = _engine(tmp_path, [], turn("Thing 1."))
+    token = backend_mode.FREE.set(True)
+    try:
+        asyncio.run(engine.start(subject="car"))
+        asyncio.run(engine.set_card_done("c1", done=True, subject="car"))
+    finally:
+        backend_mode.FREE.reset(token)
+    asyncio.run(engine.set_card_done("c0", done=True, subject="car"))  # Claude's
+    marks = [e for e in ctx.log.read() if e["k"] == UNCHECKED]
+    assert [(e["c"], e.get("src")) for e in marks] == [("c0", READ), ("c1", FREE)]

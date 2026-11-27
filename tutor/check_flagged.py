@@ -12,7 +12,8 @@ one check question first, no teaching. When the tutor ends the card
   ``checked``.
 
 A card a free-model chat finishes is taught and marked ``unchecked``
-(``src: free``), like read mode (spec Q9).
+(``src: free``), like read mode (spec Q9): by the tutor (:func:`finish`) or
+by the learner's "Mark card done" (:func:`manual`).
 """
 
 from __future__ import annotations
@@ -90,3 +91,12 @@ def finish(src: CardSource, card_id: str, session: str, turn: dict[str, Any]) ->
         src.ctx.log.append([again, checked])
     elif backend_mode.free():
         src.ctx.log.append([unchecked_event(ref, dev=dev, at=at, src=FREE)])
+
+
+def manual(src: CardSource, card_id: str, session: str, *, done: bool) -> None:
+    """The learner's override; done in a free session also marks it ``unchecked``."""
+    src.mark(card_id, session, done=done)
+    if done and backend_mode.free() and isinstance(src, SubjectSource):
+        at = src.ctx.clock() + 1  # strictly after the taught: the fold sorts by at
+        ref = (src.subject, card_id)
+        src.ctx.log.append([unchecked_event(ref, dev=src.ctx.device, at=at, src=FREE)])

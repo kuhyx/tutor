@@ -58,6 +58,7 @@ $S up --outage rate_limit --fallback due
 $S flow F33 due                # then, one call each: sheet, plan, planphone
 $S up --outage rate_limit --fallback read
 $S flow F33 read               # then: paid; restart --free-down; freedown
+$S flow F33 free               # OmniRoute up; then freewait (75 = again), freecheck
 $S up --outage rate_limit --fallback drill   # then: flow F33 drill
 $S up --outage rate_limit --fallback empty   # then: flow F33 empty
 $S up --outage rate_limit --fallback read    # then: flow F33 phone

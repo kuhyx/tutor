@@ -17,6 +17,8 @@ each on the sandbox named (``S=scripts/e2e_sandbox.sh``):
   fails ``free_unavailable`` with its glyph; Start still opens read mode).
 * ``... --fallback drill``: ``drill``; ``... --fallback empty``: ``empty`` (C6).
 * ``... --fallback read``: ``phone`` (C12), at a 412x915 viewport.
+* ``... --fallback read`` with OmniRoute up: ``free``, ``freewait`` (75 =
+  again), ``freecheck`` (C9, ``e2e_fallback_free.py``).
 * ``E2E_SUBJECT=product-and-design-taste $S up --fallback gate`` (no
   outage): ``gate`` (C7).
 
@@ -34,13 +36,14 @@ import sys
 from typing import Final
 
 from e2e_cdp import Browser, CdpError
+from e2e_fallback_free import PHASES as FREE_PHASES
 from e2e_fallback_hold import PHASES as HOLD_PHASES
 from e2e_fallback_phases import PHASES as START_PHASES
 from e2e_fallback_sheet import PHASES as SHEET_PHASES
 from e2e_flow import Flow, FlowError
 
 _logger = logging.getLogger(__name__)
-PHASES: Final = {**START_PHASES, **SHEET_PHASES, **HOLD_PHASES}
+PHASES: Final = {**START_PHASES, **SHEET_PHASES, **HOLD_PHASES, **FREE_PHASES}
 PHONE_PHASES: Final = frozenset({"phone", "planphone"})
 PHONE: Final = (412, 915)  # C12's phone viewport (CSS px, scale 1)
 
@@ -70,15 +73,18 @@ def out_prefix(out: str, env: dict[str, str]) -> str:
 
 
 def run(flow: Flow, phase: str) -> int:
-    """Run ``phase``; 0 = PASS, 1 = FAIL (the step that failed is logged)."""
+    """Run ``phase``: 0 = PASS, 1 = FAIL (its step is logged), 75 = call again."""
     try:
-        PHASES[phase](flow)
+        code = PHASES[phase](flow) or 0
     except (FlowError, CdpError, OSError, KeyError, TypeError, ValueError) as err:
         _logger.warning("FAIL F33 %s step %d: %s", phase, flow.n, err)
         for problem in flow.browser.problems[-10:]:
             _logger.info("  page %s", problem[:500])
         flow.shot(f"{phase}_fail")
         return 1
+    if code:
+        _logger.info("PENDING F33 %s: call it again", phase)
+        return int(code)
     _logger.info("PASS F33 %s", phase)
     return 0
 

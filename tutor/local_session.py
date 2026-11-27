@@ -81,7 +81,13 @@ class FallbackSession(TutorSession):
         self._chat = chat or local_model.chat
 
     async def ask_raw(self, prompt: Prompt, on_trace: Observer | None = None) -> Reply:
-        """Claude's reply, or the local model's while Claude is unavailable."""
+        """Claude's reply, or the local model's while Claude is unavailable.
+
+        A free chat's turn (``backend_mode.free``) runs on OmniRoute, so
+        Claude's outage window does not concern it: it goes straight through.
+        """
+        if backend_mode.free():
+            return await super().ask_raw(prompt, on_trace)
         text, by_claude = as_text(prompt), True
         try:
             outage.ensure_available(time.time())

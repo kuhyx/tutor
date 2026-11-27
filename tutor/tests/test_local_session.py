@@ -227,3 +227,17 @@ def test_chat_kinds_answer_locally_while_claude_is_down(
     run(eng, script)
     assert claude.prompts == []
     assert len(local.calls) >= 3
+
+
+def test_a_free_turn_skips_the_claude_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A free chat runs on OmniRoute: Claude's open window does not send it local."""
+    claude = Claude(monkeypatch, _turn("Free?"))
+    unavailable.record("rate_limit", 0, 4e9)
+    local = Local(_turn("Local?"))
+    token = backend_mode.FREE.set(True)
+    try:
+        turn, _ = asyncio.run(_session(local).ask("start"))
+    finally:
+        backend_mode.FREE.reset(token)
+    assert turn.message == "Free?"
+    assert (len(claude.prompts), local.calls) == (1, [])
