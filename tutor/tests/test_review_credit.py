@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor import credit, drill, ledger_pay, review_credit
+from tutor import credit, ledger_pay, model_free_pay, review_credit
 from tutor.clock import BlockReady
 from tutor.ledger_io import default_paths, read_key, read_rows
 from tutor.relay.curriculum_sync import CurriculumSync
@@ -137,7 +137,7 @@ def test_without_own_device_nothing_is_paid(tmp_path: Path) -> None:
 
 
 def test_units_follow_the_drill_rules() -> None:
-    assert review_credit.MIN_REVIEW_SECONDS == drill.MIN_PICK_SECONDS
+    assert review_credit.MIN_REVIEW_SECONDS == model_free_pay.MIN_PICK_SECONDS
     found = review_credit.units_by_session(fake_log(), WORKER, NOW)
     phone = found[f"review-20261015-{PHONE}"]
     assert [u.block for u in phone] == [1, 2, 3]

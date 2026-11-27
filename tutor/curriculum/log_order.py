@@ -21,13 +21,16 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor.curriculum.eventlog import CAP_LIFT, NEW_CAP, SUBJECT_KINDS
+from tutor.curriculum.event_parts import CAP_LIFT
+from tutor.curriculum.eventlog import CHECKED, NEW_CAP, SUBJECT_KINDS, UNCHECKED
 from tutor.curriculum.ids import ulid, ulid_ms
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-COPYABLE: Final = frozenset({"taught", "untaught", CAP_LIFT, NEW_CAP, *SUBJECT_KINDS})
+COPYABLE: Final = frozenset(
+    {"taught", "untaught", UNCHECKED, CHECKED, CAP_LIFT, NEW_CAP, *SUBJECT_KINDS}
+)
 _CONTENT: Final = ("k", "s", "c", "day", "n", "at")  # not dev, eid, session
 _logger = logging.getLogger(__name__)
 

@@ -1,17 +1,20 @@
 /// The module gate in the app (curriculum §6, kuhy 2026-11-22): a refusal
 /// naming `gate_cards` opens that review at once; once every card is
 /// passed, the ratings are flushed and the same request goes out again, so
-/// the next module's first card starts with no extra click.
+/// the next module's first card starts with no extra click. Cards read
+/// without Claude (`gate_unchecked`) pass by its check only: when they are
+/// all that is left, the list of them opens instead and nothing is resent.
 library;
 
 import 'dart:developer';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/relay/blocked.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/review/review_items.dart';
 import 'package:tutor/ui/nav.dart';
+import 'package:tutor/ui/session/unchecked_gate.dart';
 
 /// What became of a gate review.
 enum GateOutcome {
@@ -23,6 +26,9 @@ enum GateOutcome {
 
   /// Nothing to review (the log already shows every card passed).
   empty,
+
+  /// Only cards waiting for Claude's check hold it (their list opened).
+  held,
 }
 
 /// How many times one request goes round the gate by itself: a review, the
@@ -48,6 +54,20 @@ Future<GateOutcome> runGate(
   final subjects = await s.catalog.cached();
   final id = blocked.subjectId(subjects, hint: hint);
   if (id == null) return GateOutcome.empty;
+  if (blocked.heldUnchecked) {
+    final cards = subjects[id]?.cards ?? const {};
+    final fronts = {
+      for (final c in blocked.gateUnchecked) c: cards[c]?.front ?? c,
+    };
+    if (!context.mounted) return GateOutcome.held;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            UncheckedGateScreen(services: s, subject: id, fronts: fronts),
+      ),
+    );
+    return GateOutcome.held;
+  }
   final items = await gateItems(
     catalog: s.catalog,
     events: s.events,
@@ -94,7 +114,7 @@ Future<RelayStatus> throughGate(
     final outcome = await runGate(context, s, blocked, hint: hint, now: now);
     // Left early: the review glyph stays. Empty twice: the worker still
     // has not seen the ratings; the glyph stays rather than loop.
-    if (outcome == GateOutcome.left) break;
+    if (outcome == GateOutcome.left || outcome == GateOutcome.held) break;
     if (outcome == GateOutcome.empty && round > 0) break;
     await flushRatings(s);
     if (!context.mounted) break;

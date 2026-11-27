@@ -40,4 +40,16 @@ void main() {
     await _home(t, {});
     expect(bySpoken('Banked', prefix: true), findsNothing);
   });
+
+  testWidgets('own and LeetCode minutes ride beside the bank', (t) async {
+    await _home(t, {
+      'banked': 26,
+      'prepaid': 15,
+      'own_minutes': 2,
+      'lc_minutes': 1,
+    });
+    expect(bySpoken('Banked 26 min · prepaid 15'), findsOneWidget);
+    expect(bySpoken('2 min own work today'), findsOneWidget);
+    expect(bySpoken('1 min LeetCode today'), findsOneWidget);
+  });
 }

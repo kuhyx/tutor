@@ -50,6 +50,7 @@ const Map<String, IconData> kindIcons = {
   'err_focus_refused': Icons.do_not_disturb_alt,
   'err_model': Icons.running_with_errors,
   outageClaude: Icons.power_off,
+  outageFree: Icons.portable_wifi_off,
   'err_unknown_prompt': Icons.help_outline,
   'err_gave_up': Icons.sync_disabled,
   'err_worker': Icons.bug_report_outlined,

@@ -28,7 +28,7 @@ def _exe(path: Path, body: str) -> None:
     path.chmod(0o755)
 
 
-def _server_argv(tmp_path: Path, guard: str = "") -> list[str]:
+def _server_argv(tmp_path: Path, guard: str = "", free: str = "") -> list[str]:
     """Run ``start_server`` against fakes; return the systemd-run argv lines."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -38,7 +38,8 @@ def _server_argv(tmp_path: Path, guard: str = "") -> list[str]:
     sandbox = tmp_path / "sandbox"
     state = tmp_path / "state.env"
     state.write_text(
-        f"SANDBOX={sandbox}\nDB=http://127.0.0.1:1\nPORT=2\nDEV=d\nCLOCK=\nMODEL=\nGUARD={guard}\n",
+        f"SANDBOX={sandbox}\nDB=http://127.0.0.1:1\nPORT=2\nDEV=d\nCLOCK=\nMODEL=\nGUARD={guard}\n"
+        f"FREE={free}\n",
         encoding="utf-8",
     )
     log = tmp_path / "argv.log"
@@ -83,3 +84,18 @@ def test_a_canned_guard_answer_is_served_on_a_sandbox_port(tmp_path: Path) -> No
     port = argv[argv.index("--port") + 1]
     assert port != "8771"
     assert f"{GUARD_ENV}http://127.0.0.1:{port}/api/theory" in argv
+
+
+FREE_ENV = "TUTOR_FREE_GATEWAY="
+
+
+def test_free_down_points_the_free_chat_at_a_closed_port(tmp_path: Path) -> None:
+    """``restart --free-down`` (``FREE=down``): port 9, never OmniRoute's :20128."""
+    assert [
+        a for a in _server_argv(tmp_path, free="down") if a.startswith(FREE_ENV)
+    ] == [f"{FREE_ENV}http://127.0.0.1:9"]
+
+
+def test_the_free_chat_keeps_its_gateway_by_default(tmp_path: Path) -> None:
+    """``FREE=`` (every ``up``): the server inherits no gateway override."""
+    assert not [a for a in _server_argv(tmp_path) if a.startswith(FREE_ENV)]

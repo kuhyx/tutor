@@ -11,7 +11,8 @@
 #   - the real CLI binary alone, read-only, at /opt/claude/claude;
 #   - the internet through pasta (passt) in a network namespace of its own,
 #     with no route back to the host: no loopback services (the tutor's :8778
-#     API, which drives the engine and mints credit), no forwarded ports, no
+#     API, which drives the engine and mints credit), no forwarded ports
+#     (except a free-model chat's OmniRoute port, TUTOR_MODEL_GATEWAY_PORT), no
 #     abstract unix sockets (the X server); a private /tmp, /proc of its own
 #     pid namespace;
 #   - and no private network: tutor_model_netfence.sh refuses the LAN (the
@@ -129,10 +130,19 @@ main() {
     )
     local -a fence=()
     fence_args
+    # A free-model chat (tutor.free_backend) talks to the local OmniRoute
+    # gateway: that ONE host loopback port is forwarded to the namespace's
+    # loopback (pasta -T), nothing else of the host.
+    local gateway_port=none
+    if [[ -n "${TUTOR_MODEL_GATEWAY_PORT:-}" ]]; then
+        [[ "$TUTOR_MODEL_GATEWAY_PORT" =~ ^[0-9]{1,5}$ ]] ||
+            die "TUTOR_MODEL_GATEWAY_PORT is not a port: $TUTOR_MODEL_GATEWAY_PORT"
+        gateway_port="$TUTOR_MODEL_GATEWAY_PORT"
+    fi
     # pasta: a new user + network namespace, no port forwarding either way
-    # and neither the gateway nor the guest address mapped to the host; the
-    # fence then refuses every private range. Only the internet is left.
-    exec pasta --quiet --config-net -t none -u none -T none -U none --no-map-gw \
+    # (but the gateway port above) and neither the gateway nor the guest
+    # address mapped to the host; the fence then refuses every private range.
+    exec pasta --quiet --config-net -t none -u none -T "$gateway_port" -U none --no-map-gw \
         --map-guest-addr none \
         -- "${NETFENCE}" "${fence[@]}" -- bwrap "${args[@]}" -- "$CLI_INSIDE" "$@"
 }

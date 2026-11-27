@@ -106,10 +106,21 @@ startup retries every 60 s and writes nothing; the web app still serves.
   `log.jsonl`), skips the first dump and its own `log/{worker}` echoes, and
   folds events that arrive during a sync into one follow-up sync. The
   minute tick stays as the fallback.
+- Read mode's stock (`curriculum/pregen_auto.py`, run by
+  `relay/pregen_task.py` `PregenWork` every 60 s): skipped while a reply is
+  in flight (`CardWork.busy`), while an outage window covers now
+  (`outage.ensure_available`) and under `TUTOR_CARD_WORK=off`. Each approved,
+  not archived subject with a `review` / `taught` event in the last 7 days
+  gets its first `locked` module queued through `module_pregenerate`, if
+  that module has no cards and no module is `generating` or `pregenerated`
+  (one module in stock; a failed pre-draft drafts just in time on unlock).
+  The sync then hands it to the build lane; `cardgen` keeps it `locked`.
 - `no_card_left` (`session_start` / `next` with no open card, or the module
   gate closed: curriculum §6) also carries `subject_title`, `writing` (an
   earlier module's cards are being generated), `gate_cards` (the exact cards
-  to review before the next module; the app opens that review at once) and
+  to review before the next module; the app opens that review at once),
+  `gate_unchecked` (those of them read without Claude, which only its check
+  passes: the app lists them and its Start opens a Claude session) and
   `next`: `review_module` (+`module` id, `module_title`: the first open
   module with a taught card not yet reviewed), else
   `reviews_due` (+`due_at` ms: earliest FSRS due of a taught, unflagged,
@@ -131,7 +142,7 @@ startup retries every 60 s and writes nothing; the web app still serves.
 - Stats node: `handlers.stats(engine.ctx)`. `session_start` / `card_done` pass
   `subject`; `live.subject` = `engine.source.subject`.
 
-## Claude unavailable and the drill (`tutor.outage`, `tutor.drill`)
+## Claude unavailable, the drill and read mode (`tutor.outage`, `tutor.drill`, `tutor.read_mode`)
 - An outage is read from typed SDK fields, never prose: a `RateLimitEvent`
   with `status` `rejected` (its `resets_at`), an API error's HTTP status (429
   `rate_limit`, any 5xx `overloaded`), or `AssistantMessage.error`
@@ -174,6 +185,22 @@ startup retries every 60 s and writes nothing; the web app still serves.
   the tutor's clock (right or wrong, within `REPLY_TIMEOUT`, none under 3 s);
   minutes go through `credit_units` as session `drill-<id>` (one per day),
   daily cap only. Its log: `drill/<session>.jsonl`, not `sessions/`.
+- `read_next` `{"subject":slug|null}` -> `{"prompt_id":ulid,"card":{"subject",
+  "id","module","front","back","excerpt","source"},"today","unavailable"}`, or
+  `{"empty":true}` (`tutor.read_mode`, read mode: new cards with no model).
+  The card is the first untaught one `pick.untaught` yields (open, unlocked
+  modules not refused by C3; not suspended, flagged or held by `requires`),
+  subjects in name order; the module gate is ignored. Curriculum subjects
+  only (not archived, a plan); the unmigrated deck is never read.
+- `read_rate` `{"prompt_id":ulid,"rating":"got_it"|"again"}` -> `{"rated",
+  "minute_credited","today"}`. Writes, 1 ms apart (the fold orders by
+  `(at, eid)`): `taught` (session `read-<id>`, one per day), `unchecked`
+  (`"src":"read"`), and for `again` a `review` `r` 1 with no `src` (due in a
+  day, not two; `contract/fsrs_vectors.json` "unchecked: read mode again").
+  One prompt is open, as for the drill (`unknown_prompt`). Pay is the drill's
+  (`tutor.model_free_pay`: learner gap, none under 3 s, `credit_units`), rows
+  tagged `subject` + `module` with no `activity` (a lesson minute). Neither
+  kind is gated on Claude. Its log: `read/<session>.jsonl`.
 
 ## Live check (2026-10-12, scratch data dir, real RTDB)
 `session_start` claimed in 0.24 s, result in 4.99 s; `message` "hello" result

@@ -11,61 +11,64 @@ here first (the commit point) and published by the relay worker.
 subject or card and still parse, so old logs stay valid; nothing reads
 them (``DOCS-contract-curriculum.md`` §4); ``subject_archive`` /
 ``subject_unarchive`` (worker) name a subject only (``DOCS-relay-kinds.md``).
+``unchecked`` (``src`` read / free) marks a card taught without Claude, and
+``checked`` clears that mark once Claude has checked it (``README.md``
+"Fallback").
 """
 
 from __future__ import annotations
 
-from datetime import date
 import json
 import logging
-import re
 import threading
 from typing import TYPE_CHECKING, Any, Final
 
+from tutor.curriculum.event_parts import (
+    CAP_LIFT,
+    MalformedError,
+    as_int,
+    global_event,
+    subject_event,
+)
 from tutor.curriculum.ids import ulid, valid_eid, valid_id
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-CAP_LIFT: Final = "cap_lift"  # {"day"}: old daily cap lift, kept, unused
 NEW_CAP: Final = "new_cap"  # {"n"}: old daily cap setting, kept, unused
 GLOBAL_KINDS: Final = frozenset({CAP_LIFT, NEW_CAP})  # no subject or card
 REVIEW_UNDO: Final = "review_undo"  # {"of"}: that review eid never counts
 ARCHIVE: Final = "subject_archive"  # {"s"}: hidden and unlearned (worker)
 UNARCHIVE: Final = "subject_unarchive"  # {"s"}: back, state intact (worker)
 SUBJECT_KINDS: Final = frozenset({ARCHIVE, UNARCHIVE})  # a subject, no card
+UNCHECKED: Final = "unchecked"  # {"src"}: taught without Claude, check it
+CHECKED: Final = "checked"  # Claude checked it: the unchecked mark is gone
 KINDS: Final = frozenset(
-    {"review", REVIEW_UNDO, "flag", "taught", "untaught", *GLOBAL_KINDS} | SUBJECT_KINDS
+    {"review", REVIEW_UNDO, "flag", "taught", "untaught", UNCHECKED, CHECKED}
+    | GLOBAL_KINDS
+    | SUBJECT_KINDS
 )
-CAP_MIN: Final = 1
-CAP_MAX: Final = 200
-DAY: Final = re.compile(r"\d{4}-\d{2}-\d{2}")
 MAX_REASON: Final = 500
 RATINGS: Final = frozenset({1, 2, 3, 4})
 DRILL: Final = "drill"  # review ``src``: a PC drill pick (never counts as reviewed)
 CHECKIN: Final = "checkin"  # review ``src``: a focus check-in card (an ordinary review)
 SOURCES: Final = frozenset({DRILL, CHECKIN})
+READ: Final = "read"  # unchecked ``src``: read mode (no model)
+FREE: Final = "free"  # unchecked ``src``: a free-model chat (OmniRoute)
+UNCHECKED_SOURCES: Final = frozenset({READ, FREE})
 _LOCK: Final = threading.Lock()
 _logger = logging.getLogger(__name__)
 
 
-def _int(value: object) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
-
-
-class _MalformedError(ValueError):
-    """An event that breaks the contract; :func:`parse` logs why and drops it."""
-
-
 def _review(raw: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
-    rating = _int(raw.get("r"))
+    rating = as_int(raw.get("r"))
     if rating is None or rating not in RATINGS:
         msg = f"rating {raw.get('r')!r}"
-        raise _MalformedError(msg)
+        raise MalformedError(msg)
     event["r"] = rating
-    event["rev"] = _int(raw.get("rev")) or 1
-    if (dur := _int(raw.get("dur_ms"))) is not None:
+    event["rev"] = as_int(raw.get("rev")) or 1
+    if (dur := as_int(raw.get("dur_ms"))) is not None:
         event["dur_ms"] = dur
     if (src := raw.get("src")) in SOURCES:  # untrusted: the known sources only
         event["src"] = src
@@ -76,7 +79,7 @@ def _card_event(raw: dict[str, Any], head: dict[str, Any]) -> dict[str, Any]:
     """A per-card event: ``head`` plus ``s``/``c`` and its kind's fields."""
     if not valid_id(raw.get("s")) or not valid_id(raw.get("c")):
         msg = "bad subject or card id"
-        raise _MalformedError(msg)
+        raise MalformedError(msg)
     event = {**head, "s": raw["s"], "c": raw["c"]}
     kind = head["k"]
     if kind == "review":
@@ -84,64 +87,36 @@ def _card_event(raw: dict[str, Any], head: dict[str, Any]) -> dict[str, Any]:
     if kind == REVIEW_UNDO:
         if not valid_eid(raw.get("of")):
             msg = f"of {raw.get('of')!r}"
-            raise _MalformedError(msg)
+            raise MalformedError(msg)
         event["of"] = raw["of"]
     elif kind == "flag":
-        event["rev"] = _int(raw.get("rev")) or 1
+        event["rev"] = as_int(raw.get("rev")) or 1
         reason = raw.get("reason")
         event["reason"] = reason[:MAX_REASON] if isinstance(reason, str) else ""
+    elif kind == UNCHECKED:
+        src = raw.get("src")
+        event["src"] = src if src in UNCHECKED_SOURCES else READ
     elif kind == "taught" and isinstance(raw.get("session"), str):
         event["session"] = raw["session"]
     return event
-
-
-def _day(value: object) -> str:
-    """``value`` if it is ``YYYY-MM-DD`` naming a real date."""
-    msg = f"day {value!r}"
-    if not isinstance(value, str) or not DAY.fullmatch(value):
-        raise _MalformedError(msg)
-    try:
-        date.fromisoformat(value)
-    except ValueError as err:  # 2026-02-30: the shape is right, the date is not
-        raise _MalformedError(msg) from err
-    return value
-
-
-def _global_event(raw: dict[str, Any], head: dict[str, Any]) -> dict[str, Any]:
-    """``cap_lift`` (``day``) / ``new_cap`` (``n`` in 1..200): no subject or card."""
-    if head["k"] == CAP_LIFT:
-        return {**head, "day": _day(raw.get("day"))}
-    n = _int(raw.get("n"))
-    if n is None or not CAP_MIN <= n <= CAP_MAX:
-        msg = f"n {raw.get('n')!r}"
-        raise _MalformedError(msg)
-    return {**head, "n": n}
-
-
-def _subject_event(raw: dict[str, Any], head: dict[str, Any]) -> dict[str, Any]:
-    """``subject_archive`` / ``subject_unarchive``: ``s`` only, no card."""
-    if not valid_id(raw.get("s")):
-        msg = "bad subject id"
-        raise _MalformedError(msg)
-    return {**head, "s": raw["s"]}
 
 
 def parse(dev: str, eid: str, raw: object) -> dict[str, Any] | None:
     """A clean event, or None (logged) when ``raw`` breaks the contract."""
     if not isinstance(raw, dict) or not valid_eid(eid) or not dev:
         return None
-    kind, at = raw.get("k"), _int(raw.get("at"))
+    kind, at = raw.get("k"), as_int(raw.get("at"))
     if kind not in KINDS or at is None or at <= 0:
         _logger.warning("dropped event %s/%s: bad kind or time", dev, eid)
         return None
     head = {"dev": dev, "eid": eid, "k": kind, "at": at}
     try:
         if kind in GLOBAL_KINDS:
-            return _global_event(raw, head)
+            return global_event(raw, head)
         if kind in SUBJECT_KINDS:
-            return _subject_event(raw, head)
+            return subject_event(raw, head)
         return _card_event(raw, head)
-    except _MalformedError as err:
+    except MalformedError as err:
         _logger.warning("dropped %s %s/%s: %s", kind, dev, eid, err)
         return None
 
@@ -196,7 +171,11 @@ class EventLog:
 def worker_event(
     kind: str, ref: tuple[str, str], *, dev: str, at: int, session: str = ""
 ) -> dict[str, Any]:
-    """A ``taught``/``untaught`` event on ``ref`` = (subject, card), fresh eid."""
+    """A worker event (``taught``, ``untaught``, ``checked``) on ``ref``.
+
+    ``ref`` = (subject, card), with a fresh eid. ``unchecked`` events carry a
+    source tag: build them with :func:`unchecked_event`.
+    """
     subject, card = ref
     event: dict[str, Any] = {
         "dev": dev,
@@ -209,6 +188,13 @@ def worker_event(
     if kind == "taught" and session:
         event["session"] = session
     return event
+
+
+def unchecked_event(
+    ref: tuple[str, str], *, dev: str, at: int, src: str = READ
+) -> dict[str, Any]:
+    """An ``unchecked`` event on ``ref``; ``src`` is in :data:`UNCHECKED_SOURCES`."""
+    return {**worker_event(UNCHECKED, ref, dev=dev, at=at), "src": src}
 
 
 def review_event(

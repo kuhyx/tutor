@@ -41,10 +41,11 @@ def _bwrap_works() -> bool:
 pytestmark = skip_unless(works=_bwrap_works(), reason="no usable bwrap")
 
 
-def inside(root: Path, script: str) -> subprocess.CompletedProcess[str]:
+def inside(root: Path, script: str, **more: str) -> subprocess.CompletedProcess[str]:
     """Run ``bash -c script`` through the wrapper, as the SDK would run the CLI."""
     env = {
         **os.environ,
+        **more,
         "TUTOR_MODEL_SANDBOX": str(root),
         "TUTOR_MODEL_CLI": "/usr/bin/bash",
         "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
@@ -149,3 +150,42 @@ def test_missing_settings_are_refused(tutor_sandbox: Path) -> None:
     )
     assert run.returncode != 0
     assert "TUTOR_MODEL_SANDBOX" in run.stderr
+
+
+def _probe(ports: tuple[int, ...]) -> str:
+    """A python one-liner script printing REACHED / refused per loopback port."""
+    return (
+        "import socket\n"
+        f"for port in {ports!r}:\n"
+        "    s = socket.socket()\n"
+        "    s.settimeout(3)\n"
+        "    try:\n"
+        "        s.connect(('127.0.0.1', port))\n"
+        "        print('REACHED', port)\n"
+        "    except OSError as err:\n"
+        "        print('refused', port, err)\n"
+    )
+
+
+def test_a_free_chat_reaches_only_the_gateway_port(root: Path) -> None:
+    """``TUTOR_MODEL_GATEWAY_PORT`` (``free_backend``) opens that port alone."""
+    gateway, other = socket.socket(), socket.socket()
+    for sock in (gateway, other):
+        sock.bind(("127.0.0.1", 0))
+        sock.listen()
+    ports = (gateway.getsockname()[1], other.getsockname()[1])
+    with gateway, other:
+        run = inside(
+            root,
+            f'python3 -c "{_probe(ports)}"',
+            TUTOR_MODEL_GATEWAY_PORT=str(ports[0]),
+        )
+    assert run.returncode == 0, run.stderr
+    assert f"REACHED {ports[0]}" in run.stdout
+    assert f"REACHED {ports[1]}" not in run.stdout
+
+
+def test_a_bad_gateway_port_is_refused(root: Path) -> None:
+    run = inside(root, "true", TUTOR_MODEL_GATEWAY_PORT="20128; rm")
+    assert run.returncode != 0
+    assert "not a port" in run.stderr

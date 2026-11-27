@@ -35,6 +35,7 @@ class SessionScreen extends StatefulWidget {
     this.resume = false,
     this.module,
     this.now,
+    this.free = false,
     super.key,
   });
 
@@ -53,6 +54,9 @@ class SessionScreen extends StatefulWidget {
 
   /// Clock for "stalled".
   final DateTime Function()? now;
+
+  /// Starts (with [resume]) on the free model, not Claude (outage banner).
+  final bool free;
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -164,8 +168,9 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   /// Continue (or start) the screen's subject (DOCS-contract §4 `resume`).
-  RequestBody _continue() =>
-      RequestBody.sessionStart(subject: widget.subject, resume: true);
+  RequestBody _continue() => widget.free
+      ? RequestBody.sessionStart(subject: widget.subject, free: true)
+      : RequestBody.sessionStart(subject: widget.subject, resume: true);
 
   Future<bool> _send(String sid, String text) async =>
       await _run(RequestBody.message(sid, text)) is! RelayNotSent;

@@ -23,6 +23,7 @@ class PlanFit extends StatefulWidget {
     required this.progress,
     required this.onRetry,
     required this.onReview,
+    this.onReviewDue,
     super.key,
   });
 
@@ -40,6 +41,9 @@ class PlanFit extends StatefulWidget {
 
   /// Starts a module's review.
   final ValueChanged<Module> onReview;
+
+  /// Reviews only a module's due cards.
+  final ValueChanged<Module>? onReviewDue;
 
   @override
   State<PlanFit> createState() => _PlanFitState();
@@ -116,15 +120,34 @@ class _PlanFitState extends State<PlanFit> {
             review: review,
             onRetry: () => closeThen(widget.onRetry),
             onReview: () => closeThen(() => widget.onReview(m)),
+            onReviewDue: switch (widget.onReviewDue) {
+              final due? => () => closeThen(() => due(m)),
+              null => null,
+            },
           ),
         ];
       },
     );
     final mark = moduleMark(m, review);
+    final due = widget.progress?.modules[m.id]?.due ?? 0;
+    final reviewDue = widget.onReviewDue;
     return LearnTile(
       key: ValueKey('module-tile-$i'),
       title: m.title,
-      corner: ModuleMarkIcon(mark),
+      corner: due > 0 && reviewDue != null
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ModuleDueButton(
+                  m,
+                  due,
+                  target: AppSpacing.xl,
+                  onPressed: () => reviewDue(m),
+                ),
+                ModuleMarkIcon(mark),
+              ],
+            )
+          : ModuleMarkIcon(mark),
       details: [if (!m.teachable) const TeachLock(), RecallStat(m.recall)],
       marked: failed || reviewable,
       onMore: sheet,

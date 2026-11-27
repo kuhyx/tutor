@@ -68,6 +68,14 @@ void _check(Map<String, dynamic> v) {
         reason: '$name: $id reviewed',
       );
     }
+    // `unchecked` (fold step 11) only once the worker's vectors carry it.
+    if (want.containsKey('unchecked')) {
+      expect(
+        result.unchecked.contains(key),
+        want['unchecked'],
+        reason: '$name: $id unchecked',
+      );
+    }
     // `struggle` (fold step 7) only once the worker's vectors carry it.
     if (want.containsKey('struggle')) {
       expect(

@@ -15,6 +15,7 @@ import 'package:tutor/model/request_body.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
+import 'package:tutor/session/fallback_route.dart';
 import 'package:tutor/ui/deep_link.dart';
 import 'package:tutor/ui/display_size_dialog.dart';
 import 'package:tutor/ui/home_archive.dart';
@@ -22,6 +23,7 @@ import 'package:tutor/ui/home_body.dart';
 import 'package:tutor/ui/home_icons.dart';
 import 'package:tutor/ui/home_menu.dart';
 import 'package:tutor/ui/layout.dart';
+import 'package:tutor/ui/module_due_sheet.dart';
 import 'package:tutor/ui/nav.dart';
 import 'package:tutor/ui/not_saved_snack.dart';
 import 'package:tutor/util/refresher.dart';
@@ -164,6 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _go(Future<void> Function() open) => open().then(_back);
 
+  Future<void> _start(SessionEntry e) =>
+      openStart(context, _s, e, today: _snapshot.data.today, runner: _runner);
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -228,10 +233,10 @@ class _HomeScreenState extends State<HomeScreen> {
           onReview: () => _go(() => openReview(context, _s)),
           onDrill: () => _go(() => openReview(context, _s, drill: true)),
           onReviewModule: (m) => _go(() => openReview(context, _s, module: m)),
-          onReviewSubject: (id, title) => _go(
-            () => openReview(context, _s, subject: id, subjectTitle: title),
-          ),
-          onSession: (e) => _go(() => openSession(context, _s, entry: e)),
+          onReviewSubject: (id, title) =>
+              openDueSheet(context, _s, _snapshot.data, id, title, go: _go),
+          onSession: (e) => _go(() => _start(e)),
+          onFreeChat: () => _go(() => openFreeChat(context, _s)),
           onPlan: (id) => _go(() => openPlan(context, _s, id)),
           onEdit: (id) => _go(() => openEditor(context, _s, subject: id)),
           onPick: _pick,

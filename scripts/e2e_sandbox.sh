@@ -22,14 +22,17 @@
 #        [--model-down network|refuse]  # F14: every Claude call fails: no route
 #                                    # (an outage) or a 400 stub (a model error)
 #        [--scripted]               # F31: the model is a queue (e2e_script_session)
+#        [--outage rate_limit|overloaded|network]  # F33: an open 2 h outage window
+#        [--fallback due|read|drill|empty]  # F33: the log for one Start branch
 #   scripts/e2e_sandbox.sh flow F1|F3..F26|F28..F31 [PHASE]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
 #                                    # call it again), check (e2e_drive.py)
-#   scripts/e2e_sandbox.sh restart [--model-down network|refuse|none]
+#   scripts/e2e_sandbox.sh restart [--model-down network|refuse|none] [--free-down]
 #                                    # F6 again: a second worker start; F14
-#                                    # switches how Claude fails in between
+#                                    # switches how Claude fails in between;
+#                                    # F33: the free chat's gateway is a dead port
 #   scripts/e2e_sandbox.sh hold               # F16: no worker; the app served statically
 #   scripts/e2e_sandbox.sh phase theory S/M.. | solve | bad S/M | missing
 #                                    # rewrite the sandbox's C3 row (F22-F26)
@@ -126,8 +129,8 @@ cmd_up() {
     [[ -f "$WEB/index.html" ]] || die "no e2e web build: run $0 build"
     cmd_down >/dev/null
     local sandbox db_port port dev db as_of="" clock="" struggle=0 carry="" nocard="" model="" gate=0 scripted=0
-    local learn="" unarchive="" unit_gate="" guard="" rework=""
-    local -a pass=() c3=(missing)
+    local learn="" unarchive="" unit_gate="" guard="" rework="" outage="" fallback=""
+    local -a pass=() c3=(missing) at=()
     while (($#)); do
         case "$1" in
             --struggle) struggle=1 ;;
@@ -141,6 +144,8 @@ cmd_up() {
             --unarchive) unarchive="${2:?--unarchive S}"; shift ;;
             --rework) rework="${2:?--rework S/M/SLUG}"; shift ;;
             --guard-theory) guard="${2:?--guard-theory JSON}"; shift ;;
+            --outage) outage="${2:?--outage rate_limit|overloaded|network}"; shift ;;
+            --fallback) fallback="${2:?--fallback due|read|drill|empty}"; shift ;;
             --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
@@ -152,6 +157,7 @@ cmd_up() {
     if [[ -n "$as_of" ]]; then
         clock="$(date -d "$as_of" '+%Y-%m-%d %H:%M:%S')"
         command -v faketime >/dev/null || die "no faketime: sudo pacman -S libfaketime"
+        at=(--at "$clock")
     fi
     sandbox="$(mktemp -d "${TMPDIR:-/tmp}/tutor-e2e.XXXXXX")"
     head -c 32 /dev/urandom | base64 > "$sandbox/test.key"
@@ -169,6 +175,10 @@ cmd_up() {
     [[ -z "$unarchive" ]] || "$PY" -m tutor subject unarchive "$unarchive" --data "$sandbox/data"
     [[ -z "$rework" ]] || TUTOR_KEY="$sandbox/test.key" "$PY" "$ROOT/scripts/e2e_rework_seed.py" "$sandbox" "$rework"
     write_phase "$sandbox" "${c3[@]}"
+    [[ -z "$fallback" ]] || "$PY" "$ROOT/scripts/e2e_fallback_seed.py" seed "$sandbox/data" \
+        --subject "$SUBJECT" --branch "$fallback" "${at[@]}"
+    [[ -z "$outage" ]] || "$PY" "$ROOT/scripts/e2e_fallback_seed.py" outage "$sandbox/data" \
+        --reason "$outage" "${at[@]}"
     if [[ -n "$carry" ]]; then  # the day before the worker's today
         "$PY" "$ROOT/scripts/e2e_seed.py" carry "$sandbox/data" --key "$sandbox/test.key" \
             --minutes "$carry" --day "$(date -d "$(date -d "${clock:-now}" +%F) -1 day" +%F)"
@@ -177,7 +187,7 @@ cmd_up() {
     db_port="$(free_port)"
     port="$(free_port)"
     db="http://127.0.0.1:$db_port"
-    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\nGUARD=%s\nSCRIPTED=%s\n' \
+    printf 'SANDBOX=%s\nDB=%s\nPORT=%s\nDEV=%s\nCLOCK=%s\nMODEL=%s\nGUARD=%s\nSCRIPTED=%s\nFREE=\n' \
         "$sandbox" "$db" "$port" "$dev" "$clock" "$model" "$guard" "$scripted" > "$STATE"
     systemd-run --user --quiet --collect --unit="$DB_UNIT" -p RuntimeMaxSec=3600 \
         java -jar "$(emulator_jar)" --host 127.0.0.1 --port "$db_port"
@@ -188,33 +198,23 @@ cmd_up() {
 }
 
 # A second worker start on the same sandbox (F6 again): stats is deleted
-# first, so the new worker's publish is visible.
+# first, so the new worker's publish is visible. --free-down (F33) lasts
+# until the next `up`.
 cmd_restart() {
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
-    if [[ "${1:-}" == --model-down ]]; then
-        sed -i "s/^MODEL=.*/MODEL=${2:?--model-down network|refuse|none}/" "$STATE"
-    fi
+    while (($#)); do
+        case "$1" in
+            --model-down) sed -i "s/^MODEL=.*/MODEL=${2:?--model-down network|refuse|none}/" "$STATE"
+                shift ;;
+            --free-down) sed -i '/^FREE=/d' "$STATE"; echo FREE=down >> "$STATE" ;;
+            *) die "restart [--model-down network|refuse|none] [--free-down], not $1" ;;
+        esac
+        shift
+    done
     stop_units "$HOLD_UNIT" "$SERVER_UNIT"
     curl -sf -X DELETE "$(sed -n 's/^DB=//p' "$STATE")/tutor/v1-e2e/stats.json" >/dev/null
     start_server
     echo "e2e sandbox server restarted"
-}
-
-# F16: no worker claims anything. The server stops and a static host serves
-# the same web build on its port, so a flow can play the worker by writing
-# claim/result nodes into the emulator. `restart` brings the worker back.
-cmd_hold() {
-    [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
-    local port root
-    port="$(sed -n 's/^PORT=//p' "$STATE")"
-    root="$(dirname "$STATE")/hold"
-    systemctl --user stop "$SERVER_UNIT" 2>/dev/null || true
-    mkdir -p "$root"
-    ln -sfn "$WEB" "$root/app"
-    systemd-run --user --quiet --collect --unit="$HOLD_UNIT" -p RuntimeMaxSec=3600 \
-        "$PY" -m http.server "$port" --bind 127.0.0.1 --directory "$root"
-    wait_http "http://127.0.0.1:$port/app/" 40 || die "static host did not start"
-    echo "e2e sandbox held: no worker, app on :$port"
 }
 
 cmd_flow() {
@@ -242,7 +242,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] [--scripted] | restart [--model-down M] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28..F31 [PHASE] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] [--scripted] [--outage R] [--fallback B] | restart [--model-down M] [--free-down] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28..F31 [PHASE] | down" ;;
     esac
 }
 

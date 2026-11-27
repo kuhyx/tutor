@@ -141,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tooltip_retry => 'Retry';
 
   @override
+  String get tooltip_again => 'Again';
+
+  @override
   String get tooltip_archive => 'Archive';
 
   @override
@@ -220,4 +223,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tooltip_resume => 'Resume';
+
+  @override
+  String get tooltip_own => 'Own';
+
+  @override
+  String get tooltip_leetcode => 'LeetCode';
+
+  @override
+  String get tooltip_all => 'All';
+
+  @override
+  String get tooltip_unchecked => 'Unchecked';
+
+  @override
+  String get tooltip_check => 'Check';
 }

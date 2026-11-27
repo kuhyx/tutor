@@ -9,7 +9,9 @@
 the app can offer the step itself; ``no_card_left`` adds
 ``due_in_subject`` and ``writing``. Both add ``gate_cards`` when the module
 gate refused (``rules.gate``): the exact cards to review before the next
-module, which the app opens at once. ``pick.pick`` decides which one.
+module, which the app opens at once, and ``gate_unchecked``: those of them
+read without Claude, which only its check passes (spec Q11). ``pick.pick``
+decides which one.
 """
 
 from __future__ import annotations
@@ -117,12 +119,19 @@ class Held(NamedTuple):
     """Why an explicit card waits.
 
     ``need``: the module to review first; for the module gate, ``cards`` to
-    review and ``due_at``, when the earliest is due.
+    review, ``due_at``, when the earliest is due, and ``unchecked``, the
+    cards among them only Claude's check passes.
     """
 
     need: Module | None = None
     cards: list[str] | None = None
     due_at: int | None = None
+    unchecked: list[str] | None = None
+
+
+def unchecked_of(view: View, fold: Fold, cards: list[str]) -> list[str]:
+    """The ``cards`` read without Claude and not checked yet (``gate_unchecked``)."""
+    return [cid for cid in cards if fold.card(view.subject, cid).unchecked]
 
 
 def locked(
@@ -148,7 +157,7 @@ def locked(
     name = title or "This subject"
     need, cards = held.need, held.cards
     if cards is not None:
-        extra["gate_cards"] = cards
+        extra |= {"gate_cards": cards, "gate_unchecked": held.unchecked or []}
     if module is not None and need is not None:
         extra |= {"next": REVIEW_MODULE, "module": need.id}
         extra["module_title"] = need.title

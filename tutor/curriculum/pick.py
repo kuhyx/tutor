@@ -5,9 +5,11 @@ The module gate (kuhy, 2026-11-22; no daily cap, no waiting): the first card
 of a module with no taught card opens only once every earlier module is
 fully taught with each card reviewed, and no card of the subject is due.
 Due cards never block a module already started. The refusal lists the
-exact cards that block (``gate_cards``), which the app reviews. Under C3 the
-guard's unit order beats the plan order (:func:`unit_order_wins`), for a card's
-required cards too (:func:`_open`).
+exact cards that block (``gate_cards``), which the app reviews; a card read
+without Claude blocks until Claude has checked it (``unchecked``, spec Q11;
+the refusal names those apart, ``gate_unchecked``). Under C3 the guard's unit
+order beats the plan order (:func:`unit_order_wins`), for a card's required
+cards too (:func:`_open`).
 """
 
 from __future__ import annotations
@@ -23,10 +25,13 @@ from tutor.curriculum.no_card import (
     due_now,
     locked,
     no_card_left,
+    unchecked_of,
 )
 from tutor.curriculum.rules import OPEN, counted, reviewed, unlocked
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from tutor.curriculum.fold import Fold
     from tutor.curriculum.records import CardRec, Module
     from tutor.curriculum.rules import View
@@ -86,7 +91,7 @@ def unit_order_wins(view: View, module: Module) -> bool:
 
 def gate(view: View, fold: Fold, now_ms: int, before: str | None = None) -> Gate:
     """The gate before module ``before`` (None: after the last module)."""
-    blocker, cards, writing, untaught = None, [], False, False
+    blocker, cards, writing, owes = None, [], False, False
     for module in view.plan.modules:
         if module.id == before:
             break
@@ -97,37 +102,52 @@ def gate(view: View, fold: Fold, now_ms: int, before: str | None = None) -> Gate
             continue
         mine = counted(view, module.id, fold)
         owed = not unit_order_wins(view, module) and any(not s.taught for _, s in mine)
-        untaught = untaught or owed
-        unpassed = [cid for cid, s in mine if s.taught and not reviewed(s)]
+        owes = owes or owed
+        # An unchecked card (read without Claude) holds it too, reviewed or not.
+        unpassed = [
+            cid for cid, s in mine if s.taught and (not reviewed(s) or s.unchecked)
+        ]
         if unpassed and blocker is None:
             blocker = module
         cards += unpassed
     cards += [cid for cid in due_now(view, fold, now_ms) if cid not in cards]
-    return Gate(blocker, cards, writing, untaught)
+    return Gate(blocker, cards, writing, owes)
 
 
-def _first(view: View, fold: Fold, skip: str, now_ms: int) -> tuple[str, Module] | None:
-    taught = fold.taught_ids(view.subject)
+def teachable(view: View, fold: Fold) -> Iterator[Module]:
+    """Modules a session may teach in: open, unlocked, not refused, ``view.only``."""
     for module in view.plan.modules:
         other = bool(view.only) and module.id != view.only
         held = other or module.status not in OPEN or module.id in view.refused
-        if held or not unlocked(view, module, fold):
-            continue
+        if not held and unlocked(view, module, fold):
+            yield module
+
+
+def untaught(view: View, fold: Fold, skip: str = "") -> Iterator[tuple[str, Module]]:
+    """The untaught cards a session may open (never ``skip``), gate aside: read mode."""
+    taught = fold.taught_ids(view.subject)
+    for module in teachable(view, fold):
         for cid, card in view.module_cards(module.id):
             flagged = fold.card(view.subject, cid).flagged(card.rev)
             fresh = cid not in taught and cid != skip
-            if not fresh or flagged or not _open(view, card, fold):
-                continue
-            if not started(view, fold, module.id):
-                ahead = gate(view, fold, now_ms, before=module.id)
-                if ahead.untaught and skip and not ahead.cards:
-                    # Next skipped a module's last card: offer it again
-                    # rather than jump to the next module.
-                    return _first(view, fold, "", now_ms)
-                if not ahead.clear:
-                    raise _no_card(view, fold, now_ms, ahead)
-            return cid, module
-    return None
+            if fresh and not flagged and _open(view, card, fold):
+                yield cid, module
+
+
+def _first(view: View, fold: Fold, skip: str, now_ms: int) -> tuple[str, Module] | None:
+    found = next(untaught(view, fold, skip), None)
+    if found is None:
+        return None
+    cid, module = found
+    if not started(view, fold, module.id):
+        ahead = gate(view, fold, now_ms, before=module.id)
+        if ahead.untaught and skip and not ahead.cards:
+            # Next skipped a module's last card: offer it again
+            # rather than jump to the next module.
+            return _first(view, fold, "", now_ms)
+        if not ahead.clear:
+            raise _no_card(view, fold, now_ms, ahead)
+    return cid, module
 
 
 def _due_at(view: View, fold: Fold) -> int | None:
@@ -154,6 +174,7 @@ def _no_card(
     err.extra["subject_id"] = view.subject
     err.extra["due_in_subject"] = due_in_subject(view, fold, now_ms)
     err.extra["gate_cards"] = ahead.cards
+    err.extra["gate_unchecked"] = unchecked_of(view, fold, ahead.cards)
     return err
 
 
@@ -199,12 +220,13 @@ def _explicit(view: View, fold: Fold, card_id: str, now_ms: int) -> tuple[str, M
     if not started(view, fold, module.id):
         ahead = gate(view, fold, now_ms, before=module.id)
         if ahead.cards or ahead.writing or ahead.untaught:
+            due, held = _due_at(view, fold), unchecked_of(view, fold, ahead.cards)
             raise locked(
                 view.title,
                 card_id,
                 subject=view.subject,
                 module=module,
-                held=Held(ahead.blocker, ahead.cards, _due_at(view, fold)),
+                held=Held(ahead.blocker, ahead.cards, due, held),
             )
     return card_id, module
 

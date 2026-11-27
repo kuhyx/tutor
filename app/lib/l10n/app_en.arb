@@ -43,6 +43,7 @@
   "tooltip_cards": "Cards",
   "tooltip_next": "Next",
   "tooltip_retry": "Retry",
+  "tooltip_again": "Again",
   "tooltip_archive": "Archive",
   "tooltip_save": "Save",
   "tooltip_approve": "Approve",
@@ -69,5 +70,10 @@
   "tooltip_calendar": "Calendar",
   "tooltip_live": "Live",
   "tooltip_learn": "Learn",
-  "tooltip_resume": "Resume"
+  "tooltip_resume": "Resume",
+  "tooltip_own": "Own",
+  "tooltip_leetcode": "LeetCode",
+  "tooltip_all": "All",
+  "tooltip_unchecked": "Unchecked",
+  "tooltip_check": "Check"
 }

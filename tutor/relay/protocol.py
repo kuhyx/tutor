@@ -161,8 +161,8 @@ KINDS: Final[dict[str, tuple[str, dict[str, Callable[[object], object]]]]] = {
             "resume": _opt_bool,
             "device": delivery.device,
             "lift_cap": _opt_bool,  # an older app's cap flag: accepted, ignored
-            # Help on a struggling taught card (``DOCS-contract-struggle.md`` §5).
-            "struggle": _opt_bool,
+            "struggle": _opt_bool,  # help on a struggling card (struggle §5)
+            "free": _opt_bool,  # a free-model chat while Claude is out (free_backend)
         },
     ),
     "session_resume": (CHAT, {"session": _session, "device": delivery.device}),

@@ -24,7 +24,10 @@
 9. ``struggle(rev)`` (``DOCS-contract-struggle.md`` §3): the trailing run of
    Again among the kept reviews since taught at the card's current ``rev``;
 10. ``subject_archive``/``subject_unarchive`` change no card here (the app
-   skips them too): the PC masks archived subjects afterwards (:func:`without`).
+   skips them too): the PC masks archived subjects afterwards (:func:`without`);
+11. ``unchecked`` on a taught card marks it taught without Claude; ``checked``,
+   ``taught`` (re-teaching) and ``untaught`` clear the mark. An ``unchecked``
+   on an untaught card does nothing.
 
 ``contract/fsrs_vectors.json`` (``fsrs_vectors.py``) pins the results.
 """
@@ -38,10 +41,12 @@ from typing import TYPE_CHECKING, Any, Final
 import fsrs
 
 from tutor.curriculum.eventlog import (
+    CHECKED,
     DRILL,
     GLOBAL_KINDS,
     REVIEW_UNDO,
     SUBJECT_KINDS,
+    UNCHECKED,
 )
 
 if TYPE_CHECKING:
@@ -83,6 +88,7 @@ class CardFold:
     flag_revs: set[int] = field(default_factory=set)
     new_at: list[int] = field(default_factory=list)  # taught while untaught
     app_good: bool = False  # a non-drill review >= Good since taught
+    unchecked: bool = False  # taught without Claude, not checked yet (step 11)
 
     @property
     def taught(self) -> bool:
@@ -166,7 +172,7 @@ def _teach(state: CardFold, event: dict[str, Any]) -> None:
     state.memory, state.reviews = None, []
     _review(state, at, int(fsrs.Rating.Good))
     state.reviews, state.revs = [], []  # Good-at-taught is no recall
-    state.app_good = False
+    state.app_good = state.unchecked = False
 
 
 def _duplicate(recent: list[dict[str, Any]], event: dict[str, Any]) -> bool:
@@ -216,7 +222,9 @@ def fold(events: Iterable[dict[str, Any]]) -> Fold:
             _teach(state, event)
         elif kind == "untaught":
             state.taught_at, state.memory, state.reviews = None, None, []
-            state.revs, state.app_good = [], False
+            state.revs, state.app_good, state.unchecked = [], False, False
+        elif kind in (UNCHECKED, CHECKED):
+            state.unchecked = kind == UNCHECKED and state.taught
         else:
             state.flag_revs.add(int(event["rev"]))
         out.kept.append(event)

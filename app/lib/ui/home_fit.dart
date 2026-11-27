@@ -13,6 +13,7 @@ import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/home_body.dart';
+import 'package:tutor/ui/module_due_sheet.dart';
 import 'package:tutor/ui/new_subject_field.dart';
 import 'package:tutor/ui/subject_tile.dart';
 import 'package:tutor/widgets/spoken_label.dart';
@@ -74,7 +75,14 @@ class HomeFit extends StatelessWidget {
             size: 16,
             semanticLabel: 'New material from here',
           ),
-        if (due > 0) Badge(label: Text('$due')),
+        if (due > 0)
+          DueBadge(
+            due,
+            onTap: switch (body.onReviewSubject) {
+              final review? => () => review(s.id, s.meta.title),
+              null => null,
+            },
+          ),
       ],
       marked: data.toReview[s.id] != null || status == SubjectStatus.failed,
       onTap: teaching && !current

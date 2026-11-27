@@ -88,19 +88,22 @@ class RequestBody {
   /// `session_start`: null [card] = next open card ([module]: of that module,
   /// C4); [resume] (Continue) first makes the subject's open session live
   /// (DOCS-contract §4); [struggle] (Review's "Get help") opens a struggle
-  /// session on [card] (DOCS-contract-struggle §5).
+  /// session on [card] (DOCS-contract-struggle §5); [free] runs it on the
+  /// free model (OmniRoute) while Claude is out (`tutor/free_backend.py`).
   factory sessionStart({
     String? subject,
     String? card,
     String? module,
     bool resume = false,
     bool struggle = false,
+    bool free = false,
   }) => RequestBody._(RequestKind.sessionStart, {
     'subject': subject,
     'card': card,
     'module': ?module,
     if (resume) 'resume': true,
     if (struggle) 'struggle': true,
+    if (free) 'free': true,
   });
 
   /// `session_resume`.

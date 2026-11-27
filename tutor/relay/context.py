@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from tutor.clock import activity_time
+from tutor.clock import activity_time, reply_time
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -42,6 +42,13 @@ class RequestContext:
     def body(self) -> dict[str, Any]:
         """The validated request body (unknown fields already dropped)."""
         return self.request.body
+
+
+def learner_time(ctx: RequestContext) -> float:
+    """When the learner acted: RTDB ``created``, or the Send press within grace."""
+    req = ctx.request
+    sent = None if req.sent_at_ms is None else req.sent_at_ms / 1000
+    return reply_time(req.created_ms / 1000, sent)
 
 
 def activity_ts(ctx: RequestContext) -> float:

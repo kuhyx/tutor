@@ -1,4 +1,4 @@
-# Agent E2E: the `/learn` flows F22-F28, the rework chat F29, F30 and F31
+# Agent E2E: the `/learn` flows F22-F28, the rework chat F29, F30, F31 and F33
 
 These flows drive the LeetCode lock's learn button from the route to the
 signed rows. The sandbox is described in README "Agent E2E"; the contracts
@@ -53,8 +53,36 @@ $S up --scripted               # the model is a queue the flow writes
 $S flow F31 rewrite            # then: fallback (same sandbox)
 E2E_SUBJECT=$LC $S up --scripted --learn $LC/prefix-sums --phase "theory $LC/prefix-sums"
 E2E_SUBJECT=$LC $S flow F31 module   # or, on a fresh up of the same kind: waived
+# F33: the model-free fallback (seeding only so far; the flow comes later)
+$S up --outage rate_limit --fallback read   # --fallback due|read|drill|empty
+$S restart --free-down         # the free chat fails with free_unavailable
 $S down
 ```
+
+- F33 (`scripts/e2e_fallback_seed.py`). `up --outage R` (`rate_limit`,
+  `overloaded`, `network`) writes an open window to the copy's
+  `unavailable.jsonl` the way `unavailable.record` does, from the worker's
+  now (the `--as-of` clock if given) to 2 h later. The worker then publishes
+  `stats.today.unavailable`, and read mode and the drill keep working.
+  `up --fallback B` seeds the copy's log for one branch of Start's chooser
+  in `E2E_SUBJECT`. Home's Start looks at every subject, so in every branch
+  no card of any subject comes due within 3 h; drill reviews clear the due
+  cards, so no module is mastered and nothing new is drafted.
+  - `due`: at least 2 cards of S due now.
+  - `read`: at least 3 readable cards in S's first teachable module. Home's
+    Start reads subjects in name order, so it may open another subject's
+    card; a Start on S's tile gets the cards in `f33_seed.json`.
+  - `drill`: every card of S's open modules (status `ready`/`mastered`)
+    taught.
+  - `empty`: nothing of S taught, every card of S's open modules flagged,
+    and `progress.json` `cards_done` emptied.
+
+  `drill` and `empty` archive every other subject, so Home shows S alone.
+  The seed checks its branch with the server's own pickers and fails `up`
+  if the branch does not hold. It writes `<sandbox>/f33_seed.json`.
+  `restart --free-down` restarts the worker with
+  `TUTOR_FREE_GATEWAY=http://127.0.0.1:9`; it lasts until the next `up`. The
+  shared `omniroute` container is never touched.
 
 - F30 (`scripts/e2e_log_wake.py`, no browser) plays a phone: a fresh device
   writes review events to `log/{dev}` on the emulator, sealed as the app

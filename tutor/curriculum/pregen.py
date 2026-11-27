@@ -1,10 +1,12 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
 """``module_pregenerate``: draft a locked module's cards before it unlocks.
 
-Opt-in only (a request names the modules, or ``"all"`` for every locked one
-not drafted yet): each gets ``status:"generating"`` + ``pregenerated:true``,
-so :func:`tutor.curriculum.advance.pending` hands it to the worker's build
-lane like any other module (one at a time; a crash leaves it ``generating``
+A request names the modules, or ``"all"`` for every locked one not drafted
+yet; the worker also queues one itself per subject studied this week
+(:mod:`tutor.curriculum.pregen_auto`, read mode's stock). Each gets
+``status:"generating"`` + ``pregenerated:true``, so
+:func:`tutor.curriculum.advance.pending` hands it to the worker's build lane
+like any other module (one at a time; a crash leaves it ``generating``
 and it is listed again). ``cardgen.generate`` then puts it back to
 ``locked`` with its cards, editable with ``card_edit`` but never taught,
 until its ``requires`` are mastered: ``rules.advance_statuses`` opens it

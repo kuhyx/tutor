@@ -86,8 +86,8 @@ def test_answers_log_reviews_and_credit_like_the_tutor(tmp_path: Path) -> None:
     assert [e.get("src") for e in reviews] == ["drill", "drill"]
     assert not rules.reviewed(fold(ctx.log.read()).card("car", "a2"))  # app only
     rows = json.loads((tmp_path / "data/ledger.json").read_text())["entries"]
-    assert run._run is not None
-    assert [r["entry_id"] for r in rows] == [f"{run._run.session_id}-m1"]
+    assert run.runs.current is not None
+    assert [r["entry_id"] for r in rows] == [f"{run.runs.current.session_id}-m1"]
     assert rows[0]["entry_id"].startswith("drill-")
     lines = (tmp_path / "drill").glob("drill-*.jsonl")
     kinds = [json.loads(x)["type"] for f in lines for x in f.read_text().splitlines()]
@@ -102,7 +102,7 @@ def test_a_quick_pick_and_a_replaced_prompt_earn_nothing(tmp_path: Path) -> None
         run.answer(old, 0, NOW + 101)
     got = run.answer(new, 0, NOW + 102)
     assert got["minute_credited"] is False
-    assert run._today(NOW + 102)["active_min"] == 0
+    assert run.runs.today(NOW + 102)["active_min"] == 0
     with pytest.raises(drill.PromptGoneError):
         run.answer(new, 0, NOW + 103)  # answered already: never twice
 
@@ -135,13 +135,13 @@ def test_outage_window_and_new_run_each_day(tmp_path: Path) -> None:
     unavailable.record("overloaded", NOW - 5, NOW + 600)
     got = run.next(None, NOW)
     assert got["unavailable"] == {"until": int(NOW + 600), "reason": "overloaded"}
-    first = run._run
+    first = run.runs.current
     assert first is not None
     tomorrow = credit.local_day(NOW)[2] + 60
-    assert run._today(tomorrow)["active_min"] == 0
+    assert run.runs.today(tomorrow)["active_min"] == 0
     run.next(None, tomorrow)
-    assert run._run is not None
-    assert run._run.session_id != first.session_id
+    assert run.runs.current is not None
+    assert run.runs.current.session_id != first.session_id
 
 
 def test_unmigrated_deck_uses_progress_and_rotates(

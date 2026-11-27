@@ -54,7 +54,7 @@ pass the same vectors.
   requires are met become `generating`. The worker runs `generate(ctx, subj,
   module)` on the build lane, one at a time, for every module
   `fold_and_advance`/`pending` lists; one left `generating` by a crash is too.
-- `module_pregenerate` (opt-in): approved plan, else `plan_conflict`; each named
+- `module_pregenerate` (also queued by the worker, `pregen_auto`): approved plan, else `plan_conflict`; each named
   module `locked` and not yet pre-generated, else `bad_request`, nothing written
   (`"all"` = every such one). Each goes `generating` + `pregenerated:true`, then
   `locked` with its cards (`card_edit` works; never picked, started, marked done
@@ -205,8 +205,8 @@ pass the same vectors.
   only once every earlier open module has each counted card taught (unless C3
   refuses that module now: `DOCS-contract-theory-phase.md`) and `reviewed`, no
   counted card of the subject is due (§5) and no earlier module is `generating`.
-  Started modules and other subjects are never held. `gate_cards` (earlier unreviewed,
-  then due) is what the app reviews before it sends Next again; a re-taught card must pass again.
+  Started modules and other subjects are never held. The app reviews `gate_cards` (earlier unreviewed, then due; re-taught: again) before Next;
+  `gate_unchecked`, those read without Claude, pass by its check only: the app lists them (mockup F5).
 - Next-card pick (worker): subject = `body.subject` or
   `prefs.current_subject`; first card in (module order, card order) that is
   untaught, not flagged/suspended, card `requires` taught (C3-refused ones aside), in an unlocked +
@@ -230,6 +230,9 @@ quota (`tutor_quota_for`: 15 Tue-Thu, 30 Mon/Fri, 50 weekend; 60 before
 the sessions started today: the Session header shows the DAY (a new card is
 a new session); that session's own minutes are secondary.
 `banked`/`prepaid` (the carry-over bank): `DOCS-contract-carry.md`.
+`unavailable` = the open outage window `{"until": <unix s>, "reason"}` or null:
+Start reads it to pick the model-free fallback before sending; a past `until`
+is clear (the 5-minute stats tick republishes it).
 
 ## 8. Client screens (parity with the retired `static/*.js` page) and their data
 - **Home**: subjects with `status`/progress; "new subject" free text; due
@@ -245,6 +248,3 @@ a new session); that session's own minutes are secondary.
   transcript view, Repeat, Continue (`session_resume`), mark card done/not done.
 - **Progress**: `stats.days` timeline + per-module recall. **Editor**: subject -> module -> cards, `card_edit`, flag. **Review**: §5, offline.
 - **Report a problem**: `feedback/`, optionally tied to one message.
-
-## 9. Worker API (B2 -> B1): `tutor.curriculum.handlers`
-Moved to `DOCS-relay.md` "Curriculum" (worker-only; the Python API the relay calls).

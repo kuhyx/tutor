@@ -42,6 +42,7 @@ class FoldResult {
     this.good = const {},
     this.reviewed = const {},
     this.struggle = const {},
+    this.unchecked = const {},
   });
 
   /// FSRS card per taught `subject/card` key (untaught cards are absent).
@@ -64,6 +65,10 @@ class FoldResult {
   /// trailing run of Again among the kept reviews at the card's current rev
   /// since the latest `taught`; absent = 0.
   final Map<String, int> struggle;
+
+  /// Fold step 11: taught keys marked `unchecked` (taught without Claude)
+  /// that no `checked`, re-teach or `untaught` has cleared yet.
+  final Set<String> unchecked;
 
   /// [struggle] of [key] (0 when absent).
   int struggleOf(String key) => struggle[key] ?? 0;
@@ -145,6 +150,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
   final latest = <String, ReviewEvent>{};
   final reviewed = <String>{};
   final struggle = <String, int>{};
+  final unchecked = <String>{};
   final all = events.toList();
   // The whole log first, so event order cannot change who is a worker.
   final workers = workerDevices(all);
@@ -159,12 +165,20 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
         latest.remove(key);
         reviewed.remove(key);
         struggle.remove(key);
+        unchecked.remove(key);
       case UntaughtEvent():
         scheduled.remove(key);
         taughtAt.remove(key);
         latest.remove(key);
         reviewed.remove(key);
         struggle.remove(key);
+        unchecked.remove(key);
+      case CheckMarkEvent(unchecked: final on):
+        if (on && scheduled.containsKey(key)) {
+          unchecked.add(key);
+        } else {
+          unchecked.remove(key);
+        }
       case ReviewEvent(:final at, :final grade):
         final card = scheduled[key];
         if (card == null) continue; // a review of an untaught card
@@ -201,6 +215,7 @@ FoldResult fold(Iterable<LoggedEvent> events, Map<String, CardInfo> cards) {
     },
     reviewed: reviewed,
     struggle: struggle,
+    unchecked: unchecked,
   );
 }
 

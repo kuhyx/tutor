@@ -8,7 +8,7 @@ writes the ledger.
 
 Runs under ``/usr/bin/python3``: this module and what it imports are stdlib +
 ``gatelock`` + ``earned_time`` only, never the tutor's venv-only dependencies
-(``tutor/__init__.py`` is empty). Install: see README, "Evening gate".
+(``tutor/__init__.py`` is empty). Install: see ``DOCS-evening-gate.md``.
 """
 
 from __future__ import annotations

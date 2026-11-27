@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Final
 
 from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
 
+from tutor import free_options
 from tutor.model_login import Login, real_cli, sync_login
 from tutor.models import TURN_SCHEMA
 from tutor.session import MODEL
@@ -170,35 +171,37 @@ def research_options(
     cwd.mkdir(parents=True, exist_ok=True)
     sync_login(root / "home")  # the CLI may read it before the first prompt
     budget = budget or ResearchBudget(login=Login(root / "home"))
-    return ClaudeAgentOptions(
-        model=MODEL,
-        system_prompt=system_prompt,
-        tools={"type": "preset", "preset": "claude_code"},
-        allowed_tools=[],
-        disallowed_tools=list(BLOCKED_TOOLS),
-        permission_mode="bypassPermissions",
-        setting_sources=[],
-        strict_mcp_config=True,
-        mcp_servers={},
-        cli_path=WRAPPER,
-        cwd=cwd,
-        hooks={
-            "UserPromptSubmit": [HookMatcher(hooks=[budget.user_prompt_submit])],
-            "PreToolUse": [HookMatcher(hooks=[budget.pre_tool_use])],
-        },
-        include_hook_events=True,
-        output_format=(
-            {"type": "json_schema", "schema": TURN_SCHEMA} if structured else None
-        ),
-        effort="medium",
-        env={
-            "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
-            "DISABLE_TELEMETRY": "1",
-            "DISABLE_AUTOUPDATER": "1",
-            "BASH_DEFAULT_TIMEOUT_MS": BASH_TIMEOUT_MS,
-            "BASH_MAX_TIMEOUT_MS": BASH_TIMEOUT_MS,
-            "TUTOR_MODEL_SANDBOX": str(root),
-            "TUTOR_MODEL_CLI": str(real_cli()),
-        },
-        extra_args={"disable-slash-commands": None, "no-session-persistence": None},
+    return free_options.applied(
+        ClaudeAgentOptions(
+            model=MODEL,
+            system_prompt=system_prompt,
+            tools={"type": "preset", "preset": "claude_code"},
+            allowed_tools=[],
+            disallowed_tools=list(BLOCKED_TOOLS),
+            permission_mode="bypassPermissions",
+            setting_sources=[],
+            strict_mcp_config=True,
+            mcp_servers={},
+            cli_path=WRAPPER,
+            cwd=cwd,
+            hooks={
+                "UserPromptSubmit": [HookMatcher(hooks=[budget.user_prompt_submit])],
+                "PreToolUse": [HookMatcher(hooks=[budget.pre_tool_use])],
+            },
+            include_hook_events=True,
+            output_format=(
+                {"type": "json_schema", "schema": TURN_SCHEMA} if structured else None
+            ),
+            effort="medium",
+            env={
+                "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+                "DISABLE_TELEMETRY": "1",
+                "DISABLE_AUTOUPDATER": "1",
+                "BASH_DEFAULT_TIMEOUT_MS": BASH_TIMEOUT_MS,
+                "BASH_MAX_TIMEOUT_MS": BASH_TIMEOUT_MS,
+                "TUTOR_MODEL_SANDBOX": str(root),
+                "TUTOR_MODEL_CLI": str(real_cli()),
+            },
+            extra_args={"disable-slash-commands": None, "no-session-persistence": None},
+        )
     )

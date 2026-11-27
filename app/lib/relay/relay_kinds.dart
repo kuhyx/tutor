@@ -14,6 +14,9 @@ const refusedPasteStatement = 'refused_paste_statement';
 /// The claude-outage kind (the drill fallback).
 const outageClaude = 'outage_claude';
 
+/// The free-model gateway is down (`free_backend`): read mode still works.
+const outageFree = 'outage_free';
+
 const Map<String, String> _plain = {
   'bad_request': 'err_bad_request',
   'not_live': 'err_not_live',
@@ -26,6 +29,7 @@ const Map<String, String> _plain = {
   'focus_refused': 'err_focus_refused',
   'model_error': 'err_model',
   'claude_unavailable': outageClaude,
+  'free_unavailable': outageFree,
   'unknown_prompt': 'err_unknown_prompt',
   'gave_up': 'err_gave_up',
   'worker_error': 'err_worker',

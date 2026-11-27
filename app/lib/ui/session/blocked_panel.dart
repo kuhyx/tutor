@@ -3,6 +3,8 @@
 /// gate's review opens by itself (`throughGate`); what is left here:
 ///
 /// - cards still to review (left early): the review glyph; tap reopens it;
+/// - only cards read without Claude hold it: the "unchecked" glyph with
+///   their count; tap asks again, which reopens their list;
 /// - the next module's cards being written: an animated pencil;
 /// - nothing to do now: a ring for when the next review falls due (or the
 ///   kind's glyph); tap opens Home on the subject.
@@ -61,7 +63,17 @@ class BlockedPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = blocked;
     final Widget glyph;
-    if (b.gated) {
+    if (b.heldUnchecked) {
+      glyph = GlyphButton(
+        icon: Icons.pending_actions,
+        semanticLabel:
+            '${b.gateUnchecked.length} cards wait for Claude’s check',
+        count: b.gateUnchecked.length,
+        tooltip: (l) => l.tooltip_unchecked,
+        filled: true,
+        onPressed: onGate,
+      );
+    } else if (b.gated) {
       glyph = GlyphButton(
         icon: Icons.style,
         semanticLabel: text,

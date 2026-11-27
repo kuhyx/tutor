@@ -48,7 +48,11 @@ void main() {
     expect(controlByLabel('Review (2 due)'), findsOneWidget);
     expect(controlByLabel('Review (1 due)'), findsOneWidget);
 
+    // The tile's glyph opens its module sheet; its last row is the subject.
     await t.tap(controlByLabel('Review (1 due)'));
+    await t.pumpAndSettle();
+    expect(controlByLabel('Review Light and orientation (1 due)'), findsOne);
+    await t.tap(controlByLabel('Review all (1 due)'));
     await t.pumpAndSettle();
     expect(spoken('Review: Vegetable gardening'), findsOneWidget);
     expect(spoken('1 left'), findsOneWidget);

@@ -96,6 +96,21 @@ Session header and Home), only when either is > 0; the words "Banked N min ·
 prepaid M" are its spoken label (the text-free UI, textgate). An older worker
 sends neither key.
 
+Carry prepays the quota in the morning, so kuhy's own minutes go to the bank
+and the quota counter stays put (2026-11-26: "I did anki cards on my phone
+but got no bonus time"). The carry order stays; the node says what kuhy
+earned himself today instead (`tutor/today_minutes.py`, part e79be0be-1):
+
+- `own_minutes`: today's verified `credit` minutes, carry rows
+  (`carry-<day>-m<n>`) left out; leftover back-pay counts (it is own work).
+- `lc_minutes`: today's `leetcode_theory` minutes (leetcode-guard pays them,
+  never the tutor bonus).
+
+The app shows each as its own glyph stat beside the bank, only when > 0
+(`app/lib/ui/home_counters.dart`: a person glyph for own minutes, a code
+glyph for LeetCode minutes, one hover word each). A review minute raises
+`own_minutes` and `banked` by the same amount.
+
 ## Leftover rows
 
 `tutor/leftover.py` pays the part minutes that per-card clocks dropped

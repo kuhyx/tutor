@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from tutor.curriculum.context import Context
     from tutor.curriculum.eventlog import EventLog
 
-MIN_REVIEW_SECONDS: Final = 3.0  # as drill.MIN_PICK_SECONDS: a faster one is a guess
+MIN_REVIEW_SECONDS: Final = 3.0  # as model_free_pay.MIN_PICK_SECONDS: faster is a guess
 MAX_REVIEW_SECONDS: Final = 60.0  # one review never earns more than a minute
 _DAYS_BACK: Final = 1
 # One pass at a time: two passes reading different totals could race a span.

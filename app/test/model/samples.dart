@@ -149,6 +149,9 @@ const Map<String, Map<String, Object>> stats = {
     'new': 4,
     'banked': 40,
     'prepaid': 15,
+    'own_minutes': 2,
+    'lc_minutes': 1,
+    'unavailable': {'until': 1800, 'reason': 'rate_limit'},
   },
   'days': {
     '2026-10-12': {'minutes': 23, 'taught': 4, 'reviews': 31},

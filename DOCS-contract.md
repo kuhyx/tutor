@@ -110,7 +110,7 @@ rid. Requests may queue while the PC is offline; served when it is back.
 
 A failed `result` also carries `kind` (how it failed, drawn as a glyph; not the request `kind`): `DOCS-relay-kinds.md`.
 Error codes (extra fields flat in the result node, `DOCS-relay.md`): `bad_request` (unknown kind, bad id, oversize), `not_live`, `session_live` (stop the live session first), `locked` (+`subject_id`, `subject_title`, `gate_cards`?, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` | `none`),
-`no_card_left` (+`subject_id`, `subject_title`, `due_in_subject`, `writing`, `gate_cards`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
+`no_card_left` (+`subject_id`, `subject_title`, `due_in_subject`, `writing`, `gate_cards`, `gate_unchecked`, `next`: `review_module` +`module`, `module_title` | `reviews_due` +`due_at` ms | `none`), `unknown_card`, `plan_conflict`, `edit_refused`, `model_error`, `claude_unavailable` (+`reason`, `resets_at`), `unknown_prompt`, `gave_up`,
 `worker_error` (`DOCS-relay.md`). `error` is shown, except for `locked`/`no_card_left`: the app acts on the fields (non-empty `gate_cards`: it opens that review at once, curriculum §6). Tracebacks stay in the log.
 
 ### 4a. Machine codes beside the sentences
@@ -134,7 +134,7 @@ vocabulary, closed and additive: `DOCS-contract-codes.md`.
 | `stop` | `{"session":sid}` | `{}` | chat |
 | `follow_up_open` | `{"session":sid}` reopen a session whose card was done there, for follow-up questions (`DOCS-relay.md` "Follow-ups"); another live session -> `session_live` | `{"session":sid}` | chat |
 | `card_done` | `{"subject","card","done":true}` manual override | `{}` | chat |
-| `drill_next`, `drill_answer` | the model-free drill, `DOCS-relay.md` "Claude unavailable" | | chat |
+| `drill_next`, `drill_answer`, `read_next`, `read_rate` | the model-free drill and read mode (new cards), `DOCS-relay.md` "Claude unavailable" | | chat |
 | `focus_status`, `focus_event`, `focus_create`, `focus_update`, `focus_end` | focus projects, `DOCS-contract-focus.md` (`focus_event` `card`: a graded check-in card, a tutor heartbeat) | | chat |
 | `anki_status` | `{}` (credits new Anki reviews first; idempotent) | `{"credited_today_min","eligible_today_min","last_sync_at":s\|null,"unavailable":{"until":s,"reason"}\|null}` | chat |
 

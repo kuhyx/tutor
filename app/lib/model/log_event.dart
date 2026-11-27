@@ -6,6 +6,8 @@ import 'package:tutor/model/json.dart';
 
 export 'package:tutor/model/grade.dart';
 
+part 'log_event_kinds.dart';
+
 /// `src` of a review the PC drill wrote (`tutor/drill.py`).
 const String drillSource = 'drill';
 
@@ -57,6 +59,13 @@ sealed class LogEvent {
         session: strOr(j, 'session'),
       ),
       'untaught' => UntaughtEvent(subject: s(), card: c(), at: at),
+      'unchecked' || 'checked' => CheckMarkEvent(
+        subject: s(),
+        card: c(),
+        at: at,
+        unchecked: k == 'unchecked',
+        src: strOr(j, 'src'),
+      ),
       'new_cap' => NewCapEvent(n: _capN(integer(j, 'n')), at: at),
       _ => throw FormatException('unknown event kind "$k"'),
     };
@@ -205,19 +214,6 @@ class UntaughtEvent extends LogEvent {
   Json toJson() => {'k': 'untaught', 's': subject, 'c': card, 'at': at};
 }
 
-/// The old daily cap's setting (removed 2026-11-22): still parsed, so an
-/// old log reads, but nothing writes or applies it.
-class NewCapEvent extends LogEvent {
-  /// Creates the event.
-  const new({required this.n, required super.at})
-    : super(subject: '', card: '');
-
-  /// The old new-cards-per-day value.
-  final int n;
-
-  @override
-  Json toJson() => {'k': 'new_cap', 'n': n, 'at': at};
-}
 
 /// An event with its log identity: `log/{dev}/{eid}`.
 class LoggedEvent {

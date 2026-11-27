@@ -2,6 +2,7 @@
 library;
 
 import 'package:tutor/model/json.dart';
+import 'package:tutor/model/outage_window.dart';
 
 /// `stats.today`: the header counters.
 class Today {
@@ -14,6 +15,9 @@ class Today {
     this.activeMinutes,
     this.banked,
     this.prepaid,
+    this.ownMinutes = 0,
+    this.lcMinutes = 0,
+    this.unavailable,
   });
 
   /// Parses `stats.today`.
@@ -25,6 +29,12 @@ class Today {
     newCards: integer(j, 'new'),
     banked: intOr(j, 'banked'),
     prepaid: intOr(j, 'prepaid'),
+    ownMinutes: intOr(j, 'own_minutes') ?? 0,
+    lcMinutes: intOr(j, 'lc_minutes') ?? 0,
+    unavailable: switch (objOr(j, 'unavailable')) {
+      final u? => OutageWindow.fromJson(u),
+      null => null,
+    },
   );
 
   /// PC-local date `YYYY-MM-DD`.
@@ -49,6 +59,22 @@ class Today {
   /// Banked minutes counted today (null: an older worker).
   final int? prepaid;
 
+  /// kuhy's own verified minutes today, carry rows left out (0: an older
+  /// worker; DOCS-contract-carry.md "Stats").
+  final int ownMinutes;
+
+  /// Today's LeetCode-theory minutes (leetcode-guard pays them; 0: none or
+  /// an older worker).
+  final int lcMinutes;
+
+  /// The outage window as the worker last published it; read it through
+  /// [outageAt], which clears a past one.
+  final OutageWindow? unavailable;
+
+  /// [unavailable] while still open at [now], else null.
+  OutageWindow? outageAt(DateTime now) =>
+      (unavailable?.openAt(now) ?? false) ? unavailable : null;
+
   /// Wire form.
   Json toJson() => {
     'day': day,
@@ -58,6 +84,9 @@ class Today {
     'new': newCards,
     'banked': ?banked,
     'prepaid': ?prepaid,
+    'own_minutes': ownMinutes,
+    'lc_minutes': lcMinutes,
+    'unavailable': ?unavailable?.toJson(),
   };
 }
 

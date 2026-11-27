@@ -34,7 +34,7 @@ from claude_agent_sdk import (
     ResultMessage,
 )
 
-from tutor import unavailable
+from tutor import backend_mode, unavailable
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -98,6 +98,8 @@ def record(
     err: ClaudeUnavailableError, now: float | None = None
 ) -> ClaudeUnavailableError:
     """Log the outage window; the returned error says when the window ends."""
+    if backend_mode.free():  # the free gateway failed, not Claude: no window
+        return err
     at = time.time() if now is None else now
     window = unavailable.record(err.reason, at, err.resets_at)
     _logger.warning("Claude unavailable (%s) until %d", err.reason, window.end)

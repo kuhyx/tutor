@@ -48,6 +48,10 @@ def f5_send(flow: Flow) -> State:
     # catalog cache, which Home fills; a cold deep link sees no cards).
     flow.home()
     flow.tap(f"Review ({seed['due']} due)" if seed else "Review (", timeout=30)
+    # The subject tile's review glyph opens the module sheet: take its
+    # whole-subject row (Home's global Review starts at once).
+    if flow.browser.wait_for("Review all (", 3) is not None:
+        flow.tap("Review all (")
     flow.step("the first card shown")
     if flow.browser.wait_for("Show answer (Space)", 30) is None:
         msg = f"no card to review; saw: {flow.browser.page_text()[:400]!r}"

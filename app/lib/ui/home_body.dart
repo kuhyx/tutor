@@ -5,7 +5,6 @@ library;
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:tutor/home/home_loader.dart';
-import 'package:tutor/model/stats.dart';
 import 'package:tutor/presence/presence_watcher.dart';
 import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/relay/request_runner.dart';
@@ -13,12 +12,13 @@ import 'package:tutor/session/session_entry.dart';
 import 'package:tutor/ui/common.dart';
 import 'package:tutor/ui/fit_parts.dart';
 import 'package:tutor/ui/home_archive.dart';
+import 'package:tutor/ui/home_counters.dart';
 import 'package:tutor/ui/home_fit.dart';
 import 'package:tutor/ui/layout.dart';
 import 'package:tutor/ui/new_subject_field.dart';
+import 'package:tutor/ui/outage_banner.dart';
 import 'package:tutor/ui/session_kind_glyph.dart';
 import 'package:tutor/ui/subject_tile.dart';
-import 'package:tutor/widgets/count_badge.dart';
 import 'package:tutor/widgets/cue_chip.dart';
 import 'package:tutor/widgets/spoken_label.dart';
 
@@ -40,8 +40,12 @@ class HomeBody extends StatelessWidget {
     this.onReviewModule,
     this.onReviewSubject,
     this.archiver,
+    this.onFreeChat,
     super.key,
   });
+
+  /// Starts the free-model chat (the outage banner's glyph).
+  final VoidCallback? onFreeChat;
 
   /// Archives a subject (with undo); its hidden set filters [shown].
   final SubjectArchiver? archiver;
@@ -107,6 +111,7 @@ class HomeBody extends StatelessWidget {
           ),
         ),
       PcOfflineBanner(presence),
+      OutageBanner(today?.unavailable, onFreeChat: onFreeChat),
       Card(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -119,7 +124,7 @@ class HomeBody extends StatelessWidget {
                   semanticLabel: 'No counters yet (the PC writes them).',
                 )
               else ...[
-                _counters(today, scheme),
+                HomeCounters(today),
                 const SizedBox(height: AppSpacing.sm),
                 LinearProgressIndicator(
                   value: today.target == 0
@@ -207,41 +212,4 @@ class HomeBody extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Today's counters as glyph + number: credited/target minutes, active
-/// minutes, new cards/limit (a lock-open mark when lifted), the bank.
-Widget _counters(Today today, ColorScheme scheme) {
-  final banked = today.banked ?? 0;
-  final prepaid = today.prepaid ?? 0;
-  final active = today.activeMinutes;
-  return Wrap(
-    spacing: AppSpacing.md,
-    runSpacing: AppSpacing.xs,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      SpokenLabel(
-        semanticLabel: 'Credited ${today.creditedMinutes}/${today.target} min',
-        child: GlyphStat(
-          Icons.verified_outlined,
-          '${today.creditedMinutes}/${today.target}',
-          color: scheme.primary,
-        ),
-      ),
-      if (active != null)
-        SpokenLabel(
-          semanticLabel: '$active min active',
-          child: GlyphStat(Icons.timer_outlined, '$active'),
-        ),
-      SpokenLabel(
-        semanticLabel: 'new cards ${today.newCards}',
-        child: GlyphStat(Icons.add_card, '${today.newCards}'),
-      ),
-      if (banked > 0 || prepaid > 0)
-        SpokenLabel(
-          semanticLabel: 'Banked $banked min · prepaid $prepaid',
-          child: GlyphStat(Icons.savings_outlined, '$banked · $prepaid'),
-        ),
-    ],
-  );
 }

@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, TypedDict, Unpack
 
-from tutor import path_prompt, picked, rework_context, struggle_rules
+from tutor import check_flagged, path_prompt, picked, rework_context, struggle_rules
 from tutor.conversation import MAX_CHECK_ATTEMPTS
 from tutor.curriculum import profiles
 from tutor.delivery import note_lines
@@ -46,6 +46,7 @@ class Extras(TypedDict, total=False):
     struggle: Brief | None  # help on a struggling card (rule 16)
     path: dict[str, Any] | None  # the card's interrogation path
     rework: str | None  # kuhy's history on a rework card's problem
+    check: str  # a card taught without Claude: check it first (check_flagged)
 
 
 def _attempts(history: str | None) -> str:
@@ -89,7 +90,7 @@ def system_prompt(
         f"question: {card.front}\nanswer (do not reveal early): {card.back}\n"
         f"source: {card.source}\nverbatim excerpt: {card.excerpt}\n{aid}\n"
         f"{path_prompt.section(path)}"
-        f"{help_}{_attempts(extras.get('rework'))}{cards}"
+        f"{extras.get('check', '')}{help_}{_attempts(extras.get('rework'))}{cards}"
         f"# Already mastered concepts\n{done}\n"
     )
 
@@ -115,6 +116,7 @@ def for_source(src: CardSource, card: Card, struggle: Brief | None = None) -> st
         struggle=struggle,
         path=path,
         rework=rework,
+        check=check_flagged.section(src, card.id),
     )
 
 

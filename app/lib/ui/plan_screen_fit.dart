@@ -93,14 +93,17 @@ extension on _PlanScreenState {
         progress: progress,
         onRetry: () => _send(RequestBody.planApprove(data.id, plan.rev)),
         onReview: (m) => _review(data, m),
+        onReviewDue: (m) => _review(data, m, dueOnly: true),
       ),
     );
   }
 
-  // The tile shows the result.
-  Future<void> _review(SubjectData data, Module m) => openReview(
-    context,
-    widget.services,
-    module: ModuleRef.of(data.id, m),
-  ).then((_) => _refold());
+  // The tile shows the result; [dueOnly]: only the module's due cards.
+  Future<void> _review(SubjectData data, Module m, {bool dueOnly = false}) =>
+      openReview(
+        context,
+        widget.services,
+        module: ModuleRef.of(data.id, m),
+        dueOnly: dueOnly,
+      ).then((_) => _refold());
 }

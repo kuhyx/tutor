@@ -52,6 +52,9 @@ enum RelayCode {
   /// Claude is out (`reason`).
   claudeUnavailable('claude_unavailable'),
 
+  /// The free-model gateway (OmniRoute) is down.
+  freeUnavailable('free_unavailable'),
+
   /// The drill prompt is gone.
   unknownPrompt('unknown_prompt'),
 

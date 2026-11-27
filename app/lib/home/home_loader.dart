@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:tutor/home/catalog.dart';
+import 'package:tutor/home/home_snapshot.dart';
 import 'package:tutor/log/event_log.dart';
 import 'package:tutor/log/fsrs_fold.dart';
 import 'package:tutor/model/card.dart';
@@ -21,70 +22,13 @@ import 'package:tutor/progress/card_progress.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 
+export 'package:tutor/home/home_snapshot.dart';
+
 /// Schema version this client understands (DOCS-contract §3 `meta`).
 const kSchema = 1;
 
 /// This client's version for `min_client`.
 const kClientVersion = 2;
-
-/// One subject on Home.
-class SubjectEntry {
-  /// Creates the entry.
-  const new(this.id, this.meta, [this.data]);
-
-  /// Subject id.
-  final String id;
-
-  /// Its meta.
-  final SubjectMeta meta;
-
-  /// Plan, cards and concepts (null only when they failed to parse).
-  final SubjectData? data;
-}
-
-/// Home's data.
-class HomeSnapshot {
-  /// Creates the snapshot.
-  const new({
-    required this.subjects,
-    required this.due,
-    required this.offline,
-    this.today,
-    this.currentSubject,
-    this.live,
-    this.toReview = const {},
-    this.cardTally = const {},
-    this.dueBySubject = const {},
-  });
-
-  /// Subject id -> its due cards (what its Review shows; 0 = absent).
-  final Map<String, int> dueBySubject;
-
-  /// Subject id -> its cards' tally (done / recalled / due; suspended
-  /// cards not counted).
-  final Map<String, Tally> cardTally;
-
-  /// Subject id -> its first module that is done but not reviewed.
-  final Map<String, ModuleRef> toReview;
-
-  /// Subjects, by title.
-  final List<SubjectEntry> subjects;
-
-  /// Cards due for review now, all subjects.
-  final int due;
-
-  /// Built from the cache because the database was unreachable.
-  final bool offline;
-
-  /// `stats.today`, when reachable.
-  final Today? today;
-
-  /// `prefs.current_subject`, when reachable.
-  final String? currentSubject;
-
-  /// The live session, when reachable and one is live.
-  final Live? live;
-}
 
 /// Thrown when the database's schema is newer than this client.
 class UnsupportedSchema implements Exception {
@@ -168,6 +112,7 @@ class HomeLoader {
       toReview: snap.toReview,
       cardTally: snap.cardTally,
       dueBySubject: snap.dueBySubject,
+      dueByModule: snap.dueByModule,
     );
   }
 
@@ -227,6 +172,12 @@ class HomeLoader {
     final folded = fold(await events.all(), cards);
     final now = _now().toUtc();
     final queue = reviewQueue(folded, cards, now);
+    // One fold per subject feeds the review button, the tally and the
+    // badge's module sheet.
+    final progress = {
+      for (final e in entries)
+        if (e.data case final d?) e.id: (d, subjectProgress(d, folded, now)),
+    };
     return HomeSnapshot(
       subjects: entries,
       due: queue.length,
@@ -234,13 +185,19 @@ class HomeLoader {
       offline: offline,
       today: today,
       toReview: {
-        for (final e in entries)
-          if (e.data case final d?)
-            e.id: ?moduleToReview(d, subjectProgress(d, folded, now)),
+        for (final MapEntry(key: id, value: (d, p)) in progress.entries)
+          id: ?moduleToReview(d, p),
       },
       cardTally: {
-        for (final e in entries)
-          if (e.data case final d?) e.id: subjectProgress(d, folded, now).total,
+        for (final MapEntry(key: id, value: (_, p)) in progress.entries)
+          id: p.total,
+      },
+      dueByModule: {
+        for (final MapEntry(key: id, value: (_, p)) in progress.entries)
+          id: {
+            for (final MapEntry(key: m, value: t) in p.modules.entries)
+              if (t.due > 0) m: t.due,
+          },
       },
     );
   }

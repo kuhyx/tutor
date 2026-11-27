@@ -26,7 +26,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -70,7 +71,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -114,7 +116,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 1
+    "struggle": 1,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -158,7 +161,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -202,7 +206,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -276,7 +281,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -330,7 +336,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [
@@ -386,7 +393,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 1
+    "struggle": 1,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -440,7 +448,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -502,7 +511,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -540,7 +550,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -586,7 +597,8 @@
     "flagged": true,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -630,7 +642,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -682,7 +695,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -726,7 +740,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -791,7 +806,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    },
    "y": {
     "taught": true,
@@ -802,7 +818,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -846,7 +863,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -921,7 +939,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 1
+    "struggle": 1,
+    "unchecked": false
    },
    "y": {
     "taught": true,
@@ -932,7 +951,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -984,7 +1004,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1029,7 +1050,8 @@
     "flagged": false,
     "good": true,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1073,7 +1095,8 @@
     "flagged": false,
     "good": true,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1128,7 +1151,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1191,7 +1215,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 1
+    "struggle": 1,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1246,7 +1271,8 @@
     "flagged": false,
     "good": true,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1291,7 +1317,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1336,7 +1363,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1400,7 +1428,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 3
+    "struggle": 3,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1474,7 +1503,8 @@
     "flagged": false,
     "good": false,
     "reviewed": true,
-    "struggle": 1
+    "struggle": 1,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1538,7 +1568,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 1
+    "struggle": 1,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1611,7 +1642,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 2
+    "struggle": 2,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1677,7 +1709,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 2
+    "struggle": 2,
+    "unchecked": false
    }
   },
   "dropped": [
@@ -1751,7 +1784,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1806,7 +1840,8 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 2
+    "struggle": 2,
+    "unchecked": false
    }
   },
   "dropped": [],
@@ -1860,7 +1895,414 @@
     "flagged": false,
     "good": false,
     "reviewed": false,
-    "struggle": 0
+    "struggle": 0,
+    "unchecked": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: read mode got it",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG1ESJ21QV9Y1PXAWS1",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "read"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0JGMMMBEPVFB6D1AB",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 0,
+    "unchecked": true
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: read mode again (Again 2 ms after taught)",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG2AQ7K64YK0ZP6FJ05",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000002,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG1NH80N7VMMAD4PQ1Z",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "read"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0DSYJFPYQJF2Y202K",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791886400002,
+    "stability": 0.7750839828558984,
+    "difficulty": 7.394502741279718,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 1,
+    "unchecked": true
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: checked clears it",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4TC16G057E94922PT723DQE",
+    "k": "checked",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG1ZZ8XEWSWP92YX37J",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "free"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0KBQVNTEKSHVSBQ5V",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 0,
+    "unchecked": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: a failed check is Again then checked",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4TC16G1EC8S3HQMNGGHRP6P",
+    "k": "checked",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400001
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4TC16G0DP0ESX5JZ7FE37KD",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 1
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG1BSJMYB4BEW2PSWFY",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "read"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0DSQNET5RYJ2BYQDP",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1791972800000,
+    "stability": 0.5712991793450282,
+    "difficulty": 7.394502741279718,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 1,
+    "unchecked": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: a Claude re-teach clears it",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4TC16G0E8X0Z9FP0T87ZWYD",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG11JBQ6Y0KVCYG0DHM",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "read"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0SRT7VYHVBY38XWMV",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792059200000,
+    "stability": 2.3065,
+    "difficulty": 2.118103970459016,
+    "state": "review",
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 0,
+    "unchecked": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: on an untaught card does nothing",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QX2B40YD1ZZZDHFX4N2T9Q",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000,
+    "src": "read"
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": false,
+    "due": null,
+    "stability": null,
+    "difficulty": null,
+    "state": null,
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 0,
+    "unchecked": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: untaught clears it",
+  "events": [
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QX2B405Z7AA9S8MQE5PXQF",
+    "k": "untaught",
+    "s": "car",
+    "c": "x",
+    "at": 1791803600000
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG1EA9NB8P8Q4T61J47",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "read"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0XYANKH6YK51SN4BQ",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": false,
+    "due": null,
+    "stability": null,
+    "difficulty": null,
+    "state": null,
+    "flagged": false,
+    "good": false,
+    "reviewed": false,
+    "struggle": 0,
+    "unchecked": false
+   }
+  },
+  "dropped": [],
+  "ignored": [],
+  "undone": []
+ },
+ {
+  "name": "unchecked: an app review keeps it",
+  "events": [
+   {
+    "dev": "dev-a",
+    "eid": "01M4TC16G07HPYA067EQEHJJA8",
+    "k": "review",
+    "s": "car",
+    "c": "x",
+    "at": 1791886400000,
+    "rev": 1,
+    "r": 3
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG1QRK328Q5S9KGTAR2",
+    "k": "unchecked",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000001,
+    "src": "read"
+   },
+   {
+    "dev": "dev-pc",
+    "eid": "01M4QSMFG0ACX3SH9XFVPR93A2",
+    "k": "taught",
+    "s": "car",
+    "c": "x",
+    "at": 1791800000000
+   }
+  ],
+  "cards": {
+   "x": {
+    "rev": 1
+   }
+  },
+  "expect": {
+   "x": {
+    "taught": true,
+    "due": 1792491200000,
+    "stability": 7.31530074407728,
+    "difficulty": 2.111214235785395,
+    "state": "review",
+    "flagged": false,
+    "good": true,
+    "reviewed": true,
+    "struggle": 0,
+    "unchecked": true
    }
   },
   "dropped": [],

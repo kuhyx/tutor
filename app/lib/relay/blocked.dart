@@ -4,7 +4,9 @@
 /// `module_title`, `reviews_due` with `due_at` in ms, or `none`),
 /// `due_in_subject`, `writing` (the next module's cards are being written)
 /// and `gate_cards` (the module gate, curriculum §6: the exact cards to
-/// review before the next module; the app opens that review at once). The
+/// review before the next module; the app opens that review at once) with
+/// `gate_unchecked` (those of them read without Claude: only its check
+/// passes them, so the app lists them instead, mockup F5). The
 /// app builds its own one-line "why" from those, never the worker's `error`
 /// text. A result without `next` reads as `none`. An old `daily_new_cap`
 /// (the cap is gone) is no block any more.
@@ -48,6 +50,7 @@ class Blocked {
     this.dueAt,
     this.dueInSubject,
     this.gateCards = const [],
+    this.gateUnchecked = const [],
     this.writing = false,
   });
 
@@ -65,6 +68,13 @@ class Blocked {
       final num v => v.toInt(),
       _ => null,
     };
+    List<String> ids(String k) => switch (field(k)) {
+      final List<dynamic> ids => [
+        for (final id in ids)
+          if (id is String && id.isNotEmpty) id,
+      ],
+      _ => const [],
+    };
     final code = text('code') ?? noCardLeft;
     return Blocked(
       code: code,
@@ -79,13 +89,8 @@ class Blocked {
       moduleTitle: text('module_title'),
       dueAt: number('due_at'),
       dueInSubject: number('due_in_subject'),
-      gateCards: switch (field('gate_cards')) {
-        final List<dynamic> ids => [
-          for (final id in ids)
-            if (id is String && id.isNotEmpty) id,
-        ],
-        _ => const [],
-      },
+      gateCards: ids('gate_cards'),
+      gateUnchecked: ids('gate_unchecked'),
       writing: field('writing') == true,
     );
   }
@@ -121,8 +126,15 @@ class Blocked {
   /// The next module's cards are still being written.
   final bool writing;
 
+  /// The gate cards read without Claude, not checked yet (a review never
+  /// passes them; an older worker sends none).
+  final List<String> gateUnchecked;
+
   /// The module gate holds the next card for a review.
   bool get gated => gateCards.isNotEmpty;
+
+  /// Only cards waiting for Claude's check hold the gate: no review helps.
+  bool get heldUnchecked => gated && gateCards.every(gateUnchecked.contains);
 
   /// A module waits for its review first.
   bool get reviewsModule => next == BlockedNext.reviewModule && module != null;

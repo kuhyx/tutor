@@ -50,6 +50,7 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "module_title": "DNS i CNAME",
         "due_in_subject": 0,
         "gate_cards": ["a1", "a2"],
+        "gate_unchecked": [],
         "writing": False,
     }
     assert err.result(5)["next"] == "review_module"
@@ -70,6 +71,7 @@ def test_no_card_left_names_the_title_and_the_next_step(tmp_path: Path) -> None:
         "due_at": due,
         "due_in_subject": 1,
         "gate_cards": ["a1"],
+        "gate_unchecked": [],
         "writing": True,
     }
     assert "are due now" in err.message
@@ -88,6 +90,7 @@ def test_no_card_left_with_nothing_taught_is_none(tmp_path: Path) -> None:
         "next": "none",
         "due_in_subject": 0,
         "gate_cards": [],
+        "gate_unchecked": [],
         "writing": True,
     }
     plan.modules[0].status = "locked"

@@ -328,6 +328,12 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get tooltip_retry;
 
+  /// No description provided for @tooltip_again.
+  ///
+  /// In en, this message translates to:
+  /// **'Again'**
+  String get tooltip_again;
+
   /// No description provided for @tooltip_archive.
   ///
   /// In en, this message translates to:
@@ -489,6 +495,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resume'**
   String get tooltip_resume;
+
+  /// No description provided for @tooltip_own.
+  ///
+  /// In en, this message translates to:
+  /// **'Own'**
+  String get tooltip_own;
+
+  /// No description provided for @tooltip_leetcode.
+  ///
+  /// In en, this message translates to:
+  /// **'LeetCode'**
+  String get tooltip_leetcode;
+
+  /// No description provided for @tooltip_all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get tooltip_all;
+
+  /// No description provided for @tooltip_unchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Unchecked'**
+  String get tooltip_unchecked;
+
+  /// No description provided for @tooltip_check.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get tooltip_check;
 }
 
 class _AppLocalizationsDelegate

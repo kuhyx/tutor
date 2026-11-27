@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from tutor.curriculum import card_rules, paths, profiles, rules, theory_phase
 from tutor.curriculum import pick as picking
+from tutor.curriculum.check_marks import first_unchecked
 from tutor.curriculum.deck_source import DEFAULT_SUBJECT, DeckSource
 from tutor.curriculum.errors import BAD_REQUEST, LOCKED, RequestError
 from tutor.curriculum.eventlog import worker_event
@@ -109,10 +110,15 @@ class SubjectSource:
         """``View.waived`` under C3 (empty for an ungated subject)."""
         return self._view(gated=True).waived
 
+    def view(self) -> rules.View:
+        """The subject's view, with the modules C3 refuses now (read mode)."""
+        return self._view(gated=True)
+
     def pick(self, card_id: str | None, skip: str = "", module: str = "") -> Card:
         """``pick.pick`` over the subject (``skip`` left out; ``module``: only it).
 
-        An archived subject (``archive.py``) has nothing to teach.
+        An archived subject (``archive.py``) has nothing to teach. With no
+        ``card_id``, an unchecked card (``check_marks``) comes first.
         """
         view = self._view(gated=True, only=module)
         fold, now = self.ctx.fold(), self.ctx.clock()
@@ -122,6 +128,8 @@ class SubjectSource:
             )
             err.extra |= {"subject_id": self.subject, "due_in_subject": 0}
             raise err
+        # A card read without Claude is checked before any new card (spec Q10).
+        card_id = card_id or first_unchecked(view, fold, skip)
         chosen = picking.pick(view, fold, card_id, now, "" if card_id else skip)
         return next(c for c in self.cards() if c.id == chosen)
 

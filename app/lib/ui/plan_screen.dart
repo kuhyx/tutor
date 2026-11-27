@@ -221,6 +221,7 @@ class _PlanScreenState extends State<PlanScreen> {
               review: progress?.review[m.id],
               onRetry: () => _send(RequestBody.planApprove(data.id, plan.rev)),
               onReview: () => _review(data, m),
+              onReviewDue: () => _review(data, m, dueOnly: true),
             ),
         ],
         if (plan != null && plan.history.isNotEmpty) ...[

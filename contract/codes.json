@@ -5,6 +5,7 @@
     "claude_unavailable",
     "edit_refused",
     "focus_refused",
+    "free_unavailable",
     "gave_up",
     "locked",
     "model_error",

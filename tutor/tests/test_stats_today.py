@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 import json
 from typing import TYPE_CHECKING, Any
 
+from tutor import unavailable
 from tutor.credit import target_minutes
 from tutor.curriculum.stats import active_minutes, stats
 from tutor.tests._cur import make_ctx
@@ -65,3 +66,15 @@ def test_the_target_follows_the_weekday_quota() -> None:
 
     assert [on(d) for d in (12, 13, 14, 15, 16, 17, 18)] == [30, 15, 15, 15, 30, 50, 50]
     assert on(11) == 60  # before the quota: one unit per minute
+
+
+def test_stats_today_names_an_open_outage(tmp_path: Path) -> None:
+    """Start must know Claude is out before it sends (fallback, e79be0be-0)."""
+    ctx, fakes = make_ctx(tmp_path)
+    now = fakes.clock() / 1000
+    assert stats(ctx, minutes={})["today"]["unavailable"] is None
+    unavailable.record("rate_limit", now - 60, now + 600, root=ctx.data_dir)
+    today = stats(ctx, minutes={})["today"]
+    assert today["unavailable"] == {"until": int(now + 600), "reason": "rate_limit"}
+    unavailable.record("network", now - 7200, root=ctx.data_dir)  # long over
+    assert stats(ctx, minutes={})["today"]["unavailable"]["reason"] == "rate_limit"

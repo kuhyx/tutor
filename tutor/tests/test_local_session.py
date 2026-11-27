@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from claude_agent_sdk import ClaudeAgentOptions
 import pytest
 
-from tutor import local_model, local_session, unavailable
+from tutor import backend_mode, free_options, local_model, local_session, unavailable
 from tutor.local_session import FallbackSession, as_text
 from tutor.outage import ClaudeUnavailableError
 from tutor.session import Prompt, Reply, TutorSession
@@ -186,6 +186,19 @@ def test_tutor_session_is_the_fallback_on_research_options(tmp_path: Path) -> No
     del tmp_path  # the conftest's data dir holds the sandbox
     session = local_session.tutor_session("SYS")
     assert isinstance(session, FallbackSession)
+
+
+def test_a_free_chat_session_never_falls_back_to_the_local_model(
+    tmp_path: Path,
+) -> None:
+    del tmp_path  # the conftest's HOME has no OmniRoute key: fine here
+    token = backend_mode.FREE.set(True)
+    try:
+        session = local_session.tutor_session("SYS")
+    finally:
+        backend_mode.FREE.reset(token)
+    assert not isinstance(session, FallbackSession)
+    assert session._options.model == free_options.MODEL
 
 
 def test_chat_kinds_answer_locally_while_claude_is_down(

@@ -48,6 +48,7 @@ CASES: Final = (
     Case("focus_refused", "err_focus_refused"),
     Case("model_error", "err_model"),
     Case("claude_unavailable", "outage_claude"),
+    Case("free_unavailable", "outage_free"),
     Case("unknown_prompt", "err_unknown_prompt"),
     Case("gave_up", "err_gave_up"),
     Case("worker_error", "err_worker"),

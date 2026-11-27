@@ -4,9 +4,8 @@
 One card, one session. When the learner gives the card's answer the tutor
 sets ``card_done`` and the page offers Next card (this session ends and a new
 one starts on the next unfinished card) or Stop here (the session ends and is
-never resumed). Older transcripts may still hold an in-session ``next_card``
-switch; replay keeps reading those. ``Engine`` mixes this in; the
-attributes it needs are declared below for the type checker.
+never resumed); replay still reads an old in-session ``next_card`` switch.
+``Engine`` mixes this in; the attributes it needs are declared for mypy.
 """
 
 from __future__ import annotations
@@ -16,6 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from tutor import credit, done_refusal, follow_up, gating, picked, unit_credit
+from tutor.check_flagged import finish as finish_card
 from tutor.curriculum import phase_gate
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import RequestError
@@ -234,7 +234,7 @@ class CardFlow:
             conv.notes.append(gating.refused_note(card, need))
         elif done_refusal.wants_done(turn, conv, tap=tap):  # b193: the word suffices
             conv.mark_card_done()  # the first time: a done card is a follow-up
-            self.source.mark(card.id, self.session_id, done=True)
+            finish_card(self.source, card.id, self.session_id, logged)
             message["card_done"] = True
         conv.messages.append(message)
         event = {"type": "tutor", "turn": logged, "ui": message, "t": t}

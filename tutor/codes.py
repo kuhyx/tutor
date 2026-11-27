@@ -34,6 +34,7 @@ RELAY_CODE: Final = frozenset(
         "focus_refused",
         "model_error",
         "claude_unavailable",
+        "free_unavailable",  # the free-model gateway (``free_backend``)
         "unknown_prompt",
         "gave_up",
         "worker_error",

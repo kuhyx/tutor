@@ -6,7 +6,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from tutor import carry, leftover, review_credit
+from tutor import carry, credit, leftover, review_credit
+from tutor.clock import BlockReady
 from tutor.curriculum.stats import stats
 from tutor.relay import curriculum_sync, worker
 from tutor.relay.phases import PhaseSink
@@ -115,3 +116,27 @@ def test_startup_pays_every_days_leftover_before_carry(
 
     asyncio.run(go())
     assert calls == [("sessions", None), "carry"]
+
+
+def test_stats_show_todays_own_and_leetcode_minutes_apart_from_carry(
+    tmp_path: Path,
+) -> None:
+    """kuhy, 2026-11-26: reviews paid, but carry had filled 15/15 so nothing moved.
+
+    ``own_minutes`` counts today's own ``credit`` minutes (never a carry row),
+    ``lc_minutes`` today's ``leetcode_theory`` ones (part e79be0be-1).
+    """
+    own(23, 70)  # Friday: 40 banked for Saturday
+    ctx, fakes = make_ctx(tmp_path / "data")
+    carry.spend(now=at(24, 9))  # Saturday's carry row
+    fakes.now[0] = int(at(24, 12) * 1000)
+    today = stats(ctx)["today"]
+    assert (today["own_minutes"], today["lc_minutes"]) == (0, 0)
+    own(24, 3, hour=11, tag="beef")
+    last = BlockReady(2, 120.0, at(24, 11, 30), 0, 0)
+    lc = "leetcode-easy-algorithms-in-typescript"
+    assert credit.credit_span(
+        last, 2, "lc-run", now=at(24, 11, 30), subject=lc
+    ).recorded
+    today = stats(ctx)["today"]
+    assert (today["own_minutes"], today["lc_minutes"]) == (3, 2)

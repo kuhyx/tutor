@@ -1,7 +1,9 @@
 /// The auto-switch: when a chat request fails with `claude_unavailable`, the
-/// screen that sent it opens the model-free Drill with the "Claude limit"
-/// banner. Watches the runner's status, so a Retry switches too, not only
-/// the first send.
+/// screen that sent it runs the outage chooser (`session/fallback_route.dart`:
+/// due -> Review, else read mode, else the drill, else read mode's empty
+/// glyph) in the failed request's subject (none: every subject), with the
+/// "Claude limit" glyph. Watches the runner's status, so a Retry switches
+/// too, not only the first send.
 library;
 
 import 'dart:async';
@@ -11,7 +13,7 @@ import 'package:tutor/app/services.dart';
 import 'package:tutor/relay/error_text.dart';
 import 'package:tutor/relay/request_relay.dart';
 import 'package:tutor/relay/request_runner.dart';
-import 'package:tutor/ui/nav.dart';
+import 'package:tutor/session/fallback_route.dart';
 
 /// Starts watching [runner] for [state]'s screen; returns the stop callback
 /// (call it before the runner is disposed).
@@ -31,11 +33,12 @@ VoidCallback switchToDrillOnLimit(
       return;
     }
     seen = status;
+    final subject = runner.lastBody?.body['subject'];
     unawaited(
-      openReview(
+      openFallback(
         state.context,
         services,
-        drill: true,
+        subject: subject is String ? subject : null,
         unavailable: status.unavailable,
       ),
     );

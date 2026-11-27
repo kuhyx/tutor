@@ -1,9 +1,10 @@
 # shellcheck shell=bash
 # ============================================================================
 # Ports, waits and the transient units behind scripts/e2e_sandbox.sh: the
-# emulator jar, how Claude fails (F14) and the sandbox server. Sourced only by
-# e2e_sandbox.sh, which defines ROOT, PY, STATE, WEB, SUBJECT, FOCUS_SRC, the
-# unit names and die() before sourcing this file.
+# emulator jar, how Claude fails (F14), the sandbox server and the static
+# host of `hold` (F16). Sourced only by e2e_sandbox.sh, which defines ROOT,
+# PY, STATE, WEB, SUBJECT, FOCUS_SRC, the unit names and die() before
+# sourcing this file.
 # ============================================================================
 # shellcheck disable=SC2154  # every global here is set by e2e_sandbox.sh
 
@@ -104,8 +105,11 @@ start_server() {
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     dev="$(sed -n 's/^DEV=//p' "$STATE")"
     clock="$(sed -n 's/^CLOCK=//p' "$STATE")"
-    local -a fake=() script=()
+    local -a fake=() script=() free=()
     [[ -n "$clock" ]] && fake=(faketime "$clock")
+    # F33 `restart --free-down`: the free-model chat's gateway is a closed port
+    # (free_options.GATEWAY_ENV); the shared omniroute container is never touched.
+    [[ "$(sed -n 's/^FREE=//p' "$STATE")" == down ]] && free=(-E TUTOR_FREE_GATEWAY=http://127.0.0.1:9)
     # F31: every model turn comes from a queue the flow writes (e2e_script_session.py).
     [[ "$(sed -n 's/^SCRIPTED=//p' "$STATE")" == 1 ]] && script=(-E "TUTOR_E2E_SCRIPT=$sandbox/model_script.json")
     model_env "$(sed -n 's/^MODEL=//p' "$STATE")"
@@ -120,7 +124,7 @@ start_server() {
         -E FOCUS_PROJECT_DATA="$sandbox/focus" -E XDG_STATE_HOME="$sandbox/state" \
         -E TUTOR_THEORY_PHASE="$sandbox/theory_phase.json" -E TUTOR_GUARD_DATA="$sandbox/guard" \
         -E TUTOR_LOCAL_MODEL_URL="${E2E_LOCAL_MODEL_URL:-http://127.0.0.1:9}" \
-        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" "${script[@]}" \
+        -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" "${script[@]}" "${free[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {
         tail -20 "$sandbox/server.log" >&2
@@ -140,4 +144,21 @@ stop_units() {
     for unit in "$@"; do
         systemctl --user stop "$unit" 2>/dev/null || true
     done
+}
+
+# F16: no worker claims anything. The server stops and a static host serves
+# the same web build on its port, so a flow can play the worker by writing
+# claim/result nodes into the emulator. `restart` brings the worker back.
+cmd_hold() {
+    [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
+    local port host
+    port="$(sed -n 's/^PORT=//p' "$STATE")"
+    host="$(dirname "$STATE")/hold"
+    systemctl --user stop "$SERVER_UNIT" 2>/dev/null || true
+    mkdir -p "$host"
+    ln -sfn "$WEB" "$host/app"
+    systemd-run --user --quiet --collect --unit="$HOLD_UNIT" -p RuntimeMaxSec=3600 \
+        "$PY" -m http.server "$port" --bind 127.0.0.1 --directory "$host"
+    wait_http "http://127.0.0.1:$port/app/" 40 || die "static host did not start"
+    echo "e2e sandbox held: no worker, app on :$port"
 }

@@ -70,6 +70,10 @@
       "kind": "outage_claude"
     },
     {
+      "code": "free_unavailable",
+      "kind": "outage_free"
+    },
+    {
       "code": "unknown_prompt",
       "kind": "err_unknown_prompt"
     },

@@ -74,6 +74,12 @@ enum RequestKind {
   /// Model-free fallback: grade a pick.
   drillAnswer('drill_answer', Lane.chat),
 
+  /// Read mode (no model): the next untaught card.
+  readNext('read_next', Lane.chat),
+
+  /// Read mode: rate the open card `got_it` or `again`.
+  readRate('read_rate', Lane.chat),
+
   /// Minutes AnkiDroid reviews earned today.
   ankiStatus('anki_status', Lane.chat),
 

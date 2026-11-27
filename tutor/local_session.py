@@ -23,7 +23,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import local_model, outage, research
+from tutor import backend_mode, local_model, outage, research
 from tutor.models import TURN_SCHEMA
 from tutor.session import Prompt, Reply, TutorSession
 from tutor.trace import traced
@@ -121,5 +121,12 @@ class FallbackSession(TutorSession):
 
 
 def tutor_session(system_prompt: str) -> TutorSession:
-    """The engine's session: research tools, visible thinking, local fallback."""
-    return FallbackSession(traced(research.research_options(system_prompt)))
+    """The engine's session: research tools, visible thinking, local fallback.
+
+    A free-model chat (``backend_mode.free``) already runs on OmniRoute, not
+    Claude: it never falls back to the local model.
+    """
+    options = traced(research.research_options(system_prompt))
+    if backend_mode.free():
+        return TutorSession(options)
+    return FallbackSession(options)

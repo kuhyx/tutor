@@ -1,7 +1,7 @@
 /// Opening screens, and the route strings fixture builds and deep links use
 /// (`/plan/<subject>`, `/session`, `/history`, `/history/<sid>`,
 /// `/progress`, `/focus`, `/editor[/<subject>]`, `/review`, `/drill`,
-/// `/report`, `/sql`, `/coach`, `/mock`;
+/// `/report`, `/sql`, `/coach`, `/mock`, `/read[/<subject>]`;
 /// `/focus?start=1` also starts the focus timer if it is not running;
 /// `/session/continue` opens the Session and asks for the open session;
 /// `/learn/<subject>/<module>`, the LeetCode lock's learn button, teaches
@@ -25,6 +25,7 @@ import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/focus_screen.dart';
 import 'package:tutor/ui/history_screen.dart';
 import 'package:tutor/ui/nav_module_review.dart';
+import 'package:tutor/ui/nav_read.dart';
 import 'package:tutor/ui/plan_screen.dart';
 import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/report_dialog.dart';
@@ -240,6 +241,7 @@ Future<void> openRoute(BuildContext context, TutorServices s, String route) {
     'editor' => openEditor(context, s, subject: arg),
     'review' => openReview(context, s),
     'drill' => openReview(context, s, drill: true),
+    'read' => openRead(context, s, subject: arg),
     'report' => showReport(context, s, route: '/'),
     _ => Future<void>.value(),
   };

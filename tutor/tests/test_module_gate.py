@@ -16,6 +16,7 @@ import pytest
 from tutor.curriculum import pick as picking
 from tutor.curriculum import rules
 from tutor.curriculum.errors import RequestError
+from tutor.curriculum.eventlog import CHECKED, unchecked_event, worker_event
 from tutor.tests._cur import T0, D, H, card, make_ctx, module, review, subject, taught
 
 if TYPE_CHECKING:
@@ -231,3 +232,19 @@ def test_the_end_of_the_plan_lists_what_is_left(tmp_path: Path) -> None:
     due_at = err.extra["due_at"]
     assert isinstance(due_at, int)
     assert due_at > T0 + 2 * H + 2
+
+
+def test_an_unchecked_card_holds_the_gate_until_claude_checks_it(
+    tmp_path: Path,
+) -> None:
+    """Spec Q11: a module read without Claude never passes on reading alone."""
+    ctx, view, _ = _two(tmp_path)
+    _teach_a(ctx)
+    ref = ("car", "a2")
+    ctx.log.append([unchecked_event(ref, dev="dev-pc", at=T0 + 2)])
+    review(ctx, "car", "a1", T0 + H, 3)
+    review(ctx, "car", "a2", T0 + H + 1, 3)
+    err = _refused(view, ctx, None, T0 + H + 2)
+    assert err.extra["gate_cards"] == ["a2"]  # reviewed, but still unchecked
+    ctx.log.append([worker_event(CHECKED, ref, dev="dev-pc", at=T0 + H + 3)])
+    assert picking.pick(view, ctx.fold(), None, T0 + H + 4) == "b1"

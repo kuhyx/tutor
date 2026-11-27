@@ -23,6 +23,7 @@ class ModuleProgressTile extends StatelessWidget {
     this.tally,
     this.review,
     this.onReview,
+    this.onReviewDue,
     super.key,
   });
 
@@ -40,6 +41,9 @@ class ModuleProgressTile extends StatelessWidget {
 
   /// Starts the module review.
   final VoidCallback? onReview;
+
+  /// Reviews only the module's due cards (a button while [tally] has some).
+  final VoidCallback? onReviewDue;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +83,19 @@ class ModuleProgressTile extends StatelessWidget {
         ],
       ),
     );
+    final due = tally?.due ?? 0;
+    final replay = reviewable && onReview != null
+        ? GlyphButton(
+            icon: Icons.replay,
+            semanticLabel: 'Review this module',
+            tooltip: (l) => l.tooltip_review,
+            filled: true,
+            onPressed: onReview,
+          )
+        : null;
+    final dueButton = due > 0 && onReviewDue != null
+        ? ModuleDueButton(m, due, onPressed: onReviewDue)
+        : null;
     return Card(
       child: ListTile(
         leading: ModuleMarkIcon(mark),
@@ -92,16 +109,48 @@ class ModuleProgressTile extends StatelessWidget {
                 tint: Theme.of(context).colorScheme.error,
                 onPressed: onRetry,
               )
-            : reviewable && onReview != null
-            ? GlyphButton(
-                icon: Icons.replay,
-                semanticLabel: 'Review this module',
-                tooltip: (l) => l.tooltip_review,
-                filled: true,
-                onPressed: onReview,
-              )
-            : null,
+            : dueButton == null
+            ? replay
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [dueButton, ?replay],
+              ),
       ),
     );
   }
+}
+
+/// A module's due-only review: the card glyph with its [due] count.
+class ModuleDueButton extends StatelessWidget {
+  /// Creates the button for [module].
+  const new(
+    this.module,
+    this.due, {
+    required this.onPressed,
+    this.target,
+    super.key,
+  });
+
+  /// The module.
+  final Module module;
+
+  /// Its due cards.
+  final int due;
+
+  /// Runs them.
+  final VoidCallback? onPressed;
+
+  /// A dense tap target (dp) for a phone tile; null = the theme's.
+  final double? target;
+
+  @override
+  Widget build(BuildContext context) => GlyphButton(
+    icon: Icons.style,
+    semanticLabel: 'Review ${module.title} ($due due)',
+    count: due,
+    tint: AppPalette.danger,
+    target: target,
+    tooltip: (l) => l.tooltip_review,
+    onPressed: onPressed,
+  );
 }

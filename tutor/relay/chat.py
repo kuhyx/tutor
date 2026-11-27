@@ -6,8 +6,8 @@ page. The relay only supplies the learner's times (§7): ``created`` is RTDB
 server time; the first Send press (``sent_at``) may date the reply up to
 ``SEND_GRACE`` earlier, never later. During a Claude outage the session kinds
 are answered by the local model (``tutor.local_session``); only when it is
-down too do they fail with ``claude_unavailable``, and the app opens the
-drill, whose kinds never need a model.
+down too do they fail with ``claude_unavailable``. The drill and read kinds
+(``read_kinds``) never need a model.
 """
 
 from __future__ import annotations
@@ -16,10 +16,10 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Final
 from weakref import WeakKeyDictionary
 
-from tutor import anki, anki_collection, history, learn_module, resume
-from tutor.clock import reply_time
+from tutor import anki, anki_collection, free_backend, history, learn_module, resume
 from tutor.delivery import Delivery
 from tutor.drill import Drill
+from tutor.relay.context import learner_time
 from tutor.relay.errors import RequestError
 from tutor.relay.extra_handlers import HANDLERS as EXTRA_HANDLERS
 from tutor.relay.focus import (
@@ -32,7 +32,6 @@ from tutor.relay.focus import (
 from tutor.relay.lc import lc_list, lc_open, lc_run
 from tutor.relay.lc_cards import lc_cards
 from tutor.relay.lc_turn import lc_turn
-from tutor.relay.model_gate import needs_a_model
 from tutor.relay.protocol import SLUG, SLUG_MAX
 from tutor.relay.sql import sql_get, sql_list, sql_predict, sql_run
 from tutor.relay.sql_lesson import sql_lesson_turn
@@ -56,13 +55,6 @@ def _not_live(sid: str) -> RequestError:
 def _require_live(engine: Engine, sid: object) -> None:
     if not engine.session_id or engine.session_id != sid:
         raise _not_live(str(sid))
-
-
-def _learner_time(ctx: RequestContext) -> float:
-    """When the learner acted: RTDB ``created``, or the Send press within grace."""
-    req = ctx.request
-    sent = None if req.sent_at_ms is None else req.sent_at_ms / 1000
-    return reply_time(req.created_ms / 1000, sent)
 
 
 def _sessions(engine: Engine) -> Path:
@@ -184,7 +176,10 @@ async def drill_answer(ctx: RequestContext) -> dict[str, Any]:
     """Grade a drill pick; its review event and any credited minute are written."""
     body = ctx.body
     pick = str(body["prompt_id"]), int(body["choice"])
-    return _drill(ctx.engine).answer(*pick, _learner_time(ctx))
+    return _drill(ctx.engine).answer(*pick, learner_time(ctx))
+
+
+_needs_model = free_backend.gate  # a free session's kinds go to OmniRoute
 
 
 async def card_done(ctx: RequestContext) -> dict[str, Any]:
@@ -207,12 +202,12 @@ async def anki_status(ctx: RequestContext) -> dict[str, Any]:
 CHAT_HANDLERS: Final[
     dict[str, Callable[[RequestContext], Awaitable[dict[str, Any]]]]
 ] = {
-    "session_start": needs_a_model(session_start),
-    "session_resume": needs_a_model(session_resume),
-    "message": needs_a_model(message),
-    "next": needs_a_model(next_card),
+    "session_start": _needs_model(session_start),
+    "session_resume": _needs_model(session_resume),
+    "message": _needs_model(message),
+    "next": _needs_model(next_card),
     "stop": stop,
-    "follow_up_open": needs_a_model(follow_up_open),
+    "follow_up_open": _needs_model(follow_up_open),
     "card_done": card_done,
     "drill_next": drill_next,
     "drill_answer": drill_answer,

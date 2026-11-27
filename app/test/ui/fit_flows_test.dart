@@ -1,5 +1,6 @@
-// Phone (narrow) Home, Plan and Progress: tiles keep their tap action and
-// every former inline action or detail is reachable from a sheet.
+// Phone (narrow) Home and Plan (Progress: fit_progress_test.dart): tiles
+// keep their tap action and every former inline action or detail is
+// reachable from a sheet.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tutor/app/services.dart';
@@ -10,7 +11,6 @@ import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/ui/editor_screen.dart';
 import 'package:tutor/ui/home_screen.dart';
 import 'package:tutor/ui/plan_screen.dart';
-import 'package:tutor/ui/progress_screen.dart';
 import 'package:tutor/ui/review_screen.dart';
 import 'package:tutor/util/ulid.dart';
 
@@ -18,7 +18,6 @@ import '../support/fake_rtdb.dart';
 import '../support/fake_stream.dart';
 import '../support/label_finders.dart';
 import '../support/learn_finders.dart';
-import '../support/services.dart';
 import '../support/ui.dart';
 
 const _phone = Size(412, 900);
@@ -69,7 +68,11 @@ void main() {
     await t.pumpAndSettle();
     expect(find.byType(BottomSheet), findsNothing);
 
-    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'active');
+    db.root = setAt(
+      db.root,
+      'tutor/v1-e2e/subjects/garden/meta/status',
+      'active',
+    );
     db.root = setAt(db.root, 'tutor/v1-e2e/rev/catalog', 8);
     await _refresh(t);
     await _tap(t, _subject('garden'));
@@ -78,8 +81,16 @@ void main() {
 
   testWidgets('Home: Review only and Try again from sheets', (t) async {
     final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/meta/status', 'completed');
-    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'failed');
+    db.root = setAt(
+      db.root,
+      'tutor/v1-e2e/subjects/car/meta/status',
+      'completed',
+    );
+    db.root = setAt(
+      db.root,
+      'tutor/v1-e2e/subjects/garden/meta/status',
+      'failed',
+    );
     final stream = FakeStream();
     await _home(t, db, stream);
     await _longPress(t, _subject('car'));
@@ -110,12 +121,21 @@ void main() {
     await t.pumpAndSettle();
     await _longPress(t, _subject('car'));
     await _tap(t, controlByLabel('Review (1 due)').last);
+    await _tap(t, controlByLabel('Review all (1 due)'));
     expect(find.byType(ReviewScreen), findsOneWidget);
     await t.pageBack();
     await t.pumpAndSettle();
 
-    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/garden/meta/status', 'active');
-    db.root = setAt(db.root, 'tutor/v1-e2e/subjects/car/meta/status', 'completed');
+    db.root = setAt(
+      db.root,
+      'tutor/v1-e2e/subjects/garden/meta/status',
+      'active',
+    );
+    db.root = setAt(
+      db.root,
+      'tutor/v1-e2e/subjects/car/meta/status',
+      'completed',
+    );
     db.root = setAt(db.root, 'tutor/v1-e2e/rev/catalog', 8);
     await _refresh(t);
     await _longPress(t, _subject('garden'));
@@ -205,37 +225,5 @@ void main() {
     expect(bySpoken('recall 33%'), findsWidgets);
     await _tap(t, controlByLabel('Review this module'));
     expect(find.text('What ignites the mixture?'), findsOneWidget);
-  });
-
-  testWidgets('Progress: chips, All days, a subject sheet', (t) async {
-    final s = await fixtureServices(fixtureDb(), FakeStream());
-    await pumpScreen(t, ProgressScreen(services: s), size: _phone);
-    expect(find.bySemanticsLabel(RegExp('^min per day, 7 days')), findsOne);
-    await _tap(t, chipSpoken('Taught'));
-    expect(find.bySemanticsLabel(RegExp('^cards per day')), findsOne);
-    await _tap(t, controlByLabel('All days'));
-    expect(find.text('2026-10-12'), findsOneWidget);
-    expect(find.text('2026-09-29'), findsOneWidget);
-    await t.tapAt(const Offset(10, 10));
-    await t.pumpAndSettle();
-    await _tap(t, find.byKey(const ValueKey('subject-stat-0')));
-    expect(bySpoken('recall 85%'), findsWidgets);
-    expect(bySpoken('reviewed', prefix: true), findsWidgets);
-    expect(find.text('Brakes'), findsOneWidget);
-  });
-
-  testWidgets('Progress: no days yet', (t) async {
-    final db = fixtureDb();
-    db.root = setAt(db.root, 'tutor/v1-e2e/stats/days', null);
-    final s = await fixtureServices(db, FakeStream());
-    await pumpScreen(t, ProgressScreen(services: s), size: _phone);
-    expect(spokenHas('No days yet'), findsOneWidget);
-    expect(controlByLabel('All days'), findsNothing);
-  });
-
-  testWidgets('Progress: no approved plans yet', (t) async {
-    final s = services(fixtureDb(), FakeStream()); // nothing cached
-    await pumpScreen(t, ProgressScreen(services: s), size: _phone);
-    expect(spoken('No approved plans yet.'), findsOneWidget);
   });
 }
