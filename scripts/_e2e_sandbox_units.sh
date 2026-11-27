@@ -119,6 +119,7 @@ start_server() {
         -E TUTOR_ANKI_COLLECTION="$sandbox/cache/none.anki2" -E PATH="$PATH" -E PYTHONPATH="$ROOT:$FOCUS_SRC" \
         -E FOCUS_PROJECT_DATA="$sandbox/focus" -E XDG_STATE_HOME="$sandbox/state" \
         -E TUTOR_THEORY_PHASE="$sandbox/theory_phase.json" -E TUTOR_GUARD_DATA="$sandbox/guard" \
+        -E TUTOR_LOCAL_MODEL_URL="${E2E_LOCAL_MODEL_URL:-http://127.0.0.1:9}" \
         -E FAKETIME_DONT_FAKE_MONOTONIC=1 "${MODEL_ENV[@]}" "${GUARD_ENV[@]}" "${script[@]}" \
         "${fake[@]}" "$PY" "$ROOT/scripts/e2e_server.py" --db "$db" --port "$port" --subject "$SUBJECT"
     wait_http "http://127.0.0.1:$port/api/state" 80 || {

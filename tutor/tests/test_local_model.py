@@ -227,3 +227,11 @@ def test_chat_sends_the_history_with_context_and_keep_alive() -> None:
     assert payload["messages"] == [{"role": "system", "content": "SYS"}, *history]
     assert payload["options"] == {"num_ctx": local_model.NUM_CTX}
     assert payload["keep_alive"] == local_model.KEEP_ALIVE
+
+
+def test_the_url_follows_the_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The e2e sandbox moves Ollama to a dead port (its "Ollama down too")."""
+    monkeypatch.delenv("TUTOR_LOCAL_MODEL_URL", raising=False)
+    assert local_model.url("/api/chat") == "http://localhost:11434/api/chat"
+    monkeypatch.setenv("TUTOR_LOCAL_MODEL_URL", "http://127.0.0.1:9/")
+    assert local_model.url("/api/tags") == "http://127.0.0.1:9/api/tags"

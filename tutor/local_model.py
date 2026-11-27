@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import TYPE_CHECKING, Any, Final
 
 import httpx
@@ -22,8 +23,9 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-URL: Final = "http://localhost:11434/api/chat"
-TAGS_URL: Final = "http://localhost:11434/api/tags"
+# ``TUTOR_LOCAL_MODEL_URL`` moves it (read per call); the e2e sandbox points
+# it at a dead port, so its outage flows still see "Ollama down too".
+BASE_URL: Final = "http://localhost:11434"
 PROBE_S: Final = 2.0
 MODEL: Final = "qwen3:30b-a3b-instruct-2507-q4_K_M"
 TIMEOUT_S: Final = 180.0  # the first call also loads the model into VRAM
@@ -35,9 +37,14 @@ KEEP_ALIVE: Final = "15m"  # an outage lasts hours: do not reload every turn
 type Post = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+def url(path: str) -> str:
+    """``path`` on the Ollama server (``TUTOR_LOCAL_MODEL_URL`` or :data:`BASE_URL`)."""
+    return os.environ.get("TUTOR_LOCAL_MODEL_URL", BASE_URL).rstrip("/") + path
+
+
 def _post(payload: dict[str, Any]) -> dict[str, Any]:
     """One POST to Ollama; its JSON body."""
-    response = httpx.post(URL, json=payload, timeout=TIMEOUT_S)
+    response = httpx.post(url("/api/chat"), json=payload, timeout=TIMEOUT_S)
     response.raise_for_status()
     body: dict[str, Any] = response.json()
     return body
@@ -46,7 +53,7 @@ def _post(payload: dict[str, Any]) -> dict[str, Any]:
 def ready() -> bool:
     """Whether Ollama answers and has :data:`MODEL` (a quick probe, no load)."""
     try:
-        response = httpx.get(TAGS_URL, timeout=PROBE_S)
+        response = httpx.get(url("/api/tags"), timeout=PROBE_S)
         response.raise_for_status()
         names = [m.get("name") for m in response.json().get("models", [])]
     except (httpx.HTTPError, OSError, ValueError, AttributeError) as err:

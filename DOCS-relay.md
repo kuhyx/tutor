@@ -147,6 +147,9 @@ startup retries every 60 s and writes nothing; the web app still serves.
   - Study session (`tutor.local_session.FallbackSession`, also `/api/*`): the
     same turn schema, with the session's history as text. A local turn never
     sets `card_done`, `concepts_mastered` or `card_edits`; kuhy taps Next.
+    Claude's first prompt after the limit resets leads with the local turns.
+  - `TUTOR_LOCAL_MODEL_URL` moves Ollama; the e2e sandbox sets a dead port
+    (`E2E_LOCAL_MODEL_URL` overrides), so its outage flows see it down.
   - `modelcall.ask_or_local`, for answers code checks or kuhy confirms: the
     coach's turns (6 tries; code lines and extra questions cut out), its exit
     grade and `lc_cards` matches (`lc_open` returns `model`), `sql_hint`,

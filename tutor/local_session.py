@@ -8,6 +8,7 @@ out unavailable, the same turn goes to the local model (``local_model.chat``)
 with that history, under the same :data:`TURN_SCHEMA`. Only when the local
 model is down too is the outage raised, and the app falls back to the drill.
 
+When Claude is back, its next prompt starts with the turns it missed.
 A local turn may teach, ask and grade a check, but never closes a card
 (``card_done``), records a mastered concept or edits the deck: those last
 for good, and a weak model must not decide them. The learner taps Next to
@@ -43,6 +44,10 @@ _KEPT_OUT: Final[dict[str, Any]] = {
     "card_edits": [],
 }
 IMAGE_NOTE: Final = "[an image was attached here]"
+RECAP: Final = (
+    "[Your usage limit was spent for a while; a local model held these turns of"
+    " this session. Carry on from them.]"
+)
 
 type Chat = Callable[[str, list[dict[str, str]], dict[str, Any]], dict[str, Any] | None]
 
@@ -72,23 +77,37 @@ class FallbackSession(TutorSession):
         prompt = options.system_prompt
         self._system = prompt if isinstance(prompt, str) else json.dumps(prompt)
         self._history: list[dict[str, str]] = []
+        self._seen = 0  # history entries Claude has seen (the rest were local)
         self._chat = chat
 
     async def ask_raw(self, prompt: Prompt, on_trace: Observer | None = None) -> Reply:
         """Claude's reply, or the local model's while Claude is unavailable."""
-        text = as_text(prompt)
+        text, by_claude = as_text(prompt), True
         try:
             outage.ensure_available(time.time())
-            reply = await super().ask_raw(prompt, on_trace)
+            reply = await super().ask_raw(self._caught_up(prompt), on_trace)
         except outage.ClaudeUnavailableError as err:
             _logger.warning("Claude unavailable (%s); the local model answers", err)
-            reply = await self._local(text, err)
+            reply, by_claude = await self._local(text, err), False
         said = json.dumps(reply.structured) if reply.structured else reply.text
         self._history += [
             {"role": "user", "content": text},
             {"role": "assistant", "content": said},
         ]
+        if by_claude:
+            self._seen = len(self._history)
         return reply
+
+    def _caught_up(self, prompt: Prompt) -> Prompt:
+        """``prompt`` led by the local turns Claude missed (the limit reset)."""
+        missed = self._history[self._seen :]
+        if not missed:
+            return prompt
+        turns = "\n\n".join(f"{m['role']}: {m['content']}" for m in missed)
+        recap = f"{RECAP}\n\n{turns}\n\n[The learner's new message follows.]\n\n"
+        if isinstance(prompt, str):
+            return recap + prompt
+        return [{"type": "text", "text": recap}, *prompt]
 
     async def _local(self, text: str, err: outage.ClaudeUnavailableError) -> Reply:
         """The local model's turn; ``err`` again when it gives none."""

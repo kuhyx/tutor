@@ -14,6 +14,7 @@ from tutor import local_model, local_session, unavailable
 from tutor.local_session import FallbackSession, as_text
 from tutor.outage import ClaudeUnavailableError
 from tutor.session import Prompt, Reply, TutorSession
+from tutor.store import data_dir
 from tutor.tests._relay_support import engine
 from tutor.tests.test_relay_lanes import Rig, run
 
@@ -110,6 +111,49 @@ def test_a_429_mid_session_goes_local_with_the_history(
     assert "Q1?" in messages[1]["content"]
     assert messages[2]["content"] == "my answer"
     assert len(claude.prompts) == 2
+
+
+def test_claude_back_from_the_limit_sees_the_local_turns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Claude, a 429, a local turn, a second local turn, then Claude again."""
+    claude = Claude(
+        monkeypatch,
+        _turn("Q1?"),
+        ClaudeUnavailableError("rate_limit"),
+        _turn("Q4?"),
+        _turn("Q5?"),
+        _turn("Q7?"),
+    )
+    local = Local(_turn("Local Q2?"), _turn("Local Q3?"), _turn("Local Q6?"))
+    session = _session(local)
+    asyncio.run(session.ask("start"))
+    asyncio.run(session.ask("answer 2"))
+    unavailable.record("rate_limit", 0, 4e9)
+    asyncio.run(session.ask("answer 3"))  # the window: no CLI at all
+    (data_dir() / "unavailable.jsonl").unlink()
+    image = {"type": "image", "source": {}}
+    asyncio.run(session.ask([{"type": "text", "text": "answer 4"}, image]))
+    asyncio.run(session.ask("answer 5"))
+    back = claude.prompts[2]
+    assert isinstance(back, list)
+    recap = back[0]["text"]
+    assert recap.startswith(local_session.RECAP)
+    for said in ("answer 2", "Local Q2?", "answer 3", "Local Q3?"):
+        assert said in recap
+    assert "Q1?" not in recap  # Claude answered that one itself
+    assert back[1:] == [{"type": "text", "text": "answer 4"}, image]
+    assert claude.prompts[3] == "answer 5"  # caught up: nothing to repeat
+    unavailable.record("rate_limit", 0, 4e9)
+    asyncio.run(session.ask("answer 6"))
+    (data_dir() / "unavailable.jsonl").unlink()
+    asyncio.run(session.ask("answer 7"))
+    text = claude.prompts[4]
+    assert isinstance(text, str)
+    assert text.startswith(local_session.RECAP)
+    assert "Local Q6?" in text
+    assert text.endswith("answer 7")
+    assert "Local Q2?" not in text
 
 
 def test_an_open_window_spawns_no_cli(monkeypatch: pytest.MonkeyPatch) -> None:
