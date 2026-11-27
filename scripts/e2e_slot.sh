@@ -13,8 +13,9 @@
 #   scripts/e2e_slot.sh down       # stop the worker, delete the copy
 #
 # The copy gets its own HOME: the session file and the crdt-sync files are
-# copied in, so token refreshes never write the live worker's session file,
-# and no Claude CLI login is found (the copy never spends the model limit).
+# copied in, so token refreshes never write the live worker's session file.
+# Every Claude call goes to a closed port (ANTHROPIC_BASE_URL, as
+# e2e_sandbox.sh --model-down network) and the LeetCode guard route too.
 # Sign in on the slot with the sync account; unlock with the crdt-sync
 # password (~/.config/crdt-sync/password).
 # ============================================================================
@@ -67,6 +68,8 @@ up() {
         -E XDG_DATA_HOME="$DIR/home/.local/share" -E TUTOR_GUARD_DATA="$DIR/guard" \
         -E TUTOR_THEORY_PHASE="$DIR/theory_phase.json" \
         -E TUTOR_LOCAL_MODEL_URL=http://127.0.0.1:9 -E TUTOR_FREE_GATEWAY=http://127.0.0.1:9 \
+        -E ANTHROPIC_BASE_URL=http://127.0.0.1:9 -E CLAUDE_CODE_MAX_RETRIES=0 \
+        -E TUTOR_GUARD_THEORY_URL=http://127.0.0.1:9/api/theory \
         -E PATH="$PATH" -E PYTHONPATH="$ROOT" \
         "$PY" -m tutor --port "$port" --fresh
     for _ in $(seq 40); do
