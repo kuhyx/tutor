@@ -28,6 +28,7 @@ import 'package:flutter/semantics.dart';
 import 'package:tutor/app/services.dart';
 import 'package:tutor/config/firebase_config.dart';
 import 'package:tutor/focus/web_checkin.dart';
+import 'package:tutor/storage/kv_open.dart';
 import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/ui/app.dart';
 import 'package:tutor/ui/deep_link.dart';
@@ -73,6 +74,10 @@ void main() {
     serverClientId: '',
   );
   final keyless = Uri.base.queryParameters['nokey'] == '1';
+  // `keep=1`: the real IndexedDB store, so a reload is a cold start that
+  // finds what the last load kept (offline-first checks); else a fresh
+  // memory store per load.
+  final keep = Uri.base.queryParameters['keep'] == '1';
   Future<TutorServices> open() async {
     if (keyless) {
       await clearE2ePassphrase();
@@ -90,7 +95,7 @@ void main() {
     return await TutorServices.open(
       config,
       store: store,
-      kv: MemoryKv(),
+      kv: keep ? await openKv() : MemoryKv(),
       wrapperBase: keyless ? Uri.base : null,
       // The desktop build's browser notification (scripts/e2e_focus.py).
       checkinNotifier: createWebCheckinNotifier(),

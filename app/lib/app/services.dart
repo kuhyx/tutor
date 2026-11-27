@@ -91,6 +91,8 @@ class TutorServices {
       httpClient: web,
       // Fail closed: nothing reaches RTDB until [e2e] holds the key.
       sealRequired: true,
+      // The e2e header, kept so a cold start offline still unlocks.
+      kv: kvStore,
     );
     final stream = RtdbStream(client);
     final ulid = UlidGenerator();
