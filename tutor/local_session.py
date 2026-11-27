@@ -70,7 +70,7 @@ class FallbackSession(TutorSession):
         self,
         options: ClaudeAgentOptions,
         timeout: float = 0.0,
-        chat: Chat = local_model.chat,
+        chat: Chat | None = None,
     ) -> None:
         """Remember the system prompt for the local model; nothing spawns yet."""
         super().__init__(options, timeout)
@@ -78,7 +78,7 @@ class FallbackSession(TutorSession):
         self._system = prompt if isinstance(prompt, str) else json.dumps(prompt)
         self._history: list[dict[str, str]] = []
         self._seen = 0  # history entries Claude has seen (the rest were local)
-        self._chat = chat
+        self._chat = chat or local_model.chat
 
     async def ask_raw(self, prompt: Prompt, on_trace: Observer | None = None) -> Reply:
         """Claude's reply, or the local model's while Claude is unavailable."""

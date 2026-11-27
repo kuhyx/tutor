@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tutor import research
-from tutor.session import TutorSession
+from tutor.local_session import FallbackSession
 from tutor.trace import traced
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from tutor.models import TutorTurn
     from tutor.relay.claims import Claim
-    from tutor.session import Prompt, Reply
+    from tutor.session import Prompt, Reply, TutorSession
     from tutor.trace import Observer, Trace
 
 
@@ -45,8 +45,12 @@ class PhaseSink:
             self.claim.set_trace(trace)
 
 
-class PhasedSession(TutorSession):
-    """A :class:`TutorSession` that reports its asks to a sink."""
+class PhasedSession(FallbackSession):
+    """A tutor session that reports its asks to a sink.
+
+    A :class:`FallbackSession`: while Claude's limit is spent the app's
+    turns are answered by the local model, as the web page's are.
+    """
 
     def __init__(self, options: ClaudeAgentOptions, sink: PhaseSink) -> None:
         """Wrap the options like a plain session; nothing spawns yet."""
@@ -73,7 +77,7 @@ class PhasedSession(TutorSession):
 def session_factory(sink: PhaseSink) -> Callable[[str], TutorSession]:
     """The engine's ``session_factory`` for a relay-enabled process.
 
-    Its sessions have the tutor's research tools (``tutor.research``) and a
-    visible, streamed trace (``tutor.trace``).
+    Its sessions have the tutor's research tools (``tutor.research``), a
+    visible, streamed trace (``tutor.trace``) and the local fallback.
     """
     return lambda prompt: PhasedSession(traced(research.research_options(prompt)), sink)
