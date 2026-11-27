@@ -119,7 +119,7 @@ void main() {
     await teach('car', 'eng');
     final snap = await home.load();
     expect(snap.offline, isTrue);
-    expect(snap.today, isNull);
+    expect(snap.today, isNotNull); // the last stats.today pulled
     expect(snap.due, 1);
     expect(await events.pending(), 1);
   });

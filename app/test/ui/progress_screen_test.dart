@@ -23,7 +23,7 @@ void main() {
     expect(spokenHas('Reviewed: every card'), findsWidgets);
   });
 
-  testWidgets('no days yet; unreachable', (t) async {
+  testWidgets('no days yet; unreachable shows the kept copy', (t) async {
     final db = fixtureDb();
     db.root = setAt(db.root, 'tutor/v1-e2e/stats/days', null);
     final stream = FakeStream();
@@ -31,6 +31,12 @@ void main() {
     await pumpScreen(t, ProgressScreen(services: s));
     expect(spokenHas('No days yet'), findsOneWidget);
     db.offline = true;
+    await pumpScreen(t, ProgressScreen(services: s, key: UniqueKey()));
+    expect(spokenHas('No days yet'), findsOneWidget);
+    expect(cueHas('Could not load'), findsNothing);
+    db
+      ..offline = false
+      ..root = setAt(db.root, 'tutor/v1-e2e/stats', 'malformed');
     await pumpScreen(t, ProgressScreen(services: s, key: UniqueKey()));
     expect(cueHas('Could not load'), findsOneWidget);
   });

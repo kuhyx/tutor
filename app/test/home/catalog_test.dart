@@ -51,8 +51,25 @@ void main() {
   test('prefs and stats', () async {
     final db = FakeRtdb();
     final client = db.client();
-    expect(await fetchStats(client), isNull);
+    final kv = MemoryKv();
+    expect(await fetchStats(client, kv), isNull);
     db.root = setAt(db.root, 'tutor/v1-e2e/stats', stats);
-    expect((await fetchStats(client))!.today.target, 60);
+    expect((await fetchStats(client, kv))!.today.target, 60);
+  });
+
+  test('stats are kept and read back offline', () async {
+    final db = FakeRtdb()..root = setAt(null, 'tutor/v1-e2e/stats', stats);
+    final kv = MemoryKv();
+    await fetchStats(db.client(), kv);
+    db.offline = true;
+    expect((await fetchStats(db.client(), kv))!.today.target, 60);
+    db
+      ..offline = false
+      ..root = setAt(db.root, 'tutor/v1-e2e/stats', null);
+    expect(await fetchStats(db.client(), kv), isNull);
+    db.offline = true;
+    expect(await fetchStats(db.client(), kv), isNull);
+    kv.data[kStatsCacheKey] = '{not json';
+    expect(await fetchStats(db.client(), kv), isNull);
   });
 }

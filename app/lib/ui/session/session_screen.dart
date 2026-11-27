@@ -71,10 +71,7 @@ class _SessionScreenState extends State<SessionScreen> {
     widget.services.relay,
     stallAfter: sessionStallAfter,
   );
-  late final TodayFeed _today = TodayFeed(
-    client: widget.services.client,
-    rev: widget.services.rev,
-  );
+  late final _today = TodayFeed(client: _s.client, rev: _s.rev, kv: _s.kv);
   late final AppLifecycleListener _lifecycle;
   late final VoidCallback _unwatch;
   final _scroll = ScrollController();

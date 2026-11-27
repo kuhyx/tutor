@@ -97,6 +97,7 @@ class HomeLoader {
       catalog = await _catalog();
       final t = await client.get('${Paths.stats}/today');
       today = t == null ? null : Today.fromJson(asJson(t, 'today'));
+      await keepNode(kv, kTodayCacheKey, t);
       final p = await client.get(Paths.prefs);
       current = p == null ? null : Prefs.fromJson(asJson(p)).currentSubject;
       await (current == null
@@ -110,6 +111,7 @@ class HomeLoader {
       log('database unreachable; Home from cache', level: 900, error: error);
       catalog = asJson(jsonDecode(cached));
       current = await kv.get(_currentKey);
+      today = await keptToday(kv);
       offline = true;
     }
     if (await outbox?.pendingAt(currentSubjectPath) case final String pick) {

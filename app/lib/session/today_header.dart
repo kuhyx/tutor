@@ -8,22 +8,28 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
+import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/model/ids.dart';
 import 'package:tutor/model/json.dart';
 import 'package:tutor/model/stats.dart';
+import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/sync/rtdb_client.dart';
 
 /// `stats.today`, read on [start] and again on every `rev.stats` move.
 class TodayFeed {
   /// Creates the feed.
-  new({required this.client, required this.rev});
+  new({required this.client, required this.rev, required this.kv});
 
   /// REST client.
   final RtdbClient client;
 
   /// The shared `rev` listen.
   final RevWatcher rev;
+
+  /// Where the last `stats.today` is kept (offline-first: shown before
+  /// the database answers, and when it cannot).
+  final KvStore kv;
 
   /// Latest `stats.today` (null until read, or when there is none).
   final ValueNotifier<Today?> today = ValueNotifier(null);
@@ -39,9 +45,11 @@ class TodayFeed {
 
   /// One read; a failure keeps the last value.
   Future<void> load() async {
+    today.value ??= await keptToday(kv);
     try {
       final raw = await client.get('${Paths.stats}/today');
       today.value = raw == null ? null : Today.fromJson(asJson(raw, 'today'));
+      await keepNode(kv, kTodayCacheKey, raw);
     } on Object catch (error) {
       // `on Object`: offline or malformed, the header keeps what it had.
       log('stats.today unavailable', level: 900, error: error);

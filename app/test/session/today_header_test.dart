@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tutor/home/remote_bits.dart';
 import 'package:tutor/model/stats.dart';
 import 'package:tutor/session/today_header.dart';
+import 'package:tutor/storage/kv_store.dart';
 import 'package:tutor/sync/json_tree.dart';
 import 'package:tutor/sync/rev_watcher.dart';
 import 'package:tutor/sync/rtdb_event.dart';
@@ -52,10 +54,11 @@ void main() {
   });
 
   test('reads stats.today now and on every rev.stats move', () async {
-    final db = FakeRtdb()..root = setAt(null, 'tutor/v1-e2e/stats/today', _today);
+    final db = FakeRtdb()
+      ..root = setAt(null, 'tutor/v1-e2e/stats/today', _today);
     final stream = FakeStream();
     final rev = RevWatcher(stream);
-    final feed = TodayFeed(client: db.client(), rev: rev)
+    final feed = TodayFeed(client: db.client(), rev: rev, kv: MemoryKv())
       ..start()
       ..start(); // idempotent
     await _tick();
@@ -75,6 +78,41 @@ void main() {
       ..offline = false
       ..root = setAt(db.root, 'tutor/v1-e2e/stats', null);
     await feed.load();
+    expect(feed.today.value, isNull);
+    await feed.dispose();
+    await rev.dispose();
+  });
+
+  test('keeps stats.today and shows it offline after a restart', () async {
+    final kv = MemoryKv();
+    final db = FakeRtdb()
+      ..root = setAt(null, 'tutor/v1-e2e/stats/today', _today);
+    final rev = RevWatcher(FakeStream());
+    final first = TodayFeed(client: db.client(), rev: rev, kv: kv);
+    await first.load();
+    expect(kv.data[kTodayCacheKey], isNotNull);
+    await first.dispose();
+    final offline = FakeRtdb()..offline = true;
+    final second = TodayFeed(client: offline.client(), rev: rev, kv: kv);
+    await second.load();
+    expect(second.today.value!.creditedMinutes, 23);
+    kv.data[kTodayCacheKey] = '{not json';
+    final third = TodayFeed(client: offline.client(), rev: rev, kv: kv);
+    await third.load(); // a broken copy is ignored
+    expect(third.today.value, isNull);
+    await second.dispose();
+    await third.dispose();
+    await rev.dispose();
+  });
+
+  test('a database without stats.today clears the kept copy', () async {
+    final kv = MemoryKv();
+    kv.data[kTodayCacheKey] = '{"day": "x"}';
+    final db = FakeRtdb();
+    final rev = RevWatcher(FakeStream());
+    final feed = TodayFeed(client: db.client(), rev: rev, kv: kv);
+    await feed.load();
+    expect(kv.data.containsKey(kTodayCacheKey), isFalse);
     expect(feed.today.value, isNull);
     await feed.dispose();
     await rev.dispose();

@@ -35,7 +35,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   late final Future<(Stats?, List<ModuleProgress>)> _data = _load();
 
   Future<(Stats?, List<ModuleProgress>)> _load() async {
-    final stats = await fetchStats(widget.services.client);
+    final stats = await fetchStats(widget.services.client, widget.services.kv);
     final subjects = await widget.services.catalog.cached();
     return (stats, moduleProgress(subjects.values));
   }

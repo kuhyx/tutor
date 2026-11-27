@@ -18,6 +18,15 @@ FakeRtdb _db() => FakeRtdb()
     'meta': {'schema': 1, 'min_client': 1},
     'rev': {'catalog': 1},
     'prefs': {'current_subject': 'car'},
+    'stats': {
+      'today': {
+        'day': '2026-10-12',
+        'credited_minutes': 23,
+        'target': 60,
+        'new': 2,
+        'new_cap': 10,
+      },
+    },
     'subjects': {
       'car': {
         'meta': {
@@ -52,6 +61,7 @@ void main() {
     final cold = await _home(db, kv).load();
     expect(cold.offline, isTrue);
     expect(cold.currentSubject, 'car');
+    expect(cold.today!.creditedMinutes, 23);
   });
 
   test('an offline pick reads back at once and is pushed later', () async {
