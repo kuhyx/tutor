@@ -630,11 +630,11 @@ packages:
     dependency: "direct main"
     description:
       path: "rtdb_relay/dart"
-      ref: "rtdb-relay-v0.2.2"
-      resolved-ref: e1b15a944918a386ef302e56ff4c75977b8b2c29
+      ref: "rtdb-relay-v0.2.3"
+      resolved-ref: "783934a376823f5d48571827043232cbb88bb1ea"
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.2.2"
+    version: "0.2.3"
   sembast:
     dependency: transitive
     description:

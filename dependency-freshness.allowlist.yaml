@@ -26,13 +26,3 @@ exceptions:
       unrelated script fix.
     blocked_by: "migration:flutter-3.50-material_ui"
     expires: "2026-12-17"
-  - ecosystem: pypi
-    package: httpx
-    pinned: "0.28.1"
-    latest_known: "0.29.0"
-    reason: >-
-      rtdb-relay 0.2.2 (the newest kuhyx/utils rtdb-relay tag, pinned here)
-      requires httpx==0.28.1, so pip cannot resolve the venv with httpx
-      0.29.0. utils' rtdb_relay already moved to 0.29.0 on its branch; take
-      httpx together with the next rtdb-relay tag.
-    blocked_by: "transitive:rtdb-relay@0.2.2"

@@ -67,7 +67,7 @@ dependencies:
   rtdb_relay:
     git:
       url: https://github.com/kuhyx/utils
-      ref: rtdb-relay-v0.2.2
+      ref: rtdb-relay-v0.2.3
       path: rtdb_relay/dart
   shared_preferences: 2.5.6
   # Source links and picture attribution open in the browser.
