@@ -67,7 +67,8 @@ board (`tutor/model_fault.py`: spool `~/.local/state/app-errors-spool/tutor.json
 kind `model.sandbox`, repo `kuhyx/tutor`) and shows one icon-only critical
 `notify-send` toast (restart icon, no words) per failure streak, until a model
 call succeeds again. Every other model failure is filed as `model.error`, no
-toast; API outages are not filed.
+toast; API outages are not filed. A scratch run (`TUTOR_DATA` or
+`ANTHROPIC_BASE_URL` set) only logs its model faults.
 
 ## Agent E2E
 

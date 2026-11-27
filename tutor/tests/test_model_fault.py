@@ -131,7 +131,7 @@ def test_the_default_spool_is_the_users_app_errors_spool(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    model_fault.Monitor(notify=lambda: None).stderr_line(FENCE)
+    model_fault.Monitor(notify=lambda: None, live=lambda: True).stderr_line(FENCE)
     assert (tmp_path / "state" / "app-errors-spool" / "tutor.jsonl").is_file()
 
 
@@ -147,7 +147,7 @@ def test_a_broken_reporter_or_toast_never_reaches_the_model_path(
         msg = "no bus"
         raise OSError(msg)
 
-    mon = model_fault.Monitor(notify=no_toast)
+    mon = model_fault.Monitor(notify=no_toast, live=lambda: True)
     mon._reporter = Broken()
     mon.stderr_line(FENCE)
     mon.succeeded()

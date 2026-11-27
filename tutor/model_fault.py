@@ -17,6 +17,11 @@ fix task) as app ``tutor``, repo ``kuhyx/tutor``:
   filed as :data:`ERROR_KIND`, with no toast. An API outage is not a fault
   (``ClaudeUnavailableError``: the app already shows it) and is never filed.
 
+A scratch run — ``TUTOR_DATA`` (a data copy: tests, the E2E and slot
+harnesses) or ``ANTHROPIC_BASE_URL`` (the CLI talks to a stub or gateway, not
+Anthropic) set in the process — only logs its model faults; it never files
+them and shows no toast.
+
 Reporting never raises into the model path. The reporter is gatelock's
 (``gatelock.error_report.Reporter``): it dedupes, caps per minute and writes
 ``$XDG_STATE_HOME/app-errors-spool/tutor.jsonl``.
@@ -26,6 +31,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import logging
+import os
 import shutil
 import subprocess
 from typing import TYPE_CHECKING, Any, Final
@@ -49,6 +55,18 @@ _TOAST_GLYPH: Final = "⟳"  # a pictogram summary: notify-send needs one
 _TOAST_TIMEOUT: Final = 10
 _DETAIL: Final = 120
 _logger = logging.getLogger(__name__)
+
+
+def live_process() -> bool:
+    """True only for the live tutor process (no scratch data, no API stub).
+
+    A scratch run sets ``TUTOR_DATA`` (tests, ``scripts/e2e_sandbox.sh``,
+    ``scripts/lc_live_e2e.sh``) or ``ANTHROPIC_BASE_URL`` (the CLI talks to a
+    stub or gateway, not Anthropic). The free backend sets
+    ``ANTHROPIC_BASE_URL`` only in the CLI child's env via
+    ``tutor/free_options.py``, not in the tutor's own ``os.environ``.
+    """
+    return not (os.environ.get("TUTOR_DATA") or os.environ.get("ANTHROPIC_BASE_URL"))
 
 
 class SandboxStartError(RuntimeError):
@@ -84,17 +102,26 @@ def _line(err: BaseException) -> str:
 class Monitor:
     """Files model faults; one toast and one sandbox entry per failure streak.
 
-    ``spool`` (None: the user's ``app-errors-spool``) and ``notify`` are test
-    seams: tests point both at a temp dir and a recorder.
+    ``spool`` (None: the user's ``app-errors-spool``), ``notify`` and ``live``
+    are test seams: tests point them at a temp dir and recorders. With no
+    explicit ``spool``, a scratch run (``live()`` false) only logs.
     """
 
     spool: Path | None = None
     notify: Callable[[], None] = send_toast
+    live: Callable[[], bool] = live_process
     _sandbox_down: bool = field(default=False, init=False)
     _reporter: Any = field(default=None, init=False, repr=False)
 
+    def _scratch(self) -> bool:
+        """A scratch run with no explicit spool: faults are logged only."""
+        return self.spool is None and not self.live()
+
     def _report(self, kind: str, error: object) -> None:
         """Hand ``error`` to the spool reporter; its failures stay in the log."""
+        if self._scratch():
+            _logger.warning("model fault not filed (scratch run): %s %s", kind, error)
+            return
         try:
             if self._reporter is None:
                 args: dict[str, Any] = {"mark": "tutor/"}
@@ -112,6 +139,8 @@ class Monitor:
         self._sandbox_down = True
         _logger.error("model sandbox did not start: %s", line.strip())
         self._report(SANDBOX_KIND, SandboxStartError(line.strip()))
+        if self._scratch():
+            return
         try:
             self.notify()
         except Exception:  # pylint: disable=broad-exception-caught
