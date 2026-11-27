@@ -4,7 +4,7 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:tutor/ui/deep_link.dart' show handedOffer;
+import 'package:tutor/ui/deep_link.dart' show handedOffer, routeFromUri;
 
 @JS('history')
 external _History get _history;
@@ -39,6 +39,9 @@ extension type _Channel._(JSObject _) implements JSObject {
 
 @JS('focus')
 external void _focusWindow();
+
+/// The route the address bar's fragment names (`#/focus?start=1`).
+Future<String?> initialRoute() async => routeFromUri(Uri.base);
 
 /// Drops the route from the address bar once it is opened, so a reload (F5
 /// after a deliberate Stop) does not start the timer again.

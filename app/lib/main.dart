@@ -16,7 +16,7 @@ import 'package:tutor/ui/ui_zoom.dart';
 // The entry point is the one line flutter_test cannot run; everything it
 // builds is TutorApp / TutorServices, both tested.
 // coverage:ignore-start
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Fail closed on a bad SYNC_NAMESPACE before any screen or request.
   checkSyncNamespace(syncNamespace);
@@ -24,7 +24,8 @@ void main() {
   // sign-in screen on.
   final zoom = UiZoom();
   unawaited(zoom.load(openKv()));
-  final route = kIsWeb ? routeFromUri(Uri.base) : null;
+  // The address bar's fragment on the web, the launch link on Android.
+  final route = await initialRoute();
   // C4: a later `/learn/...` launch hands its route here (web/index.html).
   joinWindows();
   runApp(

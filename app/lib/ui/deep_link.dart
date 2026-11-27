@@ -10,6 +10,15 @@ String? routeFromUri(Uri uri) {
   return fragment.startsWith('/') && fragment.length > 1 ? fragment : null;
 }
 
+/// The route a `kuhytutor://learn|review|rework/...` link opens (Android,
+/// `deep_link_io`): `/` + host + path, e.g. `/learn/<subject>/<module>`;
+/// any other scheme, host or an empty path is null.
+String? routeFromAppLink(Uri uri) {
+  const hosts = {'learn', 'review', 'rework'};
+  if (uri.scheme != 'kuhytutor' || !hosts.contains(uri.host)) return null;
+  return uri.path.length > 1 ? '/${uri.host}${uri.path}' : null;
+}
+
 /// Whether a new window's `learn <route>` offer is one an open window takes:
 /// the lock's `/learn/...`, `/review/...` and `/rework/...` (`web/index.html`
 /// offers them).
