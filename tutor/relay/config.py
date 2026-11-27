@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Final
 
 from crdt_sync import (
@@ -35,6 +37,10 @@ if TYPE_CHECKING:
     from crdt_sync import Argon2Params
 
 APP: Final = "tutor"
+# A phone slot build's SYNC_NAMESPACE (crdt_sync_dart's rule): the worker
+# that serves it must use the same one, or the slot sees an empty tree.
+NAMESPACE_ENV: Final = "TUTOR_SYNC_NAMESPACE"
+_NAMESPACE = re.compile(r"sandbox/[a-z0-9_-]+")
 _logger = logging.getLogger(__name__)
 
 
@@ -69,7 +75,21 @@ def connect() -> Rtdb:
             "with crdt-sync: python3 -m tool.seed_session ... --app tutor"
         )
         raise RelaySetupError(msg)
-    return Rtdb(config.database_url, token_source(provider))
+    return Rtdb.under(namespace(), config.database_url, token_source(provider))
+
+
+def namespace() -> str:
+    """``$TUTOR_SYNC_NAMESPACE``: "" (the live tree) or ``sandbox/<slot>``.
+
+    Raises:
+        RelaySetupError: Anything else (fail closed: a typo must never fall
+            back to the live tree).
+    """
+    value = os.environ.get(NAMESPACE_ENV, "")
+    if value and not _NAMESPACE.fullmatch(value):
+        msg = f"{NAMESPACE_ENV}={value!r} must be empty or sandbox/<a-z0-9_->"
+        raise RelaySetupError(msg)
+    return value
 
 
 def device_id(data_dir: Path) -> str:

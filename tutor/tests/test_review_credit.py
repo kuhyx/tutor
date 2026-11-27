@@ -168,6 +168,34 @@ def test_sync_credits_a_pulled_phone_review(tmp_path: Path) -> None:
     assert set(review_rows()) == {f"review-20261015-{PHONE}-m1"}
 
 
+def test_a_paid_phone_review_republishes_stats_at_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The Home counter moves on the next sync, not up to 5 min later."""
+    eng, _ = engine(tmp_path)
+    fake = FakeRtdb()
+    sync_now = at(15, 12, 0) / 1000
+    sync = CurriculumSync(wiring(fake, eng, now=lambda: sync_now))
+    published: list[int] = []
+
+    async def stats() -> None:
+        published.append(len(review_rows()))
+
+    monkeypatch.setattr(sync.w.publisher, "stats", stats)
+
+    async def go() -> None:
+        await sync.sync()  # nothing to pay: no publish
+        event = rev(PHONE, at(15, 11, 0, 0), 60_000)
+        body = {k: v for k, v in event.items() if k not in {"dev", "eid"}}
+        fake.set(f"tutor/v1-e2e/log/{PHONE}/{event['eid']}", body)
+        await sync.sync()
+        await sync.sync()  # paid already: no second publish
+        await sync.w.rtdb.aclose()
+
+    asyncio.run(go())
+    assert published == [1]
+
+
 def test_credit_now_logs_an_unreadable_log(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:

@@ -191,7 +191,8 @@ class CurriculumSync:
             if key not in self._queued and key not in self._failed:
                 self._queued.add(key)
                 self.queue.put_nowait(key)
-        await asyncio.to_thread(review_credit.credit_now, self.ctx, self.w.now())
+        if await asyncio.to_thread(review_credit.credit_now, self.ctx, self.w.now()):
+            await self.w.publisher.stats()  # the Home counter moves now, not in 5 min
         # Today's closed cards and yesterday's last one (startup paid the rest).
         now = self.w.now()
         days = [local_day(now - 86400)[0], local_day(now)[0]]
