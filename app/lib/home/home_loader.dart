@@ -95,7 +95,11 @@ class HomeLoader {
         }
       }
       catalog = await _catalog();
-      final t = await client.get('${Paths.stats}/today');
+      // All of `stats`, kept for Progress too (prefetched on every sync,
+      // so it opens offline even if it was never opened online).
+      final st = await client.get(Paths.stats);
+      await keepNode(kv, kStatsCacheKey, st);
+      final t = st is Map ? st['today'] : null;
       today = t == null ? null : Today.fromJson(asJson(t, 'today'));
       await keepNode(kv, kTodayCacheKey, t);
       final p = await client.get(Paths.prefs);

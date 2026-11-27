@@ -62,6 +62,8 @@ void main() {
     expect(cold.offline, isTrue);
     expect(cold.currentSubject, 'car');
     expect(cold.today!.creditedMinutes, 23);
+    // Progress was never opened: Home's sync kept `stats` for it anyway.
+    expect((await fetchStats(db.client(), kv))!.today.target, 60);
   });
 
   test('an offline pick reads back at once and is pushed later', () async {

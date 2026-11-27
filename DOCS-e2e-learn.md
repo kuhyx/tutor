@@ -1,4 +1,4 @@
-# Agent E2E: the `/learn` flows F22-F28, the rework chat F29, F30, F31 and F33
+# Agent E2E: the `/learn` flows F22-F28, the rework chat F29, F30, F31, F33 and F34
 
 These flows drive the LeetCode lock's learn button from the route to the
 signed rows. The sandbox is described in README "Agent E2E"; the contracts
@@ -67,8 +67,21 @@ E2E_SUBJECT=product-and-design-taste $S flow F33 gate
 E2E_SUBJECT=product-and-design-taste $S flow F33 check   # then checkwait, checkfirst, checkwait,
 #   checkdone, checknext, checkwait, checkwrong, checkwait, checkreply, checkwait, checkagain
 $S up; $S flow F33 pregen          # then pregencheck (75 = again) once the worker drafted
+# F34: offline-first from a cold start (no model)
+$S up; $S flow F34
 $S down
 ```
+
+- F34 (`scripts/e2e_offline.py`, one call). The page loads with `keep=1`
+  (`app/tool/e2e/main.dart`: the real IndexedDB store, so a reload is a
+  cold start that finds what the last load kept). Chrome blocks the
+  emulator's origin (`Network.setBlockedURLs`) instead of stopping it, so
+  the data stays for the last check. It checks that a cold start offline
+  opens Home with the offline cue and the kept current subject (not "Sync
+  is locked"), that Progress shows the kept days without being opened
+  online first, and that an offline "Learn this next" reads back at once.
+  Once back online, it checks that a fresh profile with a memory store sees
+  the pick on the database.
 
 - F33 (`scripts/e2e_fallback_seed.py`). `up --outage R` (`rate_limit`,
   `overloaded`, `network`) writes an open window to the copy's
