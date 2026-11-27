@@ -163,14 +163,37 @@ prune_releases() {
     done
 }
 
+# The python tutor.service runs (its ExecStart path): the live server imports
+# from that venv, not from this checkout's.
+unit_python() {
+    systemctl --user show -p ExecStart --value "$UNIT" | sed -n 's/^{ path=\([^ ;]*\).*/\1/p'
+}
+
+# Install the pyproject pins the live venv lacks, so a bumped pin (httpx, a
+# kuhyx/utils tag) reaches the live server; fails unless the venv is current.
+sync_live_deps() {
+    local py left
+    local -a need
+    py="$(unit_python)"
+    [[ -x "$py" ]] || { echo "Cannot find $UNIT's python" >&2; return 1; }
+    mapfile -t need < <(cd "$SRC" && "$py" -m tutor.live_deps pyproject.toml)
+    if ((${#need[@]})); then
+        echo "Installing into the live venv: ${need[*]}"
+        "$py" -m pip install --quiet "${need[@]}"
+    fi
+    left="$(cd "$SRC" && "$py" -m tutor.live_deps pyproject.toml)" || return 1
+    [[ -z "$left" ]] || { echo "The live venv still lacks: $left" >&2; return 1; }
+    # The relay needs crdt-sync and httpx in it.
+    "$py" -c 'from crdt_sync import unlock_e2e; import nacl, argon2, httpx' ||
+        { echo "The live venv lacks the relay deps; run scripts/setup_dev.sh" >&2; return 1; }
+}
+
 main() {
     local release before after
     systemctl --user cat "$UNIT" >/dev/null 2>&1 ||
         { echo "$UNIT is not installed; run $REPO/install.sh" >&2; exit 1; }
     command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
-    # Releases run on the repo venv; the relay needs crdt-sync and httpx in it.
-    "$REPO/.venv/bin/python" -c 'from crdt_sync import unlock_e2e; import nacl, argon2, httpx' 2>/dev/null ||
-        { echo "The venv lacks the relay deps; run scripts/setup_dev.sh" >&2; exit 1; }
+    sync_live_deps || exit 1
     release="$LIVE_ROOT/releases/$(date +%Y%m%d-%H%M%S)"
     copy_release "$release"
     echo "Release copied: $release"
