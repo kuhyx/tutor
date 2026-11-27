@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from claude_agent_sdk import ClaudeAgentOptions, ProcessError
+from claude_agent_sdk import ClaudeAgentOptions, CLIConnectionError, ProcessError
 import pytest
 
 from tutor import model_fault
@@ -30,7 +30,10 @@ def test_a_real_cli_process_that_prints_the_fence_line(
     async def go() -> None:
         opts = ClaudeAgentOptions(cli_path=cli, cwd=tmp_path)
         sess = TutorSession(opts)
-        with pytest.raises(ProcessError):
+        # The fake exits without reading stdin, as a dead fence does: the SDK
+        # sees the exit (ProcessError) or loses the race to write its
+        # initialize request (CLIConnectionError); production meets both.
+        with pytest.raises((ProcessError, CLIConnectionError)):
             await asyncio.wait_for(sess.ask_raw("hi"), 20)
         await sess.close()
 
