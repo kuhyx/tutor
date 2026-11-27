@@ -52,14 +52,17 @@ jobs:
         name: Install bubblewrap
         run: |
           sudo apt-get update
-          # python3-pytest: test_subset_run runs pytest from the system python.
-          sudo apt-get install -y bubblewrap python3-pytest
+          # test_subset_run runs pytest from the system python (addopts: --cov).
+          sudo apt-get install -y bubblewrap python3-pytest python3-pytest-cov
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           # Ubuntu's passt profile lets pasta exec only a few paths, so the
           # netfence tests' pasta wrapper got "Permission denied".
-          if [ -f /etc/apparmor.d/usr.bin.passt ]; then
-            sudo apparmor_parser -R /etc/apparmor.d/usr.bin.passt
-          fi
+          for profile in /etc/apparmor.d/*passt* /etc/apparmor.d/*pasta*; do
+            [ -f "$profile" ] || continue
+            echo "unloading $profile"
+            sudo apparmor_parser -R "$profile"
+          done
+          sudo aa-status 2>/dev/null | grep -iE 'passt|pasta' || echo "no passt/pasta profile loaded"
       - if: matrix.task == 'pytest'
         name: Tests
         run: .venv/bin/python -m pytest -p no:cacheprovider -q
