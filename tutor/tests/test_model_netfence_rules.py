@@ -179,3 +179,47 @@ def test_the_fence_fails_closed() -> None:
     assert run.returncode != 0
     assert "RAN" not in run.stdout
     assert "not starting" in run.stderr
+
+
+@pytest.mark.parametrize(
+    ("dns", "first"),
+    [((), "prohibit"), (("--dns", "169.254.169.254"), "169.254.169.254")],
+)
+def test_a_more_specific_link_local_route_is_prohibited_too(
+    dns: tuple[str, ...], first: str
+) -> None:
+    """A cloud runner's metadata route beats the /16 prohibit unless replaced.
+
+    GitHub's runners route ``169.254.169.254`` via the gateway; pasta copies
+    it, so only the drop stopped it, as a timeout instead of a refusal. A
+    resolver there (``--dns``) keeps its route.
+    """
+    setup = (
+        "gw=\"$(ip -4 route show default | awk '{print $3; exit}')\"; "
+        'ip -4 route add 169.254.169.254 via "$gw" && exec "$0" "$@"'
+    )
+    run = subprocess.run(
+        [
+            str(shutil.which("pasta")),
+            "--quiet",
+            "--config-net",
+            "--",
+            "sh",
+            "-c",
+            setup,
+            str(NETFENCE),
+            *dns,
+            "--",
+            "ip",
+            "-4",
+            "route",
+            "show",
+            "169.254.169.254",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert run.returncode == 0, run.stderr
+    assert run.stdout.split()[0] == first, run.stdout

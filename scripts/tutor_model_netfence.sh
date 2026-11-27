@@ -27,6 +27,8 @@
 # route per private range makes connect() fail at once with EACCES.
 #   - A resolver inside a private range gets a host route copied from its
 #     current route, so port 53 to it keeps working.
+#   - A link-local host route copied from the host (cloud metadata) is
+#     replaced by a prohibit as well.
 #   - A private address on the namespace's own connected subnet (the LAN) is
 #     routed on-link, more specific than the prohibit: only the drop stops
 #     it, as a timeout rather than a fast refusal.
@@ -113,6 +115,14 @@ prohibit_routes() {
     local range addr
     for range in "${PRIVATE_V4[@]}"; do ip -4 route replace prohibit "$range" || return 1; done
     for range in "${PRIVATE_V6[@]}"; do ip -6 route replace prohibit "$range" || return 1; done
+    # A host route copied in that is more specific than the link-local
+    # prohibit (a cloud runner's 169.254.169.254 via the gateway) wins over
+    # it: prohibit it too, unless it is a --dns resolver's.
+    local dst
+    while read -r dst _; do
+        [[ "$dst" == 169.254.* && " ${DNS[*]} " != *" ${dst%/*} "* ]] || continue
+        ip -4 route replace prohibit "$dst" || return 1
+    done < <(ip -4 route show)
     for addr in "${HOSTS[@]}"; do
         if [[ "$addr" == *:* ]]; then
             ip -6 route replace prohibit "$addr/128" || return 1
