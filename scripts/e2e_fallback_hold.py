@@ -41,6 +41,11 @@ def _seed(flow: Flow) -> dict[str, Any]:
     return dict(json.loads(path.read_text(encoding="utf-8")))
 
 
+def seeded_read(flow: Flow) -> list[str]:
+    """The cards the ``gate`` seed leaves for read mode, sorted."""
+    return sorted(_seed(flow)["read"])
+
+
 def refusal(data: Path, subject: str) -> dict[str, Any]:
     """The extra of the server's own pick refusing S's next card (``{}``: none)."""
     ctx = Context(data, device="e2e")
@@ -69,7 +74,7 @@ def held(flow: Flow, want: list[str]) -> None:
 
 def gate(flow: Flow) -> None:
     """C7: two cards read without Claude hold the next module's gate."""
-    want = sorted(_seed(flow)["read"])
+    want = seeded_read(flow)
     flow.screen(f"/read/{flow.args.subject}")
     before, read = flow.rids(), list[str]()
     for label in ("Got it", "Again"):

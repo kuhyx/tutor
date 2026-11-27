@@ -20,7 +20,12 @@ each on the sandbox named (``S=scripts/e2e_sandbox.sh``):
 * ``... --fallback read`` with OmniRoute up: ``free``, ``freewait`` (75 =
   again), ``freecheck`` (C9, ``e2e_fallback_free.py``).
 * ``E2E_SUBJECT=product-and-design-taste $S up --fallback gate`` (no
-  outage): ``gate`` (C7).
+  outage): ``gate`` (C7), then ``check``, ``checkwait`` (75 = again),
+  ``checkfirst``, ``checkwait``, ``checkdone``, then ``checknext``,
+  ``checkwrong``, ``checkreply``, ``checkagain`` (C8, ``e2e_fallback_check.py``).
+
+* ``$S up`` (Claude up): ``pregen`` at once, then ``pregencheck`` (75 =
+  again) (C10, ``e2e_fallback_pregen.py``).
 
 Every phase screenshots its key frame as ``<out>_<phase>.png``; with
 ``E2E_SHOTS=DIR`` the prefix is ``DIR/f33``. Exit 0 = PASS.
@@ -36,14 +41,23 @@ import sys
 from typing import Final
 
 from e2e_cdp import Browser, CdpError
+from e2e_fallback_check import PHASES as CHECK_PHASES
 from e2e_fallback_free import PHASES as FREE_PHASES
 from e2e_fallback_hold import PHASES as HOLD_PHASES
 from e2e_fallback_phases import PHASES as START_PHASES
+from e2e_fallback_pregen import PHASES as PREGEN_PHASES
 from e2e_fallback_sheet import PHASES as SHEET_PHASES
 from e2e_flow import Flow, FlowError
 
 _logger = logging.getLogger(__name__)
-PHASES: Final = {**START_PHASES, **SHEET_PHASES, **HOLD_PHASES, **FREE_PHASES}
+PHASES: Final = {
+    **START_PHASES,
+    **SHEET_PHASES,
+    **HOLD_PHASES,
+    **FREE_PHASES,
+    **CHECK_PHASES,
+    **PREGEN_PHASES,
+}
 PHONE_PHASES: Final = frozenset({"phone", "planphone"})
 PHONE: Final = (412, 915)  # C12's phone viewport (CSS px, scale 1)
 

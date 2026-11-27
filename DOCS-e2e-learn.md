@@ -64,6 +64,9 @@ $S up --outage rate_limit --fallback empty   # then: flow F33 empty
 $S up --outage rate_limit --fallback read    # then: flow F33 phone
 E2E_SUBJECT=product-and-design-taste $S up --fallback gate   # no outage
 E2E_SUBJECT=product-and-design-taste $S flow F33 gate
+E2E_SUBJECT=product-and-design-taste $S flow F33 check   # then checkwait, checkfirst, checkwait,
+#   checkdone, checknext, checkwait, checkwrong, checkwait, checkreply, checkwait, checkagain
+$S up; $S flow F33 pregen          # then pregencheck (75 = again) once the worker drafted
 $S down
 ```
 
