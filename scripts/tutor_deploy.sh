@@ -179,7 +179,11 @@ sync_live_deps() {
     mapfile -t need < <(cd "$SRC" && "$py" -m tutor.live_deps pyproject.toml)
     if ((${#need[@]})); then
         echo "Installing into the live venv: ${need[*]}"
-        "$py" -m pip install --quiet "${need[@]}"
+        if "$py" -m pip --version >/dev/null 2>&1; then
+            "$py" -m pip install --quiet "${need[@]}" || return 1
+        else  # a uv-made venv has no pip
+            uv pip install --quiet --python "$py" "${need[@]}" || return 1
+        fi
     fi
     left="$(cd "$SRC" && "$py" -m tutor.live_deps pyproject.toml)" || return 1
     [[ -z "$left" ]] || { echo "The live venv still lacks: $left" >&2; return 1; }

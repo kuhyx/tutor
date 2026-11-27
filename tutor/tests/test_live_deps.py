@@ -95,3 +95,4 @@ def test_the_deploy_syncs_the_live_venv_before_the_release() -> None:
     sync = script.split("sync_live_deps() {", 1)[1].split("\n}\n", 1)[0]
     assert "-m tutor.live_deps" in sync
     assert "-m pip install" in sync
+    assert 'uv pip install --quiet --python "$py"' in sync  # a uv venv has no pip
