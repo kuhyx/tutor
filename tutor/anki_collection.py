@@ -33,6 +33,9 @@ COLLECTION_ENV: Final = "TUTOR_ANKI_COLLECTION"
 ATTEMPTS: Final = 5
 RETRY_S: Final = 0.05
 _EXCLUDED_KINDS: Final = (4, 5)  # manual, rescheduled (anki-guard _studied.py)
+# The /leetcode post-mortem deck (leetcode_coach ``make_cards.DECK_NAME``) and
+# its subdecks: LeetCode work, never tutor time (kuhy, 2026-11-27).
+LC_DECK: Final = "LeetCode"
 _logger = logging.getLogger(__name__)
 
 Fingerprint = tuple[tuple[int, int] | None, ...]
@@ -140,6 +143,8 @@ def snapshot(source: Path) -> Iterator[Path]:
 def reviews(copy: Path, since: float) -> list[tuple[int, int]]:
     """``(id ms, time ms)`` of the counted reviews from unix ``since`` on.
 
+    Reviews of cards in the :data:`LC_DECK` tree are left out: LeetCode time.
+
     Raises:
         AnkiError: ``copy`` has no readable ``revlog``.
     """
@@ -147,8 +152,10 @@ def reviews(copy: Path, since: float) -> list[tuple[int, int]]:
         with closing(_connect(copy)) as db:
             return db.execute(
                 "SELECT id, time FROM revlog WHERE id >= ? AND type NOT IN (?, ?)"
+                " AND cid NOT IN (SELECT id FROM cards WHERE did IN"
+                " (SELECT id FROM decks WHERE name = ? OR name LIKE ?))"
                 " ORDER BY id",
-                (int(since * 1000), *_EXCLUDED_KINDS),
+                (int(since * 1000), *_EXCLUDED_KINDS, LC_DECK, f"{LC_DECK}\x1f%"),
             ).fetchall()
     except sqlite3.DatabaseError as exc:
         msg = f"{copy} is not a readable Anki collection: {exc}"

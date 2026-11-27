@@ -124,7 +124,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
             await self._session.close()
         self.card = card
         sid = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
-        self._conv, start = self._opening(sid, card.id)
+        self._conv, start = self._opening(sid, card.id, src.subject)
         self._session = self._factory(self._prompt(card, brief))
         start["subject"] = self.source.subject
         self.store.log(

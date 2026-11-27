@@ -74,7 +74,10 @@ def _twins(rows: list[object], tag_for: TagFor, key: bytes) -> list[dict[str, An
             or not isinstance(ended, int | float)
         ):
             continue
-        if taught := tag_for(str(entry), float(ended)):
+        taught = tag_for(str(entry), float(ended))
+        # A twin exists to name the module; one without it would never count
+        # as tagged, so every later pass would append it again.
+        if taught and "module" in taught:
             fresh.append(twin_of(row, taught, key))
             done.add(entry)
     return fresh

@@ -176,3 +176,12 @@ A lesson, drill or app-review minute on a `GATED` subject is written to
   reads the LeetCode kind.
 - Rows written before 2026-11-23 keep their kind (never rewritten). Tests:
   `tutor/tests/test_lc_credit_kind.py`.
+- Three more paths never pay tutor time for LeetCode work (kuhy, 2026-11-27;
+  `tutor/tests/test_leetcode_minutes_only.py`):
+  - An app review whose card names no module any more, on a `GATED` subject,
+    is written as `leetcode_theory` with only `subject`. The guard cannot count
+    it (no module), and no twin is made for it.
+  - Leftover top-ups (`tutor/leftover.py`) leave out `GATED` cards from
+    2026-11-23 on, and a `GATED` card is seeded only from the day's other
+    `GATED` cards. Earlier days keep the old sum.
+  - Anki minutes (`tutor/anki.py`) skip the `LeetCode` deck and its subdecks.

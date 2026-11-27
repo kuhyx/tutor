@@ -120,13 +120,15 @@ class Upkeep:
             return False  # none today, or its subject is archived since
         return self.resume_path(path)
 
-    def _opening(self, sid: str, card_id: str) -> tuple[Conversation, dict[str, Any]]:
+    def _opening(
+        self, sid: str, card_id: str, subject: str | None
+    ) -> tuple[Conversation, dict[str, Any]]:
         """A new card's conversation and ``start`` event.
 
-        Its clock opens with the day's part minute so far (``leftover.seed``),
-        logged as ``carry_in`` so replay reproduces it.
+        Its clock opens with the day's part minute so far of ``subject``'s kind
+        (``leftover.seed``), logged as ``carry_in`` so replay reproduces it.
         """
-        carry_in = leftover.seed(self.store.root / "sessions", sid[:8])
+        carry_in = leftover.seed(self.store.root / "sessions", sid[:8], subject)
         clock = EngagementClock(self.time(), carry_in=carry_in)
         start = {"type": "start", "card": card_id, "carry_in": carry_in}
         return Conversation(sid, card_id, clock), start

@@ -5,7 +5,9 @@ A review row's signed ``detail`` names ``subject``, the ``module`` of the card
 whose review completed the minute (the event that sets ``ended_at``) and
 ``activity: "review"``. The module is the card's ``module`` in the subject's
 ``cards.json``; a card or subject that is gone leaves the row untagged (it
-still pays tutor minutes).
+still pays tutor minutes), unless the subject is a GATED LeetCode one: then the
+row names only its ``subject``, so it is written as LeetCode time
+(``ledger_pay.kind_for``), never tutor time (kuhy, 2026-11-27).
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from tutor.curriculum.eventlog import DRILL
+from tutor.curriculum.theory_phase import GATED
 from tutor.ledger_pay import Taught
 from tutor.ledger_twin import REVIEW, TagFor
 
@@ -52,9 +55,10 @@ def taught_by(event: dict[str, Any], resolve: Resolve | None) -> Taught | None:
     if resolve is None or not isinstance(subject, str) or not isinstance(card, str):
         return None
     module = resolve(subject, card)
-    if module is None:
-        return None
-    return Taught(subject=subject, module=module, activity=REVIEW)
+    if module is not None:
+        return Taught(subject=subject, module=module, activity=REVIEW)
+    # No module the guard could count, but still never tutor time.
+    return Taught(subject=subject, activity=REVIEW) if subject in GATED else None
 
 
 def by_unit(

@@ -2,7 +2,8 @@
 """Anki reviews done while Claude was unavailable, paid as tutor minutes.
 
 AnkiDroid syncs to anki-guard's ``anki --syncserver``; its copy of the
-collection is the source. A counted review (any deck) whose time -- its
+collection is the source. A counted review (any deck but the LeetCode one,
+``anki_collection.LC_DECK``: that is LeetCode time) whose time -- its
 revlog id, unix ms -- falls in an :mod:`tutor.unavailable` window is eligible.
 
 **Pay.** One credited minute per 60 s of a local day's summed eligible time,

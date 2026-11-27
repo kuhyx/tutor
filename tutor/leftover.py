@@ -16,6 +16,12 @@ minutes only, so every card used to drop its part minute (kuhy, 2026-10-24:
   newest card can still accrue (its part minute seeds the next card), so it
   is left out; once a day is past, all its cards count.
 
+LeetCode minutes are never tutor time (kuhy, 2026-11-27): from
+:data:`LC_SPLIT_FROM` on, a card on a GATED subject seeds only from the day's
+other GATED cards, and the top-up counts only the other cards, so no
+``credit`` row carries a LeetCode part minute. Earlier days keep the old sum,
+so a restart's back-pay never writes anything new for them.
+
 A top-up row is a signed ``credit`` row, ``entry_id`` ``leftover-<day>-m<n>``
 (``n`` = the day's cumulative owed minutes, ``minutes`` the delta over what
 the ledger already pays under that day's ids), ``ended_at`` = the write time.
@@ -37,6 +43,8 @@ import earned_time
 from tutor import history, resume
 from tutor.clock import MAX_UNITS, UNIT_SECONDS
 from tutor.credit import append_locked, local_day
+from tutor.curriculum.source import transcript_subject
+from tutor.curriculum.theory_phase import GATED
 from tutor.ledger_io import LedgerError, default_paths, exclusive, read_key, read_rows
 from tutor.ledger_pay import CREDIT, paying
 from tutor.store import data_dir
@@ -47,17 +55,27 @@ if TYPE_CHECKING:
 
     from tutor.ledger_io import Paths
 
+# The first local day (``YYYYMMDD``) whose LeetCode cards stay out of tutor time.
+LC_SPLIT_FROM: Final = "20261123"
 LEFTOVER_ID: Final = re.compile(r"leftover-(\d{4}-\d{2}-\d{2})-m\d+", re.ASCII)
 # One pass at a time in this process; the ledger lock covers other processes.
 _PASS: Final = threading.Lock()
 _logger = logging.getLogger(__name__)
 
 
-def _cards(sessions_dir: Path, day_prefix: str) -> list[tuple[float, int]]:
-    """``(active seconds, units)`` of the day's cards, oldest first."""
+def _cards(
+    sessions_dir: Path, day_prefix: str, *, gated: bool = False
+) -> list[tuple[float, int]]:
+    """``(active seconds, units)`` of the day's cards, oldest first.
+
+    ``gated``: the cards on a GATED (LeetCode) subject, else all the others.
+    """
     out = []
     for path in sorted(sessions_dir.glob(f"{day_prefix}-*.jsonl")):
         if not history.SESSION_ID.fullmatch(path.stem):
+            continue
+        lc = day_prefix >= LC_SPLIT_FROM and transcript_subject(path) in GATED
+        if lc != gated:
             continue
         state = resume.replay(path)
         if state is None:
@@ -68,14 +86,19 @@ def _cards(sessions_dir: Path, day_prefix: str) -> list[tuple[float, int]]:
     return out
 
 
-def seed(sessions_dir: Path, day_prefix: str) -> float:
-    """The day's active seconds so far modulo a minute: a new card's ``carry_in``."""
-    total = sum(active for active, _ in _cards(sessions_dir, day_prefix))
+def seed(sessions_dir: Path, day_prefix: str, subject: str | None = None) -> float:
+    """The day's active seconds so far modulo a minute: a new card's ``carry_in``.
+
+    Only the cards of ``subject``'s kind count (GATED or not), so a part minute
+    never crosses between LeetCode time and tutor time.
+    """
+    cards = _cards(sessions_dir, day_prefix, gated=subject in GATED)
+    total = sum(active for active, _ in cards)
     return round(total % UNIT_SECONDS, 3)
 
 
 def owed(sessions_dir: Path, day_prefix: str, *, live: bool) -> int:
-    """Minutes the day's cards earned together but not one by one.
+    """Minutes the day's non-LeetCode cards earned together but not one by one.
 
     ``live``: the day is today, so its newest card (still accruing) is left out.
     """
