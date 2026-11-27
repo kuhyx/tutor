@@ -23,8 +23,8 @@
 #                                    # (an outage) or a 400 stub (a model error)
 #        [--scripted]               # F31: the model is a queue (e2e_script_session)
 #        [--outage rate_limit|overloaded|network]  # F33: an open 2 h outage window
-#        [--fallback due|read|drill|empty]  # F33: the log for one Start branch
-#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28..F31 [PHASE]
+#        [--fallback due|read|drill|empty|gate]  # F33: the log for one Start branch
+#   scripts/e2e_sandbox.sh flow F1|F3..F26|F28..F31|F33 [PHASE]
 #                                    # drive one flow; exit 0 = PASS. A tutor
 #                                    # turn can outlast 60 s, so F1/F3/F4/F5
 #                                    # run as send, wait (75 = still pending:
@@ -145,7 +145,7 @@ cmd_up() {
             --rework) rework="${2:?--rework S/M/SLUG}"; shift ;;
             --guard-theory) guard="${2:?--guard-theory JSON}"; shift ;;
             --outage) outage="${2:?--outage rate_limit|overloaded|network}"; shift ;;
-            --fallback) fallback="${2:?--fallback due|read|drill|empty}"; shift ;;
+            --fallback) fallback="${2:?--fallback due|read|drill|empty|gate}"; shift ;;
             --phase) read -ra c3 <<< "${2:?--phase MODE [S/M ...]}"; shift ;;
             --as-of) as_of="${2:?--as-of T}"; pass+=("$1" "$2"); shift ;;
             *) pass+=("$1") ;;
@@ -218,9 +218,9 @@ cmd_restart() {
 }
 
 cmd_flow() {
-    local flow="${1:?flow F1..F31}" phase="${2:-all}" db port sandbox driver=e2e_drive.py
+    local flow="${1:?flow F1..F33}" phase="${2:-all}" db port sandbox driver=e2e_drive.py
     [[ -f "$STATE" ]] || die "no sandbox: run $0 up"
-    case "$flow" in F30) driver=e2e_log_wake.py ;; F31) driver=e2e_done_refusal.py ;; esac
+    case "$flow" in F30) driver=e2e_log_wake.py ;; F31) driver=e2e_done_refusal.py ;; F33) driver=e2e_fallback.py ;; esac
     db="$(sed -n 's/^DB=//p' "$STATE")"
     port="$(sed -n 's/^PORT=//p' "$STATE")"
     sandbox="$(sed -n 's/^SANDBOX=//p' "$STATE")"
@@ -242,7 +242,7 @@ main() {
             write_phase "$(sed -n 's/^SANDBOX=//p' "$STATE")" "$@" ;;
         flow) cmd_flow "$@" ;;
         down) cmd_down ;;
-        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] [--scripted] [--outage R] [--fallback B] | restart [--model-down M] [--free-down] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28..F31 [PHASE] | down" ;;
+        *) die "usage: $0 build | up [--as-of T] [--struggle] [--gate] [--carry N] [--nocard due|review] [--model-down network|refuse] [--unit-gate fresh|taught] [--guard-theory JSON] [--scripted] [--outage R] [--fallback B] | restart [--model-down M] [--free-down] | hold | phase MODE [S/M ...] | flow F1|F3..F26|F28..F31|F33 [PHASE] | down" ;;
     esac
 }
 

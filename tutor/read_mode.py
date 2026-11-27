@@ -4,7 +4,10 @@
 :meth:`ReadMode.next` shows the next untaught card (``pick.untaught``: open,
 unlocked modules C3 does not refuse; cards not suspended, flagged or held by
 ``requires``) of a subject, or of every subject in name order. It ignores
-the module gate: reading may start a module a session could not. Only
+the module gate's review hold (reading may start a module a session could
+not yet), but never opens a new module while an earlier one holds cards
+read without Claude and not checked yet: new reading does not pile up on
+unchecked cards (spec Q10/Q11). Only
 curriculum subjects are read (the unmigrated deck has no event log).
 
 :meth:`ReadMode.rate` ("got_it" / "again") writes, 1 ms apart so the fold's
@@ -29,13 +32,19 @@ from tutor.curriculum import pick as picking
 from tutor.curriculum.errors import RequestError
 from tutor.curriculum.eventlog import READ, review_event, unchecked_event
 from tutor.curriculum.ids import ulid
+from tutor.curriculum.no_card import unchecked_of
 from tutor.curriculum.source import SubjectSource
 from tutor.drill import AGAIN, PromptGoneError
 from tutor.model_free_pay import Run, Runs, credited
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from tutor.cards import Card
     from tutor.curriculum.context import Context
+    from tutor.curriculum.fold import Fold
+    from tutor.curriculum.records import Module
+    from tutor.curriculum.rules import View
     from tutor.store import Store
 
 GOT_IT: Final = "got_it"
@@ -139,7 +148,7 @@ class ReadMode:
             except RequestError as err:  # a subject still drafting its plan
                 _logger.warning("read mode skips %s: %s", name, err.message)
                 continue
-            found = next(picking.untaught(view, fold), None)
+            found = next(_readable(view, fold, int(at * 1000)), None)
             if found is not None:
                 cid, module = found
                 rec = view.cards[cid]
@@ -147,3 +156,13 @@ class ReadMode:
                 pid = ulid(int(at * 1000))
                 return Prompt(name, module.id, card, rec.rev, pid, at)
         return None
+
+
+def _readable(view: View, fold: Fold, now_ms: int) -> Iterator[tuple[str, Module]]:
+    """``pick.untaught`` up to the first new module held by unchecked cards."""
+    for cid, module in picking.untaught(view, fold):
+        if not picking.started(view, fold, module.id):
+            ahead = picking.gate(view, fold, now_ms, before=module.id)
+            if unchecked_of(view, fold, ahead.cards):
+                return
+        yield cid, module

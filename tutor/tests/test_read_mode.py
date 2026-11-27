@@ -12,6 +12,7 @@ import pytest
 from tutor import credit, read_mode, unavailable
 from tutor.curriculum import pick
 from tutor.curriculum.errors import RequestError
+from tutor.curriculum.eventlog import CHECKED, unchecked_event, worker_event
 from tutor.curriculum.source import SubjectSource, source_for
 from tutor.drill import PromptGoneError
 from tutor.store import Store
@@ -53,7 +54,7 @@ def _setup(tmp_path: Path) -> tuple[read_mode.ReadMode, Context]:
     return read_mode.ReadMode(Store(tmp_path), ctx), ctx
 
 
-def test_next_ignores_the_module_gate(tmp_path: Path) -> None:
+def test_next_ignores_the_review_hold_of_the_gate(tmp_path: Path) -> None:
     run, ctx = _setup(tmp_path)
     with pytest.raises(RequestError):  # a Claude session would wait for a1
         source_for(Store(tmp_path), ctx, "car").pick(None)
@@ -71,6 +72,15 @@ def test_next_ignores_the_module_gate(tmp_path: Path) -> None:
     assert got["unavailable"] is None
     assert run.pending is not None
     assert run.pending.prompt_id == got["prompt_id"]
+
+
+def test_next_waits_for_claude_before_a_new_module(tmp_path: Path) -> None:
+    """Read a1 without Claude: module b waits for its check (spec Q10/Q11)."""
+    run, ctx = _setup(tmp_path)
+    ctx.log.append([unchecked_event(("car", "a1"), dev="dev-pc", at=T0 + 9)])
+    assert run.next(None, NOW) == {"empty": True}
+    ctx.log.append([worker_event(CHECKED, ("car", "a1"), dev="dev-pc", at=T0 + 10)])
+    assert run.next(None, NOW)["card"]["id"] == "b1"  # the review gate is no bar
 
 
 def test_untaught_skips_held_flagged_and_skipped_cards(tmp_path: Path) -> None:

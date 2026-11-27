@@ -38,6 +38,29 @@
     };
   },
 
+  // A node's label and viewport rect.
+  rect(e) {
+    const r = e.getBoundingClientRect();
+    return { text: this.label(e), left: r.left, top: r.top, right: r.right,
+      bottom: r.bottom, x: r.x + r.width / 2, y: r.y + r.height / 2, visible: true };
+  },
+
+  // Every node labelled `label` (`prefix`: starting with it), innermost
+  // only (a container's text starts with its first child's), in document order.
+  findAll(label, prefix) {
+    const match = (e) => (prefix ? this.label(e).startsWith(label) : this.label(e) === label);
+    const hits = this.nodes().filter((e) => this.label(e) && match(e));
+    return hits.filter((e) => !hits.some((o) => o !== e && e.contains(o)))
+      .map((e) => this.rect(e)).filter((r) => r.right > r.left && r.bottom > r.top);
+  },
+
+  // Every labelled node with no labelled node inside it, with its rect.
+  leaves() {
+    const all = this.nodes().filter((e) => this.label(e));
+    return all.filter((e) => !all.some((o) => o !== e && e.contains(o)))
+      .map((e) => this.rect(e)).filter((r) => r.right > r.left && r.bottom > r.top);
+  },
+
   // Every non-empty label on the page, one per line.
   text() {
     return this.nodes().map((e) => this.label(e)).filter((t) => t).join('\n');

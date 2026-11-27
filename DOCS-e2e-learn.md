@@ -53,9 +53,16 @@ $S up --scripted               # the model is a queue the flow writes
 $S flow F31 rewrite            # then: fallback (same sandbox)
 E2E_SUBJECT=$LC $S up --scripted --learn $LC/prefix-sums --phase "theory $LC/prefix-sums"
 E2E_SUBJECT=$LC $S flow F31 module   # or, on a fresh up of the same kind: waived
-# F33: the model-free fallback (seeding only so far; the flow comes later)
-$S up --outage rate_limit --fallback read   # --fallback due|read|drill|empty
-$S restart --free-down         # the free chat fails with free_unavailable
+# F33: the model-free fallback (C3-C7, C9, C12) and per-module review (C15, C16)
+$S up --outage rate_limit --fallback due
+$S flow F33 due                # then, one call each: sheet, plan, planphone
+$S up --outage rate_limit --fallback read
+$S flow F33 read               # then: paid; restart --free-down; freedown
+$S up --outage rate_limit --fallback drill   # then: flow F33 drill
+$S up --outage rate_limit --fallback empty   # then: flow F33 empty
+$S up --outage rate_limit --fallback read    # then: flow F33 phone
+E2E_SUBJECT=product-and-design-taste $S up --fallback gate   # no outage
+E2E_SUBJECT=product-and-design-taste $S flow F33 gate
 $S down
 ```
 
@@ -77,12 +84,36 @@ $S down
   - `empty`: nothing of S taught, every card of S's open modules flagged,
     and `progress.json` `cards_done` emptied.
 
+  - `gate` (no `--outage`; needs an unstarted module after a taught one,
+    e.g. `product-and-design-taste`): F21's gate seed, then its two
+    unpassed cards untaught again, so they are S's only readable cards.
+
   `drill` and `empty` archive every other subject, so Home shows S alone.
   The seed checks its branch with the server's own pickers and fails `up`
   if the branch does not hold. It writes `<sandbox>/f33_seed.json`.
   `restart --free-down` restarts the worker with
   `TUTOR_FREE_GATEWAY=http://127.0.0.1:9`; it lasts until the next `up`. The
   shared `omniroute` container is never touched.
+- F33 flow (`scripts/e2e_fallback.py`, one phase per call, each < 60 s).
+  `due`: Home's Start opens the Review on every seeded due card, with no
+  `session_start` sent and no error glyph. `read`: front, Flip, back and
+  excerpt, Got it on one card and Again on the next; the log gets `taught`
+  + `unchecked` (`src: read`) for both and a review rated 1 for Again, the
+  taught count rises by 2. `paid`: one more card past 60 active seconds of
+  the read run writes a `read-` credit row to the sandbox ledger and lifts
+  `stats.today.own_minutes`. `freedown` (after `restart --free-down`): the
+  banner's Free chat ends `free_unavailable` with its glyph; Start still
+  opens read mode. `drill`, `empty`: the drill, or read mode's empty glyph.
+  `phone` (412x915 viewport): the front, Flip and the rate glyphs sit
+  wholly on screen. `sheet`: the subject tile's review glyph opens the
+  module sheet with the server's due counts; a row opens that many cards.
+  `plan`: the Plan (opened from the tile) shows a due button on exactly the
+  modules with due cards; passing the smallest drops its button.
+  `planphone`: the same on the phone's Plan grid. `gate`: read mode on the
+  two seeded cards, then the server's own pick holds the next module on
+  exactly them, unchecked. Continue is never tapped there: it opens a
+  Claude check of an unchecked card first (spec Q10, `SubjectSource.pick`).
+  `E2E_SHOTS=DIR` saves the frames as `DIR/f33_<phase>.png`.
 
 - F30 (`scripts/e2e_log_wake.py`, no browser) plays a phone: a fresh device
   writes review events to `log/{dev}` on the emulator, sealed as the app

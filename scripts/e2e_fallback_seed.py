@@ -17,7 +17,10 @@
   - ``drill``: every card of S's open modules is taught;
   - ``empty``: nothing of S taught, every card of its open modules
     flagged (read mode skips it) and the automation deck's ``cards_done``
-    cleared (the drill adds that deck whatever is archived).
+    cleared (the drill adds that deck whatever is archived);
+  - ``gate`` (with no outage): F21's gate before S's first unstarted module
+    (``e2e_gate.seed``), its two unpassed cards untaught again, so they are
+    S's only readable ones: once read, they alone hold the gate, unchecked.
 
   ``drill`` and ``empty`` archive every other subject (Home shows S alone):
   their cards would send Start to read mode. Dues are cleared with drill
@@ -37,6 +40,7 @@ import time
 from typing import Any, Final
 
 from e2e_fallback_state import Seeder, outage
+from e2e_gate import seed as gate_seed
 from e2e_seed import DAY_MS, SeedError
 
 from tutor import unavailable
@@ -44,7 +48,7 @@ from tutor.curriculum import pick
 from tutor.curriculum.ids import ulid
 
 _log = logging.getLogger(__name__)
-BRANCHES: Final = ("due", "read", "drill", "empty")
+BRANCHES: Final = ("due", "read", "drill", "empty", "gate")
 DUE_MIN: Final = 2
 READ_MIN: Final = 3
 BACKDATE_MS: Final = 30 * DAY_MS  # taught a month ago: long due now
@@ -140,7 +144,26 @@ def _empty(seeder: Seeder) -> dict[str, Any]:
     return {"flagged": len(flags), "archived": archived}
 
 
-SEEDERS: Final = {"due": _due, "read": _read, "drill": _drill, "empty": _empty}
+def _gate(seeder: Seeder) -> dict[str, Any]:
+    """S's next module waits on 2 cards of the one before, untaught: readable."""
+    # Dues cleared last: cleared first, the gate seed left its passed cards
+    # unpassed (test_gate_leaves_the_last_two_readable).
+    found = gate_seed(seeder.data, seeder.subject, seeder.now)
+    seeder.worker_events("untaught", found["unpassed"], seeder.now)
+    cleared = seeder.clear_due()
+    if sorted(seeder.readable()) != sorted(found["unpassed"]):
+        msg = f"readable {seeder.readable()}, want {found['unpassed']}"
+        raise SeedError(msg)
+    return {"read": found["unpassed"], **found, "cleared": cleared}
+
+
+SEEDERS: Final = {
+    "due": _due,
+    "read": _read,
+    "drill": _drill,
+    "empty": _empty,
+    "gate": _gate,
+}
 
 
 def seed(data: Path, subject: str, branch: str, now: int) -> dict[str, Any]:

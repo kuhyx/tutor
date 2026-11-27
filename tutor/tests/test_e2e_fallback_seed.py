@@ -11,7 +11,7 @@ import pytest
 
 from tutor import unavailable
 from tutor.curriculum.context import Context
-from tutor.tests._cur import T0, make_ctx, module, subject
+from tutor.tests._cur import T0, D, card, make_ctx, module, subject, taught
 from tutor.tests._fallback_support import MIN, NOW, car, load, sandbox
 
 if TYPE_CHECKING:
@@ -165,3 +165,28 @@ def test_main_outage_and_seed(
         mods[0].main(["seed", str(data), "--subject", "nope", "--branch", "due"]) == 1
     )
     assert "no plan" in caplog.text
+
+
+def test_gate_leaves_the_last_two_readable(mods: tuple[Any, Any], data: Path) -> None:
+    ctx, _ = make_ctx(data)
+    found = {f"a{i}": card("a", i) for i in range(1, 5)}
+    found |= {"b1": card("b", 1), "b2": card("b", 2)}
+    subject(
+        ctx,
+        modules=[module("a", status="ready"), module("b", status="ready")],
+        found=found,
+    )
+    for i in range(1, 5):
+        taught(ctx, "car", f"a{i}", NOW - 2 * D, i)
+    got = mods[0].seed(data, "car", "gate", NOW)
+    assert (got["read"], got["module"], got["next_module"]) == (["a3", "a4"], "a", "b")
+    assert mods[1].Seeder(data, "car", NOW).readable() == ["a3", "a4"]
+
+
+def test_gate_refuses_when_the_tail_stays_unreadable(
+    mods: tuple[Any, Any], data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    car(data, a1=T0)
+    monkeypatch.setattr(mods[0], "gate_seed", lambda *_: {"unpassed": ["b1"]})
+    with pytest.raises(mods[1].SeedError, match="want \\['b1'\\]"):
+        mods[0].seed(data, "car", "gate", NOW)

@@ -23,7 +23,7 @@ MIN = 60_000
 def load(monkeypatch: pytest.MonkeyPatch) -> tuple[Any, Any]:
     """``e2e_fallback_seed`` and ``e2e_fallback_state``, imported fresh from scripts/."""
     monkeypatch.syspath_prepend(str(SCRIPTS))
-    for name in ("e2e_seed", "e2e_fallback_state", "e2e_fallback_seed"):
+    for name in ("e2e_seed", "e2e_gate", "e2e_fallback_state", "e2e_fallback_seed"):
         monkeypatch.delitem(sys.modules, name, raising=False)
     return (
         importlib.import_module("e2e_fallback_seed"),
