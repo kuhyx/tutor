@@ -183,10 +183,16 @@ def last_question_only(reply: str) -> str:
     return re.sub(r"[ \t]{2,}", " ", reply)
 
 
+_LEAD_IN: Final = re.compile(r"[^\n]*:[ \t]*\n*\Z")
+
+
 def without_code(reply: str, names: set[str], allowed: str, kind: str) -> str:
     """``reply`` minus every snippet :func:`code_problem` objects to."""
     while (found := _pasteable(reply, names, allowed, kind)) and found[0] in reply:
-        reply = reply.replace(found[0], "", 1)
+        at = reply.index(found[0])
+        # The line that introduced the snippet ("The starter is:") goes too.
+        head = _LEAD_IN.sub("", reply[:at])
+        reply = head + reply[at + len(found[0]) :]
     return re.sub(r"\n{3,}", "\n\n", reply).strip()
 
 

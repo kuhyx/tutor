@@ -130,6 +130,19 @@ def test_without_code_and_last_question_only() -> None:
     assert c.last_question_only(two) == " Which one?"
 
 
+def test_without_code_drops_the_lead_in_of_a_cut_snippet() -> None:
+    """A line introducing cut code ("The starter function is:") goes with it."""
+    names = {"isValid", "s"}
+    reply = (
+        "Check type and order.\n\nThe starter function is:\n\n"
+        "def isValid(s: str) -> bool: pass\n\nWhat is unclear?"
+    )
+    assert (
+        c.without_code(reply, names, "", "algo")
+        == "Check type and order.\n\nWhat is unclear?"
+    )
+
+
 def test_rungs() -> None:
     assert [c.rank(r) for r in ("", None, "H0", "H3")] == [-1, -1, 0, 3]
     with pytest.raises(ValueError, match="H9"):
