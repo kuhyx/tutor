@@ -17,12 +17,20 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+
+# Tests state Warsaw clock times. ``tutor_sandbox`` pins the zone per test, but
+# a test module's constants (``datetime...astimezone()``) are computed at
+# import, before any fixture: a UTC runner (CI) then sees them an hour off.
+# Pinned here, before any test module is imported.
+os.environ["TZ"] = "Europe/Warsaw"
+time.tzset()
 
 _ROOT = Path(__file__).resolve().parent
 _VENV_PYTHON = _ROOT / ".venv" / "bin" / "python"

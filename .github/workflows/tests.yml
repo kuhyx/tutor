@@ -52,8 +52,14 @@ jobs:
         name: Install bubblewrap
         run: |
           sudo apt-get update
-          sudo apt-get install -y bubblewrap
+          # python3-pytest: test_subset_run runs pytest from the system python.
+          sudo apt-get install -y bubblewrap python3-pytest
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          # Ubuntu's passt profile lets pasta exec only a few paths, so the
+          # netfence tests' pasta wrapper got "Permission denied".
+          if [ -f /etc/apparmor.d/usr.bin.passt ]; then
+            sudo apparmor_parser -R /etc/apparmor.d/usr.bin.passt
+          fi
       - if: matrix.task == 'pytest'
         name: Tests
         run: .venv/bin/python -m pytest -p no:cacheprovider -q
@@ -67,7 +73,9 @@ jobs:
         name: pre-commit (Python hooks)
         run: |
           .venv/bin/python -m pip install --quiet pre-commit
-          SKIP=dependency-freshness,flutter-analyze .venv/bin/pre-commit run --all-files
+          # pytest: the pytest job runs the whole suite; the hook wants a
+          # local pass stamp, which a CI checkout never has.
+          SKIP=dependency-freshness,flutter-analyze,pytest .venv/bin/pre-commit run --all-files
 
   # The Flutter client: analyze + unit/widget tests. The Firebase identifiers
   # are gitignored (public repo), so CI compiles against empty placeholders.
