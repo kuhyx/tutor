@@ -105,6 +105,31 @@ def test_code_problem() -> None:
     )
 
 
+def test_code_problem_sees_unfenced_code_lines() -> None:
+    """A bare code line is pasteable too (the local model wrote one unfenced)."""
+    names = {"isValid", "s"}
+    shipped = "Track type and order.\n\ndef isValid(s: str) -> bool: pass\n\nWhich?"
+    assert "paste" in str(c.code_problem(shipped, names, "", "algo"))
+    prose = "If isValid(s) is true, which bracket closed last?"
+    assert c.code_problem(prose, names, "", "algo") is None
+    sql = "Start from:\nSELECT id FROM Department\nwhat next?"
+    assert c.code_problem(sql, {"Department"}, "", "sql") is not None
+
+
+def test_without_code_and_last_question_only() -> None:
+    """The local rescue: pasteable code cut out, every question but the last."""
+    names = {"isValid", "s"}
+    reply = "Track order.\n\ndef isValid(s): pass\n\n`isValid(s)`?\n\nWhich first?"
+    assert (
+        c.without_code(reply, names, "", "algo") == "Track order.\n\n?\n\nWhich first?"
+    )
+    # A code line split by a span is no substring of the reply: left as it is.
+    split = "return `x` + isValid(s)"
+    assert c.without_code(split, names, "", "algo") == split.strip()
+    two = "Is it a stack? Or a queue? Which one?"
+    assert c.last_question_only(two) == " Which one?"
+
+
 def test_rungs() -> None:
     assert [c.rank(r) for r in ("", None, "H0", "H3")] == [-1, -1, 0, 3]
     with pytest.raises(ValueError, match="H9"):

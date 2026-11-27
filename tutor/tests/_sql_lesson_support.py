@@ -9,8 +9,8 @@ from typing import Any
 import pytest
 
 from tutor import outage
+from tutor.curriculum import modelcall
 from tutor.curriculum.errors import RequestError as CurriculumError
-from tutor.relay import sql_lesson
 from tutor.relay.errors import RequestError, classify
 from tutor.store import data_dir
 from tutor.tests._sql_support import call
@@ -47,7 +47,7 @@ class FakeModel:
 
 def model(monkeypatch: pytest.MonkeyPatch, *answers: Any) -> FakeModel:
     fake = FakeModel(*answers)
-    monkeypatch.setattr(sql_lesson, "ask_model", fake)
+    monkeypatch.setattr(modelcall, "ask_model", fake)  # behind ask_or_local
     return fake
 
 

@@ -10,8 +10,7 @@ import logging
 import secrets
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import outage
-from tutor.curriculum.modelcall import ask_model
+from tutor.curriculum.modelcall import ask_or_local
 from tutor.relay import sql_lesson_checks as checks
 from tutor.relay import sql_lesson_prompt as prompt
 from tutor.relay.context import activity_ts
@@ -93,7 +92,10 @@ async def _ask(state: dict[str, Any], answer: str | None) -> dict[str, Json]:
     tables, note, pending = await _tables(state), "", state["pending"]
     for attempt in range(TRIES):
         text = prompt.build(state, tables, answer, note)
-        raw = await asyncio.to_thread(ask_model, prompt.SYSTEM, text, prompt.SCHEMA)
+        # Local in an outage: the query runs for real, ``checks`` judge the turn.
+        raw, _ = await asyncio.to_thread(
+            ask_or_local, prompt.SYSTEM, text, prompt.SCHEMA
+        )
         if (why := prompt.problem(raw, answered=answer is not None)) is None:
             turn = prompt.clean(raw)
             ran = await _real_output(state, turn["query"])
@@ -216,7 +218,6 @@ async def sql_lesson_turn(ctx: RequestContext) -> Json:
         if answer is None:
             view = await _view(lesson_id, state, {})
             return {**view, "thread": state["thread"]}
-    outage.ensure_available(ctx.now())
     state, shown = copy.deepcopy(state), {}
     if answer is not None and state["pending"] is None:
         msg = "this lesson is finished"

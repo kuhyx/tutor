@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 
 from tutor import focus_hook
-from tutor.relay import lc_backend, lc_cards, lc_state, protocol
+from tutor.relay import lc_backend, lc_state, protocol
 from tutor.relay.chat import CHAT_HANDLERS
 from tutor.tests._fake_fp import FakeFp
 
@@ -83,6 +83,12 @@ class Fakes:
             raise answer
         return dict(answer)
 
+    def claude(
+        self, system: str, prompt: str, schema: dict[str, Any]
+    ) -> tuple[dict[str, Any], str | None]:
+        """``ask_or_local`` answered by Claude (no local model name)."""
+        return self.model(system, prompt, schema), None
+
     def fetch(self, problem: str) -> lc_backend.Problem:
         del problem
         if self.fetch_error is not None:
@@ -142,13 +148,9 @@ def install(monkeypatch: pytest.MonkeyPatch, fakes: Fakes | None = None) -> Fake
         due=lambda: [{"slug": "two-sum", "title": "Two Sum", "due_ms": 1}],
     )
     lc_backend.install(coach, fakes.run)
-    for module in (
-        "tutor.relay.lc_reply",
-        "tutor.relay.lc_exit",
-        "tutor.relay.lc_turn",
-    ):
-        monkeypatch.setattr(f"{module}.ask_model", fakes.model)
-    monkeypatch.setattr(lc_cards, "ask_model", fakes.model)
+    monkeypatch.setattr("tutor.relay.lc_turn.ask_model", fakes.model)
+    for module in ("lc_reply", "lc_exit", "lc_cards"):
+        monkeypatch.setattr(f"tutor.relay.{module}.ask_or_local", fakes.claude)
     monkeypatch.setattr(focus_hook, "load_fp", lambda: fakes.fp)
     return fakes
 

@@ -15,6 +15,13 @@ GATE_PREFIX: Final = {"algo": "req", "sql": "shape"}
 _GATE: Final = re.compile(r"^\s*(req|shape)\s*:", re.IGNORECASE)
 _FENCE: Final = re.compile(r"```.*?```", re.DOTALL)
 _SPAN: Final = re.compile(r"```.*?```|`[^`\n]+`", re.DOTALL)
+# A code line outside any span: keyword-led (case-sensitive, so prose's "If"
+# or "For" never counts). The local model writes code without fences.
+_CODE_LINE: Final = re.compile(
+    r"^[ \t]*(?:def|class|return|for|while|elif|lambda|import|function|const|let"
+    r"|var|public|int|void|SELECT|WITH|INSERT|UPDATE|DELETE)\b.*$",
+    re.MULTILINE,
+)
 _SQL_STATEMENT: Final = re.compile(
     r"\bselect\b.+?\bfrom\b|\b(?:insert\s+into|delete\s+from)\b"
     r"|\bupdate\s+\w+\s+set\b|\bwith\s+\w+\s+as\s*\(",
@@ -138,10 +145,13 @@ def _squash(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def code_problem(reply: str, names: set[str], allowed: str, kind: str) -> str | None:
-    """A snippet kuhy could paste: uses the problem's names and is not a quote."""
+def _pasteable(
+    reply: str, names: set[str], allowed: str, kind: str
+) -> tuple[str, str] | None:
+    """The first snippet kuhy could paste, as (raw span, its code), or ``None``."""
     seen = _squash(allowed)
-    for span in _SPAN.findall(reply):
+    bare = _CODE_LINE.findall(_SPAN.sub("", reply))
+    for span in [*_SPAN.findall(reply), *bare]:
         body = span.strip("`").strip()
         body = body.split("\n", 1)[1] if "\n" in body else body
         shaped = (
@@ -152,9 +162,32 @@ def code_problem(reply: str, names: set[str], allowed: str, kind: str) -> str | 
         ):
             continue
         if _squash(body) not in seen:
-            shown = _squash(body)[:60]
-            return f"it writes code kuhy could paste ({shown}); describe instead"
+            return span, body
     return None
+
+
+def code_problem(reply: str, names: set[str], allowed: str, kind: str) -> str | None:
+    """A snippet kuhy could paste: uses the problem's names and is not a quote."""
+    if (found := _pasteable(reply, names, allowed, kind)) is None:
+        return None
+    return (
+        f"it writes code kuhy could paste ({_squash(found[1])[:60]}); describe instead"
+    )
+
+
+def last_question_only(reply: str) -> str:
+    """``reply`` with every question but its last one cut out."""
+    asks = list(re.finditer(r"[^.?!\n]*\?", reply))
+    for found in reversed(asks[:-1]):
+        reply = reply[: found.start()] + reply[found.end() :]
+    return re.sub(r"[ \t]{2,}", " ", reply)
+
+
+def without_code(reply: str, names: set[str], allowed: str, kind: str) -> str:
+    """``reply`` minus every snippet :func:`code_problem` objects to."""
+    while (found := _pasteable(reply, names, allowed, kind)) and found[0] in reply:
+        reply = reply.replace(found[0], "", 1)
+    return re.sub(r"\n{3,}", "\n\n", reply).strip()
 
 
 def rank(rung: str | None) -> int:

@@ -140,8 +140,22 @@ startup retries every 60 s and writes nothing; the web app still serves.
   `TutorSession`; what still fails is appended to `unavailable.jsonl`.
 - Result `{"ok":false,"code":"claude_unavailable","retry":false,"reason",
   "resets_at":<unix s, the window's end>,"error"}`; HTTP `/api/*` answers the
-  same fields with 503. While a window covers `now`, `session_start`,
-  `session_resume`, `message` and `next` fail fast with it (no CLI spawned).
+  same fields with 503.
+- The local model (Ollama `qwen3:30b-a3b-instruct-2507-q4_K_M`,
+  `tutor.local_model`) answers while Claude cannot: an open window spawns no
+  CLI, and a call that hits the limit is asked again locally.
+  - Study session (`tutor.local_session.FallbackSession`, also `/api/*`): the
+    same turn schema, with the session's history as text. A local turn never
+    sets `card_done`, `concepts_mastered` or `card_edits`; kuhy taps Next.
+  - `modelcall.ask_or_local`, for answers code checks or kuhy confirms: the
+    coach's turns (6 tries; code lines and extra questions cut out), its exit
+    grade and `lc_cards` matches (`lc_open` returns `model`), `sql_hint`,
+    `sql_generate` (the engine runs it), `sql_lesson_turn`, `rework_turn`
+    (its cards' `source` mark ends ` (<model>)`).
+  - Card and plan drafting stay on Claude and wait for the window to close.
+- Only when Ollama is down too (`local_model.ready`) do `session_start`,
+  `session_resume`, `message`, `next` and `follow_up_open` fail fast with
+  `claude_unavailable` (no CLI spawned) and the app opens the drill.
 - `drill_next` `{"subject":slug|null}` -> `{"prompt_id":ulid,"card":{"subject",
   "id","front"},"options":[str x<=4],"today":{"active_min","credited_min"},
   "unavailable":{"until","reason"}|null}`, or `{"empty":true}` with no taught

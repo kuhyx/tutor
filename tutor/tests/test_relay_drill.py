@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from tutor import unavailable
+from tutor import local_model, unavailable
 from tutor.curriculum.errors import CLAUDE_UNAVAILABLE
 from tutor.curriculum.errors import RequestError as CurriculumError
 from tutor.drill import PromptGoneError
@@ -18,6 +18,8 @@ from tutor.tests.test_relay_lanes import Rig, run
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 
 def test_an_outage_and_its_curriculum_cause_carry_the_times() -> None:
@@ -40,7 +42,10 @@ def test_an_outage_and_its_curriculum_cause_carry_the_times() -> None:
     assert (gone.code, gone.retry, gone.extra) == ("unknown_prompt", False, {})
 
 
-def test_chat_kinds_fail_fast_while_claude_is_down(tmp_path: Path) -> None:
+def test_chat_kinds_fail_fast_while_claude_and_ollama_are_down(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(local_model, "ready", lambda: False)
     eng, fake = engine(tmp_path, turn("Q1?"))
 
     async def script(rig: Rig) -> None:

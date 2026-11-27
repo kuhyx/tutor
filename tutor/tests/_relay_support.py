@@ -18,9 +18,11 @@ from tutor.tests._cur import Fakes
 from tutor.tests._fakes import FakeCredit, FakeSession, ManualClock
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from tutor.models import TutorTurn
+    from tutor.session import TutorSession
     from tutor.tests._fake_rtdb import FakeRtdb
 
 WORKER = "139581a6-25fa-4cd5-ba30-debb1c796682"
@@ -49,9 +51,12 @@ class RelayEngine(Engine):
 
 
 def engine(
-    tmp_path: Path, *replies: TutorTurn | Exception, clock: ManualClock | None = None
+    tmp_path: Path,
+    *replies: TutorTurn | Exception,
+    clock: ManualClock | None = None,
+    factory: Callable[[str], TutorSession] | None = None,
 ) -> tuple[Engine, FakeSession]:
-    """An engine on ``tmp_path/data`` answering with ``replies``."""
+    """An engine on ``tmp_path/data`` answering with ``replies`` (or ``factory``'s)."""
     fake = FakeSession(*replies)
     data = tmp_path / "data"
     data.mkdir(parents=True, exist_ok=True)
@@ -60,7 +65,7 @@ def engine(
         store=Store(data),
         now=clock or ManualClock(),
         credit_fn=FakeCredit(),
-        session_factory=lambda _prompt: fake,
+        session_factory=factory or (lambda _prompt: fake),
     )
     eng.fakes = Fakes()
     return eng, fake

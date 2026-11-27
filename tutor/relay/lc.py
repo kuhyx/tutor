@@ -7,7 +7,7 @@ import asyncio
 import hashlib
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import codes, outage
+from tutor import codes
 from tutor.relay import lc_backend, lc_reply, lc_state
 from tutor.relay.context import activity_ts
 from tutor.relay.errors import RequestError
@@ -113,7 +113,6 @@ async def lc_open(ctx: RequestContext) -> Json:
     if lang not in problem.langs:
         msg = f"{lang} is not a language of this {problem.kind} problem"
         raise _bad(msg)
-    outage.ensure_available(ctx.now())
     meta = {
         "slug": problem.slug,
         "title": problem.title,
@@ -128,7 +127,8 @@ async def lc_open(ctx: RequestContext) -> Json:
     lc_state.say(state, mine=False, md=got["reply_md"])
     lc_state.save(lc_id, state, _now_ms(ctx))
     lc_reply.heartbeat(activity_ts(ctx))
-    return {**_shown(lc_id, state), "reply_md": got["reply_md"]}
+    # ``model`` names who wrote the opener: the local model during an outage.
+    return {**_shown(lc_id, state), "reply_md": got["reply_md"], "model": got["model"]}
 
 
 def _cut(report: dict[str, Any]) -> dict[str, Any]:

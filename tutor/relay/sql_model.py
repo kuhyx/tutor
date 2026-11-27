@@ -9,8 +9,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import outage
-from tutor.curriculum.modelcall import STRING, ask_model, strict_object
+from tutor.curriculum.modelcall import STRING, ask_or_local, strict_object
 from tutor.relay.errors import RequestError
 from tutor.relay.sql import Json, engine_call, wire
 
@@ -113,15 +112,15 @@ def _hint_prompt(drill: dict[str, Json], body: dict[str, Any]) -> str:
 
 async def sql_hint(ctx: RequestContext) -> Json:
     """One Socratic question; a reply with code or not one question is re-asked."""
-    outage.ensure_available(ctx.now())
     body = ctx.body
     drill = wire(
         await engine_call(lambda sd: lambda: sd.get_drill(body["id"]), body["id"])
     )
     prompt, note = _hint_prompt(drill, body), ""
     for _ in range(RETRIES + 1):
-        raw = await asyncio.to_thread(
-            ask_model, HINT_SYSTEM, prompt + note, HINT_SCHEMA
+        # The local model may answer during an outage: ``_problem`` checks it.
+        raw, _ = await asyncio.to_thread(
+            ask_or_local, HINT_SYSTEM, prompt + note, HINT_SCHEMA
         )
         question = str(raw.get("question", "")).strip()
         if (why := _problem(question, _level(body))) is None:
@@ -152,14 +151,15 @@ async def _save(spec: dict[str, str]) -> Json:
 
 async def sql_generate(ctx: RequestContext) -> Json:
     """A new drill the engine has run and accepted; up to 2 re-asks on rejection."""
-    outage.ensure_available(ctx.now())
     topic, difficulty = ctx.body["topic"], ctx.body["difficulty"]
     metas = wire(await engine_call(lambda sd: sd.list_drills, ensure=False))
     titles = [m["title"] for m in metas if m["topic"] == topic]
     prompt, note, reason = _generate_prompt(topic, difficulty, titles), "", ""
     for _ in range(RETRIES + 1):
-        raw = await asyncio.to_thread(
-            ask_model, GENERATE_SYSTEM, prompt + note, SPEC_SCHEMA
+        # The local model may write it during an outage: the engine runs the
+        # reference query and refuses a drill that does not hold (``_save``).
+        raw, _ = await asyncio.to_thread(
+            ask_or_local, GENERATE_SYSTEM, prompt + note, SPEC_SCHEMA
         )
         if blank := _blank(raw):
             reason = f"fields missing or blank: {', '.join(blank)}"

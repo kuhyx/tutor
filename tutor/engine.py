@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from tutor import cards as cards_mod
-from tutor import follow_up, gating, media, research, resume, struggle, unit_credit
+from tutor import follow_up, gating, media, resume, struggle, unit_credit
 from tutor.cardflow import CardFlow
 from tutor.curriculum import phase_gate
 from tutor.curriculum.source import CardSource, source_for
@@ -22,10 +22,9 @@ from tutor.delivery import DESKTOP, Delivery, learner_message
 from tutor.done_refusal import Live, settle
 from tutor.edit_flow import EditFlow, Notice
 from tutor.follow_up import FollowUpFlow
+from tutor.local_session import tutor_session
 from tutor.prompt import for_source, turn_prompt
-from tutor.session import TutorSession
 from tutor.store import Store
-from tutor.trace import traced
 from tutor.upkeep import Upkeep
 
 if TYPE_CHECKING:
@@ -34,6 +33,7 @@ if TYPE_CHECKING:
 
     from tutor.clock import BlockReady
     from tutor.conversation import Conversation
+    from tutor.session import TutorSession
 
 
 class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
@@ -53,9 +53,7 @@ class Engine(CardFlow, EditFlow, FollowUpFlow, Upkeep):
         self.store = store or Store()
         self._now = now
         self._credit = credit_fn or self._pay
-        self._factory = session_factory or (
-            lambda prompt: TutorSession(traced(research.research_options(prompt)))
-        )
+        self._factory = session_factory or tutor_session  # local during an outage
         self.simulated = simulated_time
         self._offset = 0.0
         self._lock = asyncio.Lock()

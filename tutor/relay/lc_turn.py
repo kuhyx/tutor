@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from tutor import outage
 from tutor.curriculum.modelcall import ask_model
 from tutor.relay import lc_backend, lc_checks, lc_exit, lc_prompt, lc_reply, lc_state
 from tutor.relay.context import activity_ts
@@ -94,7 +93,6 @@ def _write_it(state: lc_state.State, text: str) -> dict[str, Any]:
 async def _coach_turn(
     ctx: RequestContext, state: lc_state.State, text: str, word: str
 ) -> dict[str, Any]:
-    outage.ensure_available(ctx.now())
     revealed, hint = word == "reveal", lc_reply.HINTS.get(word, 0)
     if revealed:
         lc_reply.log(state, "reveal")

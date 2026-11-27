@@ -45,7 +45,8 @@ appears only in the `result` node. Phases have no `kind`: they live in
 
 `claude_unavailable`'s `reason` (`rate_limit`, `overloaded`, `network`) does
 **not** split it. The app shows one outage cue and switches to the drill in
-every case. An unknown code is `worker_error` on the worker side (`err_worker`).
+every case. A session kind sends it only when the local model is down too
+(`DOCS-relay.md` "Claude unavailable"). An unknown code is `worker_error` on the worker side (`err_worker`).
 
 `error`, `reason`, `next`, `due_at`, `module` and the other flat fields stay
 on the wire. `error` serves the worker log and old app builds. The rest feed

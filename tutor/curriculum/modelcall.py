@@ -20,6 +20,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, Final
 
+from tutor import local_model, outage
 from tutor.curriculum.errors import CLAUDE_UNAVAILABLE, MODEL_ERROR, RequestError
 from tutor.outage import ClaudeUnavailableError
 from tutor.session import TURN_TIMEOUT, SessionError, TutorSession, isolated_options
@@ -133,3 +134,33 @@ def ask_draft(system: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any
 def ask_repeat(system: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
     """:func:`ask_model` on the repeat tier (Sonnet, ``high``)."""
     return _tiered(REPEAT, system, prompt, schema)
+
+
+def ask_or_local(
+    system: str, prompt: str, schema: dict[str, Any]
+) -> tuple[dict[str, Any], str | None]:
+    """:func:`ask_model`, or the local model while Claude is unavailable.
+
+    Returns the answer and the local model's name when it gave the answer
+    (``None``: Claude did). Only for answers that code checks or kuhy confirms
+    before anything is kept: coach turns, the exit grade, toolbox matches, SQL
+    hints. Card writers never call it, so a weak local answer never lands in a
+    subject. While a recorded outage window is open no CLI is spawned. When
+    the local model is down too, the Claude error is raised as before.
+    """
+    failure: Exception
+    try:
+        outage.ensure_available(time.time())
+        return ask_model(system, prompt, schema), None
+    except ClaudeUnavailableError as err:
+        _logger.warning("Claude outage window open (%s); asking the local model", err)
+        failure = err
+    except RequestError as err:
+        if err.code != CLAUDE_UNAVAILABLE:
+            raise
+        _logger.warning("Claude unavailable (%s); asking the local model", err)
+        failure = err
+    local = local_model.ask(system, prompt, schema)
+    if local is None:
+        raise failure
+    return local, local_model.MODEL

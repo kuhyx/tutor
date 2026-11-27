@@ -11,7 +11,8 @@ marks a card taught.
 A card's source is ``SOURCE_HOST/<slug>/<hash of its front>``, seeded with a
 line built from the card, as ``lc_cards`` does for the toolbox. One URL per
 card, because ``sources.seed_text`` never overwrites a cached page. Its
-``tutor`` mark records ``"source": "rework:<slug>"``. The history in the
+``tutor`` mark records ``"source": "rework:<slug>"`` (`` (<model>)`` appended
+when the local model wrote it during a Claude outage). The history in the
 prompt is display-only (``rework_context``).
 """
 
@@ -24,10 +25,10 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import outage, rework_context, sources
+from tutor import rework_context, sources
 from tutor.curriculum import card_ops, module_state
 from tutor.curriculum.errors import RequestError as CurriculumError
-from tutor.curriculum.modelcall import ask_model
+from tutor.curriculum.modelcall import ask_or_local
 from tutor.relay.errors import RequestError
 from tutor.store import data_dir
 
@@ -171,9 +172,19 @@ def _prompt(state: State, module: Module, cur: Context, text: str) -> str:
     )
 
 
-def _add(cur: Context, state: State, wanted: list[Any]) -> tuple[list[Any], list[Any]]:
-    """Add the model's cards; returns (added, refused). Duplicates are skipped."""
-    subject, slug = state["subject"], state["slug"]
+def _source_url(slug: str, front: str) -> str:
+    """One source URL per card: the slug plus a hash of its front."""
+    return f"{SOURCE_HOST}/{slug}/{hashlib.sha256(front.encode()).hexdigest()[:8]}"
+
+
+def _add(
+    cur: Context, state: State, wanted: list[Any], origin: str
+) -> tuple[list[Any], list[Any]]:
+    """Add the model's cards marked ``origin``; returns (added, refused).
+
+    Duplicates are skipped.
+    """
+    subject = state["subject"]
     have = {_norm(c.front) for c in cur.subjects.cards(subject).values()}
     added: list[dict[str, str]] = []
     refused: list[dict[str, str]] = []
@@ -185,8 +196,10 @@ def _add(cur: Context, state: State, wanted: list[Any]) -> tuple[list[Any], list
         if not front or not back or _norm(front) in have:
             continue
         have.add(_norm(front))
-        url = f"{SOURCE_HOST}/{slug}/{hashlib.sha256(front.encode()).hexdigest()[:8]}"
-        sources.seed_text(url, _BREAK.sub(";", f"Rework of {slug}: {front} {back}"))
+        url = _source_url(state["slug"], front)
+        sources.seed_text(
+            url, _BREAK.sub(";", f"Rework of {state['slug']}: {front} {back}")
+        )
         draft = card_ops.Draft(
             state["module"],
             front,
@@ -194,7 +207,7 @@ def _add(cur: Context, state: State, wanted: list[Any]) -> tuple[list[Any], list
             url,
             f"{front} {back}",
             code_built=True,
-            origin=f"rework:{slug}",
+            origin=origin,
         )
         try:
             cid, _ = card_ops.add(cur, subject, draft)
@@ -215,11 +228,13 @@ async def rework_turn(ctx: RequestContext) -> dict[str, Any]:
         msg = f"unknown rework chat {rid!r}"
         raise _bad(msg)
     module = _target(cur, state["subject"], state["module"])
-    outage.ensure_available(ctx.now())
     prompt = await asyncio.to_thread(_prompt, state, module, cur, body["text"])
-    raw = await asyncio.to_thread(ask_model, SYSTEM, prompt, SCHEMA)
+    raw, local = await asyncio.to_thread(ask_or_local, SYSTEM, prompt, SCHEMA)
     reply = str(raw.get("reply_md") or "")
-    added, refused = await asyncio.to_thread(_add, cur, state, raw.get("cards") or [])
+    # The local model wrote them during a Claude outage: the mark says so.
+    origin = f"rework:{state['slug']}" + (f" ({local})" if local else "")
+    wanted = raw.get("cards") or []
+    added, refused = await asyncio.to_thread(_add, cur, state, wanted, origin)
     state["thread"] += [
         {"mine": True, "md": body["text"]},
         {"mine": False, "md": reply},

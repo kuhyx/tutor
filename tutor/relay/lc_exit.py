@@ -6,8 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from tutor import outage
-from tutor.curriculum.modelcall import ask_model
+from tutor.curriculum.modelcall import ask_or_local
 from tutor.relay import lc_backend, lc_prompt, lc_reply, lc_state
 from tutor.relay.lc_checks import MAX_TRIES, sentences
 
@@ -74,7 +73,12 @@ async def _grade(state: lc_state.State, text: str) -> dict[str, Any]:
         f"Opening belief: {state['belief'] or 'none'}\n"
         f"kuhy's code:\n{state['last_code']}\nkuhy: {text}"
     )
-    return await asyncio.to_thread(ask_model, system, prompt, lc_prompt.GRADE_SCHEMA)
+    # The grade only steers the exit and its summary (nothing is stored from
+    # it), so the local model may give it while Claude's limit is spent.
+    grade, _ = await asyncio.to_thread(
+        ask_or_local, system, prompt, lc_prompt.GRADE_SCHEMA
+    )
+    return grade
 
 
 async def _follow_up(
@@ -117,7 +121,6 @@ async def solved(
         return _held("[run your solution on the examples first]")
     if sentences(text) > MAX_SENTENCES:
         return _held("[say it in at most 2 sentences: the key mechanism]")
-    outage.ensure_available(ctx.now())
     ex, grade = state["exit"], await _grade(state, text)
     lc_state.say(state, mine=True, md=text)
     state["phase"] = "exit"

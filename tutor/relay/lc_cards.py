@@ -8,9 +8,9 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from tutor import outage, sources
+from tutor import sources
 from tutor.curriculum import card_ops
-from tutor.curriculum.modelcall import ask_model
+from tutor.curriculum.modelcall import ask_or_local
 from tutor.curriculum.records import Meta, Module, Plan
 from tutor.curriculum.subject_store import Change
 from tutor.relay import lc_backend, lc_prompt, lc_reply, lc_state
@@ -104,7 +104,11 @@ async def _propose(
         f"Toolbox: {json.dumps(box[0])}\nProperty vocabulary: {json.dumps(box[1])}"
     )
     system = lc_prompt.system(lc_backend.coach().system_prompt(state["statement_md"]))
-    raw = await asyncio.to_thread(ask_model, system, prompt, lc_prompt.CARDS_SCHEMA)
+    # Safe on the local model: entries are matched against the toolbox and a
+    # proposal is only kept after kuhy confirms it (``_confirmed``).
+    raw, _ = await asyncio.to_thread(
+        ask_or_local, system, prompt, lc_prompt.CARDS_SCHEMA
+    )
     known = _known(box, [str(n) for n in raw.get("entries", [])])
     taken = {n.casefold() for e in box[0] for n in [e["name"], *e["aliases"]]}
     proposals = [
@@ -146,7 +150,6 @@ async def lc_cards(ctx: RequestContext) -> dict[str, Any]:
     if confirm:
         entries, refused = await _confirmed(confirm)
     else:
-        outage.ensure_available(ctx.now())
         box = await asyncio.to_thread(lc_backend.coach().toolbox)
         entries, proposals = await _propose(state, box)
     rows = await asyncio.to_thread(_fsrs, ctx.engine.ctx, entries)

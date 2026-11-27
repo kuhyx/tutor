@@ -49,10 +49,14 @@ def main(kind: str, raw_body: str) -> int:
         "created": int(now * 1000),
         "body": json.loads(raw_body),
     }
+    # The real validated Request, never a hand-built stand-in: a stand-in
+    # drifts from the type (it once lacked ``sent_at_ms``) and every kind
+    # that reads the missing field crashes.
+    request = protocol.validate(RID, req)
     ctx = SimpleNamespace(
         now=time.time,
-        request=SimpleNamespace(created_ms=int(now * 1000)),
-        body=protocol.validate(RID, req).body,
+        request=request,
+        body=request.body,
         engine=SimpleNamespace(ctx=Context(data_dir())),
     )
     started = time.monotonic()

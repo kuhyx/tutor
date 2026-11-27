@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tutor import rework_context, sources
-from tutor.curriculum import card_ops
+from tutor import local_model, rework_context, sources, unavailable
+from tutor.curriculum import card_ops, modelcall
 from tutor.curriculum.context import Context
 from tutor.curriculum.errors import EDIT_REFUSED
 from tutor.curriculum.errors import RequestError as CurriculumError
@@ -62,7 +62,7 @@ def cur(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Context:
 @pytest.fixture
 def model(monkeypatch: pytest.MonkeyPatch) -> Model:
     fake = Model()
-    monkeypatch.setattr(rework, "ask_model", fake)
+    monkeypatch.setattr(modelcall, "ask_model", fake)  # behind ask_or_local
     return fake
 
 
@@ -145,6 +145,21 @@ def test_a_turn_adds_marked_cards_and_the_module_is_owed_again(
     _turn(cur, rid, "Still lost.")
     assert "kuhy: Why a map?" in model.prompts[1]
     assert CARD["front"] in model.prompts[1]
+
+
+def test_an_outage_turn_is_answered_and_marked_by_the_local_model(
+    cur: Context, model: Model, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Claude's limit is spent: the local model answers, its cards say so."""
+    rid = _open(cur)["rework_id"]
+    now = cur.clock() / 1000
+    unavailable.record("rate_limit", now - 5, now + 600)
+    monkeypatch.setattr(local_model, "ask", model)
+    model.replies.append({"reply_md": "Local.", "cards": [CARD]})
+    got = _turn(cur, rid)
+    assert (got["reply_md"], got["added"]) == ("Local.", 1)
+    rec = cur.subjects.cards(LC)[got["cards"][0]["id"]]
+    assert rec.tutor["source"] == f"rework:{SLUG} ({local_model.MODEL})"
 
 
 def test_a_turn_caps_the_cards_and_reports_refusals(

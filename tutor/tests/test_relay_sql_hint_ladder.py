@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from tutor.relay import sql_model
+from tutor.curriculum import modelcall
 from tutor.tests._sql_support import FakeSd, call, install_fake_fp, install_fake_sd
 
 NUDGE = "Which rule decides how many decimals a number keeps in the output?"
@@ -27,7 +27,7 @@ class FakeModel:
 
 def model(monkeypatch: pytest.MonkeyPatch, *answers: dict[str, Any]) -> FakeModel:
     fake = FakeModel(*answers)
-    monkeypatch.setattr(sql_model, "ask_model", fake)
+    monkeypatch.setattr(modelcall, "ask_model", fake)  # behind ask_or_local
     return fake
 
 
