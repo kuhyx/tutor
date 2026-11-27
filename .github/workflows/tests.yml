@@ -49,23 +49,37 @@ jobs:
       # code_runner's sandbox tests need bwrap; Ubuntu 24.04 blocks the
       # unprivileged user namespaces it uses.
       - if: matrix.task == 'pytest'
-        name: Install bubblewrap
+        name: Sandbox, X display and system pytest
         run: |
           sudo apt-get update
-          # test_subset_run runs pytest from the system python (addopts: --cov).
-          sudo apt-get install -y bubblewrap python3-pytest python3-pytest-cov
+          # python3-pytest(-cov): test_subset_run runs pytest from the system
+          # python; without pytest-cov it rejects pyproject's --cov addopts
+          # before the root conftest can re-run it under .venv.
+          # xvfb: the gate's Tk tests skip with no X display, and the gate
+          # modules they cover then fail the 100% coverage gate.
+          sudo apt-get install -y bubblewrap xvfb python3-pytest python3-pytest-cov
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          # Ubuntu's passt profile lets pasta exec only a few paths, so the
-          # netfence tests' pasta wrapper got "Permission denied".
-          for profile in /etc/apparmor.d/*passt* /etc/apparmor.d/*pasta*; do
-            [ -f "$profile" ] || continue
-            echo "unloading $profile"
-            sudo apparmor_parser -R "$profile"
-          done
-          sudo aa-status 2>/dev/null | grep -iE 'passt|pasta' || echo "no passt/pasta profile loaded"
+          # Ubuntu's AppArmor profile for pasta lets it exec only /usr/bin/**,
+          # so pasta refused scripts/tutor_model_netfence.sh ("Permission
+          # denied"). Unload every profile attached to pasta/passt, whatever
+          # the file is named (26.04 has no usr.bin.passt); none found is an
+          # error, not a skip. Arch, the live host, has no AppArmor.
+          mapfile -t profiles < <(sudo grep -lsE '^[[:space:]]*profile[[:space:]]+[^[:space:]]+[[:space:]]+/usr/bin/pas(ta|st)' /etc/apparmor.d/* || true)
+          if [ "${#profiles[@]}" -eq 0 ]; then
+            echo "no AppArmor profile attached to pasta in /etc/apparmor.d"
+            ls /etc/apparmor.d | grep -i pas || true
+            sudo aa-status | grep -i pas || true
+            exit 1
+          fi
+          echo "unloading: ${profiles[*]}"
+          sudo apparmor_parser -R "${profiles[@]}"
+      # TUTOR_TESTS_NEED_SANDBOX: a failed pasta/bwrap probe is a collection
+      # error here, never a skip (tutor/tests/_capability.py).
       - if: matrix.task == 'pytest'
         name: Tests
-        run: .venv/bin/python -m pytest -p no:cacheprovider -q
+        env:
+          TUTOR_TESTS_NEED_SANDBOX: "1"
+        run: xvfb-run -a .venv/bin/python -m pytest -p no:cacheprovider -q
       - if: matrix.task == 'pre-commit'
         name: Restore the pre-commit hook environments
         uses: actions/cache@v4

@@ -17,6 +17,7 @@ import tempfile
 import pytest
 
 from tutor import research
+from tutor.tests._capability import skip_unless
 
 BWRAP = shutil.which("bwrap")
 
@@ -37,7 +38,7 @@ def _bwrap_works() -> bool:
     return run.returncode == 0
 
 
-pytestmark = pytest.mark.skipif(not _bwrap_works(), reason="no usable bwrap")
+pytestmark = skip_unless(works=_bwrap_works(), reason="no usable bwrap")
 
 
 def inside(root: Path, script: str) -> subprocess.CompletedProcess[str]:

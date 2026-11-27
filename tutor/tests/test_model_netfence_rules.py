@@ -13,9 +13,8 @@ from __future__ import annotations
 import shutil
 import subprocess
 
-import pytest
-
 from tutor import research
+from tutor.tests._capability import skip_unless
 
 NETFENCE = research.WRAPPER.parent / "tutor_model_netfence.sh"
 # Connect to each host:port of argv; print "<outcome> <pair>" per address.
@@ -47,7 +46,7 @@ def _pasta_works() -> bool:
     return run.returncode == 0
 
 
-pytestmark = pytest.mark.skipif(not _pasta_works(), reason="no usable pasta")
+pytestmark = skip_unless(works=_pasta_works(), reason="no usable pasta")
 
 
 def fenced(*args: str) -> subprocess.CompletedProcess[str]:
