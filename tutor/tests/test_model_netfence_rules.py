@@ -13,6 +13,8 @@ from __future__ import annotations
 import shutil
 import subprocess
 
+import pytest
+
 from tutor import research
 from tutor.tests._capability import skip_unless
 
