@@ -4,9 +4,8 @@
 The todoImplementer board runs an item's done check as written
 (``python3 -m pytest -q tests -k <name>``) with its own venv stripped from
 PATH, so ``python3`` is the system one, which has none of tutor's
-dependencies; and pyproject's whole-suite ``--cov-fail-under=100`` would fail
-any subset. The root ``conftest.py`` re-runs pytest under the repo's
-``.venv`` and lifts the whole-suite coverage gate for ``-k`` runs only.
+dependencies. The root ``conftest.py`` re-runs pytest under the repo's
+``.venv``; no coverage gate runs, so a subset run prints no coverage line.
 """
 
 from __future__ import annotations
@@ -47,4 +46,4 @@ def test_a_keyword_subset_runs_from_the_system_python(tmp_path: Path) -> None:
     )
     assert run.returncode == 0, run.stdout[-2000:] + run.stderr[-2000:]
     assert run.stdout.split()[:2] == [".", "[100%]"]  # one test ran and passed
-    assert "coverage gate skipped" in run.stdout
+    assert "coverage" not in run.stdout  # no coverage gate runs, so none is skipped

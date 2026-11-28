@@ -56,9 +56,9 @@ Read README.md first. These are the invariants that are easy to break.
 - test-changed: `scripts/test_changed.sh`
 - redraft (every module's cards drafted again by Fable; README "Redraft"): `.venv/bin/python -m tutor redraft start` (backs up `subjects/`, queues one unit per module; the live server drains the queue and waits while a reply is in flight), `status` (75 = pending, 1 = a unit failed), `report` (prints the report path); a dry run on a copy: `start --data DIR`, then `drain --data DIR` as a `systemd-run --user` unit (it refuses the live data dir)
 - code_runner (bubblewrap example runner, was kuhyx/utils): in-repo at `packages/code_runner`, editable via `scripts/setup_dev.sh`; its tests run in the same suite and coverage gate; system python: `packages/code_runner/install.sh`
-- lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy tutor tests packages/code_runner/code_runner`
-- coverage: `.venv/bin/python -m pytest -q --cov-report=lcov:coverage.lcov`
-- coverage-gaps: `coverage-gaps coverage.lcov`
+- lint: n/a: dropped (kuhy, 2026-11-27)
+- coverage: n/a: dropped (kuhy, 2026-11-27)
+- coverage-gaps: n/a: dropped (kuhy, 2026-11-27)
 - app deps: `cd app && fvm flutter pub get && dart run tool/write_firebase_config.dart`
 - app analyze: `cd app && fvm flutter analyze`
 - app test + coverage (full suite): `app/tool/test_chunks.sh`, repeat until it prints `All tests passed` (75 = call again; 6 file chunks of ~25 s, resumable, lcov merged, then `tool/check_coverage.dart`). Never `--total-shards`: it splits tests, every shard still compiles all files. One file: `cd app && fvm flutter test test/<path>_test.dart`

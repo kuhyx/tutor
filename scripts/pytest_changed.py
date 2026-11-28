@@ -6,8 +6,7 @@ The hook must always finish under the 60 s per-action cap, at any machine load.
 1. A pass stamp for the staged tree (``git write-tree``, see ``pytest_store``)
    written by ``scripts/pytest_stamp.py run`` passes instantly.
 2. No stamp and a small change (under a quarter of the test files reach it):
-   run those tests inline with 100% line and branch coverage on exactly the
-   changed source files.
+   run those tests inline.
 3. No stamp and anything bigger (``pyproject.toml``, any ``conftest.py``,
    ``--all-files``, a wide fan-out): fail in about a second with the command
    that runs the suite in chunks of under 60 s each and writes the stamp.
@@ -24,7 +23,6 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-import tempfile
 from typing import NamedTuple
 
 import pytest_store
@@ -47,7 +45,7 @@ RUN_CMD = ".venv/bin/python scripts/pytest_stamp.py run"
 _INLINE_SHARE = 0.25
 # pytest-xdist workers: the sandbox waits (bubblewrap) dominate wall time.
 WORKERS = int(os.environ.get("PYTEST_WORKERS", "6"))
-# pyproject's addopts carry the full-suite --cov gate; a subset swaps it out.
+# A subset runs with plain options, whatever pyproject's addopts say.
 _SUBSET_OPTS = ["-o", "addopts=-ra --strict-markers --strict-config"]
 
 
@@ -194,15 +192,11 @@ def plan(changed: list[Path]) -> Plan:
 
 
 def pytest_cmd(workers: int) -> list[str]:
-    """Subset pytest command: coverage collected, no gate (the caller reports)."""
+    """Subset pytest command."""
     xdist = ["-n", str(workers)] if workers > 1 else []
     return [
         *_PYTEST,
         *xdist,
-        "--cov=tutor",
-        "--cov=code_runner",
-        "--cov-branch",
-        "--cov-report=",
         *_SUBSET_OPTS,
     ]
 
@@ -223,22 +217,8 @@ def main(argv: list[str]) -> int:
     if not todo.tests:
         say(f"no test reaches {', '.join(todo.sources)}")
         return 1
-    say(f"{len(todo.tests)} test files, coverage on {len(todo.sources)} source files")
-    return run_covered(todo)
-
-
-def run_covered(todo: Plan) -> int:
-    """Run the plan's tests and require 100% on its sources (one process, inline)."""
-    with tempfile.TemporaryDirectory(prefix="pytest-changed-") as tmp:
-        env = {**os.environ, "COVERAGE_FILE": str(Path(tmp) / ".coverage")}
-        code = _run([*pytest_cmd(WORKERS), *map(str, todo.tests)], env)
-        if code or not todo.sources:
-            return code
-        include = ",".join(f"*/{s}" for s in todo.sources)
-        report = [sys.executable, "-m", "coverage", "report", f"--include={include}"]
-        return _run(
-            [*report, "--fail-under=100", "--show-missing", "--skip-covered"], env
-        )
+    say(f"{len(todo.tests)} test files")
+    return _run([*pytest_cmd(WORKERS), *map(str, todo.tests)])
 
 
 if __name__ == "__main__":

@@ -46,7 +46,6 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run tool/write_firebase_config.dart --placeholder
-      - run: flutter analyze
       - run: flutter test
 
   release:

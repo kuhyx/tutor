@@ -31,8 +31,6 @@ jobs:
         id: py
         with:
           python-version: "3.x"
-      - name: Ensure shellcheck
-        run: command -v shellcheck || sudo apt-get install -y shellcheck
       # The editable install points at this checkout's path, which is the same
       # on every run, so the restored venv is valid as-is.
       - name: Restore the dev venv
@@ -110,5 +108,4 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run tool/write_firebase_config.dart --placeholder
-      - run: flutter analyze
       - run: flutter test

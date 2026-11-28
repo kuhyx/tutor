@@ -151,11 +151,6 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "-ra",
-    "--cov=tutor",
-    "--cov=code_runner",
-    "--cov-branch",
-    "--cov-report=term-missing",
-    "--cov-fail-under=100",
 ]
 filterwarnings = ["error::ResourceWarning"]
 

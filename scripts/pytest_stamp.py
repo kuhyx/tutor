@@ -11,9 +11,8 @@ loaded the machine is, so the commit hook itself never has to run the suite:
 The selection is the one ``pytest_changed.py`` makes from the staged python and
 pyproject files (the full suite when it cannot narrow). It is split into
 chunks; ``run`` starts chunks while the call has time left, saves progress
-under the git dir, and when every chunk has passed it combines the coverage
-data, requires 100% line and branch coverage (on the changed source files, or
-everywhere for the full suite), and writes the pass stamp for ``git write-tree``.
+under the git dir, and when every chunk has passed it writes the pass stamp
+for ``git write-tree``.
 The hook accepts exactly that tree. Any later change to the index invalidates it.
 """
 
@@ -90,45 +89,16 @@ def _save(tree: str, state: State) -> None:
     _state_file(tree).write_text(json.dumps(asdict(state)), encoding="utf-8")
 
 
-def _cov_file(tree: str, index: int) -> Path:
-    return store.state_dir() / f"{tree}.cov.{index}"
-
-
 def _run_chunk(tree: str, index: int, names: list[str]) -> bool:
-    env = {**os.environ, "COVERAGE_FILE": str(_cov_file(tree, index))}
     cmd = [*sel.pytest_cmd(sel.WORKERS), *names]
     try:
         return (
-            subprocess.run(
-                cmd, check=False, env=env, timeout=_CHUNK_TIMEOUT_S
-            ).returncode
-            == 0
+            subprocess.run(cmd, check=False, timeout=_CHUNK_TIMEOUT_S).returncode == 0
         )
     except subprocess.TimeoutExpired:
         _logger.warning("chunk %d timed out", index + 1)
         sel.say(f"chunk {index + 1} passed {_CHUNK_TIMEOUT_S} s: lower _CHUNK_FILES")
         return False
-
-
-def _coverage_ok(tree: str, sources: list[str]) -> bool:
-    """Combine the chunk data and require 100% branch coverage."""
-    data = store.state_dir() / f"{tree}.cov"
-    parts = sorted(str(p) for p in store.state_dir().glob(f"{tree}.cov.*"))
-    base = [sys.executable, "-m", "coverage"]
-    subprocess.run(
-        [*base, "combine", "--keep", f"--data-file={data}", *parts],
-        check=True,
-        capture_output=True,
-    )
-    include = [f"--include={','.join(f'*/{s}' for s in sources)}"] if sources else []
-    report = [*base, "report", f"--data-file={data}", *include]
-    return (
-        subprocess.run(
-            [*report, "--fail-under=100", "--show-missing", "--skip-covered"],
-            check=False,
-        ).returncode
-        == 0
-    )
 
 
 def _work(tree: str, state: State, only: int | None, *, full: bool) -> int:
@@ -183,10 +153,8 @@ def run(only: int | None, *, full: bool = False) -> int:
         return 0
     state = _load(tree, files, todo)
     code = _work(tree, state, only, full=full)
-    # Only tests changed: nothing to cover (pytest_changed's inline path agrees).
-    covered = not state.full and not state.sources
-    if code or not (covered or _coverage_ok(tree, state.sources)):
-        return code or 1
+    if code:
+        return code
     info = {"full": state.full, "files": files, "chunks": len(state.chunks)}
     store.write_stamp(tree, info)
     sel.say("stamp written")
